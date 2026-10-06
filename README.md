@@ -5,6 +5,7 @@ Standalone merchant POS, customer ordering, Solana payments, loyalty and AI camp
 สถานะ: **วางแผน / Phase 0** ยังไม่มีแอปที่รันได้ใน repository นี้
 
 - GitHub owner: `cryptoclocks`
+- Repository: [cryptoclocks/BitPOS](https://github.com/cryptoclocks/BitPOS)
 - Local workspace: `/Users/cryptoclock/Desktop/BitPOS`
 - Repository เริ่มเป็น private; ตรวจข้อกำหนด Hackathon ก่อนเปิด public และส่งงาน
 - แยก lifecycle, deployment, secrets และฐานข้อมูลของ BitPOS จาก CryptoClock
