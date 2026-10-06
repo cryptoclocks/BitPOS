@@ -39,19 +39,22 @@ Destination ของงานใหม่คือ `cryptoclocks/BitPOS` ไม
 - `bills.void` คืน stock แต่ไม่ใช่หลักฐานว่า Stripe/Solana คืนเงินแล้ว
 - Session/role logic เดิมต้องถูก map ไป merchant membership และ server authorization; ไม่ copy session namespace ของ Cashless Thailand มาใช้ร่วมกัน
 
-## CryptoClock references สำหรับ adapter เท่านั้น
+## CryptoClock references: ฐาน firmware หน้าร้านและ optional adapter
 
 Workspace: `/Users/cryptoclock/Desktop/CryptoClockPro`
 
 - `apps/server/apps/api/src/ccp/ccp.service.ts`: reference การสร้าง Stripe PromptPay quote/QR ฝั่ง server; ห้ามนำ CCP top-up domain มาเป็นการขายร้าน
 - `apps/server/apps/api/src/billing/billing.service.ts`: reference verified webhook และ dispatch event; ต้องสร้าง BitPOS webhook ของตนเอง
 - `docs/operations/OCI_SUPABASE_MIGRATION_MASTER_PLAN_TH.md`: เป็นแผน migration/operational gates ไม่ใช่หลักฐานว่า self-hosted Supabase ปัจจุบันพร้อมแล้ว
-- Device/API/event transport ที่มีอยู่: ใช้ทำ integration contract ภายหลัง; ไม่แก้ firmware/production ในเฟสวางแผน
+- `device/firmware/`: ฐาน ESP-IDF/LVGL ที่จะ extract สำหรับเครื่องหน้าร้านในเฟส 1B; project ยังชื่อ `cryptoclock_pro`, CMake version ที่เห็นเป็น `0.0.6.68` ซึ่งไม่ใช่การยืนยัน production release
+- `device/firmware/main/app_main.c`: bootstrap/package readiness และ event hooks ที่ต้องปรับให้เป็น BitPOS
+- Components สำหรับ board/display/UI/network/storage/audio/OTA/security และ schemas: audit ตาม [แผน firmware](FIRMWARE_EXTRACTION_TH.md); ยังไม่ได้ copy หรือ build
+- Device/API/event transport ที่มีอยู่: reference สำหรับ BitPOS contract และ legacy/home-device adapter; ไม่แก้ firmware/production ต้นทางในเฟสวางแผน
 
 ผู้ใช้ระบุว่ามี OCI อยู่แล้ว; เฟส data/deployment ต้องตรวจว่า Supabase instance ใดเป็นจริง, capacity, credentials boundary, Auth callbacks, backup และ network ก่อนเลือก shared infrastructure หรือ dedicated service ห้ามสร้าง schema ปนระบบเดิมโดยอาศัยสมมติฐาน
 
 ## หลักฐาน
 
-`source-inventory.json` เก็บ SHA-256/ขนาด/สถานะ tracked ของไฟล์ POS ที่เลือกจากสอง snapshot โดยไม่คัดลอกเนื้อหา เป็นหลักฐานเฉพาะไฟล์ที่ตรวจ ณ เวลานั้น ไม่ใช่ audit ทั้งระบบหรือผลทดสอบ
+`source-inventory.json` เก็บ SHA-256/ขนาด/สถานะ tracked ของไฟล์ POS ที่เลือกจากสอง snapshot และไฟล์ firmware/contracts ที่เลือกจาก CryptoClock Pro โดยไม่คัดลอกเนื้อหา เป็นหลักฐานเฉพาะไฟล์ที่ตรวจ ณ เวลานั้น ไม่ใช่ audit ทั้งระบบหรือผลทดสอบ
 
 การตรวจสิทธิ์/ownership สำหรับการเปิด public และการใช้ artwork/licensed dependencies ต้องจบก่อนเผยแพร่ แต่การสร้างแผนใน private repo ทำต่อได้

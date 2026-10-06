@@ -7,12 +7,15 @@
 - Merchant web: POS เดิมครบ, reports, staff roles, menu/stock, campaign และ dashboard
 - Customer web: QR menu, guest/self-order, wallet binding, payment, loyalty/redeem
 - Terminal client: order display, payment-channel selector, QR, idle display, success sound/animation
+- Store firmware: `device/firmware/` ใน repo นี้ แยกจากฐาน CryptoClock Pro และมี product/config/build/provisioning/OTA ของ BitPOS เอง
 - Backend/worker: canonical pricing, payment verification, reward issuance, outbox, reconciliation
 - Database: isolated BitPOS tenant schema/Auth/storage บน Supabase ที่ตรวจ topology แล้ว
 - Solana: USDG settlement และ tokens/NFT เมื่อใช้ onchain rewards
-- CryptoClock: optional terminal/home-device integration ไม่เป็น dependency บังคับของ POS
+- CryptoClock เดิม: optional legacy/home-device integration ไม่เป็น dependency บังคับของ POS หรือ BitPOS firmware
 
-Browser terminal ทำให้พัฒนาจอและ demo ได้ก่อน hardware adapter แต่หลักฐานความเร็ว/ความสามารถ hardware ต้องมาจากเครื่องจริง
+Browser terminal ทำให้พัฒนาจอและ demo ได้ก่อน firmware integration แต่หลักฐานความเร็ว/ความสามารถ hardware ต้องมาจากเครื่องจริง
+
+POS store firmware และเว็บใช้ contract order/payment/event ชุดเดียวกัน Firmware ใหม่ไม่รอ catalog/entitlements ของ CryptoClock โดยต้องออกแบบ boot/readiness ใหม่ตาม [แผน firmware](FIRMWARE_EXTRACTION_TH.md) และตรวจ dependencies ก่อนย้าย
 
 ## Data flow
 

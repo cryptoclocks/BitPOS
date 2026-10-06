@@ -4,9 +4,9 @@
 
 ## ข้อเสนอที่ยึดเป็นฐาน
 
-แยก BitPOS ไปที่ `Desktop/BitPOS` และ GitHub ของ `cryptoclocks` เหมาะกับขอบเขตงานนี้ เพราะ merchant POS, customer ordering, payment, campaign และ loyalty มีวงจรพัฒนาของตัวเอง อุปกรณ์ CryptoClock เชื่อมเป็น client ผ่าน API/event contract ภายหลัง โดย BitPOS ต้องทำงานผ่าน browser ได้ด้วย
+แยก BitPOS ไปที่ `Desktop/BitPOS` และ GitHub ของ `cryptoclocks` เหมาะกับขอบเขตงานนี้ เพราะ merchant POS, customer ordering, payment, campaign และ loyalty มีวงจรพัฒนาของตัวเอง Firmware เครื่องหน้าร้านแยกจาก CryptoClock Pro มาอยู่ `device/firmware/` ใน repo BitPOS ด้วย โดย BitPOS ต้องทำงานผ่าน browser ได้ด้วย ส่วนเครื่อง CryptoClock เดิม เช่นเครื่องที่บ้าน เชื่อมผ่าน adapter ภายหลัง
 
-ย้าย **UI และฟีเจอร์ POS เดิมทั้งหมด** แต่ไม่ย้ายทั้งเว็บไซต์ Cashless Thailand หรือทั้งระบบ CryptoClock การรักษาฟีเจอร์หมายถึงรักษาพฤติกรรมทางธุรกิจ ไม่จำเป็นต้องรักษา storage/auth implementation เดิมเมื่อเปลี่ยนไป Supabase
+ย้าย **UI และฟีเจอร์ POS เดิมทั้งหมด** พร้อมฐาน firmware ที่จำเป็นสำหรับเครื่องหน้าร้าน แต่ไม่ย้ายทั้งเว็บไซต์ Cashless Thailand หรือทั้งระบบ CryptoClock การรักษาฟีเจอร์หมายถึงรักษาพฤติกรรมทางธุรกิจ ไม่จำเป็นต้องรักษา storage/auth implementation เดิมเมื่อเปลี่ยนไป Supabase
 
 ใช้ Supabase/Postgres เป็นฐานข้อมูลการทำงานของร้าน และเก็บหลักฐานการจ่าย/สิทธิ์บน Solana ไม่ลงเมนู รายละเอียดลูกค้า หรือรายการงานภายในร้านทั้งหมดบนเชน
 
@@ -17,10 +17,10 @@
 | เฟส | งาน | ผลลัพธ์ที่ต้องตรวจได้ก่อนผ่าน |
 |---|---|---|
 | 0 — แยกโครงการและสำรวจ | สร้าง repo, บันทึกต้นทางสองชุด, feature matrix, dependency และขอบเขตข้อมูล | แผนและ provenance ชัด; repo อยู่บัญชี cryptoclocks; ไม่มี secrets/ข้อมูลจริงปน |
-| 1 — ย้าย POS เดิมครบ | ย้าย 25 หน้าจอ, reports, CSS, UI dependencies, server business rules, demo และ tests ที่เกี่ยวข้อง | รันแยกจากเว็บไซต์เดิม; ไทย/อังกฤษ; owner/manager/staff; เทียบฟีเจอร์ครบตาม matrix; demo แยกจากข้อมูลจริง |
+| 1 — แยก POS และ firmware | 1A: ย้าย 25 หน้าจอ, reports, CSS, UI dependencies, server business rules, demo/tests; 1B: แยก ESP-IDF/LVGL firmware และ dependency ที่ต้องใช้สำหรับร้าน | POS รันแยก, ไทย/อังกฤษ/roles/parity ครบ; firmware build ได้จาก repo BitPOS เองและเข้า POS shell บนเครื่องทดสอบโดยไม่ต้องพึ่ง catalog ของ CryptoClock |
 | 2 — ฐานข้อมูลและการสั่ง | Supabase schema/Auth/RLS, tenant roles, เมนู, stock, order, customer self-order, guest และ wallet binding | ร้านอื่นอ่าน/แก้ข้อมูลกันไม่ได้; พนักงานหรือ QR ลูกค้าสร้าง order เดียวกันได้; ราคา/ส่วนลดคิดฝั่ง server; ไม่ oversell เมื่อซื้อพร้อมกัน |
 | 3 — รับชำระเงินจริง | Cash, Stripe PromptPay, USDG บน Solana, Actions/Blinks และเว็บสำหรับมือถือ | order ผูก quote/payment attempts/signature; ยืนยันจากผู้ให้บริการ/เชน; replay ไม่ปิดบิลหรือตัด stock ซ้ำ; ปฏิเสธ wrong mint/amount/recipient |
-| 4 — หน้าจอหน้าร้าน | Terminal web/emulator, QR ตาม order, แตะสลับ PromptPay/USDG, paid animation/เสียง, idle ticker/GIF/โฆษณา; CryptoClock adapter | order บน POS ตรงกับ terminal; event มี ACK/dedup/reconnect; วัด latency หลัง backend ยืนยัน; demo บนจอจริงเมื่อ integration พร้อม |
+| 4 — หน้าจอหน้าร้าน | Terminal web/emulator และ BitPOS firmware, QR ตาม order, แตะสลับ PromptPay/USDG, paid animation/เสียง, idle ticker/GIF/โฆษณา | order บน POS ตรงกับ terminal; event มี ACK/dedup/reconnect; วัด latency หลัง backend ยืนยัน; demo บนจอจริงหลัง firmware integration ผ่าน |
 | 5 — Loyalty และของรางวัล | แต้ม/ระดับสมาชิก, CLOCK reward ตามแบบที่เลือก, NFT 5 แบบ, สุ่ม, voucher เครื่องดื่ม, แลกของจริง, QR claim | แจกให้ wallet ตามเงื่อนไขที่ร้านกำหนด; แจก/claim/แลกซ้ำไม่ได้; payment paid แต่ mint fail แสดง reward pending และ retry ได้ |
 | 6 — AI สำหรับร้าน | ร่าง campaign จากเมนู/margin/ยอดขาย, วิเคราะห์ยอดชำระ Solana, segmentation และผลแคมเปญ | AI ใช้ข้อมูลที่ตรวจสอบได้; owner preview/publish; จำกัด budget และ eligibility ด้วย code; วัด conversion และต้นทุนรางวัลได้ |
 | 7 — เชื่อมช่องทางและนำร่อง | Notifications, home-device opt-in, online-order adapter เช่น Grab, tip/check-in/WiFi campaign, production hardening | ทุก integration ระบุ real/mock ชัด; ช่องทางที่ไม่มีสิทธิ์ API ไม่อ้างว่าเชื่อมจริง; backup/restore, observability, deployment และ pilot ผ่าน |
@@ -43,6 +43,14 @@
 รักษา responsive/mobile navigation, light/dark UI, login/logout/demo role และภาษาไทย/อังกฤษด้วย ต้องตรวจสิทธิ์ API จริง ไม่ใช้แค่ซ่อนปุ่มใน UI
 
 เปลี่ยน image references จาก Google Drive เป็น storage adapter ของ BitPOS; รูป/CSV และ business records ย้ายด้วยขั้นตอน migration ภายหลัง ไม่คัดลอก production snapshots เข้าระหว่างพัฒนา
+
+### เฟส 1B: Firmware เครื่องหน้าร้าน
+
+แยก ESP-IDF project มาอยู่ `device/firmware/` ใน repo เดียวกับ POS โดยรักษา board/display/touch, LVGL, Wi-Fi, transport, audio, SD และ OTA ที่ต้องใช้ ออก product/version/config/provisioning/OTA namespace ของ BitPOS เอง ไม่ผูก path หรือ symlink กลับไป CryptoClock Pro
+
+ต้นทางมี bootstrap ที่รอ catalog และแพ็กเกจ CryptoClock จึงต้องแทนด้วย POS boot/readiness contract ไม่เช่นนั้น copy/build ผ่านก็ยังเปิดหน้าขายไม่ได้ งานนี้ต้องตรวจ dependencies ของ WASM/package/rendering ก่อนตัดออก และรักษา fixes ด้าน display memory, SD, watchdog และ rollback
+
+อ่าน [แผน firmware](FIRMWARE_EXTRACTION_TH.md) สำหรับรายการต้นทางและ acceptance gate การ build/flash/OTA เป็นงานเฟสถัดไป ไม่ได้ทำในรอบวางแผนนี้
 
 ## เฟส 2–3: สิ่งที่ต้องออกแบบก่อนต่อ payment
 
@@ -109,7 +117,10 @@ BitPOS/
   packages/contracts/       # shared schemas/events
   packages/ui/              # POS UI + Thai/English support
   packages/domain/          # order, stock, loyalty rules
-  integrations/cryptoclock/ # adapter + protocol documentation
+  device/firmware/         # ESP-IDF/LVGL store terminal, independent build/config/OTA
+  device/schema/           # device contracts and configuration schema
+  device/assets/           # BitPOS terminal artwork/audio/fonts, licensed assets only
+  integrations/cryptoclock/ # optional legacy/home-device adapter
   supabase/migrations/      # BitPOS schema and tenant policies
   infra/                    # separate staging/production runtime
   docs/

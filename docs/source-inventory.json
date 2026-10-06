@@ -1,6 +1,6 @@
 {
   "recordedDate": "2026-10-07",
-  "scope": "Selected POS source files only; no runtime validation; remote freshness unverified",
+  "scope": "Selected POS and store firmware reference files only; no runtime validation; source remote freshness unverified",
   "sources": [
     {
       "label": "desktop-checkout",
@@ -179,6 +179,125 @@
           "path": "src/lib/i18n/locale.ts",
           "bytes": 1225,
           "sha256": "fce1ce85d7002584cb2bdc2f89b833ba6d10382f76d0318ccee61f1f0e6a2246",
+          "tracked": true,
+          "gitStatus": ""
+        }
+      ]
+    },
+    {
+      "label": "cryptoclock-firmware-reference",
+      "sourceRoot": "/Users/cryptoclock/Desktop/CryptoClockPro",
+      "head": "b6711b958bd14dd8f3f3fabc909500c57b4d6005",
+      "files": [
+        {
+          "path": "device/firmware/CMakeLists.txt",
+          "bytes": 1966,
+          "sha256": "bbc000f3c8542f35773d68422ec369aaaa60d9588a7ca7eb4d6b3df7f8d62132",
+          "tracked": true,
+          "gitStatus": ""
+        },
+        {
+          "path": "device/firmware/main/CMakeLists.txt",
+          "bytes": 291,
+          "sha256": "a1f82e8d9be20108a6cfd92e7180bde58adef91895b2823a32ecd8a9c69810f1",
+          "tracked": true,
+          "gitStatus": ""
+        },
+        {
+          "path": "device/firmware/main/app_main.c",
+          "bytes": 114651,
+          "sha256": "56cf94b15e44195e7094d888c9f357dfc2e05368dd4052fcd6158a60ea01574e",
+          "tracked": true,
+          "gitStatus": ""
+        },
+        {
+          "path": "device/firmware/main/Kconfig.projbuild",
+          "bytes": 285,
+          "sha256": "90f049bc1d12e8aea09d1fcfd376f04a4e91296716379ea672785d5db86efcdf",
+          "tracked": true,
+          "gitStatus": ""
+        },
+        {
+          "path": "device/firmware/main/idf_component.yml",
+          "bytes": 51,
+          "sha256": "8bdbdc458175e97d7255940b0d3db3a120bbf2f22c39dd242a094547dced8154",
+          "tracked": true,
+          "gitStatus": ""
+        },
+        {
+          "path": "device/firmware/main/user_config.h",
+          "bytes": 2884,
+          "sha256": "58666baf472178e2e1873b814675e890fd21fcbaab971ca10daa11b2e121c2e3",
+          "tracked": true,
+          "gitStatus": ""
+        },
+        {
+          "path": "device/firmware/sdkconfig.defaults",
+          "bytes": 3176,
+          "sha256": "c982b2c9d2b65a27bee1b3b0e69b27ca51d0553830cc5c7475d443a58c4c344b",
+          "tracked": true,
+          "gitStatus": ""
+        },
+        {
+          "path": "device/firmware/partitions.csv",
+          "bytes": 366,
+          "sha256": "49b33ad9a538319db5f10f64e57796860ca7b16c852ddf244f9f42dad8fd21bb",
+          "tracked": true,
+          "gitStatus": ""
+        },
+        {
+          "path": "device/firmware/components/board_bsp/board_bsp.c",
+          "bytes": 2408,
+          "sha256": "a200b76f0f448b9c657ee40014c0e4a15cd21eeed08e4ecf1150b5aa84efae7a",
+          "tracked": true,
+          "gitStatus": ""
+        },
+        {
+          "path": "device/firmware/components/display_engine/display_engine.c",
+          "bytes": 31452,
+          "sha256": "8f7a3531d9c6ac61e0942fffa91fd7f19b972dd5e7ee7fe13efdbe0e2ed7865d",
+          "tracked": true,
+          "gitStatus": ""
+        },
+        {
+          "path": "device/firmware/components/connectivity/connectivity.c",
+          "bytes": 15554,
+          "sha256": "283635fb0df7973a8cebcb2a5594c9a076574491d8192f57e1fe607d2a0426a4",
+          "tracked": true,
+          "gitStatus": ""
+        },
+        {
+          "path": "device/firmware/components/audio_engine/audio_engine.c",
+          "bytes": 8795,
+          "sha256": "9ef43ca6d2f108d4a934bf054432c1a80054a004a6f058bde77f15dbdbbdd7db",
+          "tracked": true,
+          "gitStatus": ""
+        },
+        {
+          "path": "device/firmware/components/sync_manager/sync_manager.c",
+          "bytes": 36322,
+          "sha256": "a24a8e9ae9013b6c392e07bd834e91cc60c1a284cbe3c3da526fb4e7cb858fe0",
+          "tracked": true,
+          "gitStatus": ""
+        },
+        {
+          "path": "device/firmware/components/ota_manager/ota_manager.c",
+          "bytes": 6694,
+          "sha256": "5ac974f4a50afb338e6d74292abca521c18109b06835fcea6e570221480e08b8",
+          "tracked": true,
+          "gitStatus": ""
+        },
+        {
+          "path": "device/schema/mqtt-messages.schema.json",
+          "bytes": 2990,
+          "sha256": "1e8f7e338b8d5ad4b49469276c39604f4479c53d90067577d3e91332a1afdc31",
+          "tracked": true,
+          "gitStatus": ""
+        },
+        {
+          "path": "device/schema/manifest.schema.json",
+          "bytes": 1680,
+          "sha256": "a092e02fdc62d3c1e60c48942ccf8a9c9e98a1d2c0c9724303e86f76990754f9",
           "tracked": true,
           "gitStatus": ""
         }

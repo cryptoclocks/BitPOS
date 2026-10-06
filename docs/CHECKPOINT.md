@@ -5,7 +5,7 @@
 - Plan phases before application implementation.
 - Create standalone `Desktop/BitPOS` repository.
 - GitHub destination must use logged-in `cryptoclocks`, not the source repository owner.
-- Extract all existing POS UI/features; CryptoClock connects through an adapter.
+- Extract all existing POS UI/features and a separate store firmware derived from CryptoClock Pro. Keep store firmware in `device/firmware/` inside BitPOS; legacy/home CryptoClock connects through an optional adapter.
 - Keep USDG/Solana, PromptPay, loyalty/NFT, AI and other discussed features in the phased scope.
 
 ## Completed locally
@@ -16,6 +16,7 @@
 - Created private GitHub repository `https://github.com/cryptoclocks/BitPOS` and pushed the planning commit to `main` successfully.
 - Wrote phased plan, source audit, architecture and work instructions.
 - Recorded selected source hashes without copying application code or credentials.
+- Inspected firmware CMake/components, partition table, event/bootstrap dependencies and OTA runbook; added Phase 1B, firmware extraction plan and target directory README.
 
 ## Limitations and remaining checks
 
@@ -31,6 +32,7 @@
 2. Extract all 25 POS screens, reports, CSS, domain/service tests and their minimal Thai/English dependencies into this repo.
 3. Replace website layout and app namespaces; keep a safe isolated demo adapter.
 4. Run existing meaningful domain tests and role/language/page smoke checks; mark parity gaps explicitly.
-5. Record new baseline and then move to Supabase schema/order lifecycle.
+5. Extract store firmware per `FIRMWARE_EXTRACTION_TH.md`; isolate BitPOS product/config/OTA and replace original catalog readiness. Build and validate on a dedicated test device when that work begins.
+6. Record POS/firmware baselines and then move to Supabase schema/order lifecycle and payment events.
 
 Do not start by rewriting every framework or deploying production. Do not reset source working trees to resolve unavailable source GitHub access.

@@ -3,6 +3,10 @@ node_modules/
 dist/
 .astro/
 coverage/
+device/firmware/build/
+device/firmware/managed_components/
+device/firmware/sdkconfig
+device/firmware/sdkconfig.old
 *.log
 .env
 .env.*
