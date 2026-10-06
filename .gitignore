@@ -1,0 +1,14 @@
+.DS_Store
+node_modules/
+dist/
+.astro/
+coverage/
+*.log
+.env
+.env.*
+!.env.example
+!.env.*.example
+secrets/
+backups/
+*.pem
+*.key

@@ -1,0 +1,188 @@
+{
+  "recordedDate": "2026-10-07",
+  "scope": "Selected POS source files only; no runtime validation; remote freshness unverified",
+  "sources": [
+    {
+      "label": "desktop-checkout",
+      "sourceRoot": "/Users/cryptoclock/Desktop/CashlessThailand/cashlessthailand",
+      "head": "d35d4c2a6eed4d3ee843857d1abf44d4579e07e6",
+      "files": [
+        {
+          "path": "src/components/pos/POSApp.jsx",
+          "bytes": 34826,
+          "sha256": "d24c3d936868439fe29b55e0096f409cf05e2e5864d1b22bff333d34a6a53e8d",
+          "tracked": false,
+          "gitStatus": "?? src/components/pos/POSApp.jsx"
+        },
+        {
+          "path": "src/components/pos/ReportPanel.jsx",
+          "bytes": 10951,
+          "sha256": "6d63a723a5d9c750e3da3ab8b704bf324b5b241ce3c1c463ff3a71bf440f6011",
+          "tracked": false,
+          "gitStatus": "?? src/components/pos/ReportPanel.jsx"
+        },
+        {
+          "path": "src/components/pos/pos.css",
+          "bytes": 16141,
+          "sha256": "07068289060ca8160afb4d4a0dac8bcb9931b5c7e07b5aa3e9560bab70aea4cc",
+          "tracked": false,
+          "gitStatus": "?? src/components/pos/pos.css"
+        },
+        {
+          "path": "src/lib/pos/service.ts",
+          "bytes": 31308,
+          "sha256": "980859b16153f02b0e19183343945460494d5abb3c43a64a21234be4657cab61",
+          "tracked": false,
+          "gitStatus": "?? src/lib/pos/service.ts"
+        },
+        {
+          "path": "src/lib/pos/storage.ts",
+          "bytes": 10269,
+          "sha256": "bfa75e31b33141f3ba16cc2a681875451601275f24c699599a354a38900af3c4",
+          "tracked": false,
+          "gitStatus": "?? src/lib/pos/storage.ts"
+        },
+        {
+          "path": "src/lib/pos/service.test.ts",
+          "bytes": 6857,
+          "sha256": "b8650b7d23a577272d5c08028f0844a0a3acfe518fb88b0b75f53ae0cb4ad194",
+          "tracked": false,
+          "gitStatus": "?? src/lib/pos/service.test.ts"
+        },
+        {
+          "path": "src/pages/api/pos.ts",
+          "bytes": 1118,
+          "sha256": "fb778ac0bba514aeecec2e7bcac58ffcd084fb9184dd32faae80e991e084450a",
+          "tracked": false,
+          "gitStatus": "?? src/pages/api/pos.ts"
+        },
+        {
+          "path": "src/pages/api/pos-demo.ts",
+          "bytes": 1119,
+          "sha256": "7aac8d920f5612a72a58949e6e429a07d88bf88b131cb40c4d9375a60a200494",
+          "tracked": false,
+          "gitStatus": "?? src/pages/api/pos-demo.ts"
+        },
+        {
+          "path": "src/pages/services/pos.astro",
+          "bytes": 407,
+          "sha256": "6eb02a4f22ffdfc3788abcf47eaf8061ee485041180814b1e9b254ced0191355",
+          "tracked": false,
+          "gitStatus": "?? src/pages/services/pos.astro"
+        },
+        {
+          "path": "src/components/LocalizedText.tsx",
+          "bytes": 178,
+          "sha256": "052e7c35ffe16a3eda4dc685929644dc6c442fc49e79d2ec45066172cb775d72",
+          "tracked": false,
+          "gitStatus": "?? src/components/LocalizedText.tsx"
+        },
+        {
+          "path": "src/lib/i18n/react.ts",
+          "bytes": 867,
+          "sha256": "9541d7fd8ce7bdfa5a71327e9554ca65440c26f5eec6ca3640d77d59d672b9b7",
+          "tracked": false,
+          "gitStatus": "?? src/lib/i18n/react.ts"
+        },
+        {
+          "path": "src/lib/i18n/locale.ts",
+          "bytes": 1137,
+          "sha256": "78d4aa2a3d69d9d5f8abab05c8d3397463282eb9d754a4c31b241e1dbf996c51",
+          "tracked": false,
+          "gitStatus": "?? src/lib/i18n/locale.ts"
+        }
+      ]
+    },
+    {
+      "label": "bilingual-worktree",
+      "sourceRoot": "/private/tmp/cashless-bilingual-push",
+      "head": "ac673c306732300198e6ef6af8d402fe4a9f4362",
+      "files": [
+        {
+          "path": "src/components/pos/POSApp.jsx",
+          "bytes": 40302,
+          "sha256": "0d4920563d5f8cab42e8e71844c8a25b78e445eb8a628fa1491f0135743fd953",
+          "tracked": true,
+          "gitStatus": ""
+        },
+        {
+          "path": "src/components/pos/ReportPanel.jsx",
+          "bytes": 12929,
+          "sha256": "ceffe6a8c2927640b9b2fed6693258ef82f05a8b8b81174c64d7ff4a298e8d23",
+          "tracked": true,
+          "gitStatus": ""
+        },
+        {
+          "path": "src/components/pos/pos.css",
+          "bytes": 16431,
+          "sha256": "cc46a2859d01fc04a0849e9eab086fc5c71dae4dc66be2a759a098510313a997",
+          "tracked": true,
+          "gitStatus": ""
+        },
+        {
+          "path": "src/lib/pos/service.ts",
+          "bytes": 31308,
+          "sha256": "980859b16153f02b0e19183343945460494d5abb3c43a64a21234be4657cab61",
+          "tracked": true,
+          "gitStatus": ""
+        },
+        {
+          "path": "src/lib/pos/storage.ts",
+          "bytes": 10328,
+          "sha256": "1afa4dcb9d19c7a5e9cfef65707d416b71599e0742ee11d094dd646b67bece86",
+          "tracked": true,
+          "gitStatus": ""
+        },
+        {
+          "path": "src/lib/pos/service.test.ts",
+          "bytes": 6857,
+          "sha256": "b8650b7d23a577272d5c08028f0844a0a3acfe518fb88b0b75f53ae0cb4ad194",
+          "tracked": true,
+          "gitStatus": ""
+        },
+        {
+          "path": "src/pages/api/pos.ts",
+          "bytes": 1118,
+          "sha256": "fb778ac0bba514aeecec2e7bcac58ffcd084fb9184dd32faae80e991e084450a",
+          "tracked": true,
+          "gitStatus": ""
+        },
+        {
+          "path": "src/pages/api/pos-demo.ts",
+          "bytes": 1119,
+          "sha256": "7aac8d920f5612a72a58949e6e429a07d88bf88b131cb40c4d9375a60a200494",
+          "tracked": true,
+          "gitStatus": ""
+        },
+        {
+          "path": "src/pages/services/pos.astro",
+          "bytes": 407,
+          "sha256": "6eb02a4f22ffdfc3788abcf47eaf8061ee485041180814b1e9b254ced0191355",
+          "tracked": true,
+          "gitStatus": ""
+        },
+        {
+          "path": "src/components/LocalizedText.tsx",
+          "bytes": 178,
+          "sha256": "052e7c35ffe16a3eda4dc685929644dc6c442fc49e79d2ec45066172cb775d72",
+          "tracked": true,
+          "gitStatus": ""
+        },
+        {
+          "path": "src/lib/i18n/react.ts",
+          "bytes": 867,
+          "sha256": "9541d7fd8ce7bdfa5a71327e9554ca65440c26f5eec6ca3640d77d59d672b9b7",
+          "tracked": true,
+          "gitStatus": ""
+        },
+        {
+          "path": "src/lib/i18n/locale.ts",
+          "bytes": 1225,
+          "sha256": "fce1ce85d7002584cb2bdc2f89b833ba6d10382f76d0318ccee61f1f0e6a2246",
+          "tracked": true,
+          "gitStatus": ""
+        }
+      ]
+    }
+  ]
+}
