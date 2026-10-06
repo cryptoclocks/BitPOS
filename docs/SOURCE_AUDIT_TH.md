@@ -53,6 +53,8 @@ Workspace: `/Users/cryptoclock/Desktop/CryptoClockPro`
 
 ผู้ใช้ระบุว่ามี OCI อยู่แล้ว; เฟส data/deployment ต้องตรวจว่า Supabase instance ใดเป็นจริง, capacity, credentials boundary, Auth callbacks, backup และ network ก่อนเลือก shared infrastructure หรือ dedicated service ห้ามสร้าง schema ปนระบบเดิมโดยอาศัยสมมติฐาน
 
+Update 2026-10-07: ตรวจ live OCI แบบ read-only แล้ว พบสอง Supabase stacks ที่รายงาน healthy และ rehearsal services; RAM/disk ยังมี headroom สำหรับ staging ขนาดเล็ก รายละเอียดใน [OCI preflight](OCI_PREFLIGHT_TH.md) ยังไม่ได้เลือก/สร้าง BitPOS database/Auth boundary หรือทำ production migration
+
 ## หลักฐาน
 
 `source-inventory.json` เก็บ SHA-256/ขนาด/สถานะ tracked ของไฟล์ POS ที่เลือกจากสอง snapshot และไฟล์ firmware/contracts ที่เลือกจาก CryptoClock Pro โดยไม่คัดลอกเนื้อหา เป็นหลักฐานเฉพาะไฟล์ที่ตรวจ ณ เวลานั้น ไม่ใช่ audit ทั้งระบบหรือผลทดสอบ

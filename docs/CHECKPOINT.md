@@ -17,13 +17,14 @@
 - Wrote phased plan, source audit, architecture and work instructions.
 - Recorded selected source hashes without copying application code or credentials.
 - Inspected firmware CMake/components, partition table, event/bootstrap dependencies and OTA runbook; added Phase 1B, firmware extraction plan and target directory README.
+- Read-only OCI audit completed on 2026-10-07: ARM64/4 CPUs, about 10.17 GiB RAM available and 31.98 GiB disk available; two healthy Supabase stacks plus rehearsal services. Docker build cache is zero; five unreferenced dangling candidates have only about 317 kB combined unique size. See `OCI_PREFLIGHT_TH.md` and local evidence under `Desktop/OCI`.
 
 ## Limitations and remaining checks
 
 - Source remote fetch failed with available account; remote freshness remains unknown.
 - Candidate tracked snapshot: `/private/tmp/cashless-bilingual-push`, HEAD `ac673c3`; primary Desktop checkout POS paths are untracked.
 - No POS runtime tests performed this round; no application implementation yet.
-- No Supabase/OCI live topology inspected, no schema/auth migration or production change.
+- OCI capacity and Docker/Supabase runtime topology inspected; BitPOS data/Auth boundary and backup/restore remain unverified. No schema/auth migration, cleanup, restart, deployment or production configuration change performed.
 - No hardware/payment/AI/reward functionality implemented in this repository yet.
 
 ## Next implementation work: Phase 1
