@@ -3,6 +3,7 @@ node_modules/
 dist/
 .astro/
 coverage/
+artifacts/team-guide/
 device/firmware/build/
 device/firmware/managed_components/
 device/firmware/sdkconfig

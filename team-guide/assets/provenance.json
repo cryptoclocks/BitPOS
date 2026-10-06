@@ -1,0 +1,55 @@
+{
+  "date": "2026-10-07",
+  "assets": [
+    {
+      "file": "fonts/DSEG-LICENSE.txt",
+      "source": "https://raw.githubusercontent.com/keshikan/DSEG/master/DSEG-LICENSE.txt",
+      "sha256": "9afbc287e117808e3f32deba6823b7ef646fa58be867d9e2e068e62fdfcf106c",
+      "handling": "License text retained; line endings and trailing whitespace normalized"
+    },
+    {
+      "file": "fonts/DSEG14Modern-Regular.woff2",
+      "source": "CryptoClockPro/resources/design-system/reference/assets/fonts/DSEG14Modern-Regular.woff2",
+      "sha256": "f75bb21980b68acc537f2ce7592be694d466d888adf185a0d5d9f3b34352987c"
+    },
+    {
+      "file": "fonts/DSEG7Modern-Regular.woff2",
+      "source": "CryptoClockPro/resources/design-system/reference/assets/fonts/DSEG7Modern-Regular.woff2",
+      "sha256": "3ea4cfd8ce47d00563bf967151cea3a4be9109edb49d38d8b48f98fe5abf1780"
+    },
+    {
+      "file": "fonts/Montserrat-Medium.ttf",
+      "source": "CryptoClockPro/resources/design-system/reference/assets/fonts/Montserrat-Medium.ttf",
+      "sha256": "421f26b23e2be6b98373d32acd3cb2897b154d4bf0a77d26534ce476e4cbed53"
+    },
+    {
+      "file": "fonts/Montserrat-OFL.txt",
+      "source": "https://raw.githubusercontent.com/google/fonts/main/ofl/montserrat/OFL.txt",
+      "sha256": "861d64229728cd65a98d119612c12769582574d1a092f0b63c8b0fd474e7065f",
+      "handling": "License text retained; line endings and trailing whitespace normalized"
+    },
+    {
+      "file": "fonts/OFL.txt",
+      "source": "https://raw.githubusercontent.com/google/fonts/main/ofl/sarabun/OFL.txt",
+      "sha256": "751218ccf5c0bfcd7cbaee3cdcd60a4e8703676bf6c3f56ebf26dc1343b1fe9f",
+      "handling": "License text retained; line endings and trailing whitespace normalized"
+    },
+    {
+      "file": "fonts/Sarabun-Regular.ttf",
+      "source": "https://github.com/google/fonts/tree/main/ofl/sarabun",
+      "sha256": "226d4f368fbc0457990ddef2692679badfd2c1a4e89e5ac4d43c10ba7743b2f1"
+    },
+    {
+      "file": "fonts/Sarabun-SemiBold.ttf",
+      "source": "https://github.com/google/fonts/tree/main/ofl/sarabun",
+      "sha256": "c0bb057d86e4a12097d701ac0953597e315788d47a446f5b63a6604ab21dceba"
+    },
+    {
+      "file": "legacy/bitpos-terminal.webp",
+      "source": "CashlessThailand/cashlessthailand/public/images/products/bitpos-terminal/main.800.webp",
+      "sha256": "6bbeba6af5fe4434167b3dad6bf73c9648cba323d48266509936c139e8292433",
+      "handling": "Byte-for-byte copy; existing product illustration, not BitPosClock hardware evidence"
+    }
+  ],
+  "deviceMockups": "Rendered from team-guide/clock native HTML/CSS/SVG; generated fixtures; no real customer data"
+}

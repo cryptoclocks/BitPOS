@@ -7,6 +7,8 @@
 - GitHub destination must use logged-in `cryptoclocks`, not the source repository owner.
 - Extract all existing POS UI/features and a separate store firmware derived from CryptoClock Pro. Keep store firmware in `device/firmware/` inside BitPOS; legacy/home CryptoClock connects through an optional adapter.
 - Keep USDG/Solana, PromptPay, loyalty/NFT, AI and other discussed features in the phased scope.
+- Create an offline website inside BitPOS explaining the entire product, diagrams and phases to hackathon teammates; no hosting/deployment requested.
+- Make the guide purple, reuse the existing BitPOS product illustration and create BitPosClock screen mockups using the explicitly named `CryptoClockPro/resources/design-system/reference/SKILL.md`.
 
 ## Completed locally
 
@@ -18,6 +20,10 @@
 - Recorded selected source hashes without copying application code or credentials.
 - Inspected firmware CMake/components, partition table, event/bootstrap dependencies and OTA runbook; added Phase 1B, firmware extraction plan and target directory README.
 - Read-only OCI audit completed on 2026-10-07: ARM64/4 CPUs, about 10.17 GiB RAM available and 31.98 GiB disk available; two healthy Supabase stacks plus rehearsal services. Docker build cache is zero; five unreferenced dangling candidates have only about 317 kB combined unique size. See `OCI_PREFLIGHT_TH.md` and local evidence under `Desktop/OCI`.
+- Created `team-guide/` offline handbook and `START-HERE.html`: 15 sections, interactive architecture, 25 POS features, 8 phases, 5 SVG collectible concepts, payment/reward simulations, campaign calculator, local Thai fonts and print support. This is documentation/fixture UI, not application implementation.
+- Applied the purple palette across handbook/diagrams/SVG downloads, added the verified legacy BitPOS illustration and its provenance, and built `team-guide/clock/`: an offline 18-screen BitPosClock gallery with triggers/contracts/phase mapping, individual 480×320 PNGs and overview/contact sheets. Design follows the requested skill with purple overriding its default teal. See `BITPOSCLOCK_DESIGN_TH.md`.
+- Local Chrome browser QA passed: all 18 PNGs render at 480×320 with no text/card overflow; gallery selection/filters/keyboard/deep links/handbook navigation and 390/320 responsive layouts work; handbook 12 payment fixture scenarios, diagram/export, POS filters, campaign math, search/menu and print layout pass. Offline `file://` contexts observed zero external requests, failed resources or page errors. These are browser checks, not live chain/hardware checks.
+- Team handoff ZIP is generated with `python3 tools/package-team-guide.py` at `artifacts/team-guide/BitPOS-Team-Guide.zip` (ignored output). It contains local HTML/fonts/assets, mockups and documentation; the user can unzip and double-click `START-HERE.html`. QA outputs live under `artifacts/team-guide/`; build dependencies are only needed to regenerate them.
 
 ## Limitations and remaining checks
 
