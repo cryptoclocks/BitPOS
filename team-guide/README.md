@@ -4,7 +4,7 @@
 
 ## เนื้อหา
 
-15 บท: ภาพรวมและลูกค้า, flow จำลอง, architecture diagram, payments/Blinks, data boundaries, POS 25 หน้าจอ, firmware, loyalty/NFT, AI/campaign economics, integrations, stack/repo, phases/workstreams, OCI snapshot, Hackathon และ glossary/references
+16 บท: ภาพรวมและลูกค้า, ประโยชน์ต่อร้านค้าและ Solana / เหตุผลเลือกจอ CryptoClock Pro 3.5 นิ้วและ USDG, flow จำลอง, architecture diagram, payments/Blinks, data boundaries, POS 25 หน้าจอ, firmware, loyalty/NFT, AI/campaign economics, integrations, stack/repo, phases/workstreams, OCI snapshot, Hackathon และ glossary/references
 
 - ธีมม่วง พร้อมภาพประกอบตัวเครื่อง BitPOS เดิมที่ตรวจและบันทึก provenance แล้ว
 - แกลเลอรี `clock/index.html` และภาพ PNG 18 หน้า BitPosClock ขนาด 480×320 พร้อม trigger / backend contract
