@@ -9,7 +9,7 @@
 - Preserve the full existing POS feature inventory, Thai/English translations and server-side role enforcement. Record any missing feature explicitly; do not silently remove it to reduce scope.
 - Extract the smallest dependency closure for POS and store firmware. Do not bulk-copy the full website, unrelated CryptoClock applications/assets/releases, CCP billing domain, root environment files or production data.
 - Track source provenance and distinguish inherited functionality from work created during the competition.
-- Use isolated local/staging configuration before any production rollout. BitPOS must have its own service identity and data boundary.
+- Use one dedicated actual-use BitPOS Supabase stack on OCI, as authorized on 2026-10-08; do not create a second staging stack. Keep local tests and BitPOS service/data identities separate from CryptoClock. Solana remains devnet until separately authorized.
 - Payments must use canonical server-side quotes and integer minor units. A wallet signature or client callback is not proof of payment.
 - Verify chain, token mint/program, successful transaction, intended recipient, exact quoted amount and order attribution. Authenticate payment webhooks and deduplicate effects.
 - Paid orders, inventory, rewards and device events must survive duplicate callbacks, disconnected devices and worker restarts. Use transactional database updates, durable outbox and reconciliation.

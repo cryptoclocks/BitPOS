@@ -1,0 +1,42 @@
+{
+  "reference": "CryptoClockPro (read only)",
+  "files": [
+    {
+      "source": "components/board_bsp/CMakeLists.txt",
+      "sha256": "63e83b9e906d3939e3e83b6b634b9647122cca53466a30a030a0d465ee307b1f"
+    },
+    {
+      "source": "components/board_bsp/board_bsp.c",
+      "sha256": "a200b76f0f448b9c657ee40014c0e4a15cd21eeed08e4ecf1150b5aa84efae7a"
+    },
+    {
+      "source": "components/board_bsp/include/ccp_board.h",
+      "sha256": "68483b6f75727bd68a9eb44fff297d971110ad425fa3b0e6ab7f06d7f1e0369d"
+    },
+    {
+      "source": "components/display_engine/CMakeLists.txt",
+      "sha256": "dce69180d4410be875d8c3f997ccef4d2d2c04cd7e2006792579d6c1f82f0b9e"
+    },
+    {
+      "source": "components/display_engine/display_engine.c",
+      "sha256": "8f7a3531d9c6ac61e0942fffa91fd7f19b972dd5e7ee7fe13efdbe0e2ed7865d"
+    },
+    {
+      "source": "components/display_engine/idf_component.yml",
+      "sha256": "a34c93562754d68bbeca6e0dbd2cf63962e289daf79bc1288568c5e72db34801"
+    },
+    {
+      "source": "components/display_engine/esp_lcd_axs15231b.h",
+      "sha256": "4e22f6494ddaf3053f3b058ecb043f8dc86d6fbb7b78fdc2a83cee8b74dff037"
+    },
+    {
+      "source": "components/display_engine/esp_lcd_axs15231b.c",
+      "sha256": "24f7e4956871cef86bc4a51baeab370d19a181e36decac4ad69d4aa9f51849d7"
+    },
+    {
+      "source": "components/display_engine/include/display_engine.h",
+      "sha256": "4a005a4e8e3846aed38d1e7bde0f93adda424a2849e04a323e3c0632ddffb408"
+    }
+  ],
+  "new": "BitPOS app, provisioning and POS shell; no catalog/OTA service reuse"
+}

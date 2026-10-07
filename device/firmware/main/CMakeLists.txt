@@ -1,0 +1,1 @@
+idf_component_register(SRCS "main.c" "bitpos_font_18.c" "bitpos_font_24.c" INCLUDE_DIRS "." REQUIRES board_bsp display_engine esp_wifi nvs_flash esp_event esp_netif esp_websocket_client esp_http_client json esp_driver_i2s esp_timer)

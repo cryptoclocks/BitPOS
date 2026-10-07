@@ -1,0 +1,59 @@
+modelRoles:
+  default: openai-codex/gpt-6.1-sol:low
+  task: openai-codex/gpt-6.1-sol:low
+  smol: openai-codex/gpt-6.1-sol:low
+  plan: openai-codex/gpt-6.1-sol:high
+  slow: openai-codex/gpt-6.1-sol:high
+  audit: openai-codex/gpt-6.1-sol:high
+  designer: openai-codex/gpt-6.1-sol:low
+modelRoleStorage: project
+cycleOrder: [default]
+autoResume: false
+prewalk:
+  enabled: false
+tools:
+  approvalMode: yolo
+  speculativeExecution:
+    enabled: false
+task:
+  batch: true
+  speculativeLaunch: false
+  maxConcurrency: 3
+  maxRecursionDepth: 1
+  enableEffort: true
+  maxEffort: high
+  prewalk: false
+  completionProbe: false
+  showResolvedModelBadge: true
+  isolation:
+    enabled: true
+    apply: false
+    merge: patch
+  agentModelOverrides:
+    architect: openai-codex/gpt-6.1-sol:high
+    pos-web: openai-codex/gpt-6.1-sol:low
+    payment-backend: openai-codex/gpt-6.1-sol:low
+    firmware: openai-codex/gpt-6.1-sol:low
+    final-reviewer: openai-codex/gpt-6.1-sol:high
+    task: openai-codex/gpt-6.1-sol:low
+retry:
+  enabled: true
+  maxRetries: 3
+  usageAwareFallback: true
+  usageReservePct: 0
+  modelFallback: false
+  waitForUsageReset: true
+advisor:
+  enabled: false
+memory:
+  backend: "off"
+goal:
+  enabled: true
+  continuationModes: [interactive]
+skills:
+  includeSkills: [omp-pstack-bitpos, poteto-mode, how, architect, swarm, tdd, principle-*]
+  customDirectories: [.omp/vendor/pstack/plugins/pstack/skills]
+  enableClaudeProject: false
+  enableClaudeUser: false
+  enablePiProject: false
+  enablePiUser: false

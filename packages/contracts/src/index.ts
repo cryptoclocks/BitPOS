@@ -1,0 +1,2 @@
+export type OrderStatus='AWAITING_WALLET'|'AWAITING_PAYMENT'|'CONFIRMING'|'PAID'|'EXPIRED'|'RECOVERY';
+export interface TerminalEvent {schemaVersion:1;eventId:string;merchantId:string;terminalId:string;orderId:string;orderVersion:number;type:string;paymentStatus:OrderStatus;occurredAt:string;display:{orderLabel:string;amountMinor:string;currency:'USDG';decimals:6;items:string[];qrUrl:string;sound:boolean};}

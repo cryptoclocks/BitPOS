@@ -21,3 +21,15 @@ BitPOS-Devnet-Private/
 **/*.keypair.json
 **/*.base58.txt
 **/keys/
+
+local/
+artifacts/runtime/
+artifacts/hardware/
+.pnpm-store/
+infra/init.sql
+.omp/work/
+.omp/vendor/
+.omp/worktrees/
+
+__pycache__/
+*.pyc
