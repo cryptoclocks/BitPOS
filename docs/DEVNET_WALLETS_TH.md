@@ -136,3 +136,7 @@ node tools/devnet/export.cjs
 4. เมื่อตัว POS เริ่ม implement ให้ตรวจ successful transaction, recipient, exact quote และ order reference ฝั่ง backend การมี wallet/ยอดทดสอบยังไม่ใช่การทดสอบ order lifecycle หรือ NFT redemption
 
 ดู snapshot จริงล่าสุดใน `devnet/wallets.public.json`; ห้ามสรุปว่าเติมครบจากค่า target อย่างเดียว
+
+## Live funding / smoke snapshot — 2026-10-07
+
+Received 10 devnet SOL in reserve; starter distribution and four USDG transfer/refund tests confirmed, including zero-SOL sponsored customer. After fee top-up: total SOL 9.99995, reserve 9.31995; all 19 wallets retain 100 USDG each. Starter verification passed; full 16 SOL profile not reached. Public transaction links appear in devnet dashboard. No Kora/POS/NFT/hardware test is implied.

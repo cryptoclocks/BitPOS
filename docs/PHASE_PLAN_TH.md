@@ -140,3 +140,19 @@ BitPOS/
 อุปสรรคปัจจุบัน: fetch repo ต้นทางไม่ได้ด้วยสิทธิ์ GitHub ที่มี แต่มี POS snapshot ที่ tracked และสะอาดใน worktree อีกชุด ต้องตรวจความใหม่อีกครั้งก่อน extraction ถ้าสิทธิ์ต้นทางพร้อม ห้ามล้าง local work เพื่อแก้เรื่องนี้
 
 แหล่งข้อกำหนดทางเทคนิค: [Solana Actions](https://solana.com/docs/tools/actions), [Solana signatureSubscribe](https://solana.com/docs/rpc/websocket/signaturesubscribe), [Stripe PromptPay](https://docs.stripe.com/payments/promptpay), [Supabase self-hosting](https://supabase.com/docs/guides/self-hosting/docker)
+
+
+## Payment revision — 2026-10-07
+
+- Solana Pay QR/transaction requests and web/Actions/Blinks share canonical quote/payment attempt/reference and backend verifier. Test wallet/mobile compatibility.
+- Evaluate isolated Kora paymaster on OCI for merchant-sponsored fees: USDG-only customer pays with zero SOL; sponsor still needs SOL. Validate order, mint/program/instructions/recipient; enforce authentication, rate limits and per-order/day budgets.
+- USDG Token-2022 extensions, fees/hooks and decimals require integration tests; generic token support is insufficient.
+- New module: Solana Kit + Wallet Standard; transaction version follows wallet/SDK capabilities with fallback. Keep legacy devnet tools isolated. Evaluate Commerce Kit primitives before adopting USDG checkout.
+- Verify actual incoming transfer, successful transaction, exact quote, mint/program/recipient and order reference. Post-token balance or client callback alone cannot close a bill. Deduplicate signatures/effects.
+- Surfpool local integration tests simulate balances without waiting for faucets; label local assets separately from Paxos devnet USDG. Retain live devnet tests.
+- confirmed for feedback; finalized before irreversible fulfillment according to policy. Hardware latency target remains backend verification to render ACK.
+- Demo: AI draft / owner publish → order → sponsored USDG payment → verification → terminal ACK → loyalty/voucher.
+
+These are plans; Kora, Commerce Kit and Surfpool are not installed or implemented.
+
+Source: https://github.com/solana-foundation/solana-dev-skill/blob/main/skills/solana-dev/references/payments.md
