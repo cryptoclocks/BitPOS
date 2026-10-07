@@ -1,4 +1,4 @@
-"""Package only offline documentation, mockups and reproducible artifact tools."""
+"""Package offline docs, mockups, public devnet roster and reproducible tools."""
 from pathlib import Path
 import json
 import zipfile
@@ -8,12 +8,14 @@ OUT = ROOT / "artifacts" / "team-guide"
 OUT.mkdir(parents=True, exist_ok=True)
 TARGET = OUT / "BitPOS-Team-Guide.zip"
 files = [ROOT / "START-HERE.html", ROOT / "README.md", ROOT / "device/firmware/README.md"]
-for folder in ["team-guide", "docs", "tools"]:
+for folder in ["team-guide", "docs", "tools", "devnet"]:
     files.extend(p for p in (ROOT / folder).rglob("*") if p.is_file() and "__pycache__" not in p.parts)
 for item in files:
     if item.is_symlink() or not item.resolve().is_relative_to(ROOT):
         raise ValueError(f"Unexpected source path: {item}")
-    if item.name.startswith(".env") or item.suffix in {".key", ".pem", ".log"}:
+    if (item.name.startswith(".env") or item.suffix in {".key", ".pem", ".log"}
+            or item.name.endswith((".keypair.json", ".base58.txt"))
+            or any(part in {"keys", "secrets", "BitPOS-Devnet-Private"} for part in item.relative_to(ROOT).parts)):
         raise ValueError(f"Disallowed package file: {item}")
 with zipfile.ZipFile(TARGET, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=9) as archive:
     for item in sorted(set(files)):

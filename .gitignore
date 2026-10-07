@@ -17,3 +17,7 @@ secrets/
 backups/
 *.pem
 *.key
+BitPOS-Devnet-Private/
+**/*.keypair.json
+**/*.base58.txt
+**/keys/

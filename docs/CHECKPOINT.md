@@ -10,9 +10,16 @@
 - Create an offline website inside BitPOS explaining the entire product, diagrams and phases to hackathon teammates; no hosting/deployment requested.
 - Make the guide purple, reuse the existing BitPOS product illustration and create BitPosClock screen mockups using the explicitly named `CryptoClockPro/resources/design-system/reference/SKILL.md`.
 - Add a product-value section explaining merchant/Solana benefits and why the plan selects the CryptoClock Pro 3.5-inch touchscreen base and USDG.
+- Create separate devnet wallets for every test role, keep the keys on this Mac, acquire free devnet SOL/test assets and distribute enough resources for experiments.
 
 ## Completed locally
 
+- Created 19 unique role wallets in `/Users/cryptoclock/Desktop/BitPOS-Devnet-Private`, outside the repo, with Solana JSON keypairs and base58 import files. Verified key/import/address agreement and private directory/file permissions 700/600. Original wallets were not reused.
+- Added `tools/devnet/` for idempotent setup, cluster validation, SOL funding/distribution, official Paxos devnet USDG faucet requests, public snapshot export, live transfer/sponsorship smoke checks and verification. Fixed RPC/genesis checks to devnet; journal signatures before broadcasting and refuse blind smoke resubmission. No BitPOS program was deployed.
+- Added an offline public-only wallet dashboard at `devnet/index.html`, linked from the team guide and README, plus `DEVNET_WALLETS_TH.md`. Dashboard browser QA passed at desktop/390px with 19 cards, zero failed resources, zero external requests and no horizontal overflow. Handbook QA still passes its 16 sections/25 POS features/12 payment fixtures.
+- Inspected official devnet USDG mint `4F6PM96JJxngmHnZLBh9n58RH4aTVNWvDs2nuwrT5BP7`: Token-2022, 6 decimals; transfer fee is 0 and transfer hook inactive at inspection time. Funding snapshots use actual confirmed token-account balances, not API request acknowledgments.
+- Received and verified **100 Paxos USDG test tokens in every one of the 19 wallets, 1,900 total**, via permissionless sandbox requests spaced at least 61 seconds. Token accounts match the canonical devnet mint/program and their role owners. No mock USDG was issued. The `customer-no-sol` wallet has 100 USDG and intentionally zero native SOL.
+- Inspected 23 PoW specs in the cookbook-linked faucet program on devnet; no funded, net-positive pool at practical difficulty was available. Public RPC airdrop failed/internal error then 429; alternate free providers/faucets either depend on the same exhausted/rate-limited faucet, are paused or require human authentication/eligibility. No CPU mining or paid SOL purchase was performed.
 - Inspected POS source in two local checkouts, feature groups and storage/checkout behavior.
 - Verified active GitHub login is `cryptoclocks`.
 - Initialized new local repository on `main`.
@@ -35,6 +42,7 @@
 - No POS runtime tests performed this round; no application implementation yet.
 - OCI capacity and Docker/Supabase runtime topology inspected; BitPOS data/Auth boundary and backup/restore remain unverified. No schema/auth migration, cleanup, restart, deployment or production configuration change performed.
 - No hardware/payment/AI/reward functionality implemented in this repository yet.
+- Devnet role wallets and tooling are separate test infrastructure; wallet labels do not create Auth/RBAC memberships. At the final snapshot, all wallets have **0 native SOL**; the 16 SOL funding target has not been reached. `fund.cjs distribute` correctly refused to send partial transfers and `smoke.cjs` stopped before sending because fee payers are unfunded. The user was asked to complete the human GitHub step at a free faucet; no reply/funds received yet. After at least 16.1 SOL arrives in reserve, run distribution, live smoke, top up the few spent fees, refresh Paxos balances, verify and export. Do not describe the wallets as fully funded or the live payment/sponsorship test as passed until these steps actually finish.
 
 ## Next implementation work: Phase 1
 

@@ -1,0 +1,14 @@
+'use strict';
+const c=require('./common.cjs');
+(async()=>{
+  const balances=await c.refreshBalances();
+  const usdgFile=c.path.join(c.privateDir,'usdg-balances.json');
+  const usdg=c.fs.existsSync(usdgFile)?c.readPrivate('usdg-balances.json'):null;
+  const directory=c.path.join(c.root,'devnet');c.fs.mkdirSync(directory,{recursive:true});
+  const report={cluster:'devnet',rpc:c.RPC,genesisHash:c.DEVNET_GENESIS,checkedAt:balances.checkedAt,solTarget:16,totalSol:balances.totalSol,usdg:usdg?{mint:usdg.mint,program:usdg.program,decimals:usdg.decimals,checkedAt:usdg.checkedAt,total:usdg.totalUsdg}:null,wallets:balances.wallets.map(w=>({id:w.id,label:w.label,kind:w.kind,purpose:w.purpose,address:w.address,sol:w.sol,targetSol:w.targetSol,usdg:usdg?.wallets.find(t=>t.id===w.id)?.usdg||0}))};
+  c.fs.writeFileSync(c.path.join(directory,'wallets.public.json'),JSON.stringify(report,null,2)+'\n');
+  c.fs.writeFileSync(c.path.join(directory,'wallets.public.js'),'window.BITPOS_DEVNET='+JSON.stringify(report)+';\n');
+  const lines=['# BitPOS Devnet — PRIVATE LOCAL DIRECTORY','','19 role wallets; devnet only. Never commit or share this directory.','', '## Files','- `keys/<role>.json`: 64-byte Solana CLI keypair; keep private.','- `import/<role>.base58.txt`: private key for a compatible wallet import; keep private.','- `wallet-index.csv`, `wallets.public.json`: role names and public addresses.','- `balances.json`, `usdg-balances.json`: last confirmed balance snapshots.','- `activity.jsonl`, `transactions/`: request/transaction audit data.','','## Import for testing','Open your preferred Solana wallet, enable Devnet in its settings, and import one role at a time using its matching private import file. These files are private keys, not seed phrases. Do not paste treasury, deployer or reward keys into a client application, AI prompt, website, or hardware firmware. Application roles still need Auth/RBAC; a role label does not grant server permissions.','','## Public dashboard and commands',`Public dashboard: ${c.root}/devnet/index.html`,`Run commands from ${c.root}:`,'```sh','node tools/devnet/fund.cjs balances','node tools/devnet/paxos.cjs balances','node tools/devnet/fund.cjs distribute','node tools/devnet/export.cjs','```','','## Last public balance snapshot',`Checked: ${report.checkedAt}`,`SOL: ${report.totalSol} / target ${report.solTarget}; USDG test: ${report.usdg?.total||0}.`,`Paxos USDG test mint: ${report.usdg?.mint||'pending'}`,'','`customer-no-sol` intentionally keeps 0 SOL to test sponsored transactions.','Folders have permission 700; private files have permission 600. Devnet tokens have no monetary value.'];
+  c.writePrivate('README.md',lines.join('\n')+'\n');
+  console.log(JSON.stringify({publicDirectory:directory,totalSol:report.totalSol,totalUsdg:report.usdg?.total||0,wallets:report.wallets.length}));
+})().catch(error=>{console.error(error.message);process.exit(1)});

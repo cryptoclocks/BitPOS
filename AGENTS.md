@@ -3,7 +3,7 @@
 - This is an independent product. GitHub destination belongs to `cryptoclocks`.
 - Read `docs/PHASE_PLAN_TH.md` and `docs/CHECKPOINT.md` before implementation. Update the checkpoint with completed work, validation and next steps.
 - The user also authorized the offline explanatory website in `team-guide/`, its purple theme, existing BitPOS illustration and BitPosClock screen mockups using the named design skill. These are documentation/visual prototypes, not POS runtime. Keep them fully local/offline and synchronize product claims with `docs/`; clearly label fixtures, concept artwork and planned integrations.
-- Current authorization is planning and creating this repository. Phase 1 extraction is planned, not yet performed.
+- The user also authorized creating separate devnet wallets for all BitPOS test roles, saving keys privately on this Mac, acquiring free devnet SOL/test assets and distributing them. Keep private files outside this repository, verify the devnet genesis hash before transactions, and respect faucet limits. Phase 1 application extraction is planned, not yet performed.
 - Store firmware belongs in `device/firmware/` inside this repository. Read `docs/FIRMWARE_EXTRACTION_TH.md` before extraction. It must build independently of the original CryptoClock workspace and have its own product/version/config/provisioning/OTA boundary.
 - Treat the existing Cashless Thailand and CryptoClock workspaces as read-only source references. Preserve all their local changes.
 - Preserve the full existing POS feature inventory, Thai/English translations and server-side role enforcement. Record any missing feature explicitly; do not silently remove it to reduce scope.

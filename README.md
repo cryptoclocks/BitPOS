@@ -12,6 +12,7 @@ Standalone merchant POS, customer ordering, Solana payments, loyalty and AI camp
 - Repository เริ่มเป็น private; ตรวจข้อกำหนด Hackathon ก่อนเปิด public และส่งงาน
 - แยก lifecycle, deployment, secrets และฐานข้อมูลของ BitPOS จาก CryptoClock
 - มี[แกลเลอรี BitPosClock 18 หน้า](team-guide/clock/index.html) และ PNG 480×320 สำหรับทีม เป็น visual prototype
+- มี[ชุด Devnet wallets 19 role](devnet/index.html) และ[runbook การเติม/แจกเหรียญ](docs/DEVNET_WALLETS_TH.md); คีย์เก็บในโฟลเดอร์ส่วนตัวนอก repo บน Mac
 - Firmware เครื่องหน้าร้านแยกมาเป็น BitPosClock (store terminal) ใน `device/firmware/` ภายใน repo นี้ มี build/config/version/OTA ของตัวเอง
 - CryptoClock เดิม เช่นเครื่องที่บ้าน เป็น integration ผ่าน adapter ตามความสมัครใจ
 - ย้าย UI และฟีเจอร์ POS เดิมครบ โดยรักษางานภาษาไทย/อังกฤษและสิทธิ์ผู้ใช้
