@@ -38,6 +38,16 @@
 
 รวมเป้าหมาย **16 SOL** บวกค่าเปิดบัญชี/transaction และเงินสำรองเพิ่ม โค้ดแจก 14 SOL ให้ role อื่นหลังตรวจว่ามีเงินเหลือใน reserve อย่างน้อย 2.1 SOL ไม่ได้ deploy โปรแกรม BitPOS หรือสร้างบัญชี Auth/RLS ด้วยการสร้าง wallet นี้
 
+### ชุดเริ่มต้น: ขอ 1 SOL ก่อน
+
+ไม่ต้องรอครบ 16 SOL เพื่อเริ่มทดสอบ transfer/refund/sponsorship ชุดเริ่มต้นรวม **0.78 SOL**:
+
+- reserve 0.10; fee-sponsor 0.10; reward-issuer 0.20; program-deployer 0.10 SOL
+- อีก 14 role ที่ต้องใช้ค่าธรรมเนียม role ละ 0.02 SOL
+- customer-no-sol คง **0 SOL**
+
+คำสั่ง `distribute-starter` ต้องมี reserve อย่างน้อย **0.79 SOL** เมื่อยังไม่มี role ใดได้รับ SOL: แจก 0.68 แล้วเก็บ 0.11 สำหรับ reserve/ค่าแจก เมื่อรับ 1 SOL จึงเริ่มได้ ชุดนี้เตรียมไว้สำหรับธุรกรรมทดลองและบัญชีสินทรัพย์ขนาดเล็ก; deployer 0.10 SOL ยังไม่ใช่งบสำหรับ deploy โปรแกรมเต็มรูปแบบ เป้าหมาย 16 SOL เป็นเงินเผื่อเพิ่มเติมตามคำขอเดิม
+
 การแบ่งชื่อ wallet ไม่ได้บังคับสิทธิ์ owner/manager/staff บนเชนหรือใน POS ต้องสร้างและตรวจ Auth/RBAC/RLS ตามเฟสที่วางไว้ เฟิร์มแวร์และ AI draft ไม่ต้องมี wallet ส่วนตัว
 
 ## USDG ที่ใช้ทดลอง
@@ -82,17 +92,21 @@ node tools/devnet/pow-status.cjs
 node tools/devnet/fund.cjs airdrop 2
 # ขอ USDG ทุก role, ข้ามรายการที่ขอแล้วใน 24 ชั่วโมง
 node tools/devnet/paxos.cjs request-all
-# แจก SOL ตามเป้าหมาย หลัง reserve มีเงินเพียงพอ
-node tools/devnet/fund.cjs distribute
+# แจกชุดเริ่มต้น หลัง reserve มีอย่างน้อย 0.79 SOL
+node tools/devnet/fund.cjs distribute-starter
 # หลังมี SOL และ USDG ครบ ทดสอบโอน/คืน 1 USDG และ sponsored payment
 node tools/devnet/smoke.cjs
 # เติม SOL จำนวนเล็กน้อยที่ smoke ใช้ไป ให้กลับถึงเป้าหมายทุก role
-node tools/devnet/fund.cjs distribute
+node tools/devnet/fund.cjs distribute-starter
+# refresh USDG ก่อนตรวจ
+node tools/devnet/paxos.cjs balances
 # ตรวจคีย์/สิทธิ์ไฟล์/ยอดจริง; exit 2 ถ้าทรัพยากรยังไม่ครบ
-node tools/devnet/verify.cjs --require-funded
+node tools/devnet/verify.cjs --starter --require-funded
 # อัปเดตเฉพาะ public snapshot ใน dashboard
 node tools/devnet/export.cjs
 ```
+
+เมื่อมีเงินเพียงพอสำหรับเป้าหมายเต็ม ใช้ `fund.cjs distribute` และ `verify.cjs --require-funded` โดยไม่ใส่ `--starter`
 
 เครื่องมือกำหนด RPC เป็น `https://api.devnet.solana.com` และตรวจ genesis hash `EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG` ก่อนอ่าน/ส่งรายการ คำสั่งส่ง transaction เก็บ signature และ serialized signed transaction ไว้ก่อน broadcast เพื่อให้ตรวจสอบรายการเดิมได้เมื่อ RPC/confirmation timeout ไม่สร้างรายการซ้ำแบบไม่ตรวจ
 
@@ -104,8 +118,13 @@ node tools/devnet/export.cjs
 
 ช่องทางให้คนรับเหรียญและนำมาแจกต่อ:
 
-- [DevnetFaucet.org](https://www.devnetfaucet.org/): หน้าเว็บแสดง 20 SOL ต่อ airdrop และต้องล็อกอิน GitHub/ผ่านเงื่อนไขผู้ให้บริการ
+- [Solana Foundation faucet](https://faucet.solana.com/): ลองขอ 1 SOL ที่อยู่ reserve ผ่านหน้าเว็บด้วยตนเอง โควตาพื้นฐานจำกัด 2 request ต่อ 8 ชั่วโมง; GitHub ใช้เพิ่มวงเงินและบางบัญชีไม่ผ่านการตรวจ ผู้ให้บริการระบุว่า AI agents ให้ใช้ช่องทาง programmatic แทน จึงไม่ใช้ automation กดรับแทนคน
+- [DevnetFaucet.org](https://www.devnetfaucet.org/): ช่องทาง 20 SOL ต้องตรวจสิทธิ์จาก repository ใน ecosystem ไม่ใช่แค่ล็อกอิน GitHub [source ของ faucet](https://github.com/ferric-sol/devnetfaucet#data-attribution) ระบุใช้ข้อมูล Electric Capital Crypto Ecosystems ผู้ใช้ได้รับ “No eligible repository found in Solana ecosystem”; ต้องเลือก Request Access และขอ vouch จาก developer ที่มีสิทธิ์ตาม UI ถ้าจะใช้เส้นทางนี้ ไม่มีเวลาอนุมัติที่ยืนยันได้ และ anonymous ไม่ข้ามเกณฑ์สิทธิ์
 - [Pine Stake](https://www.pinestake.com/en/faucet): GitHub + Turnstile, จำนวน 1/2/5/10 SOL และ cooldown 8 ชั่วโมง ตาม [เอกสาร faucet](https://docs.pinestake.com/api/faucet)
+
+หากต้องการกรอก “Why do you need devnet SOL?” ในเส้นทาง Request Access ข้อความนี้อธิบายงานที่กำลังพัฒนาได้ตรงจริง (ยังไม่ได้ส่งคำขอ):
+
+> I am building BitPOS, a Solana-enabled POS and touchscreen payment terminal for shops. I need devnet SOL to test USDG payments, refunds, fee-sponsored customer transactions, and planned NFT loyalty rewards. We have 19 isolated test wallets covering two merchants, customers, a fee sponsor, and service roles. The funds will be used only on devnet for development and testing.
 
 ไม่มีการซื้อ SOL mainnet หรือใช้กระเป๋าเดิมของผู้ใช้ Devnet SOL/USDG ไม่มีมูลค่าเงินจริงและ faucet ฟรี แต่มีโควตา/เงื่อนไข และ Devnet อาจ reset ตาม [เอกสาร cluster](https://solana.com/docs/references/clusters) เงินสำรอง deploy เป็นแค่ devnet SOL
 

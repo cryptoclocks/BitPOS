@@ -5,7 +5,8 @@
     "kind": "operations",
     "targetSol": 2,
     "purpose": "Faucet recipient and reserve for topping up the new BitPOS test wallets",
-    "targetTestUsdg": 100
+    "targetTestUsdg": 100,
+    "starterSol": 0.1
   },
   {
     "id": "platform-admin",
@@ -13,7 +14,8 @@
     "kind": "identity",
     "targetSol": 0.25,
     "purpose": "Platform admin wallet binding; app permissions still require Auth/RBAC",
-    "targetTestUsdg": 100
+    "targetTestUsdg": 100,
+    "starterSol": 0.02
   },
   {
     "id": "merchant-a-owner",
@@ -21,7 +23,8 @@
     "kind": "identity",
     "targetSol": 0.5,
     "purpose": "Campaign publication and store ownership identity",
-    "targetTestUsdg": 100
+    "targetTestUsdg": 100,
+    "starterSol": 0.02
   },
   {
     "id": "merchant-a-manager",
@@ -29,7 +32,8 @@
     "kind": "identity",
     "targetSol": 0.25,
     "purpose": "Manager permission scenarios",
-    "targetTestUsdg": 100
+    "targetTestUsdg": 100,
+    "starterSol": 0.02
   },
   {
     "id": "merchant-a-staff",
@@ -37,7 +41,8 @@
     "kind": "identity",
     "targetSol": 0.25,
     "purpose": "Cashier permission scenarios; separate from payment treasury",
-    "targetTestUsdg": 100
+    "targetTestUsdg": 100,
+    "starterSol": 0.02
   },
   {
     "id": "merchant-a-treasury",
@@ -45,7 +50,8 @@
     "kind": "service",
     "targetSol": 1,
     "purpose": "Payment recipient and refund test funds",
-    "targetTestUsdg": 100
+    "targetTestUsdg": 100,
+    "starterSol": 0.02
   },
   {
     "id": "merchant-b-owner",
@@ -53,7 +59,8 @@
     "kind": "identity",
     "targetSol": 0.5,
     "purpose": "Second tenant owner isolation",
-    "targetTestUsdg": 100
+    "targetTestUsdg": 100,
+    "starterSol": 0.02
   },
   {
     "id": "merchant-b-manager",
@@ -61,7 +68,8 @@
     "kind": "identity",
     "targetSol": 0.25,
     "purpose": "Second tenant manager isolation",
-    "targetTestUsdg": 100
+    "targetTestUsdg": 100,
+    "starterSol": 0.02
   },
   {
     "id": "merchant-b-staff",
@@ -69,7 +77,8 @@
     "kind": "identity",
     "targetSol": 0.25,
     "purpose": "Second tenant staff isolation",
-    "targetTestUsdg": 100
+    "targetTestUsdg": 100,
+    "starterSol": 0.02
   },
   {
     "id": "merchant-b-treasury",
@@ -77,7 +86,8 @@
     "kind": "service",
     "targetSol": 0.5,
     "purpose": "Wrong recipient and cross-store attribution tests",
-    "targetTestUsdg": 100
+    "targetTestUsdg": 100,
+    "starterSol": 0.02
   },
   {
     "id": "customer-alice",
@@ -85,7 +95,8 @@
     "kind": "customer",
     "targetSol": 0.5,
     "purpose": "Payment and loyalty happy path",
-    "targetTestUsdg": 100
+    "targetTestUsdg": 100,
+    "starterSol": 0.02
   },
   {
     "id": "customer-bob",
@@ -93,7 +104,8 @@
     "kind": "customer",
     "targetSol": 0.5,
     "purpose": "Concurrent purchases and duplicate callbacks",
-    "targetTestUsdg": 100
+    "targetTestUsdg": 100,
+    "starterSol": 0.02
   },
   {
     "id": "customer-charlie",
@@ -101,7 +113,8 @@
     "kind": "customer",
     "targetSol": 0.5,
     "purpose": "Refund, late settlement and expired quote scenarios",
-    "targetTestUsdg": 100
+    "targetTestUsdg": 100,
+    "starterSol": 0.02
   },
   {
     "id": "customer-diana",
@@ -109,7 +122,8 @@
     "kind": "customer",
     "targetSol": 0.5,
     "purpose": "NFT transfer, wallet binding and voucher redemption scenarios",
-    "targetTestUsdg": 100
+    "targetTestUsdg": 100,
+    "starterSol": 0.02
   },
   {
     "id": "fee-sponsor",
@@ -117,7 +131,8 @@
     "kind": "service",
     "targetSol": 1,
     "purpose": "Optional fee sponsorship test signer",
-    "targetTestUsdg": 100
+    "targetTestUsdg": 100,
+    "starterSol": 0.1
   },
   {
     "id": "reward-issuer",
@@ -125,7 +140,8 @@
     "kind": "service",
     "targetSol": 2,
     "purpose": "Mint test loyalty assets/NFTs; never assign this signing key to an LLM",
-    "targetTestUsdg": 100
+    "targetTestUsdg": 100,
+    "starterSol": 0.2
   },
   {
     "id": "program-deployer",
@@ -133,7 +149,8 @@
     "kind": "operations",
     "targetSol": 5,
     "purpose": "Reserve for future program deployment; no application program is deployed by setup",
-    "targetTestUsdg": 100
+    "targetTestUsdg": 100,
+    "starterSol": 0.1
   },
   {
     "id": "unauthorized-user",
@@ -141,7 +158,8 @@
     "kind": "negative-test",
     "targetSol": 0.25,
     "purpose": "Valid funded wallet with no merchant membership",
-    "targetTestUsdg": 100
+    "targetTestUsdg": 100,
+    "starterSol": 0.02
   },
   {
     "id": "customer-no-sol",
@@ -149,6 +167,7 @@
     "kind": "negative-test",
     "targetSol": 0,
     "purpose": "Intentionally zero SOL; test sponsored payments or missing-fee UX",
-    "targetTestUsdg": 100
+    "targetTestUsdg": 100,
+    "starterSol": 0
   }
 ]
