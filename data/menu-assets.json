@@ -1,0 +1,229 @@
+{
+  "assets": [
+    {
+      "bytes": 192000,
+      "catalogKey": "cafe.espresso",
+      "file": "espresso.rgb565",
+      "imageUrl": "/images/menu/espresso.jpg",
+      "sha256": "277a09d5c212585b0922315ade916b9f7c4a86b2e71142b3b776009350e3d008",
+      "sourcePhoto": {
+        "author": "Darryn Altclass",
+        "height": 600,
+        "license": "Unsplash License",
+        "license_url": "https://unsplash.com/license",
+        "sha256": "f30aa8709db5df231f94b359bf8046f349fd4b92c245d9022209692b51ce40bc",
+        "source_image": "https://images.unsplash.com/photo-1753069490868-0b9d8b62b1b2",
+        "source_page": "https://unsplash.com/photos/a-cup-of-espresso-on-a-saucer-g6vTf_msNUA",
+        "width": 800
+      },
+      "sourceSha256": "f30aa8709db5df231f94b359bf8046f349fd4b92c245d9022209692b51ce40bc"
+    },
+    {
+      "bytes": 192000,
+      "catalogKey": "cafe.americano",
+      "file": "americano.rgb565",
+      "imageUrl": "/images/menu/americano.jpg",
+      "sha256": "79b36497dba504bb30784de2b84ca02581ef5407be195343cf648551781803ed",
+      "sourcePhoto": {
+        "author": "Jeffrey Wegrzyn",
+        "height": 533,
+        "license": "Unsplash License",
+        "license_url": "https://unsplash.com/license",
+        "sha256": "abf0b15110d9a4474d134ee85a0e47f26562cc53c4ac22969877813af2e8e606",
+        "source_image": "https://images.unsplash.com/photo-1468768649734-ddebcf0b0bc4",
+        "source_page": "https://unsplash.com/photos/cup-of-coffee-hdnsLAU35kY",
+        "width": 800
+      },
+      "sourceSha256": "abf0b15110d9a4474d134ee85a0e47f26562cc53c4ac22969877813af2e8e606"
+    },
+    {
+      "bytes": 192000,
+      "catalogKey": "cafe.latte",
+      "file": "latte.rgb565",
+      "imageUrl": "/images/menu/latte.jpg",
+      "sha256": "5b7bf770beffafd1ee3323d9920baa5f8c34144b82904327f6da42b3fdb20d7c",
+      "sourcePhoto": {
+        "author": "nameless 3791",
+        "height": 533,
+        "license": "Unsplash License",
+        "license_url": "https://unsplash.com/license",
+        "sha256": "2aa6f8e45a6e1c2b6916e7e2fb0cc76a1460beb67763ca828ddb92760afdcd3d",
+        "source_image": "https://images.unsplash.com/photo-1744296357005-817be7239f36",
+        "source_page": "https://unsplash.com/photos/latte-art-on-a-cup-of-coffee-pDv725jVfvI",
+        "width": 800
+      },
+      "sourceSha256": "2aa6f8e45a6e1c2b6916e7e2fb0cc76a1460beb67763ca828ddb92760afdcd3d"
+    },
+    {
+      "bytes": 192000,
+      "catalogKey": "cafe.iced-latte",
+      "file": "iced-latte.rgb565",
+      "imageUrl": "/images/menu/iced-latte.jpg",
+      "sha256": "3aa2d4133320e503f58de9408ec790296af7334eb827c347b2f4f0faf635db5d",
+      "sourcePhoto": {
+        "author": "Demi DeHerrera",
+        "height": 534,
+        "license": "Unsplash License",
+        "license_url": "https://unsplash.com/license",
+        "sha256": "f2eb6f554d934fd4318259d6b8b28a04e224b45fb74d1b3d5bc150c7b5bb92b7",
+        "source_image": "https://images.unsplash.com/photo-1461023058943-07fcbe16d735",
+        "source_page": "https://unsplash.com/photos/glass-cup-filled-with-ice-latte-on-tabletop-L-sm1B4L1Ns",
+        "width": 800
+      },
+      "sourceSha256": "f2eb6f554d934fd4318259d6b8b28a04e224b45fb74d1b3d5bc150c7b5bb92b7"
+    },
+    {
+      "bytes": 192000,
+      "catalogKey": "cafe.cappuccino",
+      "file": "cappuccino.rgb565",
+      "imageUrl": "/images/menu/cappuccino.jpg",
+      "sha256": "b4175e864d373d3a0e1ef5ecc84f2fbff4716030588dc858c7d5b2a48432a881",
+      "sourcePhoto": {
+        "author": "Breakslow",
+        "height": 533,
+        "license": "Unsplash License",
+        "license_url": "https://unsplash.com/license",
+        "sha256": "05acb0ee26d84d9c6ba9d82462aec7d59190eda0980eb69a23afaecbfc555c59",
+        "source_image": "https://images.unsplash.com/photo-1564327367919-cb377ea6a88f",
+        "source_page": "https://unsplash.com/photos/cappuccino-cup-UMUCQcDdLws",
+        "width": 800
+      },
+      "sourceSha256": "05acb0ee26d84d9c6ba9d82462aec7d59190eda0980eb69a23afaecbfc555c59"
+    },
+    {
+      "bytes": 192000,
+      "catalogKey": "cafe.matcha",
+      "file": "matcha.rgb565",
+      "imageUrl": "/images/menu/matcha.jpg",
+      "sha256": "9b3eb30098e47396718752a0b26a18e79011bd5767bb56255aca7c9112bbb47c",
+      "sourcePhoto": {
+        "author": "Lee Milo",
+        "height": 1199,
+        "license": "Unsplash License",
+        "license_url": "https://unsplash.com/license",
+        "sha256": "ccea4ccd603844c82a00068a1e8530409db994b532527ef3bdeefdb940a091c2",
+        "source_image": "https://images.unsplash.com/photo-1768203630324-4a456ef7148f",
+        "source_page": "https://unsplash.com/photos/a-matcha-latte-with-creamy-foam-art-3MiakfkKOLc",
+        "width": 800
+      },
+      "sourceSha256": "ccea4ccd603844c82a00068a1e8530409db994b532527ef3bdeefdb940a091c2"
+    },
+    {
+      "bytes": 192000,
+      "catalogKey": "cafe.hot-chocolate",
+      "file": "hot-chocolate.rgb565",
+      "imageUrl": "/images/menu/hot-chocolate.jpg",
+      "sha256": "3c1d4c4e4b790fde52575bc01b5e99bd96efd729093b801ccd4d5386780fe83b",
+      "sourcePhoto": {
+        "author": "Sara Cervera",
+        "height": 1203,
+        "license": "Unsplash License",
+        "license_url": "https://unsplash.com/license",
+        "sha256": "341bdf7a66bcac48322b33f15a5babe07038e57081968b7081848a1372fcf8df",
+        "source_image": "https://images.unsplash.com/photo-1562114527-85ec3bb56897",
+        "source_page": "https://unsplash.com/photos/hot-chocolate-on-cup-ASqklsopvdw",
+        "width": 800
+      },
+      "sourceSha256": "341bdf7a66bcac48322b33f15a5babe07038e57081968b7081848a1372fcf8df"
+    },
+    {
+      "bytes": 192000,
+      "catalogKey": "cafe.croissant",
+      "file": "croissant.rgb565",
+      "imageUrl": "/images/menu/croissant.jpg",
+      "sha256": "595b283e41fb17f57176faf654b1c77ed73ed98850352138092cab27edd13b8a",
+      "sourcePhoto": {
+        "author": "Conor Brown",
+        "height": 533,
+        "license": "Unsplash License",
+        "license_url": "https://unsplash.com/license",
+        "sha256": "25b109e9814344c3f6f0786029bde2fa2ab6d0ac6f45745e7234e7e0989b340a",
+        "source_image": "https://images.unsplash.com/photo-1623334044303-241021148842",
+        "source_page": "https://unsplash.com/photos/a-bunch-of-croissants-that-are-on-a-table-sqkXyyj4WdE",
+        "width": 800
+      },
+      "sourceSha256": "25b109e9814344c3f6f0786029bde2fa2ab6d0ac6f45745e7234e7e0989b340a"
+    },
+    {
+      "bytes": 192000,
+      "catalogKey": "cafe.blueberry-muffin",
+      "file": "blueberry-muffin.rgb565",
+      "imageUrl": "/images/menu/blueberry-muffin.jpg",
+      "sha256": "4268a21ef08b4c4cb55cea9e1dde1a64198430c2ee0b546977836846a43558c9",
+      "sourcePhoto": {
+        "author": "Elena Taranukhina",
+        "height": 1000,
+        "license": "Unsplash License",
+        "license_url": "https://unsplash.com/license",
+        "sha256": "49634d80d0123f42846dba684b1f474b58bf6145b588e36b40a3952bb8ed4ac3",
+        "source_image": "https://images.unsplash.com/photo-1722251172860-39856cdd3bcd",
+        "source_page": "https://unsplash.com/photos/blueberry-muffins-in-a-muffin-tin-on-a-cutting-board-5p6pM1LlLk4",
+        "width": 800
+      },
+      "sourceSha256": "49634d80d0123f42846dba684b1f474b58bf6145b588e36b40a3952bb8ed4ac3"
+    },
+    {
+      "bytes": 192000,
+      "catalogKey": "cafe.chocolate-brownie",
+      "file": "chocolate-brownie.rgb565",
+      "imageUrl": "/images/menu/chocolate-brownie.jpg",
+      "sha256": "c3f28722ded981d8a850bf38ea5ee3f9f7d766aa4722acdf12566a2445125a1c",
+      "sourcePhoto": {
+        "author": "Honey Yanibel Minaya Cruz",
+        "height": 570,
+        "license": "Unsplash License",
+        "license_url": "https://unsplash.com/license",
+        "sha256": "d4af3fa3ab982942296e753aa7de0b2325f19ad3bc30c308ef0f4174e6bfaafc",
+        "source_image": "https://images.unsplash.com/photo-1564355768016-1c9f9dc1b381",
+        "source_page": "https://unsplash.com/photos/brownies-in-close-up-photography-2hnVd9JJ3Uk",
+        "width": 800
+      },
+      "sourceSha256": "d4af3fa3ab982942296e753aa7de0b2325f19ad3bc30c308ef0f4174e6bfaafc"
+    },
+    {
+      "bytes": 192000,
+      "catalogKey": "cafe.cheesecake",
+      "file": "cheesecake.rgb565",
+      "imageUrl": "/images/menu/cheesecake.jpg",
+      "sha256": "9b6eb26aeadff8f86aa9f5ea19cd959abf967cdfd737999537fb7f350f93afde",
+      "sourcePhoto": {
+        "author": "Mohammadreza alidoost",
+        "height": 1200,
+        "license": "Unsplash License",
+        "license_url": "https://unsplash.com/license",
+        "sha256": "24a005be7e52c1ffef6ac38c230a60531ed29a77c1c31b43a2850f4c4dee2758",
+        "source_image": "https://images.unsplash.com/photo-1657010489882-5530566824be",
+        "source_page": "https://unsplash.com/photos/a-slice-of-cake-on-a-plate-xacOkVZnGfo",
+        "width": 800
+      },
+      "sourceSha256": "24a005be7e52c1ffef6ac38c230a60531ed29a77c1c31b43a2850f4c4dee2758"
+    },
+    {
+      "bytes": 192000,
+      "catalogKey": "cafe.sandwich",
+      "file": "sandwich.rgb565",
+      "imageUrl": "/images/menu/sandwich.jpg",
+      "sha256": "8f7c08539f542bdf0b32d0ab31f40b8181d430130d2cc4e23d653cf4e7de335a",
+      "sourcePhoto": {
+        "author": "Asnim Ansari",
+        "height": 450,
+        "license": "Unsplash License",
+        "license_url": "https://unsplash.com/license",
+        "sha256": "9df3dc6e6940912c7d5cfb6bc11acb881558128a111ec0ed6c4f2893d8a085a4",
+        "source_image": "https://images.unsplash.com/photo-1475090169767-40ed8d18f67d",
+        "source_page": "https://unsplash.com/photos/two-slices-of-sandwich-on-brown-container-SqYmTDQYMjo",
+        "width": 800
+      },
+      "sourceSha256": "9df3dc6e6940912c7d5cfb6bc11acb881558128a111ec0ed6c4f2893d8a085a4"
+    }
+  ],
+  "catalogSha256": "01e0710992b593d370035da89702da7d645fc64daa18d6917599d5190e8656b1",
+  "height": 200,
+  "maxPhotos": 12,
+  "pixelFormat": "RGB565_LE",
+  "pricing": "Database canonical quotes are authoritative; assets contain no prices or offers",
+  "schemaVersion": 1,
+  "sdRoot": "/sdcard/bitpos/menu/v1",
+  "version": "bitpos-menu-v1",
+  "width": 480
+}

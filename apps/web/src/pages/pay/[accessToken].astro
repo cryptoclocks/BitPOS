@@ -1,0 +1,8 @@
+---
+import Payment from '../../components/Payment';
+export const prerender = false;
+const accessToken = Astro.params.accessToken!;
+Astro.response.headers.set('Cache-Control', 'no-store');
+Astro.response.headers.set('Referrer-Policy', 'no-referrer');
+---
+<!doctype html><html lang="en"><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>BitPOS · Pay order</title></head><body><Payment accessToken={accessToken} client:only="react" /></body></html>

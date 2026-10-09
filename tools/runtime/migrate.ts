@@ -5,6 +5,7 @@ import {config,MERCHANT_A,MERCHANT_B} from '../../apps/api/src/config';
 const db=new pg.Client({connectionString:config.ADMIN_DATABASE_URL});await db.connect();
 await db.query('CREATE TABLE IF NOT EXISTS public.bitpos_migrations(name text PRIMARY KEY, applied_at timestamptz DEFAULT now())');
 for(const name of fs.readdirSync('supabase/migrations').sort()){if((await db.query('SELECT 1 FROM public.bitpos_migrations WHERE name=$1',[name])).rowCount)continue;await db.query('BEGIN');try{await db.query(fs.readFileSync('supabase/migrations/'+name,'utf8'));await db.query('INSERT INTO public.bitpos_migrations(name) VALUES($1)',[name]);await db.query('COMMIT');}catch(e){await db.query('ROLLBACK');throw e;}console.log('Applied',name);}
+if(process.argv.includes('--schema-only')){await db.end();process.exit(0);}
 const manifest=JSON.parse(fs.readFileSync(config.DEVNET_PRIVATE_DIR+'/wallets.public.json','utf8'));
 for(const [id,name,role] of [[MERCHANT_A,'BitPOS Purple Cafe','merchant-a-treasury'],[MERCHANT_B,'BitPOS Second Store','merchant-b-treasury']])await db.query('INSERT INTO bitpos.merchants(id,name,treasury) VALUES($1,$2,$3) ON CONFLICT(id) DO NOTHING',[id,name,manifest.wallets.find((w:any)=>w.id===role).address]);
 const menu=[['อเมริกาโน่','Americano','☕',7000],['ลาเต้','Latte','🥛',8500],['ชาเขียว','Matcha','🍵',9000],['ครัวซองต์','Croissant','🥐',9500],['แซนด์วิช','Sandwich','🥪',12000]];

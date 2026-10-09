@@ -1,0 +1,9 @@
+---
+import TableMenu from '../../components/TableMenu';
+export const prerender = false;
+const entry = Astro.params.entry ?? '';
+if (!/^[A-Za-z0-9_-]{43}$/.test(entry)) return new Response('Table QR not found', { status: 404 });
+Astro.response.headers.set('Cache-Control', 'no-store');
+Astro.response.headers.set('Referrer-Policy', 'no-referrer');
+---
+<!doctype html><html lang="en"><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>BitPOS · Order at your table</title></head><body><TableMenu entry={entry} client:only="react" /></body></html>

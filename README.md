@@ -1,23 +1,50 @@
 # BitPOS
 
-Standalone merchant POS, customer ordering, Solana payments, loyalty and AI campaigns.
+**Cafe checkout that connects a Solana payment to a physical POSClock.**
 
-สถานะ: **วางแผน / Phase 0** ยังไม่มี POS runtime ใน repository นี้ แต่มีเว็บคู่มือทีมที่เปิดออฟไลน์ได้
+Built by Natthapong Suwanjit. Merchant tablets create itemized bills; customers scan an order or table QR, order on their own phone and authorize a merchant-sponsored USDG transaction. Finalized on-chain verification updates the bill, inventory and the assigned ESP32 display through a durable outbox.
 
-เปิด [START-HERE.html](START-HERE.html) หรือ [คู่มือทีม](team-guide/index.html) ใน browser; ไม่ต้องติดตั้งหรือเปิด server
+## Try the application
 
-- GitHub owner: `cryptoclocks`
-- Repository: [cryptoclocks/BitPOS](https://github.com/cryptoclocks/BitPOS)
-- Local workspace: `/Users/cryptoclock/Desktop/BitPOS`
-- Repository เริ่มเป็น private; ตรวจข้อกำหนด Hackathon ก่อนเปิด public และส่งงาน
-- แยก lifecycle, deployment, secrets และฐานข้อมูลของ BitPOS จาก CryptoClock
-- มี[แกลเลอรี BitPosClock 18 หน้า](team-guide/clock/index.html) และ PNG 480×320 สำหรับทีม เป็น visual prototype
-- มี[ชุด Devnet wallets 19 role](devnet/index.html) และ[runbook การเติม/แจกเหรียญ](docs/DEVNET_WALLETS_TH.md); คีย์เก็บในโฟลเดอร์ส่วนตัวนอก repo บน Mac
-- Firmware เครื่องหน้าร้านแยกมาเป็น BitPosClock (store terminal) ใน `device/firmware/` ภายใน repo นี้ มี build/config/version/OTA ของตัวเอง
-- CryptoClock เดิม เช่นเครื่องที่บ้าน เป็น integration ผ่าน adapter ตามความสมัครใจ
-- ย้าย UI และฟีเจอร์ POS เดิมครบ โดยรักษางานภาษาไทย/อังกฤษและสิทธิ์ผู้ใช้
-- Supabase เก็บข้อมูลธุรกิจ; Solana เป็นหลักฐานการชำระและสิทธิ์บนเชน
+- Merchant POS: https://pos.cashlessthailand.com/
+- Table ordering: https://pay.cashlessthailand.com/table/6LSn6twjmnvfGpDwTWm98p8S8o4CQqlZ8CwlK_nk1CY
+- Product and team guide: https://guide.cashlessthailand.com/
 
-เริ่มอ่าน [แผนเฟส](docs/PHASE_PLAN_TH.md), [แผนแยก firmware](docs/FIRMWARE_EXTRACTION_TH.md), [รายการต้นทาง](docs/SOURCE_AUDIT_TH.md), [สถาปัตยกรรม](docs/ARCHITECTURE_TH.md) และ [checkpoint](docs/CHECKPOINT.md)
+The public merchant application intentionally offers Owner, Manager and Staff quick access for evaluation. This is a dedicated **Solana devnet** deployment; do not enter personal information or real funds. USDG here is the Paxos sandbox token, not redeemable money. Mainnet is disabled.
 
-รอบนี้ยังไม่คัดลอก runtime, `.env`, ข้อมูลลูกค้า หรือ secrets และยังไม่ deploy
+## Implemented
+
+- Merchant menu/cart, customer records, deterministic wallet avatars, per-role server authorization.
+- Table QR ordering and one POSClock pairing per tablet register; bills retain their original device and table assignment.
+- Merchant-sponsored Token-2022 USDG transactions, frozen integer quotes and server verification of mint, recipient, amount, reference and signatures.
+- Finalized-only settlement, inventory changes and durable device delivery; replay protection, reconciliation and authenticated render acknowledgments.
+- Small-screen ESP-IDF/LVGL firmware, QR payment/order screens, status feedback, product carousel, animation and payment audio.
+- English/Thai interfaces and local offline product documentation.
+
+The current customer flow uses an order website and the Phantom in-app provider. Native Actions/Blinks integration, autonomous personalized AI campaigns, loyalty/NFT rewards and full legacy POS feature parity remain planned or incomplete; presentation concepts do not certify runtime support. Browser signing fixtures are explicitly separate from physical Android Phantom testing.
+
+## Source map
+
+| Path | Purpose |
+| --- | --- |
+| `apps/web` | Astro / React merchant and customer interfaces |
+| `apps/api` | TypeScript HTTP API, payment builder/verifier and device WebSocket |
+| `apps/worker` | Finalization reconciliation and durable delivery |
+| `packages` | Shared contracts, money and pricing rules |
+| `supabase/migrations` | PostgreSQL tenant isolation and business schema |
+| `device/firmware` | Standalone ESP32-S3 / LVGL terminal firmware |
+| `infra/oci` | OCI application containers, public proxies and tunnel |
+| `tests` | Domain, authorization, payment and recovery checks |
+| `team-guide` | Offline HTML product documentation |
+
+## Local setup
+
+Use Node.js 24 and `pnpm@11.19.0`. Run `pnpm install --frozen-lockfile`, create a private `.env` from `.env.example`, configure a dedicated PostgreSQL/Supabase instance, and apply `pnpm db:migrate`. Start `pnpm dev:api`, `pnpm dev:worker` and `pnpm dev:web` in separate terminals. A funded devnet fee sponsor is required for real transactions; secrets and signing wallets are deliberately excluded.
+
+Validation: `pnpm typecheck`, `pnpm test`, `pnpm build`. Some integration tests require an explicitly configured database and `BITPOS_BACKEND_INTEGRATION=1`; skipped tests do not prove integration success. Firmware build and identity-checked USB installation instructions are in `device/firmware/README.md` and `tools/firmware`.
+
+See [OCI deployment](docs/OCI_DEPLOYMENT.md), [source provenance](docs/SOURCE_AUDIT_TH.md), [firmware provenance](docs/FIRMWARE_PROVENANCE.json) and [photo credits](docs/CAFE_PHOTO_CREDITS.md). Hardware board/display foundations and brand references were inherited from CryptoClock Pro; the standalone BitPOS lifecycle, checkout, payment reconciliation, table routing and customer interfaces were developed separately. The original CryptoClock workspace is not needed to build this repository.
+
+## Deployment verification
+
+Web/API/worker, public proxies and the named tunnel run on OCI against the existing dedicated BitPOS Supabase database. Public merchant/customer/guide routes were checked after stopping their Mac services. The physical terminal must run the WSS-enabled firmware before the complete system can operate with the Mac off. The final physical payment and render check is still pending while USB is disconnected; this is not claimed as completed.

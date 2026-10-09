@@ -1,0 +1,11 @@
+import fs from 'node:fs';
+import assert from 'node:assert/strict';
+import {parse} from 'dotenv';
+const file='.env';const values=parse(fs.readFileSync(file));
+const host=process.argv[2];assert.match(host,/^192\.168\.\d{1,3}\.\d{1,3}$/,'explicit local LAN host required');
+values.PUBLIC_URL='http://'+host+':4321';
+fs.writeFileSync(file,Object.entries(values).map(([k,v])=>k+'='+v).join('\n')+'\n',{mode:0o600});fs.chmodSync(file,0o600);
+assert.ok(values.DEVICE_TOKEN?.length>=32);
+const device={ws_url:'ws://'+host+':3001/api/device?terminalId=terminal-1&token='+encodeURIComponent(values.DEVICE_TOKEN),merchant:'11111111-1111-4111-8111-111111111111',terminal:'terminal-1'};
+fs.writeFileSync('local/private/device.json',JSON.stringify(device)+'\n',{mode:0o600});fs.chmodSync('local/private/device.json',0o600);
+console.log('Canonical demo public URL and private physical device configuration updated; no credentials emitted');

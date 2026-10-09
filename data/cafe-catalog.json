@@ -1,0 +1,273 @@
+{
+  "version": "cafe-20261008-v1",
+  "merchantId": "11111111-1111-4111-8111-111111111111",
+  "storeName": "BitPOS Purple Cafe",
+  "currency": "THB",
+  "locale": "en",
+  "products": [
+    {
+      "key": "cafe.espresso",
+      "nameEn": "Espresso",
+      "nameTh": "เอสเปรสโซ",
+      "category": "Coffee",
+      "description": "A rich espresso shot with a smooth finish.",
+      "priceMinor": "5500",
+      "initialStock": 160,
+      "imageUrl": "/images/menu/espresso.jpg",
+      "sortOrder": 0,
+      "existingProductId": null,
+      "photo": {
+        "author": "Darryn Altclass",
+        "source_page": "https://unsplash.com/photos/a-cup-of-espresso-on-a-saucer-g6vTf_msNUA",
+        "source_image": "https://images.unsplash.com/photo-1753069490868-0b9d8b62b1b2",
+        "license": "Unsplash License",
+        "license_url": "https://unsplash.com/license",
+        "sha256": "f30aa8709db5df231f94b359bf8046f349fd4b92c245d9022209692b51ce40bc",
+        "width": 800,
+        "height": 600
+      }
+    },
+    {
+      "key": "cafe.americano",
+      "nameEn": "Americano",
+      "nameTh": "อเมริกาโน่",
+      "category": "Coffee",
+      "description": "Espresso and hot water for a clean, bold coffee.",
+      "priceMinor": "7000",
+      "initialStock": 180,
+      "imageUrl": "/images/menu/americano.jpg",
+      "sortOrder": 1,
+      "existingProductId": "45fcfaf4-6207-4056-9bd6-ec43fdf04235",
+      "photo": {
+        "author": "Jeffrey Wegrzyn",
+        "source_page": "https://unsplash.com/photos/cup-of-coffee-hdnsLAU35kY",
+        "source_image": "https://images.unsplash.com/photo-1468768649734-ddebcf0b0bc4",
+        "license": "Unsplash License",
+        "license_url": "https://unsplash.com/license",
+        "sha256": "abf0b15110d9a4474d134ee85a0e47f26562cc53c4ac22969877813af2e8e606",
+        "width": 800,
+        "height": 533
+      }
+    },
+    {
+      "key": "cafe.latte",
+      "nameEn": "Latte",
+      "nameTh": "ลาเต้",
+      "category": "Coffee",
+      "description": "Espresso with steamed milk and silky microfoam.",
+      "priceMinor": "8500",
+      "initialStock": 140,
+      "imageUrl": "/images/menu/latte.jpg",
+      "sortOrder": 2,
+      "existingProductId": "a213c8e3-bb60-42a3-bc41-9d050dd49431",
+      "photo": {
+        "author": "nameless 3791",
+        "source_page": "https://unsplash.com/photos/latte-art-on-a-cup-of-coffee-pDv725jVfvI",
+        "source_image": "https://images.unsplash.com/photo-1744296357005-817be7239f36",
+        "license": "Unsplash License",
+        "license_url": "https://unsplash.com/license",
+        "sha256": "2aa6f8e45a6e1c2b6916e7e2fb0cc76a1460beb67763ca828ddb92760afdcd3d",
+        "width": 800,
+        "height": 533
+      }
+    },
+    {
+      "key": "cafe.iced-latte",
+      "nameEn": "Iced Latte",
+      "nameTh": "ลาเต้เย็น",
+      "category": "Coffee",
+      "description": "Espresso and chilled milk served over ice.",
+      "priceMinor": "9000",
+      "initialStock": 120,
+      "imageUrl": "/images/menu/iced-latte.jpg",
+      "sortOrder": 3,
+      "existingProductId": null,
+      "photo": {
+        "author": "Demi DeHerrera",
+        "source_page": "https://unsplash.com/photos/glass-cup-filled-with-ice-latte-on-tabletop-L-sm1B4L1Ns",
+        "source_image": "https://images.unsplash.com/photo-1461023058943-07fcbe16d735",
+        "license": "Unsplash License",
+        "license_url": "https://unsplash.com/license",
+        "sha256": "f2eb6f554d934fd4318259d6b8b28a04e224b45fb74d1b3d5bc150c7b5bb92b7",
+        "width": 800,
+        "height": 534
+      }
+    },
+    {
+      "key": "cafe.cappuccino",
+      "nameEn": "Cappuccino",
+      "nameTh": "คาปูชิโน่",
+      "category": "Coffee",
+      "description": "Espresso topped with steamed milk and airy foam.",
+      "priceMinor": "8500",
+      "initialStock": 110,
+      "imageUrl": "/images/menu/cappuccino.jpg",
+      "sortOrder": 4,
+      "existingProductId": null,
+      "photo": {
+        "author": "Breakslow",
+        "source_page": "https://unsplash.com/photos/cappuccino-cup-UMUCQcDdLws",
+        "source_image": "https://images.unsplash.com/photo-1564327367919-cb377ea6a88f",
+        "license": "Unsplash License",
+        "license_url": "https://unsplash.com/license",
+        "sha256": "05acb0ee26d84d9c6ba9d82462aec7d59190eda0980eb69a23afaecbfc555c59",
+        "width": 800,
+        "height": 533
+      }
+    },
+    {
+      "key": "cafe.matcha",
+      "nameEn": "Matcha",
+      "nameTh": "ชาเขียว",
+      "category": "Tea & Chocolate",
+      "description": "Smooth green tea with warm milk and a creamy finish.",
+      "priceMinor": "9000",
+      "initialStock": 90,
+      "imageUrl": "/images/menu/matcha.jpg",
+      "sortOrder": 5,
+      "existingProductId": "f8ee523c-629b-4eaa-8c56-5bf2100ed396",
+      "photo": {
+        "author": "Lee Milo",
+        "source_page": "https://unsplash.com/photos/a-matcha-latte-with-creamy-foam-art-3MiakfkKOLc",
+        "source_image": "https://images.unsplash.com/photo-1768203630324-4a456ef7148f",
+        "license": "Unsplash License",
+        "license_url": "https://unsplash.com/license",
+        "sha256": "ccea4ccd603844c82a00068a1e8530409db994b532527ef3bdeefdb940a091c2",
+        "width": 800,
+        "height": 1199
+      }
+    },
+    {
+      "key": "cafe.hot-chocolate",
+      "nameEn": "Hot Chocolate",
+      "nameTh": "ช็อกโกแลตร้อน",
+      "category": "Tea & Chocolate",
+      "description": "A warm, creamy chocolate drink for a cozy break.",
+      "priceMinor": "9500",
+      "initialStock": 85,
+      "imageUrl": "/images/menu/hot-chocolate.jpg",
+      "sortOrder": 6,
+      "existingProductId": null,
+      "photo": {
+        "author": "Sara Cervera",
+        "source_page": "https://unsplash.com/photos/hot-chocolate-on-cup-ASqklsopvdw",
+        "source_image": "https://images.unsplash.com/photo-1562114527-85ec3bb56897",
+        "license": "Unsplash License",
+        "license_url": "https://unsplash.com/license",
+        "sha256": "341bdf7a66bcac48322b33f15a5babe07038e57081968b7081848a1372fcf8df",
+        "width": 800,
+        "height": 1203
+      }
+    },
+    {
+      "key": "cafe.croissant",
+      "nameEn": "Croissant",
+      "nameTh": "ครัวซองต์",
+      "category": "Bakery",
+      "description": "A golden butter croissant with crisp, flaky layers.",
+      "priceMinor": "9500",
+      "initialStock": 48,
+      "imageUrl": "/images/menu/croissant.jpg",
+      "sortOrder": 7,
+      "existingProductId": "b1071dfd-3b16-4d00-be2d-bdd901e006e0",
+      "photo": {
+        "author": "Conor Brown",
+        "source_page": "https://unsplash.com/photos/a-bunch-of-croissants-that-are-on-a-table-sqkXyyj4WdE",
+        "source_image": "https://images.unsplash.com/photo-1623334044303-241021148842",
+        "license": "Unsplash License",
+        "license_url": "https://unsplash.com/license",
+        "sha256": "25b109e9814344c3f6f0786029bde2fa2ab6d0ac6f45745e7234e7e0989b340a",
+        "width": 800,
+        "height": 533
+      }
+    },
+    {
+      "key": "cafe.blueberry-muffin",
+      "nameEn": "Blueberry Muffin",
+      "nameTh": "มัฟฟินบลูเบอร์รี",
+      "category": "Bakery",
+      "description": "A soft muffin baked with juicy blueberries.",
+      "priceMinor": "7500",
+      "initialStock": 36,
+      "imageUrl": "/images/menu/blueberry-muffin.jpg",
+      "sortOrder": 8,
+      "existingProductId": null,
+      "photo": {
+        "author": "Elena Taranukhina",
+        "source_page": "https://unsplash.com/photos/blueberry-muffins-in-a-muffin-tin-on-a-cutting-board-5p6pM1LlLk4",
+        "source_image": "https://images.unsplash.com/photo-1722251172860-39856cdd3bcd",
+        "license": "Unsplash License",
+        "license_url": "https://unsplash.com/license",
+        "sha256": "49634d80d0123f42846dba684b1f474b58bf6145b588e36b40a3952bb8ed4ac3",
+        "width": 800,
+        "height": 1000
+      }
+    },
+    {
+      "key": "cafe.chocolate-brownie",
+      "nameEn": "Chocolate Brownie",
+      "nameTh": "บราวนีช็อกโกแลต",
+      "category": "Desserts",
+      "description": "A rich chocolate brownie with a tender center.",
+      "priceMinor": "8500",
+      "initialStock": 40,
+      "imageUrl": "/images/menu/chocolate-brownie.jpg",
+      "sortOrder": 9,
+      "existingProductId": null,
+      "photo": {
+        "author": "Honey Yanibel Minaya Cruz",
+        "source_page": "https://unsplash.com/photos/brownies-in-close-up-photography-2hnVd9JJ3Uk",
+        "source_image": "https://images.unsplash.com/photo-1564355768016-1c9f9dc1b381",
+        "license": "Unsplash License",
+        "license_url": "https://unsplash.com/license",
+        "sha256": "d4af3fa3ab982942296e753aa7de0b2325f19ad3bc30c308ef0f4174e6bfaafc",
+        "width": 800,
+        "height": 570
+      }
+    },
+    {
+      "key": "cafe.cheesecake",
+      "nameEn": "Cheesecake",
+      "nameTh": "ชีสเค้ก",
+      "category": "Desserts",
+      "description": "A creamy cheesecake slice with a delicate crust.",
+      "priceMinor": "12500",
+      "initialStock": 24,
+      "imageUrl": "/images/menu/cheesecake.jpg",
+      "sortOrder": 10,
+      "existingProductId": null,
+      "photo": {
+        "author": "Mohammadreza alidoost",
+        "source_page": "https://unsplash.com/photos/a-slice-of-cake-on-a-plate-xacOkVZnGfo",
+        "source_image": "https://images.unsplash.com/photo-1657010489882-5530566824be",
+        "license": "Unsplash License",
+        "license_url": "https://unsplash.com/license",
+        "sha256": "24a005be7e52c1ffef6ac38c230a60531ed29a77c1c31b43a2850f4c4dee2758",
+        "width": 800,
+        "height": 1200
+      }
+    },
+    {
+      "key": "cafe.sandwich",
+      "nameEn": "Grilled Cheese Sandwich",
+      "nameTh": "แซนด์วิชชีสย่าง",
+      "category": "Savory",
+      "description": "Toasted bread with melted cheese, served warm.",
+      "priceMinor": "12000",
+      "initialStock": 32,
+      "imageUrl": "/images/menu/sandwich.jpg",
+      "sortOrder": 11,
+      "existingProductId": "6fdda1a8-0a86-4b6a-b765-0f360a768f35",
+      "photo": {
+        "author": "Asnim Ansari",
+        "source_page": "https://unsplash.com/photos/two-slices-of-sandwich-on-brown-container-SqYmTDQYMjo",
+        "source_image": "https://images.unsplash.com/photo-1475090169767-40ed8d18f67d",
+        "license": "Unsplash License",
+        "license_url": "https://unsplash.com/license",
+        "sha256": "9df3dc6e6940912c7d5cfb6bc11acb881558128a111ec0ed6c4f2893d8a085a4",
+        "width": 800,
+        "height": 450
+      }
+    }
+  ]
+}

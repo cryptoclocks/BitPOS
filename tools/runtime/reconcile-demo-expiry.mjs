@@ -1,0 +1,17 @@
+import fs from 'node:fs';
+import assert from 'node:assert/strict';
+import pg from 'pg';
+import {Connection} from '@solana/web3.js';
+const state=JSON.parse(fs.readFileSync('local/private/demo-rounds.json','utf8'));
+const round=state.rounds.find(r=>r.signature&&!r.paidAt);assert.ok(round,'one interrupted signed round required');
+const chain=new Connection('https://api.devnet.solana.com','confirmed');
+assert.equal(await chain.getGenesisHash(),'EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG');
+const height=await chain.getBlockHeight('finalized');
+const status=(await chain.getSignatureStatuses([round.signature],{searchTransactionHistory:true})).value[0];
+assert.equal(status,null,'never abandon an observed transaction');assert.ok(height>round.lastValidHeight,'definitive finalized blockheight expiry required');
+const db=new pg.Client({connectionString:process.env.ADMIN_DATABASE_URL});await db.connect();
+const attempt=(await db.query('SELECT status,signature,(SELECT count(*)::int FROM bitpos.payments WHERE order_id=a.order_id) AS payments FROM bitpos.payment_attempts a WHERE id=$1',[round.attemptId])).rows[0];await db.end();
+assert.equal(attempt.signature,round.signature);assert.equal(attempt.status,'EXPIRED');assert.equal(attempt.payments,0);
+const evidence={origin:'actual_live_devnet_outage_definitive_expiry',orderId:round.order.id,signature:round.signature,lastValidHeight:round.lastValidHeight,finalizedHeight:height,historicalStatus:status,attemptStatus:attempt.status,payments:attempt.payments,new_signature_created:false,reason:'worker stopped before broadcast; original signed attempt preserved, never replaced or blindly repeated'};
+fs.writeFileSync('.omp/work/evidence/worker-outage-expired.json',JSON.stringify(evidence,null,2)+'\n');
+console.log(JSON.stringify(evidence));

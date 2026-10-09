@@ -1,0 +1,37 @@
+import test,{after} from 'node:test';
+import assert from 'node:assert/strict';
+import {randomUUID} from 'node:crypto';
+import {tableFixture} from './backend-table-fixture';
+import {z} from 'zod';
+const authority=z.object({source:z.object({kind:z.literal('device')}).passthrough(),target:z.object({deviceId:z.string(),assignmentGeneration:z.string()}),serving:z.object({kind:z.literal('table'),tableId:z.string(),label:z.string()})}).passthrough();
+const menuResult=z.object({tableLabel:z.string(),menu:z.object({products:z.array(z.object({available:z.number()}))})}).passthrough();
+const visitResult=z.object({visitToken:z.string()}).passthrough();
+const quoteResult=z.object({quote:z.object({id:z.string(),priceVersion:z.string(),total:z.object({amountMinor:z.string()}),authority}).passthrough()}).passthrough();
+const orderResult=z.object({order:z.object({id:z.string(),authority}).passthrough(),replayed:z.boolean().optional()}).passthrough();
+const integration={skip:process.env.BITPOS_BACKEND_INTEGRATION!=='1'};
+after(async()=>{if(process.env.BITPOS_BACKEND_INTEGRATION==='1'){const {pool}=await import('../apps/api/src/db');await pool.end();}});
+test('public guest review freezes assigned table/target, excludes private actor, blocks occupied visit and replays one canonical order',integration,async()=>{
+ const f=await tableFixture();const {tableRequest}=await import('../apps/api/src/table-ordering');
+ const entry=await f.tenant(f.merchant,async db=>(await db.query('SELECT entry_token FROM table_entries WHERE device_id=$1 AND auth_generation=$2',[f.b.id,f.devices.get(f.b.id)!.authGeneration])).rows[0].entry_token);
+ const base='/api/table/'+entry;const menu=menuResult.parse(await tableRequest(base,'GET',undefined));assert.equal(menu.tableLabel,'Table 4');assert.equal(menu.menu.products[0].available,100);assert.equal(JSON.stringify(menu).includes('deviceToken'),false);
+ const requestId=randomUUID();const first=visitResult.parse(await tableRequest(base+'/visit','POST',{requestId}));const replay=visitResult.parse(await tableRequest(base+'/visit','POST',{requestId}));assert.equal(first.visitToken,replay.visitToken);
+ const own=base+'/visit/'+first.visitToken;const q=quoteResult.parse(await tableRequest(own+'/quotes','POST',{items:[{productId:f.product,qty:2}]}));assert.equal(q.quote.total.amountMinor,'540');assert.equal(q.quote.authority.serving.tableId,f.table.id);assert.equal(q.quote.authority.target.deviceId,f.b.id);
+ const second=visitResult.parse(await tableRequest(base+'/visit','POST',{requestId:randomUUID()}));await assert.rejects(tableRequest(base+'/visit/'+second.visitToken+'/quotes','POST',{items:[{productId:f.product,qty:1}]}),/DEVICE_BUSY/);
+ const session=await f.tenant(f.merchant,async db=>(await db.query('SELECT v.session_id,s.screen_generation::text,ds.cart_version::text,s.lease_until FROM table_visits v JOIN device_sessions ds ON ds.id=v.session_id JOIN device_screen_state s ON s.session_id=v.session_id WHERE v.access_token=$1',[first.visitToken])).rows[0]);
+ const unauthorized=await f.command(f.b.id,{type:'CART_SET',sessionId:session.session_id,expectedScreenGeneration:session.screen_generation,expectedAssignmentGeneration:'1',expectedCartVersion:session.cart_version,items:[{productId:f.product,qty:3}]});assert.ok(!unauthorized.result.ok);assert.equal(unauthorized.result.error.code,'ROLE_REQUIRED');
+ await f.command(f.b.id,{type:'HEARTBEAT',sessionId:session.session_id});const lease=await f.tenant(f.merchant,async db=>(await db.query('SELECT lease_until FROM device_screen_state WHERE device_id=$1',[f.b.id])).rows[0].lease_until);assert.equal(lease.getTime(),session.lease_until.getTime(),'private device heartbeat cannot prolong mobile cart');
+ await assert.rejects(tableRequest(own+'/orders','POST',{quoteId:q.quote.id,priceVersion:q.quote.priceVersion,idempotencyKey:randomUUID(),deviceId:f.a.id}),/Invalid|unrecognized/i);
+ const command={quoteId:q.quote.id,priceVersion:q.quote.priceVersion,idempotencyKey:randomUUID()};const order=orderResult.parse(await tableRequest(own+'/orders','POST',command));assert.equal(order.order.authority.target.deviceId,f.b.id);assert.equal(order.order.authority.serving.tableId,f.table.id);assert.equal('customerId' in order.order,false);
+ const repeated=orderResult.parse(await tableRequest(own+'/orders','POST',command));assert.equal(repeated.order.id,order.order.id);assert.equal(repeated.replayed,true);assert.equal(orderResult.parse(await tableRequest(own,'GET',undefined)).order.id,order.order.id);
+ const effects=await f.tenant(f.merchant,async db=>({reserved:(await db.query('SELECT reserved FROM products WHERE id=$1',[f.product])).rows[0].reserved,orders:(await db.query('SELECT count(*)::int n FROM orders WHERE merchant_id=$1',[f.merchant])).rows[0].n,targets:(await db.query("SELECT DISTINCT target_device_id FROM outbox_events WHERE order_id=$1",[order.order.id])).rows.map(r=>r.target_device_id)}));assert.equal(effects.reserved,2);assert.equal(effects.orders,1);assert.deepEqual(effects.targets,[f.b.id]);
+ await assert.rejects(tableRequest(own+'/dismiss','POST',{}),/PAYMENT_PENDING/);
+ await f.tenant(f.merchant,db=>db.query('UPDATE devices SET assignment_generation=assignment_generation+1 WHERE id=$1',[f.b.id]));await assert.rejects(tableRequest(base,'GET',undefined),/ASSIGNMENT_CHANGED/);assert.equal(orderResult.parse(await tableRequest(own,'GET',undefined)).order.id,order.order.id);assert.equal(orderResult.parse(await tableRequest(own+'/orders','POST',command)).order.id,order.order.id);
+});
+test('public entry rejects foreign products, stale assignment, disabled device and expired mobile lease without stock changes',integration,async()=>{
+ const f=await tableFixture(1);const {tableRequest}=await import('../apps/api/src/table-ordering');const entry=await f.tenant(f.merchant,async db=>(await db.query('SELECT entry_token FROM table_entries WHERE device_id=$1 AND auth_generation=$2',[f.b.id,f.devices.get(f.b.id)!.authGeneration])).rows[0].entry_token);const base='/api/table/'+entry;const v=visitResult.parse(await tableRequest(base+'/visit','POST',{requestId:randomUUID()}));const own=base+'/visit/'+v.visitToken;
+ await assert.rejects(tableRequest(own+'/quotes','POST',{items:[{productId:randomUUID(),qty:1}]}),/RESOURCE_NOT_FOUND/);await assert.rejects(tableRequest(own+'/quotes','POST',{items:[{productId:f.product,qty:2}]}),/STOCK_UNAVAILABLE/);
+ const q=quoteResult.parse(await tableRequest(own+'/quotes','POST',{items:[{productId:f.product,qty:1}]}));await f.tenant(f.merchant,db=>db.query("UPDATE device_screen_state SET lease_until=clock_timestamp()-interval '1 second' WHERE device_id=$1",[f.b.id]));await assert.rejects(tableRequest(own+'/orders','POST',{quoteId:q.quote.id,priceVersion:q.quote.priceVersion,idempotencyKey:randomUUID()}),/LEASE_EXPIRED/);
+ assert.equal((await f.tenant(f.merchant,async db=>(await db.query('SELECT reserved FROM products WHERE id=$1',[f.product])).rows[0])).reserved,0);
+ await f.tenant(f.merchant,db=>db.query('UPDATE devices SET revoked_at=clock_timestamp() WHERE id=$1',[f.b.id]));await assert.rejects(tableRequest(base,'GET',undefined),/ASSIGNMENT_CHANGED/);
+ await assert.rejects(tableRequest('/api/table/'+ 'A'.repeat(43),'GET',undefined),/RESOURCE_NOT_FOUND/);
+});

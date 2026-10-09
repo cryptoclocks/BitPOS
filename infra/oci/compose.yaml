@@ -1,0 +1,59 @@
+name: bitpos-runtime
+x-app: &app
+  image: bitpos-runtime:current
+  build:
+    context: ../..
+    dockerfile: infra/oci/Dockerfile
+  network_mode: host
+  restart: unless-stopped
+  env_file: /home/ubuntu/bitpos-private/runtime.env
+  volumes:
+    - /home/ubuntu/bitpos-private/keys:/run/bitpos/keys:ro
+    - /home/ubuntu/bitpos-private/demo-login.json:/app/local/private/demo-login.json:ro
+  mem_limit: 768m
+  logging:
+    driver: json-file
+    options: {max-size: "10m", max-file: "3"}
+services:
+  api:
+    <<: *app
+    command: ["node", "--import", "tsx", "apps/api/src/index.ts"]
+    environment:
+      BITPOS_BIND_HOST: 127.0.0.1
+  worker:
+    <<: *app
+    command: ["node", "--import", "tsx", "apps/worker/src/index.ts"]
+  web:
+    <<: *app
+    environment:
+      HOST: 127.0.0.1
+      PORT: "4321"
+  customer:
+    image: python:3.12-slim
+    network_mode: host
+    restart: unless-stopped
+    command: ["python", "/app/infra/oci/customer-proxy.py"]
+    volumes: ["../../:/app:ro"]
+    mem_limit: 128m
+  merchant:
+    image: python:3.12-slim
+    network_mode: host
+    restart: unless-stopped
+    command: ["python", "/app/infra/oci/merchant-proxy.py"]
+    volumes: ["../../:/app:ro"]
+    mem_limit: 128m
+  guide:
+    image: python:3.12-slim
+    network_mode: host
+    restart: unless-stopped
+    command: ["python", "/app/infra/oci/guide.py"]
+    volumes: ["../../:/app:ro"]
+    mem_limit: 128m
+  tunnel:
+    image: cloudflare/cloudflared:2026.10.0
+    network_mode: host
+    restart: unless-stopped
+    command: ["tunnel", "--protocol", "http2", "run", "--token-file", "/run/secrets/tunnel.token"]
+    volumes: ["/home/ubuntu/bitpos-private/cloudflare/bitpos-tunnel.token:/run/secrets/tunnel.token:ro"]
+    user: "0:0"
+    mem_limit: 256m
