@@ -9,12 +9,21 @@
 - Owner/Manager/Staff public evaluation sign-in and menu reads passed. Manager/Staff treasury writes and foreign-origin sign-in were rejected with 403. Customer auth, guide secret paths and unrelated device-host paths returned 404.
 - Added source deployment manifests, private environment template and deployment instructions. Actual secrets were copied only into owner-private OCI files; no customer signing key was deployed.
 - Typecheck and OCI web image build passed. Unit/source suite: 92 cases, 37 passed, 55 integration cases skipped, zero failures. Separately ran backend demo-access integration successfully against the configured database. New exact public-origin opt-in regression passed.
-- Firmware 0.3.6 built with authenticated WSS migration in RAM, preserving configuration and paid dedup NVS. **Not installed yet:** Mac currently detects no USB serial terminal. Physical WSS, funded payment after cutover, render ACK and complete Mac-off proof remain pending; earlier firmware/payment evidence does not satisfy this gate.
+- Firmware 0.3.6 built with authenticated WSS migration in RAM, preserving configuration and paid dedup NVS. Initially blocked on USB reconnection; subsequent physical acceptance is recorded below.
 - Source publication preparation excludes private runtime, backups, keys, session logs and generated firmware/toolchains. Staged content and historical blobs were checked against actual deployment secrets before publication.
 - Published the complete application/firmware/deployment source to the public `cryptoclocks/BitPOS` main branch. A fresh anonymous clone installed frozen dependencies, passed typecheck, passed 37 unit/source tests (55 explicitly skipped integration cases), and built the web application without a private `.env`.
 - Restarted the OCI API/worker; the public merchant website remained available afterward. Verified authenticated public WSS receives CONFIG and SNAPSHOT using a separate temporary software-only test device, then revoked its credential/device. This is transport evidence, not a physical screen acknowledgment.
-- Public HTML and referenced same-origin assets passed on merchant, table-order and guide hosts. Pending acceptance remains USB installation, real physical WSS and a fresh finalized payment/render/Done cycle with the Mac runtime entirely stopped.
+- Public HTML and referenced same-origin assets passed on merchant, table-order and guide hosts. These initial checks were followed by the physical acceptance recorded below.
 
+
+## Physical OCI acceptance — 2026-10-10 (Thailand)
+
+- USB reconnected; pinned ESP32-S3 identity and partition layout verified. The app-only installer backed up the previous app, installed 0.3.6, byte-verified the image and preserved NVS/dedup, bootloader, OTA selection and FAT.
+- All Mac BitPOS API/web/worker/proxies, named/quick tunnel connectors and DB/Auth SSH forwarding were stopped. No listener remained on ports 3001/4321/4323/4324/4325. The terminal authenticated directly with OCI over public WSS; native framebuffer captures report version 0.3.6.
+- Three fresh real sponsored devnet payments passed: counter, table QR guest ordering and counter after an OCI API/worker restart. All transactions finalized; customer SOL balance was unchanged. Physical paid ACK latencies: 404, 344, 329 ms. These are three actual observations, not p95/chain-finality claims.
+- Each order has exactly one payment attempt, one settled payment and one consumed sound effect. Espresso inventory moved from 196 to 193 with zero remaining reservations. Duplicate signed submission returned the original signature and did not add a settlement.
+- Native paid pixels and serial PAID ACKs were captured; the current firmware logged one WAV payment sound. Restart snapshots suppressed replayed sound. Customer Done returned to the table menu after 10.3–11.1 seconds; device state returned to idle/online with no retained order.
+- Public source and setup were already verified via a clean anonymous clone. Android Phantom physical wallet signing was not substituted by these host-wallet test transactions; it remains a separately deferred manual check.
 
 ## User decisions
 

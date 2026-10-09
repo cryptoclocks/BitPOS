@@ -1,0 +1,50 @@
+{
+  "verifiedOn": "2026-10-10 Asia/Bangkok",
+  "firmware": "0.3.6",
+  "network": "solana:devnet",
+  "runtime": "OCI; Mac application and forwarding services stopped",
+  "rounds": [
+    {
+      "source": "counter",
+      "finalized": true,
+      "signature": "2hsPeEiPCWE7ZyF675SVQirPoc6iBu78cQEnkHRrH4SiyH4BytHmeS4byJohzifTEcxMDDCbe3KBkWjnE5GmHQy3",
+      "paidRenderLatenciesMs": [
+        404
+      ],
+      "settlementCount": 1,
+      "attemptCount": 1,
+      "consumedSoundCount": 1,
+      "customerSolUnchanged": true
+    },
+    {
+      "source": "table",
+      "finalized": true,
+      "signature": "24KU5iH2dtgwL5qGpC6VGpzeu8ffMxsEsakXuSAcg7R8M54s9fwc3GHKXbBM5nNvpvRFaLY9KbUuifScZsseissz",
+      "paidRenderLatenciesMs": [
+        344
+      ],
+      "settlementCount": 1,
+      "attemptCount": 1,
+      "consumedSoundCount": 1,
+      "customerSolUnchanged": true
+    },
+    {
+      "source": "counter",
+      "finalized": true,
+      "signature": "2s8CvkYprpWwcXdFxJP45cCrqhRGuvSuGNRVZ1XteX1uRPr666ArGHinSEjApaNiXTa5pcH98n2eLT8exJrg2zJy",
+      "paidRenderLatenciesMs": [
+        329
+      ],
+      "settlementCount": 1,
+      "attemptCount": 1,
+      "consumedSoundCount": 1,
+      "customerSolUnchanged": true
+    }
+  ],
+  "inventory": {
+    "before": 196,
+    "after": 193,
+    "reservedAfter": 0
+  },
+  "physicalAndroidPhantom": false
+}
