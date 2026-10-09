@@ -1,5 +1,12 @@
 # Planning checkpoint — 2026-10-07
 
+## Incoming orders UX — 2026-10-10 (Thailand)
+
+- Replaced the long status list with a compact counter/table, items, total and status layout. Added five status filters with counts, order/table/menu search and pagination (12 rows; API retains its existing 200 most recent limit). Canceled orders have their own readable label within Closed.
+- Desktop uses list/detail columns; mobile opens one detail view with Close and Escape/focus restoration. Payment routing and token details remain folded. Receipt/checkout labels reflect the order state; existing server permissions and payment evidence remain unchanged.
+- Deployed the web image on OCI. Typecheck and web build passed. Real Brave checks passed for filter controls, paid/closed row categories, pagination, search/no-match/clear, selection/close/Escape, details expansion, manual refresh, opening a real HTTPS paid receipt in another tab, Thai/English and Staff read access. Desktop 1280px and mobile 390px screenshots showed no horizontal overflow.
+- Awaiting-payment and recovery categories currently had zero records: their controls/empty states were checked, but no new payment or recovery mutation was performed for this UI task. No claim that these absent-state actions were exercised end to end. Existing firmware, paid records and stock were not changed.
+
 ## OCI application cutover — 2026-10-10 (Thailand)
 
 - Merchant Settings now shows one category at a time: Floor & devices, Menu & prices, and Payment wallet. Owner-only categories retain their permission boundary; forms stay mounted to preserve unsaved edits when switching. Deployed on OCI and checked in the real browser at 1280px/390px: one visible panel, no horizontal overflow, three Owner categories and only the permitted Staff category. Typecheck and web build passed.
