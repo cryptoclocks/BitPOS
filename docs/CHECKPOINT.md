@@ -2,6 +2,8 @@
 
 ## OCI application cutover — 2026-10-10 (Thailand)
 
+- Merchant Settings now shows one category at a time: Floor & devices, Menu & prices, and Payment wallet. Owner-only categories retain their permission boundary; forms stay mounted to preserve unsaved edits when switching. Deployed on OCI and checked in the real browser at 1280px/390px: one visible panel, no horizontal overflow, three Owner categories and only the permitted Staff category. Typecheck and web build passed.
+
 - Application/API/worker and customer/merchant/guide proxies now run in the isolated `bitpos-runtime` Docker Compose project on OCI, reusing the existing single dedicated BitPOS Supabase stack. Unrelated services were left untouched.
 - The BitPOS named Cloudflare Tunnel connector moved from Mac to OCI. Mac worker, named connector, web and customer/merchant proxies were stopped; public merchant/customer/guide HTTPS still returned 200. All OCI app ports bind loopback only.
 - Owner/Manager/Staff public evaluation sign-in and menu reads passed. Manager/Staff treasury writes and foreign-origin sign-in were rejected with 403. Customer auth, guide secret paths and unrelated device-host paths returned 404.
