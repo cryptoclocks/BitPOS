@@ -9,6 +9,9 @@
 - Typecheck and OCI web image build passed. Unit/source suite: 92 cases, 37 passed, 55 integration cases skipped, zero failures. Separately ran backend demo-access integration successfully against the configured database. New exact public-origin opt-in regression passed.
 - Firmware 0.3.6 built with authenticated WSS migration in RAM, preserving configuration and paid dedup NVS. **Not installed yet:** Mac currently detects no USB serial terminal. Physical WSS, funded payment after cutover, render ACK and complete Mac-off proof remain pending; earlier firmware/payment evidence does not satisfy this gate.
 - Source publication preparation excludes private runtime, backups, keys, session logs and generated firmware/toolchains. Staged content and historical blobs were checked against actual deployment secrets before publication.
+- Published the complete application/firmware/deployment source to the public `cryptoclocks/BitPOS` main branch. A fresh anonymous clone installed frozen dependencies, passed typecheck, passed 37 unit/source tests (55 explicitly skipped integration cases), and built the web application without a private `.env`.
+- Restarted the OCI API/worker; the public merchant website remained available afterward. Verified authenticated public WSS receives CONFIG and SNAPSHOT using a separate temporary software-only test device, then revoked its credential/device. This is transport evidence, not a physical screen acknowledgment.
+- Public HTML and referenced same-origin assets passed on merchant, table-order and guide hosts. Pending acceptance remains USB installation, real physical WSS and a fresh finalized payment/render/Done cycle with the Mac runtime entirely stopped.
 
 
 ## User decisions
