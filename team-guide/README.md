@@ -39,3 +39,9 @@ HTML/CSS/JavaScript และ SVG ใช้ไฟล์ local ไม่มี CD
 รายละเอียดการออกแบบและต้นทางดู `../docs/BITPOSCLOCK_DESIGN_TH.md` ใช้ skill ที่ผู้ใช้ระบุ ปรับ palette เป็นม่วงตามคำขอ และเก็บ font licenses ครบ; ภาพจำลองยังไม่ใช่ firmware ที่ทำงานจริง
 
 สำหรับเครื่องที่มี Playwright และ browser อยู่แล้ว สามารถรันด้วย Node โดยตั้ง `BITPOS_PLAYWRIGHT_MODULE` และ `BITPOS_CHROME_EXECUTABLE` ตามตำแหน่งจริง ไม่ต้องใช้เครื่องมือเหล่านี้เพื่ออ่านคู่มือ
+
+## Latest runtime references — 9 October 2026
+
+The guide remains fully local/offline documentation and concepts, not a live POS. Current status banners now distinguish the actual0.3.1 table-entry QR/guest menu/devnet/physical flow from historical0.2.4/0.3.0 cohorts. Three current guest rounds have original physical ACK759/859/1094ms; no30/p95/subsecond acceptance claim. Latest native review/gate status belongs to `../docs/CHECKPOINT.md`, not a static guide badge.
+
+`../docs/DEMO_VIDEO_TH.md` has the current table Scan-to-order→guest photo/cart→canonical bill→distinct exact-order paymentQR→marked browserfixture→finalized assigned physical display shot plan and English narration. Android Phantom physical scan/payment remains explicitly deferred; framebuffer decode, host mocks and browser test-wallet fixtures are not phone/camera/acoustic proof. Full25-screen POS parity and post-submission integrations remain roadmap. Actual Brave `file://` offline reload proved local Sarabun,25inventory entries,zeroHTTP runtime requests/zero page errors/no horizontal overflow; evidence `.omp/work/evidence/public-table-offline-guide-current.json`.
