@@ -1,5 +1,7 @@
 # Third-party notices
 
+Project-owned source code is licensed under [Apache-2.0](../LICENSE), with scope described in [NOTICE](../NOTICE). Logos, brand artwork and product illustrations are excluded from that grant.
+
 This is a source/asset register, not a certification that every transitive dependency or presentation asset has been legally cleared.
 
 | Material | Attribution / license | Evidence |

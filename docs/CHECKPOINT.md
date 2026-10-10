@@ -1,5 +1,9 @@
 # Planning checkpoint — 2026-10-07
 
+## Source license — 2026-10-10 (Thailand)
+
+- Owner explicitly approved Apache-2.0. Added canonical root LICENSE, NOTICE with Natthapong Suwanjit attribution, package license metadata and README scope. Third-party terms retained; brand/logo/product artwork excluded. Updated submission checklist. No claim of rights to third-party inherited material. Documentation/link/JSON validation passed.
+
 ## Colosseum reviewer preparation — 2026-10-10 (Thailand)
 
 - Added English reviewer guide, inherited/new source disclosure, third-party register, official submission checklist and a separate hosted English reviewer overview. README now routes reviewers through English materials. Added Apache-2.0 license text for the retained Espressif driver; existing font/photo notices preserved.

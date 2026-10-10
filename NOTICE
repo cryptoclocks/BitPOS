@@ -1,0 +1,14 @@
+BitPOS
+Copyright 2026 Natthapong Suwanjit
+
+Project-owned source code is licensed under the Apache License, Version 2.0.
+Third-party source, dependencies, fonts and photographs retain their own
+licenses and notices; see docs/THIRD_PARTY_NOTICES.md.
+
+BitPOS logos, brand artwork and product illustrations are excluded from the
+project source-code license unless separately identified as licensed.
+No permission to use trademarks or imply endorsement is granted.
+
+Inherited CryptoClock/Cashless foundations are disclosed in
+docs/SOURCE_PROVENANCE.md and docs/FIRMWARE_PROVENANCE.json.
+This notice does not relicense material the project owner does not own.

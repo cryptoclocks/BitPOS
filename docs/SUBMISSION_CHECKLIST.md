@@ -13,6 +13,7 @@ The event-specific rules state the deadline is **12 October 2026, 11:59 pm Pacif
 - [x] Hosted merchant/customer entry points and three finalized payment transaction links.
 - [x] Implemented versus planned features distinguished; physical Android Phantom check explicitly pending.
 - [x] Prior CryptoClock/Cashless foundations disclosed in English; actual history retained.
+- [x] Owner approved Apache-2.0 for project-owned source; root LICENSE and NOTICE added with third-party and brand exclusions.
 - [x] Font notices and photo credits retained; Apache-2.0 driver license text included.
 
 ## Submitter actions still required
@@ -23,7 +24,7 @@ The event-specific rules state the deadline is **12 October 2026, 11:59 pm Pacif
 - [ ] Add final video URLs to README/form. No video URL is fabricated in this repository.
 - [ ] Confirm team backgrounds, location, funding history, founder commitment and any real demand/revenue. Do not substitute proposed business plans for traction.
 - [ ] Disclose all relevant pre-existing work in the form, using `SOURCE_PROVENANCE.md`.
-- [ ] Confirm rights to inherited code/artwork and video/music/person appearances. Decide the license for project-owned source; a public repository alone is not open-source licensing.
+- [ ] Confirm rights to inherited code/artwork and video/music/person appearances. Apache-2.0 applies only to project-owned source; it does not establish rights to inherited material.
 - [ ] Ensure the submitted deck/video/description are English and match the actual website/provider checkout. Historical Thai team notes are not the English submission packet; the rules' English-content requirement has not been certified for the entire bilingual repository.
 - [ ] If showing Android Phantom approval as proven functionality, complete the deferred real-phone check first.
 
