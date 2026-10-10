@@ -1,5 +1,11 @@
 # Planning checkpoint — 2026-10-07
 
+## Colosseum reviewer preparation — 2026-10-10 (Thailand)
+
+- Added English reviewer guide, inherited/new source disclosure, third-party register, official submission checklist and a separate hosted English reviewer overview. README now routes reviewers through English materials. Added Apache-2.0 license text for the retained Espressif driver; existing font/photo notices preserved.
+- Official FAQ verified: prior development must also be disclosed in the form; presentation 2–3 minutes plus product demo no longer than 3 minutes. AI tools are discussed as acceptable MVP tooling; no exception to truthful claims or rights is inferred.
+- Actual registration/form, video URLs, inherited-material rights confirmation and deferred Android Phantom acceptance remain outstanding. Source license decision requested from owner; no license grant invented. Historical Thai documents preserved; entire repository English compliance is not certified.
+
 ## Incoming orders UX — 2026-10-10 (Thailand)
 
 - Replaced the long status list with a compact counter/table, items, total and status layout. Added five status filters with counts, order/table/menu search and pagination (12 rows; API retains its existing 200 most recent limit). Canceled orders have their own readable label within Closed.
