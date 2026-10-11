@@ -6,7 +6,13 @@ Built by Natthapong Suwanjit. Merchant tablets create itemized bills; customers 
 
 ## Tried in a cafe
 
-[![BitPOS Mini, tablet and coffee at a cafe table](RealUse/media/overview-poster.jpg)](RealUse/README.md)
+### Watch: order and pay from the table
+
+[![Watch the real table-ordering and payment video](RealUse/media/bitpos_table-preview.jpg)](https://github.com/cryptoclocks/BitPOS/blob/main/RealUse/media/bitpos_table.mp4)
+
+**[▶ Play bitpos_table.mp4 — about 61 seconds](https://github.com/cryptoclocks/BitPOS/blob/main/RealUse/media/bitpos_table.mp4)**
+
+A phone order, USDG payment and the physical BitPOS Mini at the cafe table. Click the preview to open the video.
 
 **Real hardware, a tablet, a phone and a cafe table.** Watch [table ordering and payment](RealUse/media/bitpos_table.mp4) or [tablet order to device QR](RealUse/media/bitpos_shop.mp4). See the [captioned field-trial gallery](RealUse/README.md) for all four recordings, three photos and provenance. The recordings show a devnet trial, not claimed commercial adoption.
 

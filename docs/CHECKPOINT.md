@@ -1,5 +1,9 @@
 # Planning checkpoint — 2026-10-07
 
+## README table-video prominence — 2026-10-11 (Thailand)
+
+- Promoted bitpos_table.mp4 to the first README media block with a camera-extracted preview and direct Play link. Repository video opens on its GitHub file page; no claim of inline README autoplay. Existing gallery and originals retained.
+
 ## Cafe field-trial media and reviewer navigation — 2026-10-11 (Thailand)
 
 - Published owner-supplied RealUse camera footage as full-length resized, metadata-stripped, silent web copies (four MP4s), three EXIF-free photographs, extracted posters and a hash/transformation manifest. Local full-resolution originals retained unchanged and excluded from Git. English captions distinguish tablet-to-QR, table payment screen, placement and serving from audited payment proof or adoption.
