@@ -1,5 +1,11 @@
 # Planning checkpoint — 2026-10-07
 
+## Cafe field-trial media and reviewer navigation — 2026-10-11 (Thailand)
+
+- Published owner-supplied RealUse camera footage as full-length resized, metadata-stripped, silent web copies (four MP4s), three EXIF-free photographs, extracted posters and a hash/transformation manifest. Local full-resolution originals retained unchanged and excluded from Git. English captions distinguish tablet-to-QR, table payment screen, placement and serving from audited payment proof or adoption.
+- README now leads with actual cafe hardware, links the gallery and clips, uses BitPOS Mini as the public device name, and adds why Solana plus a concise order/payment/outbox routing diagram. Reviewer guide links the same evidence. No claim that three measured acceptance rounds are the total test count; no commercial traction or AI/NFT implementation inferred.
+- Compared present-day TapeDrive, ORE and Reflect official-linked public repositories/docs; findings recorded in docs/REPOSITORY_REVIEW_20261011.md. These are current snapshots, not historical submission versions. Product/runtime and unrelated local changes left untouched.
+
 ## Source license — 2026-10-10 (Thailand)
 
 - Owner explicitly approved Apache-2.0. Added canonical root LICENSE, NOTICE with Natthapong Suwanjit attribution, package license metadata and README scope. Third-party terms retained; brand/logo/product artwork excluded. Updated submission checklist. No claim of rights to third-party inherited material. Documentation/link/JSON validation passed.

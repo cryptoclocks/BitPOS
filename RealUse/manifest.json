@@ -1,0 +1,70 @@
+{
+  "published_date": "2026-10-11",
+  "source": "Owner-supplied photos and recordings in RealUse",
+  "entries": [
+    {
+      "original_filename": "20261011_015343.jpg",
+      "original_sha256": "b21fec329c0bd54bf1cce44662e7c20410ccec0542e412ca3ed46a3144b0df56",
+      "published_path": "RealUse/media/cafe-idle.jpg",
+      "published_sha256": "46b59052b314aa4ea5bfeee877eefd7b5c9504735b0cba63674ee27c7caff681",
+      "published_bytes": 153438,
+      "editing": "Resized JPEG; orientation normalized; EXIF removed; no synthetic image changes."
+    },
+    {
+      "original_filename": "20261011_015356.jpg",
+      "original_sha256": "d5284f9fd59c14f73ee1254659ee0106874d18d118ec31c033a41146865ed522",
+      "published_path": "RealUse/media/cafe-menu-promotion.jpg",
+      "published_sha256": "9a5b4bf263fc816f033acd2135186fbcf7742122a33c4c50f89687139711fb39",
+      "published_bytes": 181137,
+      "editing": "Resized JPEG; orientation normalized; EXIF removed; no synthetic image changes."
+    },
+    {
+      "original_filename": "20261011_015725.jpg",
+      "original_sha256": "0da32fe521e06ef11d1304a169505d44dcc61b6c5e2c1c21695791d09109bcaa",
+      "published_path": "RealUse/media/cafe-table-ordering.jpg",
+      "published_sha256": "07470c9d22b3cca2ace5d8af6ad515a6873365d4aff64c1142eabdca4123970b",
+      "published_bytes": 161906,
+      "editing": "Resized JPEG; orientation normalized; EXIF removed; no synthetic image changes."
+    },
+    {
+      "original_filename": "bitpos_shop.mp4",
+      "original_sha256": "c056246494eb2ed095e91e3f0acaab48d382710482d6c7f341cf2c67a65d328d",
+      "published_path": "RealUse/media/bitpos_shop.mp4",
+      "published_sha256": "a83d5ba58a0fd0732eeadef6dde808730f4690e319a1be0831eef4486dee0e59",
+      "published_bytes": 4054207,
+      "duration_seconds": 42.666992,
+      "audio": "omitted in web viewing copy",
+      "editing": "Full-length re-encode; resized; metadata removed; no synthetic frames or UI replacements."
+    },
+    {
+      "original_filename": "bitpos_table.mp4",
+      "original_sha256": "375688927099e7308530ef78a94eb03dcbd78a7a58186a818ca60ba8e4e964ff",
+      "published_path": "RealUse/media/bitpos_table.mp4",
+      "published_sha256": "ee22a239087f557ab58637181e28731d35b3f287fa21e29deae54219402af5a7",
+      "published_bytes": 6391450,
+      "duration_seconds": 60.8,
+      "audio": "omitted in web viewing copy",
+      "editing": "Full-length re-encode; resized; metadata removed; no synthetic frames or UI replacements."
+    },
+    {
+      "original_filename": "bringcuptothetable.mp4",
+      "original_sha256": "c510ecf02bb36d898ef4040dce56788c418300b18c31d88b5f08f72ec55392fe",
+      "published_path": "RealUse/media/bringcuptothetable.mp4",
+      "published_sha256": "85a2013ebeacef957ee40b309eec33e0ff3bc21e5c65683b1a8c671d7d7a563c",
+      "published_bytes": 1788378,
+      "duration_seconds": 15.3,
+      "audio": "omitted in web viewing copy",
+      "editing": "Full-length re-encode; resized; metadata removed; no synthetic frames or UI replacements."
+    },
+    {
+      "original_filename": "overview.mp4",
+      "original_sha256": "44835262641aa23fc5523c244c55a6bea1a357496e32dab56f76b0cd73963578",
+      "published_path": "RealUse/media/overview.mp4",
+      "published_sha256": "e60bb81818971dd323044b7d626afb03749695272ee60e56229089a690c9d8ea",
+      "published_bytes": 1177397,
+      "duration_seconds": 13.6,
+      "audio": "omitted in web viewing copy",
+      "editing": "Full-length re-encode; resized; metadata removed; no synthetic frames or UI replacements."
+    }
+  ]
+}

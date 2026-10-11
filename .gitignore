@@ -33,3 +33,7 @@ infra/init.sql
 
 __pycache__/
 *.pyc
+
+# Local full-resolution field-trial originals; publish reviewed web copies only.
+/RealUse/*.mp4
+/RealUse/*.jpg

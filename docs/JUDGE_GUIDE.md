@@ -1,7 +1,12 @@
 # BitPOS — reviewer guide
 
-**Cafe checkout that connects a Solana payment to a physical POSClock.**  
+**Cafe checkout that connects a Solana payment to a physical BitPOS Mini.**
+
 Builder: Natthapong Suwanjit · Ecosystem: Solana · Network: devnet
+
+## See it in a cafe first
+
+The [field-trial gallery](../RealUse/README.md) has four camera recordings and three real photos, with English captions: table ordering/payment, tablet-to-device QR, the cafe setup and serving a drink. This is physical-use evidence on devnet, separate from commercial adoption and the measured engineering acceptance cohort.
 
 ## What to try
 
@@ -19,7 +24,7 @@ This is a shared devnet evaluation environment, so an online terminal may be bus
 | Area | Current status |
 | --- | --- |
 | Menu, cart, table ordering and register pairing | Implemented |
-| Sponsored sandbox USDG, verification, inventory and durable device events | Implemented; three finalized physical acceptance rounds |
+| Sponsored sandbox USDG, verification, inventory and durable device events | Implemented; documented finalized acceptance cohort; cafe footage also available |
 | Native terminal QR, confirming/paid feedback, animation and audio | Implemented; firmware 0.3.6 acceptance evidence |
 | Android Phantom on a physical phone | Manual acceptance remains pending; host-wallet payments are separate evidence |
 | Native Actions/Blinks checkout | Planned/incomplete; current checkout is a website/provider flow |
