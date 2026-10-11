@@ -8,13 +8,13 @@ Built by Natthapong Suwanjit. Merchant tablets create itemized bills; customers 
 
 ### Watch: order and pay from the table
 
-[![Watch the real table-ordering and payment video](RealUse/media/bitpos_table-preview.jpg)](https://raw.githubusercontent.com/cryptoclocks/BitPOS/main/RealUse/media/bitpos_table.mp4)
+[![Watch the real table-ordering and payment video](RealUse/media/bitpos_table-preview.jpg)](https://youtu.be/kNcwEB3NNxY)
 
-**[▶ Play bitpos_table.mp4 — about 61 seconds](https://raw.githubusercontent.com/cryptoclocks/BitPOS/main/RealUse/media/bitpos_table.mp4)**
+**[▶ Watch on YouTube — about 61 seconds](https://youtu.be/kNcwEB3NNxY)**
 
-A phone order, USDG payment and the physical BitPOS Mini at the cafe table. Click the preview to open the video directly; your browser may play it or download it.
+A phone order, USDG payment and the physical BitPOS Mini at the cafe table. Click the preview to watch on YouTube, with English titles and background music.
 
-**Real hardware, a tablet, a phone and a cafe table.** Watch [table ordering and payment](https://raw.githubusercontent.com/cryptoclocks/BitPOS/main/RealUse/media/bitpos_table.mp4) or [tablet order to device QR](https://raw.githubusercontent.com/cryptoclocks/BitPOS/main/RealUse/media/bitpos_shop.mp4). See the [captioned field-trial gallery](RealUse/README.md) for all four recordings, three photos and provenance. The recordings show a devnet trial, not claimed commercial adoption.
+**Real hardware, a tablet, a phone and a cafe table.** Watch [table ordering and payment](https://youtu.be/kNcwEB3NNxY) or [tablet order to device QR](https://youtu.be/Yy9Dx9Kik-Q). See the [captioned field-trial gallery](RealUse/README.md) for all four recordings, three photos and provenance. The recordings show a devnet trial, not claimed commercial adoption.
 
 ## Review the submission
 

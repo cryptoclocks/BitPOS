@@ -37,3 +37,6 @@ __pycache__/
 # Local full-resolution field-trial originals; publish reviewed web copies only.
 /RealUse/*.mp4
 /RealUse/*.jpg
+
+# Local video edit intermediates and upload masters.
+/RealUse/export/

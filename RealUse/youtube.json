@@ -1,0 +1,26 @@
+[
+  {
+    "part": "overview",
+    "title": "Cafe setup | BitPOS Mini",
+    "url": "https://youtu.be/bKjhrKthBrw",
+    "durationSeconds": 13.6
+  },
+  {
+    "part": "bitpos_shop",
+    "title": "Counter ordering and payment QR | BitPOS Mini",
+    "url": "https://youtu.be/Yy9Dx9Kik-Q",
+    "durationSeconds": 42.7
+  },
+  {
+    "part": "bitpos_table",
+    "title": "Table ordering and USDG payment | BitPOS Mini",
+    "url": "https://youtu.be/kNcwEB3NNxY",
+    "durationSeconds": 60.8
+  },
+  {
+    "part": "bringcuptothetable",
+    "title": "Serving a drink and cafe photos | BitPOS Mini",
+    "url": "https://youtu.be/WFLZG_2B6G0",
+    "durationSeconds": 31.333333
+  }
+]

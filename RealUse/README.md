@@ -2,33 +2,41 @@
 
 Real photographs and phone-camera recordings supplied by the builder, published on 11 October 2026. These show BitPOS and **BitPOS Mini** being tried in a cafe setting: a merchant tablet, a customer's phone, the physical display, and a drink served at the table. They are camera footage, not Blender renders or motion-graphics reconstructions.
 
-**Start here:** [table ordering and payment](https://raw.githubusercontent.com/cryptoclocks/BitPOS/main/RealUse/media/bitpos_table.mp4), then [merchant tablet to payment QR](https://raw.githubusercontent.com/cryptoclocks/BitPOS/main/RealUse/media/bitpos_shop.mp4).
+**Start here:** [table ordering and payment](https://youtu.be/kNcwEB3NNxY), then [merchant tablet to payment QR](https://youtu.be/Yy9Dx9Kik-Q).
 
 ## Watch the recordings
 
-Click a still to open its MP4 directly, bypassing GitHub's file-preview size limit. Your browser may play the video or download it; downloaded clips can be opened in the device's video player. These are supporting field-trial clips, separate from the final narrated presentation and product-demo videos.
+Click a still to watch its separate YouTube video. Each edit includes English titles and original instrumental background music. The fourth video ends with three real cafe photographs. These are supporting field-trial clips, separate from the final narrated presentation and product-demo videos.
 
 ### 1. Order and pay from the table — about 61 seconds
 
-[![Phone ordering beside BitPOS Mini](media/bitpos_table-poster.jpg)](https://raw.githubusercontent.com/cryptoclocks/BitPOS/main/RealUse/media/bitpos_table.mp4)
+[![Phone ordering beside BitPOS Mini](media/bitpos_table-poster.jpg)](https://youtu.be/kNcwEB3NNxY)
+
+**[Watch on YouTube](https://youtu.be/kNcwEB3NNxY)** · [Download original viewing copy](https://raw.githubusercontent.com/cryptoclocks/BitPOS/main/RealUse/media/bitpos_table.mp4)
 
 **Original filename:** `bitpos_table.mp4`. A guest uses a phone beside the table device, browses the menu, proceeds to the payment page, and reaches **Payment received** while the physical display shows its receipt state. The recording shows the customer-side flow in a cafe setting; on-chain settlement details should be checked against the separately linked technical evidence rather than inferred from a screen alone.
 
 ### 2. Merchant tablet and assigned display — about 43 seconds
 
-[![Merchant tablet and payment QR](media/bitpos_shop-poster.jpg)](https://raw.githubusercontent.com/cryptoclocks/BitPOS/main/RealUse/media/bitpos_shop.mp4)
+[![Merchant tablet and payment QR](media/bitpos_shop-poster.jpg)](https://youtu.be/Yy9Dx9Kik-Q)
+
+**[Watch on YouTube](https://youtu.be/Yy9Dx9Kik-Q)** · [Download original viewing copy](https://raw.githubusercontent.com/cryptoclocks/BitPOS/main/RealUse/media/bitpos_shop.mp4)
 
 **Original filename:** `bitpos_shop.mp4`. The operator opens BitPOS on a tablet, selects menu items and creates a bill. The adjacent BitPOS Mini changes from its idle/product display to that bill's payment QR. This clip focuses on creating an order and routing its QR to the physical device; it is not presented as a completed payment recording.
 
 ### 3. Cafe setup overview — about 14 seconds
 
-[![Cafe setup with tablet, drink and BitPOS Mini](media/overview-poster.jpg)](https://raw.githubusercontent.com/cryptoclocks/BitPOS/main/RealUse/media/overview.mp4)
+[![Cafe setup with tablet, drink and BitPOS Mini](media/overview-poster.jpg)](https://youtu.be/bKjhrKthBrw)
+
+**[Watch on YouTube](https://youtu.be/bKjhrKthBrw)** · [Download original viewing copy](https://raw.githubusercontent.com/cryptoclocks/BitPOS/main/RealUse/media/overview.mp4)
 
 **Original filename:** `overview.mp4`. A camera view of the tablet menu, BitPOS Mini and a drink on the table, showing the physical footprint and placement of the equipment.
 
-### 4. Serving the drink at the table — about 16 seconds
+### 4. Serving the drink and cafe photos — about 31 seconds
 
-[![Drink at the table beside the device](media/bringcuptothetable-poster.jpg)](https://raw.githubusercontent.com/cryptoclocks/BitPOS/main/RealUse/media/bringcuptothetable.mp4)
+[![Drink at the table beside the device](media/bringcuptothetable-poster.jpg)](https://youtu.be/WFLZG_2B6G0)
+
+**[Watch on YouTube](https://youtu.be/WFLZG_2B6G0)** · [Download original viewing copy](https://raw.githubusercontent.com/cryptoclocks/BitPOS/main/RealUse/media/bringcuptothetable.mp4)
 
 **Original filename:** `bringcuptothetable.mp4`. The camera follows a drink to the table beside BitPOS Mini, whose screen alternates between the clock/idle view and a menu promotion. This demonstrates the table setting and product display, not an AI-personalized promotion or an additional payment.
 
@@ -51,6 +59,6 @@ The photographs correspond to `20261011_015343.jpg`, `20261011_015356.jpg` and `
 
 ## Viewing copies and provenance
 
-Original files remain unchanged on the builder's Mac. Published copies preserve the complete video sequence; container durations can differ slightly when the original audio tail is omitted, with H.264 compression, resized video, and metadata removed. Audio is omitted from the web copies; original audio remains in the local recordings. Photos are resized/oriented and have EXIF stripped. Poster frames are extracted from the corresponding footage. There are no generated replacements, composited payment screens or invented transaction overlays.
+Original files remain unchanged on the builder's Mac. Published copies preserve the complete video sequence; container durations can differ slightly when the original audio tail is omitted, with H.264 compression, resized video, and metadata removed. The GitHub MP4 viewing copies are silent. The YouTube edits add title/caption overlays and a quiet original music bed, with fade-in/out; the serving clip also adds a photo ending and brand close. The music was synthesized for BitPOS without external samples (see [music credit](MUSIC_CREDIT.md)). Location audio is omitted from these edits; original audio remains in the local recordings. Photos are resized/oriented and have EXIF stripped. Poster frames are extracted from the corresponding footage. There are no generated replacements, composited payment screens or invented transaction overlays.
 
 [manifest.json](manifest.json) records original filenames, hashes, published hashes, durations and transformations. Raw local originals are excluded from Git to avoid oversized duplicate files. User-supplied recordings and photographs remain subject to the owner's rights and applicable appearance/location permissions; the repository's source-code Apache-2.0 grant does not automatically license this media.
