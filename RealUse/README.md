@@ -2,33 +2,33 @@
 
 Real photographs and phone-camera recordings supplied by the builder, published on 11 October 2026. These show BitPOS and **BitPOS Mini** being tried in a cafe setting: a merchant tablet, a customer's phone, the physical display, and a drink served at the table. They are camera footage, not Blender renders or motion-graphics reconstructions.
 
-**Start here:** [table ordering and payment](media/bitpos_table.mp4), then [merchant tablet to payment QR](media/bitpos_shop.mp4).
+**Start here:** [table ordering and payment](https://raw.githubusercontent.com/cryptoclocks/BitPOS/main/RealUse/media/bitpos_table.mp4), then [merchant tablet to payment QR](https://raw.githubusercontent.com/cryptoclocks/BitPOS/main/RealUse/media/bitpos_shop.mp4).
 
 ## Watch the recordings
 
-Click a still to open its MP4 on GitHub. If your browser does not play the repository file inline, use **View raw / Download** on that file page. These are supporting field-trial clips, separate from the final narrated presentation and product-demo videos.
+Click a still to open its MP4 directly, bypassing GitHub's file-preview size limit. Your browser may play the video or download it; downloaded clips can be opened in the device's video player. These are supporting field-trial clips, separate from the final narrated presentation and product-demo videos.
 
 ### 1. Order and pay from the table — about 61 seconds
 
-[![Phone ordering beside BitPOS Mini](media/bitpos_table-poster.jpg)](media/bitpos_table.mp4)
+[![Phone ordering beside BitPOS Mini](media/bitpos_table-poster.jpg)](https://raw.githubusercontent.com/cryptoclocks/BitPOS/main/RealUse/media/bitpos_table.mp4)
 
 **Original filename:** `bitpos_table.mp4`. A guest uses a phone beside the table device, browses the menu, proceeds to the payment page, and reaches **Payment received** while the physical display shows its receipt state. The recording shows the customer-side flow in a cafe setting; on-chain settlement details should be checked against the separately linked technical evidence rather than inferred from a screen alone.
 
 ### 2. Merchant tablet and assigned display — about 43 seconds
 
-[![Merchant tablet and payment QR](media/bitpos_shop-poster.jpg)](media/bitpos_shop.mp4)
+[![Merchant tablet and payment QR](media/bitpos_shop-poster.jpg)](https://raw.githubusercontent.com/cryptoclocks/BitPOS/main/RealUse/media/bitpos_shop.mp4)
 
 **Original filename:** `bitpos_shop.mp4`. The operator opens BitPOS on a tablet, selects menu items and creates a bill. The adjacent BitPOS Mini changes from its idle/product display to that bill's payment QR. This clip focuses on creating an order and routing its QR to the physical device; it is not presented as a completed payment recording.
 
 ### 3. Cafe setup overview — about 14 seconds
 
-[![Cafe setup with tablet, drink and BitPOS Mini](media/overview-poster.jpg)](media/overview.mp4)
+[![Cafe setup with tablet, drink and BitPOS Mini](media/overview-poster.jpg)](https://raw.githubusercontent.com/cryptoclocks/BitPOS/main/RealUse/media/overview.mp4)
 
 **Original filename:** `overview.mp4`. A camera view of the tablet menu, BitPOS Mini and a drink on the table, showing the physical footprint and placement of the equipment.
 
 ### 4. Serving the drink at the table — about 16 seconds
 
-[![Drink at the table beside the device](media/bringcuptothetable-poster.jpg)](media/bringcuptothetable.mp4)
+[![Drink at the table beside the device](media/bringcuptothetable-poster.jpg)](https://raw.githubusercontent.com/cryptoclocks/BitPOS/main/RealUse/media/bringcuptothetable.mp4)
 
 **Original filename:** `bringcuptothetable.mp4`. The camera follows a drink to the table beside BitPOS Mini, whose screen alternates between the clock/idle view and a menu promotion. This demonstrates the table setting and product display, not an AI-personalized promotion or an additional payment.
 

@@ -1,5 +1,9 @@
 # Planning checkpoint — 2026-10-07
 
+## Direct media links — 2026-10-11 (Thailand)
+
+- GitHub blob view rejected the MP4 preview. README and gallery now link directly to raw.githubusercontent.com media, avoiding the file-preview page; browser playback versus download depends on the client.
+
 ## README table-video prominence — 2026-10-11 (Thailand)
 
 - Promoted bitpos_table.mp4 to the first README media block with a camera-extracted preview and direct Play link. Repository video opens on its GitHub file page; no claim of inline README autoplay. Existing gallery and originals retained.
