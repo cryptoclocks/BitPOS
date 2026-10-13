@@ -4,6 +4,12 @@
 
 Builder: Natthapong Suwanjit · Ecosystem: Solana · Network: devnet
 
+## Latest links
+
+[Product website](https://bitpos.cashlessthailand.com/) · [Two-minute English pitch](https://youtu.be/q8YXIrsTWXw) · [Combined cafe demo](https://youtu.be/yuSbXrgXSh8)
+
+The [13 October product update](PRODUCT_UPDATES_20261013.md) documents real Gemini promotions on the Mini, the floor-plan workspace, devnet asset expansion, Coffee Copilot and x402. These additions have separate evidence and do not rewrite the original submission or historical acceptance.
+
 ## See it in a cafe first
 
 The [field-trial gallery](../RealUse/README.md) has four camera recordings and three real photos, with English captions: table ordering/payment, tablet-to-device QR, the cafe setup and serving a drink. This is physical-use evidence on devnet, separate from commercial adoption and the measured engineering acceptance cohort.
@@ -28,7 +34,9 @@ This is a shared devnet evaluation environment, so an online terminal may be bus
 | Native terminal QR, confirming/paid feedback, animation and audio | Implemented; firmware 0.3.6 acceptance evidence |
 | Android Phantom on a physical phone | Manual acceptance remains pending; host-wallet payments are separate evidence |
 | Native Actions/Blinks checkout | Planned/incomplete; current checkout is a website/provider flow |
-| Automatic personalized AI offers, loyalty/NFT rewards | Planned/incomplete |
+| Merchant-approved Gemini offers and promotion floor plan | Deployed; physical Mini native frame/render ACK linked above |
+| Coffee Copilot, USDC/x402 and bounded permissions | Devnet runtime evidence linked above; phone/voice acceptance separate |
+| Loyalty/NFT rewards | Planned/incomplete |
 | Mainnet and redeemable USDG | Not enabled |
 
 ## Evidence and source
