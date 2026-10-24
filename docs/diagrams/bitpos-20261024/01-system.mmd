@@ -1,0 +1,33 @@
+flowchart TB
+  subgraph CLIENTS[User interfaces]
+    C[Customer app / Flutter]
+    R[Rider app / Flutter]
+    P[Merchant POS / Astro + React]
+    Y[Pay web / same web application]
+  end
+  subgraph SERVER[Server authority]
+    API[BitPOS API / authenticated commands]
+    DOMAIN[Quotes / orders / payment / fulfillment]
+    DB[(Postgres / tenant data + command journals)]
+    OUT[Durable outbox / persisted events]
+    W[Workers / dispatch + reconciliation]
+    EVENTS[Scoped realtime / snapshots + SSE]
+  end
+  ADAPTER[Payment / map / notification adapters]
+  MINI[Optional BitPOS Mini integration]
+  C --> API
+  R --> API
+  P --> API
+  Y --> API
+  API --> DOMAIN
+  DOMAIN --> DB
+  DB --> OUT
+  OUT --> W
+  W --> DB
+  W --> EVENTS
+  API --> EVENTS
+  EVENTS --> C
+  EVENTS --> R
+  EVENTS --> P
+  DOMAIN -. configured or fixture boundary .-> ADAPTER
+  W -. targeted device events .-> MINI

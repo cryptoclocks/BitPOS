@@ -1,0 +1,53 @@
+{
+  "renderer": "pele",
+  "version": "1.9.0",
+  "generatedAt": "2026-10-24T07:23:40.215Z",
+  "purpose": "Source-oriented explanatory diagrams, not runtime or end-to-end acceptance",
+  "diagrams": [
+    {
+      "id": "01-system",
+      "type": "flowchart",
+      "width": 927,
+      "height": 1246,
+      "sourceSha256": "85268367f3e619592dd899c851930ebc6fef1ceba3defbb19e43712017413e9b",
+      "svgSha256": "29d41ade554f7b3ae3d91d5e392c12b5044afce8f4063c1c4a1f5fdafbb20a89"
+    },
+    {
+      "id": "02-food-order",
+      "type": "sequence",
+      "width": 1611,
+      "height": 1092,
+      "sourceSha256": "78f38d4e9e187ba374f0b0e54a43158f3906d269561e339f8863eabb06bd4eaf",
+      "svgSha256": "93caf880ebed2abab1c09bc0fee5ea74495f5ef9914dad1a1e15a69877534cdf"
+    },
+    {
+      "id": "03-payment-recovery",
+      "type": "flowchart",
+      "width": 1157,
+      "height": 1275,
+      "sourceSha256": "d7a383676dc37607244e2290a1f3b0e7c6b29fa32a17cb083fb6489da1a5b5fd",
+      "svgSha256": "7a6c2736a3f2c2688b1e7b71a181899d91858af6c477885cb23b94b547ecea14"
+    },
+    {
+      "id": "04-ui-development",
+      "type": "flowchart",
+      "width": 1189,
+      "height": 1553,
+      "sourceSha256": "b57d3229ee35790ad48783c6e82011373a0796570d10f6e0928e1f679e2567c2",
+      "svgSha256": "be012b74fe653c698a4c7c2fc1811d8ee6986617f862a575020f240b8ea668ac"
+    }
+  ],
+  "references": {
+    "docs/CHECKPOINT.md": "ece2b7cf06232cb92f7c90c7dcbd76d300ad2527509b63f75b18241b15284cea",
+    "apps/api/src/index.ts": "a6151636da55272acfb8a32d4b9f068584de922962abbd9df2ed65d570c4c7ac",
+    "apps/api/src/orders.ts": "4baee4e4ca27e18a4feb32f9d03185d13e1bc4ee5f3b7c8921c3a81236d77136",
+    "apps/api/src/fulfillment.ts": "86508fec9a76d18dbdc9f716adc8996149a7dec194367469f492e3fd7df96da3",
+    "apps/api/src/mobile-food.ts": "3b56a1b96f856fcfa3d751407c2a11c2d2e12393c16fec9c7c034e7c9e387f5e",
+    "apps/worker/src/index.ts": "a2d4c7b6cc2a1c54461368666006edc2f7a7625b06c96258db56d0a02b61b1e1",
+    "apps/worker/src/food-dispatch.ts": "cc071253900aa59a64692389315192034c2b097ad41038869a5c0bc665342921",
+    "apps/mobile-customer/lib/food_page.dart": "88b279ec2b024b0320ec2ad8b65377a2ca17a4f4da5e64586ee052002b3b1e0d",
+    "apps/mobile-driver/lib/food_work_page.dart": "c4b35ff94c0dadc6c27bbac9ca2c5e8c3078a1819e15bb5040c85d6b6b5c6ed9",
+    "apps/web/src/components/IncomingOrders.tsx": "b9aa0e299a3c357078d80c31b2f76f27c9c7c08f51ef97bc65fef955453530ba",
+    "apps/web/src/components/Payment.tsx": "df35ef9afaf4a878067e0150341965d028a3df3c1033ae4c2817d1ee836b0567"
+  }
+}

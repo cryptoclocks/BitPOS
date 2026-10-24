@@ -1,0 +1,32 @@
+sequenceDiagram
+  actor Customer
+  participant API as BitPOS API
+  participant DB as Postgres
+  participant POS as Merchant POS
+  participant Payment as Payment verification
+  participant Worker as Dispatch worker
+  participant Rider
+  Customer->>API: Select branch, items, options and address
+  API->>DB: Validate availability and canonical quote
+  DB-->>API: Validated canonical quote
+  API-->>Customer: Frozen lines, fees, currency and expiry
+  Customer->>API: Confirm quote with stable request ID
+  API->>DB: Create owned order and durable command result
+  DB-->>API: Stored order / scoped event
+  API-->>POS: Incoming order via scoped read / event
+  POS->>API: Accept or reject with current version
+  API->>DB: Persist acceptance decision
+  Note over POS,Payment: Acceptance and verified payment are separate
+  Payment->>API: Server-verifiable settlement evidence
+  API->>DB: Verify exact quote and commit paid effects once
+  POS->>API: Prepare, then mark ready
+  Note over API,DB: Unpaid preparation must be rejected
+  Worker->>DB: Find eligible ready shipment
+  Worker-->>Rider: Offer with deadline and current generation
+  Rider->>API: Claim / arrive / collect with pickup proof
+  API->>DB: Validate lease, generation and proof once
+  API-->>Customer: Scoped delivery snapshot / tracking updates
+  Rider->>API: Submit valid customer-delivery proof
+  API->>DB: Persist delivered state and earning obligation
+  Note over DB,Rider: Earning obligation is not an executed payout
+  Note over Customer,Rider: Joined all-surface acceptance remains separate from partial local proofs

@@ -1,0 +1,124 @@
+{
+  "checkedAt": "2026-10-24T07:23:42.923Z",
+  "renderer": "pele1.9.0",
+  "cases": [
+    {
+      "viewport": 1440,
+      "id": "01-system",
+      "width": 927,
+      "height": 1246,
+      "text": 16,
+      "viewbox": "0 0 927 1246",
+      "overflow": false,
+      "visible": true,
+      "internalForeground": "#29183f",
+      "firstRectFill": "rgb(255, 244, 232)"
+    },
+    {
+      "viewport": 1440,
+      "id": "02-food-order",
+      "width": 1334,
+      "height": 904.234375,
+      "text": 38,
+      "viewbox": "0 0 1611 1092",
+      "overflow": false,
+      "visible": true,
+      "internalForeground": "#29183f",
+      "firstRectFill": "rgb(255, 255, 255)"
+    },
+    {
+      "viewport": 1440,
+      "id": "03-payment-recovery",
+      "width": 1157,
+      "height": 1275,
+      "text": 22,
+      "viewbox": "0 0 1157 1275",
+      "overflow": false,
+      "visible": true,
+      "internalForeground": "#29183f",
+      "firstRectFill": "rgb(255, 255, 255)"
+    },
+    {
+      "viewport": 1440,
+      "id": "04-ui-development",
+      "width": 1189,
+      "height": 1553,
+      "text": 26,
+      "viewbox": "0 0 1189 1553",
+      "overflow": false,
+      "visible": true,
+      "internalForeground": "#29183f",
+      "firstRectFill": "rgb(255, 255, 255)"
+    },
+    {
+      "viewport": 390,
+      "id": "01-system",
+      "width": 316,
+      "height": 424.734375,
+      "text": 16,
+      "viewbox": "0 0 927 1246",
+      "overflow": false,
+      "visible": true,
+      "internalForeground": "#29183f",
+      "firstRectFill": "rgb(255, 244, 232)"
+    },
+    {
+      "viewport": 390,
+      "id": "02-food-order",
+      "width": 316,
+      "height": 214.1875,
+      "text": 38,
+      "viewbox": "0 0 1611 1092",
+      "overflow": false,
+      "visible": true,
+      "internalForeground": "#29183f",
+      "firstRectFill": "rgb(255, 255, 255)"
+    },
+    {
+      "viewport": 390,
+      "id": "03-payment-recovery",
+      "width": 316,
+      "height": 348.21875,
+      "text": 22,
+      "viewbox": "0 0 1157 1275",
+      "overflow": false,
+      "visible": true,
+      "internalForeground": "#29183f",
+      "firstRectFill": "rgb(255, 255, 255)"
+    },
+    {
+      "viewport": 390,
+      "id": "04-ui-development",
+      "width": 316,
+      "height": 412.734375,
+      "text": 26,
+      "viewbox": "0 0 1189 1553",
+      "overflow": false,
+      "visible": true,
+      "internalForeground": "#29183f",
+      "firstRectFill": "rgb(255, 255, 255)"
+    }
+  ],
+  "checks": [
+    "8 visible SVG views desktop/mobile",
+    "tab selection",
+    "zoom and fit",
+    "source disclosure",
+    "no horizontal document overflow",
+    "zero browser errors",
+    "zero HTTP requests: offline"
+  ],
+  "visualReview": "Manually inspected actual system and food-sequence browser frames after CSS-variable correction; all4views have nonblack theme fill/foreground checks.",
+  "errors": [],
+  "networkRequests": [],
+  "initialFailures": [
+    "QA numeric HTML id selector required attribute selector",
+    "Visual inspection found duplicate SVG style dropping Pele internal CSS aliases; merged style instead and repeated all8browser cases"
+  ],
+  "scratchCleanup": "verified removed only named analysis captures and empty check directories",
+  "removedScratch": [
+    "bitpos-pele-review-ovBjSl",
+    "bitpos-pele-review-0p1vOd",
+    "bitpos-pele-review-rP2qD7 (empty)"
+  ]
+}

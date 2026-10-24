@@ -28,7 +28,7 @@ export default function ProductOfferEditor({ product, token, language, onSaved, 
   }, [path, token, reload]);
   let current = ''; let previewError = '';
   if (view && draft.value) {
-    try { const base = view.effective.basePrice; if (!base || base.currency === 'THB') throw new Error('USD/USDG setup required.'); current = discountedMinor(base.amountMinor, discountFromDraft(draft, base.currency)); }
+    try { const base = view.effective.basePrice; if (!base || (base.currency !== 'USD' && base.currency !== 'USDG')) throw new Error('USD/USDG setup required.'); current = discountedMinor(base.amountMinor, discountFromDraft(draft, base.currency, base.decimals)); }
     catch (error) { previewError = error instanceof Error ? error.message : 'Invalid discount'; }
   }
   async function save(disable: boolean) {

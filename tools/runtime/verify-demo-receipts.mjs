@@ -5,6 +5,7 @@ import {PublicKey} from '@solana/web3.js';
 import {execFileSync} from 'node:child_process';
 import {config} from '../../apps/api/src/config.ts';
 import {assertCluster,mintPolicy,verifyTransfer,chain} from '../../apps/api/src/payments.ts';
+import {frozenAttempt} from '../../apps/api/src/payment-assets.ts';
 const statePath=process.env.BITPOS_DEMO_STATE||'local/private/demo-rounds.json';
 assert.match(statePath,/^local\/private\/demo-rounds(?:-[a-z0-9-]+)?\.json$/);
 const state=JSON.parse(fs.readFileSync(statePath,'utf8'));
@@ -17,13 +18,13 @@ const paid=state.rounds.filter(round=>round.paidAt&&round.physicalAck);
 assert.ok(paid.length>=3,'Three successful current-runtime rounds required');
 assert.equal(paid.length,state.rounds.filter(round=>round.signature).length,'Every signed attempt must reconcile; unsigned interrupted draft is reported separately');
 await assertCluster();await mintPolicy();
-const db=new pg.Client({connectionString:config.ADMIN_DATABASE_URL});await db.connect();
+const db=new pg.Client({connectionString:config.ADMIN_DATABASE_URL,options:'-c search_path=bitpos,public'});await db.connect();
 const receipts=[],payers=new Set();
 try {
  for(const round of paid){
   assert.ok([fingerprint,freeze.sample_source_fingerprint].includes(round.sourceFingerprint),'Every sample retains its original source fingerprint; only verified tooling changes allowed');
   const attempts=(await db.query('SELECT * FROM bitpos.payment_attempts WHERE order_id=$1 AND signature=$2',[round.order.id,round.signature])).rows;
-  assert.equal(attempts.length,1);const attempt=attempts[0];assert.equal(attempt.status,'FINALIZED');
+  assert.equal(attempts.length,1);const attempt=await frozenAttempt(db,attempts[0]);assert.equal(attempt.status,'FINALIZED');
   await new Promise(resolve=>setTimeout(resolve,1200));
   assert.ok(await verifyTransfer(round.signature,attempt,'finalized'),'Independent chain proof must satisfy mint/program/payer/recipient/amount/reference');
   const rows=(await db.query("SELECT o.id,o.status,o.payer,o.usdg_minor::text,o.reservation_released,a.target_device_id,(SELECT count(*)::int FROM bitpos.payments p WHERE p.order_id=o.id AND p.state='SETTLED' AND p.signature=$2) AS payments,(SELECT count(*)::int FROM bitpos.outbox_events e WHERE e.order_id=o.id AND e.type='ORDER' AND e.payload->'payload'->>'status'='PAID') AS paid_events FROM bitpos.orders o JOIN bitpos.order_authority a ON a.merchant_id=o.merchant_id AND a.order_id=o.id WHERE o.id=$1",[round.order.id,round.signature])).rows;

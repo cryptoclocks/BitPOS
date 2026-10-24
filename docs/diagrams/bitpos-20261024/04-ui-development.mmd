@@ -1,0 +1,22 @@
+flowchart TB
+  MASTER[FigCraft master / native references + shared tokens] --> SPLIT[Assign screen batches and exclusive files]
+  SPLIT --> CUSTOMER[Customer owner / implement + self-check]
+  SPLIT --> RIDER[Rider owner / implement + self-check]
+  SPLIT --> POS[POS owner / implement + self-check]
+  CUSTOMER --> CAPTURE[Local rendered views / compare geometry + navigation]
+  RIDER --> CAPTURE
+  POS --> CAPTURE
+  RESOURCE[Shared AVD and same-package builds / scheduled ownership] -. coordinates .-> CAPTURE
+  CAPTURE --> REVIEW[Independent review at batch boundary]
+  REVIEW --> RESULT{Scoped evidence passes?}
+  RESULT -->|No| FIX[Fix identified mismatch / affected checks only]
+  FIX --> CAPTURE
+  RESULT -->|Yes| LEDGER[Update exact screen and state acceptance]
+  LEDGER --> MORE{UI batches still open?}
+  MORE -->|Yes| SPLIT
+  MORE -->|No| JOIN[Remaining API joins and end-to-end acceptance]
+  WAIT[Provider error / quota wait] --> USAGE[Fresh registered-account usage / no login secrets]
+  USAGE --> GUARD[Same goal + session / positive pause-origin or safe-idle evidence]
+  GUARD -->|Authorized recovery| SPLIT
+  GUARD -->|Origin unknown| HOLD[Fail closed / human resume needed]
+  LOCAL[LOCAL ONLY / no push or deployment] -. applies to all .-> SPLIT

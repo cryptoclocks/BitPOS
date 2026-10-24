@@ -1,0 +1,25 @@
+{
+  "name": "BitPOS Cafe Club \u00b7 Croissant Comet",
+  "symbol": "BPC",
+  "description": "Original cafe collectible artwork. This local metadata is a draft for a future devnet reward and does not grant a redeemable item.",
+  "image": "../collectibles/croissant-comet.png",
+  "attributes": [
+    {
+      "trait_type": "Collection",
+      "value": "Cafe Club"
+    },
+    {
+      "trait_type": "Design",
+      "value": "Croissant Comet"
+    }
+  ],
+  "properties": {
+    "files": [
+      {
+        "uri": "../collectibles/croissant-comet.png",
+        "type": "image/png"
+      }
+    ],
+    "category": "image"
+  }
+}

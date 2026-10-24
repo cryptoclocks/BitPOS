@@ -1,0 +1,624 @@
+{
+  "components": [
+    {
+      "name": "Button/Primary/Default",
+      "id": 162
+    },
+    {
+      "name": "Button/Primary/Disabled",
+      "id": 168
+    },
+    {
+      "name": "Button/Secondary/Default",
+      "id": 175
+    },
+    {
+      "name": "Button/Outline/Default",
+      "id": 181
+    },
+    {
+      "name": "Button/Danger/Default",
+      "id": 187
+    },
+    {
+      "name": "Field/Address",
+      "id": 193
+    },
+    {
+      "name": "Field/Search",
+      "id": 199
+    },
+    {
+      "name": "Field/Phone",
+      "id": 205
+    },
+    {
+      "name": "Card/Food",
+      "id": 232
+    },
+    {
+      "name": "Card/Driver",
+      "id": 244
+    },
+    {
+      "name": "Metric/Money",
+      "id": 251
+    }
+  ],
+  "linked_cta_instances": [
+    {
+      "old": 301,
+      "name": "button-0-14",
+      "label": "เริ่มต้นใช้งาน",
+      "screen": "U01",
+      "instance": 12109
+    },
+    {
+      "old": 324,
+      "name": "button-1-19",
+      "label": "รับรหัสยืนยัน",
+      "screen": "U02",
+      "instance": 12112
+    },
+    {
+      "old": 354,
+      "name": "button-1-25",
+      "label": "ยืนยันและไปต่อ",
+      "screen": "U03",
+      "instance": 12115
+    },
+    {
+      "old": 373,
+      "name": "button-1-15",
+      "label": "อนุญาตตำแหน่ง",
+      "screen": "U04",
+      "instance": 12118
+    },
+    {
+      "old": 395,
+      "name": "button-1-15",
+      "label": "เปิดการแจ้งเตือน",
+      "screen": "U05",
+      "instance": 12121
+    },
+    {
+      "old": 604,
+      "name": "button-5-49",
+      "label": "ใช้ตัวกรอง",
+      "screen": "U08",
+      "instance": 12124
+    },
+    {
+      "old": 712,
+      "name": "button-1-31",
+      "label": "เพิ่มลงตะกร้า · ฿95",
+      "screen": "U10",
+      "instance": 12127
+    },
+    {
+      "old": 785,
+      "name": "button-6-54",
+      "label": "ไปตรวจสอบออเดอร์",
+      "screen": "U11",
+      "instance": 12130
+    },
+    {
+      "old": 882,
+      "name": "button-6-46",
+      "label": "บันทึกที่อยู่",
+      "screen": "U13",
+      "instance": 12133
+    },
+    {
+      "old": 928,
+      "name": "button-1-39",
+      "label": "ยืนยันตำแหน่งนี้",
+      "screen": "U14",
+      "instance": 12136
+    },
+    {
+      "old": 985,
+      "name": "button-2-43",
+      "label": "ยืนยันสั่งอาหาร · ฿205",
+      "screen": "U15",
+      "instance": 12139
+    },
+    {
+      "old": 1043,
+      "name": "button-8-48",
+      "label": "ใช้วิธีที่เลือก",
+      "screen": "U16",
+      "instance": 12142
+    },
+    {
+      "old": 1069,
+      "name": "button-1-22",
+      "label": "ดูสถานะออเดอร์",
+      "screen": "U17",
+      "instance": 12145
+    },
+    {
+      "old": 1292,
+      "name": "button-5-35",
+      "label": "ส่งรีวิว",
+      "screen": "U21",
+      "instance": 12148
+    },
+    {
+      "old": 1367,
+      "name": "button-6-54",
+      "label": "ยืนยันสั่งอาหาร · ฿205",
+      "screen": "U22",
+      "instance": 12151
+    },
+    {
+      "old": 1526,
+      "name": "button-5-33",
+      "label": "ดูสถานะออเดอร์",
+      "screen": "U25",
+      "instance": 12154
+    },
+    {
+      "old": 1870,
+      "name": "button-5-35",
+      "label": "ส่งรีวิว",
+      "screen": "U31",
+      "instance": 12157
+    },
+    {
+      "old": 1937,
+      "name": "button-9-53",
+      "label": "บันทึกการตั้งค่า",
+      "screen": "U32",
+      "instance": 12160
+    },
+    {
+      "old": 2059,
+      "name": "button-5-49",
+      "label": "บันทึกการตั้งค่า",
+      "screen": "U34",
+      "instance": 12163
+    },
+    {
+      "old": 2106,
+      "name": "button-5-41",
+      "label": "ยืนยันเวลา",
+      "screen": "U35",
+      "instance": 12166
+    },
+    {
+      "old": 2156,
+      "name": "button-5-43",
+      "label": "แชร์ลิงก์กลุ่ม",
+      "screen": "U36",
+      "instance": 12169
+    },
+    {
+      "old": 2212,
+      "name": "button-5-38",
+      "label": "ตรวจสอบแยกตามร้าน",
+      "screen": "U37",
+      "instance": 12172
+    },
+    {
+      "old": 2253,
+      "name": "button-5-33",
+      "label": "ดูสถานะออเดอร์",
+      "screen": "U38",
+      "instance": 12175
+    },
+    {
+      "old": 2461,
+      "name": "button-5-49",
+      "label": "ดูเที่ยวเดินทาง",
+      "screen": "U41",
+      "instance": 12178
+    },
+    {
+      "old": 2568,
+      "name": "button-5-35",
+      "label": "ส่งรีวิว",
+      "screen": "U43",
+      "instance": 12181
+    },
+    {
+      "old": 2616,
+      "name": "button-0-35",
+      "label": "เริ่มเป็น BitPOS Rider",
+      "screen": "R01",
+      "instance": 12184
+    },
+    {
+      "old": 2636,
+      "name": "button-1-17",
+      "label": "เข้าสู่ระบบด้วยรหัส OTP",
+      "screen": "R02",
+      "instance": 12187
+    },
+    {
+      "old": 2690,
+      "name": "button-5-45",
+      "label": "ดำเนินการต่อ",
+      "screen": "R03",
+      "instance": 12190
+    },
+    {
+      "old": 2743,
+      "name": "button-5-45",
+      "label": "ดำเนินการต่อ",
+      "screen": "R04",
+      "instance": 12193
+    },
+    {
+      "old": 2796,
+      "name": "button-5-45",
+      "label": "ดำเนินการต่อ",
+      "screen": "R05",
+      "instance": 12196
+    },
+    {
+      "old": 2855,
+      "name": "button-4-49",
+      "label": "ดูงานใกล้คุณ",
+      "screen": "R06",
+      "instance": 12199
+    },
+    {
+      "old": 2906,
+      "name": "button-1-43",
+      "label": "รับงานนี้",
+      "screen": "R07",
+      "instance": 12202
+    },
+    {
+      "old": 2971,
+      "name": "button-5-45",
+      "label": "ไปที่ร้าน",
+      "screen": "R08",
+      "instance": 12205
+    },
+    {
+      "old": 3025,
+      "name": "button-3-47",
+      "label": "ถึงร้านแล้ว",
+      "screen": "R09",
+      "instance": 12208
+    },
+    {
+      "old": 3087,
+      "name": "button-5-45",
+      "label": "ยืนยันรหัสรับอาหาร",
+      "screen": "R10",
+      "instance": 12211
+    },
+    {
+      "old": 3124,
+      "name": "button-2-34",
+      "label": "รับอาหารและเริ่มนำส่ง",
+      "screen": "R11",
+      "instance": 12214
+    },
+    {
+      "old": 3178,
+      "name": "button-3-47",
+      "label": "ถึงจุดส่งแล้ว",
+      "screen": "R12",
+      "instance": 12217
+    },
+    {
+      "old": 3209,
+      "name": "button-1-28",
+      "label": "ยืนยันส่งสำเร็จ",
+      "screen": "R13",
+      "instance": 12220
+    },
+    {
+      "old": 3253,
+      "name": "button-5-37",
+      "label": "พร้อมรับงานถัดไป",
+      "screen": "R14",
+      "instance": 12223
+    },
+    {
+      "old": 3766,
+      "name": "button-5-45",
+      "label": "เปิดการตั้งค่าตำแหน่ง",
+      "screen": "R23",
+      "instance": 12226
+    },
+    {
+      "old": 3825,
+      "name": "button-4-49",
+      "label": "เปิดรับงาน",
+      "screen": "R24",
+      "instance": 12229
+    },
+    {
+      "old": 3884,
+      "name": "button-8-48",
+      "label": "ติดต่อทีมช่วยเหลือ",
+      "screen": "R25",
+      "instance": 12232
+    },
+    {
+      "old": 3943,
+      "name": "button-8-48",
+      "label": "ติดต่อทีมช่วยเหลือ",
+      "screen": "R26",
+      "instance": 12235
+    },
+    {
+      "old": 3986,
+      "name": "button-5-36",
+      "label": "ยืนยันและไปต่อ",
+      "screen": "R32",
+      "instance": 12238
+    },
+    {
+      "old": 4053,
+      "name": "button-5-54",
+      "label": "รับงานนี้",
+      "screen": "R27",
+      "instance": 12241
+    },
+    {
+      "old": 4104,
+      "name": "button-6-42",
+      "label": "ผู้โดยสารมาถึงแล้ว",
+      "screen": "R28",
+      "instance": 12244
+    },
+    {
+      "old": 4136,
+      "name": "button-1-29",
+      "label": "ยืนยัน PIN และเริ่มเที่ยว",
+      "screen": "R29",
+      "instance": 12247
+    },
+    {
+      "old": 4190,
+      "name": "button-3-47",
+      "label": "จบเที่ยวเดินทาง",
+      "screen": "R30",
+      "instance": 12250
+    },
+    {
+      "old": 4234,
+      "name": "button-5-37",
+      "label": "พร้อมรับงานถัดไป",
+      "screen": "R31",
+      "instance": 12253
+    },
+    {
+      "old": 8539,
+      "name": "button-1-17",
+      "label": "เปิดเมนู",
+      "screen": "W01",
+      "instance": 12256
+    },
+    {
+      "old": 8633,
+      "name": "button-1-31",
+      "label": "เพิ่มลงตะกร้า · ฿95",
+      "screen": "W03",
+      "instance": 12259
+    },
+    {
+      "old": 8687,
+      "name": "button-2-39",
+      "label": "ไปตรวจสอบออเดอร์",
+      "screen": "W04",
+      "instance": 12262
+    },
+    {
+      "old": 8740,
+      "name": "button-2-39",
+      "label": "เลือกวิธีชำระเงิน · ฿170",
+      "screen": "W05",
+      "instance": 12265
+    },
+    {
+      "old": 8783,
+      "name": "button-4-37",
+      "label": "ใช้วิธีที่เลือก",
+      "screen": "W06",
+      "instance": 12268
+    },
+    {
+      "old": 8820,
+      "name": "button-2-33",
+      "label": "เปิดกระเป๋าเงิน",
+      "screen": "W07",
+      "instance": 12271
+    },
+    {
+      "old": 8856,
+      "name": "button-1-33",
+      "label": "ตรวจสอบสถานะ",
+      "screen": "W08",
+      "instance": 12274
+    },
+    {
+      "old": 8883,
+      "name": "button-1-22",
+      "label": "ดูสถานะออเดอร์",
+      "screen": "W09",
+      "instance": 12277
+    },
+    {
+      "old": 8914,
+      "name": "button-1-24",
+      "label": "ตรวจสอบสถานะ",
+      "screen": "W10",
+      "instance": 12280
+    },
+    {
+      "old": 8949,
+      "name": "button-1-29",
+      "label": "ดูใบเสร็จ",
+      "screen": "W11",
+      "instance": 12283
+    },
+    {
+      "old": 8982,
+      "name": "button-1-29",
+      "label": "ดูสถานะอาหาร",
+      "screen": "W12",
+      "instance": 12286
+    },
+    {
+      "old": 9015,
+      "name": "button-1-29",
+      "label": "รับทราบ",
+      "screen": "W13",
+      "instance": 12289
+    },
+    {
+      "old": 9044,
+      "name": "button-1-24",
+      "label": "ตรวจราคาใหม่",
+      "screen": "W14",
+      "instance": 12292
+    },
+    {
+      "old": 9075,
+      "name": "button-1-24",
+      "label": "ตรวจสอบสถานะ",
+      "screen": "W15",
+      "instance": 12295
+    },
+    {
+      "old": 9106,
+      "name": "button-1-24",
+      "label": "ตรวจสอบสถานะ",
+      "screen": "W16",
+      "instance": 12298
+    },
+    {
+      "old": 9135,
+      "name": "button-1-22",
+      "label": "ดูสถานะออเดอร์",
+      "screen": "W17",
+      "instance": 12301
+    },
+    {
+      "old": 9166,
+      "name": "button-1-24",
+      "label": "ตรวจสอบสถานะ",
+      "screen": "W18",
+      "instance": 12304
+    },
+    {
+      "old": 9253,
+      "name": "button-1-17",
+      "label": "ยืนยันเข้าร่วมโต๊ะ",
+      "screen": "W20",
+      "instance": 12307
+    },
+    {
+      "old": 9297,
+      "name": "button-4-37",
+      "label": "กลับไปที่รายการ",
+      "screen": "W21",
+      "instance": 12310
+    },
+    {
+      "old": 9331,
+      "name": "button-3-29",
+      "label": "ใช้คูปองที่เลือก",
+      "screen": "W22",
+      "instance": 12313
+    },
+    {
+      "old": 9351,
+      "name": "button-1-15",
+      "label": "ดำเนินการต่อ",
+      "screen": "S01",
+      "instance": 12316
+    },
+    {
+      "old": 9373,
+      "name": "button-1-15",
+      "label": "ดำเนินการต่อ",
+      "screen": "S02",
+      "instance": 12319
+    },
+    {
+      "old": 9395,
+      "name": "button-1-15",
+      "label": "ดำเนินการต่อ",
+      "screen": "S03",
+      "instance": 12322
+    },
+    {
+      "old": 9417,
+      "name": "button-1-15",
+      "label": "ดำเนินการต่อ",
+      "screen": "S04",
+      "instance": 12325
+    },
+    {
+      "old": 9439,
+      "name": "button-1-15",
+      "label": "ดูรายละเอียด",
+      "screen": "S05",
+      "instance": 12328
+    },
+    {
+      "old": 9461,
+      "name": "button-1-15",
+      "label": "ดำเนินการต่อ",
+      "screen": "S06",
+      "instance": 12331
+    },
+    {
+      "old": 9483,
+      "name": "button-1-15",
+      "label": "ดำเนินการต่อ",
+      "screen": "S07",
+      "instance": 12334
+    },
+    {
+      "old": 9505,
+      "name": "button-1-15",
+      "label": "ดูรายละเอียด",
+      "screen": "S08",
+      "instance": 12337
+    },
+    {
+      "old": 9527,
+      "name": "button-1-15",
+      "label": "ดำเนินการต่อ",
+      "screen": "S09",
+      "instance": 12340
+    },
+    {
+      "old": 9549,
+      "name": "button-1-15",
+      "label": "ดำเนินการต่อ",
+      "screen": "S10",
+      "instance": 12343
+    },
+    {
+      "old": 9686,
+      "name": "button-4-49",
+      "label": "ดูงานใกล้คุณ",
+      "screen": "S14",
+      "instance": 12346
+    },
+    {
+      "old": 9967,
+      "name": "button-4-38",
+      "label": "รับออเดอร์ · เตรียม 15 นาที",
+      "screen": "S11",
+      "instance": 12349
+    },
+    {
+      "old": 10011,
+      "name": "button-4-38",
+      "label": "รับออเดอร์ · เตรียม 15 นาที",
+      "screen": "S12",
+      "instance": 12352
+    }
+  ]
+}

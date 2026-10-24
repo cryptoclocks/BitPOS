@@ -1,0 +1,7 @@
+{
+  "name": "bitpos-doc-diagrams",
+  "private": true,
+  "type": "module",
+  "scripts": { "build": "node render.mjs" },
+  "dependencies": { "pele": "1.9.0" }
+}

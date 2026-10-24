@@ -5,12 +5,12 @@ import type pg from 'pg';
 import type {OrderRow,AttemptRow} from '../apps/api/src/types';
 import type {tenant} from '../apps/api/src/db';
 import {tableFixture} from './backend-table-fixture';
+import {fixturePaymentAttempt} from './backend-payment-fixture';
 const integration={skip:process.env.BITPOS_BACKEND_INTEGRATION!=='1'};
 const settlementSql='SELECT (r.updated_order).*,r.details AS settlement_details FROM bitpos.settle_verified_attempt($1::uuid,$2::uuid,$3::uuid,$4::boolean) AS r';
 type Fixture={merchant:string;a:{id:string};tenant:typeof tenant};
 async function submitted(f:Fixture,order:string,amount:string):Promise<AttemptRow>{
- return f.tenant(f.merchant,async db=>(await db.query<AttemptRow>(`INSERT INTO payment_attempts(merchant_id,order_id,reference,payer,recipient,amount_minor,mint,token_program,signature,status)
- VALUES($1,$2,$3,'settlement-test-payer','settlement-test-recipient',$4,'fixture-mint','fixture-program',$5,'SUBMITTED') RETURNING *`,[f.merchant,order,randomUUID(),amount,randomUUID()])).rows[0]);
+ return f.tenant(f.merchant,async db=>(await fixturePaymentAttempt(db,{merchant:f.merchant,order,reference:randomUUID(),amount,signature:randomUUID(),status:'SUBMITTED'})).rows[0]);
 }
 // Compare every transactional financial/delivery field, not just an absent event.
 async function settlementState(db:pg.PoolClient,f:Fixture,order:string,attempt:string){
@@ -107,7 +107,7 @@ test('preexisting exact-version consumed effect keeps its identity and remains s
   await db.query('ROLLBACK TO SAVEPOINT consumed_facts');await settleAttempt(db,a,true);
   const row=(await db.query<OrderRow>('SELECT * FROM orders WHERE id=$1',[first.order.id])).rows[0];
   const event=(await db.query('SELECT payload FROM outbox_events WHERE order_id=$1 AND order_version=2',[row.id])).rows[0].payload.payload;
-  assert.equal(event.sound,false);assert.equal(event.effectId,null);assert.deepEqual(event,await deviceOrderView(db,row,true));
+  assert.equal(event.sound,false);assert.deepEqual(event,await deviceOrderView(db,row,true));
   const effects=(await db.query('SELECT effect_id,consumed_at FROM device_sound_effects WHERE order_id=$1',[row.id])).rows;
   assert.equal(effects.length,1);assert.equal(effects[0].effect_id,effectId);assert.equal(effects[0].consumed_at.toISOString(),consumedAt);
  });
@@ -126,7 +126,9 @@ for(const paidBytes of [7100,7101])test(`full settlement validates actual UTF-8 
   const dry=await createRoutedOrder(db,f.merchant,'register',f.register.id,f.input(q));
   const frame=(await db.query('SELECT payload FROM outbox_events WHERE order_id=$1',[dry.order.id])).rows[0].payload;
   const baseline=Buffer.byteLength(JSON.stringify(frame));
-  const paid={...frame,deviceSeq:'1000000000000000000',payload:{...frame.payload,status:'PAID',version:2,sound:true,effectId:randomUUID()}};
+  const dryAttempt=(await fixturePaymentAttempt(db,{merchant:f.merchant,order:dry.order.id,status:'SUBMITTED',signature:randomUUID()})).rows[0];
+  await settleAttempt(db,dryAttempt,true);
+  const paid=(await db.query("SELECT payload FROM outbox_events WHERE order_id=$1 AND payload->'payload'->>'status'='PAID'",[dry.order.id])).rows[0].payload;
   const delta=Buffer.byteLength(JSON.stringify(paid))-baseline;
   await db.query('ROLLBACK TO SAVEPOINT measure_frame');
   const padding=paidBytes-delta-baseline;assert.ok(padding>0);

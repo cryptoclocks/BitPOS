@@ -49,12 +49,14 @@ bool table_money(cJSON *j,table_money_t *m,bool legacy) {
     if(!table_text(j,"currency",m->currency,sizeof(m->currency))||!number(j,"decimals",6,&decimals)||
        !table_integer(j,"amountMinor",&m->minor)||m->minor>999999999999999999ULL)return false;
     m->decimals=(uint8_t)decimals;
-    return (!strcmp(m->currency,"USD")&&decimals==2)||(!strcmp(m->currency,"USDG")&&decimals==6)||
+    return (!strcmp(m->currency,"USD")&&(decimals==2||decimals==4))||
+           ((!strcmp(m->currency,"USDG")||!strcmp(m->currency,"USDC")||!strcmp(m->currency,"USDT"))&&decimals==6)||
            (legacy&&!strcmp(m->currency,"THB")&&decimals==2);
 }
 void table_format_money(const table_money_t *m,char *out,size_t cap) {
-    uint64_t scale=m->decimals==6?1000000:100;
-    snprintf(out,cap,"%s %" PRIu64 ".%0*" PRIu64,m->currency,m->minor/scale,m->decimals,m->minor%scale);
+    uint64_t scale=m->decimals==6?1000000:m->decimals==4?10000:100;
+    snprintf(out,cap,"%s %" PRIu64 ".%0*" PRIu64,!strcmp(m->currency,"USDT")?"USDT test":m->currency,m->minor/scale,m->decimals,m->minor%scale);
+    if(m->decimals==4&&!strcmp(m->currency,"USD")){char *dot=strchr(out,'.');if(dot){size_t n=strlen(out);while(n>(size_t)(dot-out)+3&&out[n-1]=='0')out[--n]=0;}}
 }
 bool table_items(cJSON *j,table_item_t *items,uint8_t *count) {
     if(!cJSON_IsArray(j)||cJSON_GetArraySize(j)>TABLE_LINES)return false;
@@ -87,7 +89,21 @@ bool table_rows(cJSON *j,table_row_t *rows,unsigned *count,bool review) {
             if(!table_money(cJSON_GetObjectItemCaseSensitive(v,"basePrice"),&base,false)||!r->unit.minor||
                base.minor<r->unit.minor||strcmp(base.currency,r->unit.currency)||base.decimals!=r->unit.decimals)return false;
             cJSON *promotion=cJSON_GetObjectItemCaseSensitive(v,"promotion");
-            if(cJSON_IsNull(promotion)){if(base.minor!=r->unit.minor)return false;}
+            cJSON *scoped=cJSON_GetObjectItemCaseSensitive(v,"scopedPromotion");
+            cJSON *daily=cJSON_GetObjectItemCaseSensitive(v,"dailyPromotion");
+            if(scoped&&!cJSON_IsNull(scoped)) {
+                unsigned percent;
+                if(!cJSON_IsNull(promotion)||!number(scoped,"discountPercent",99,&percent)||!percent)return false;
+                r->percent=(uint8_t)percent;r->discount=base.minor/100*percent+(base.minor%100)*percent/100;
+                if(!r->discount||r->discount>=base.minor||r->unit.minor!=base.minor-r->discount)return false;
+                r->scoped_promotion=true;
+            }else if(daily&&!cJSON_IsNull(daily)) {
+                unsigned percent;
+                if(!cJSON_IsNull(promotion)||!number(daily,"discountPercent",99,&percent)||!percent)return false;
+                r->percent=(uint8_t)percent;r->discount=base.minor/100*percent+(base.minor%100)*percent/100;
+                if(!r->discount||r->discount>=base.minor||r->unit.minor!=base.minor-r->discount)return false;
+                r->daily_promotion=true;
+            }else if(cJSON_IsNull(promotion)){if(base.minor!=r->unit.minor)return false;}
             else {
                 cJSON *discount=cJSON_GetObjectItemCaseSensitive(promotion,"discount");char kind[16];uint64_t revision;
                 if(!table_text(discount,"kind",kind,sizeof(kind))||!table_integer(promotion,"revision",&revision)||!revision)return false;
@@ -101,7 +117,12 @@ bool table_rows(cJSON *j,table_row_t *rows,unsigned *count,bool review) {
     }*count=n;return true;
 }
 bool table_config(table_state_t *s,cJSON *j) {
-    char device[TABLE_UUID],origin[192],entry[256]="";uint64_t assignment,pairing=0;
+    char device[TABLE_UUID],origin[192],entry[256]="",table_id[TABLE_UUID]="";uint64_t assignment,pairing=0;
+    uint64_t auth=0;
+    cJSON *auth_value=cJSON_GetObjectItemCaseSensitive(j,"authGeneration");
+    if(auth_value&&(!table_integer(j,"authGeneration",&auth)||!auth))return false;
+    cJSON *assigned_table=cJSON_GetObjectItemCaseSensitive(j,"tableId");
+    if(assigned_table&&!cJSON_IsNull(assigned_table)&&!uuid_field(j,"tableId",table_id))return false;
     if(!table_text(j,"paymentOrigin",origin,sizeof(origin)))return false;
     if(strcmp(origin,"http://192.168.1.34:4321")) {
         const char *host=origin+8;
@@ -128,8 +149,13 @@ bool table_config(table_state_t *s,cJSON *j) {
         if(strcmp(price,s->price)){s->quote_ready=false;s->cart_label_count=0;s->menu[0]=0;}strcpy(s->price,price);}
     else{s->price[0]=0;strcpy(s->notice,"Pricing setup required");}
     strcpy(s->payment_origin,origin);strcpy(s->table_entry_url,entry);
+    strcpy(s->table_id,table_id);
     if(s->assignment&&s->assignment!=assignment)s->quote_ready=false;
-    s->assignment=assignment;s->pairing=pairing;s->configured=true;return true;
+    if(s->assignment!=assignment||s->auth!=auth){
+        if(s->catalog_session[0])s->menu_until_ms=0;
+        s->catalog_session[0]=s->scoped_target[0]=s->scoped_campaign[0]=s->scoped_product[0]=0;s->scoped_version=0;
+    }
+    s->assignment=assignment;s->auth=auth;s->pairing=pairing;s->configured=true;return true;
 }
 bool table_envelope(table_state_t *s,cJSON *j,const char *device,bool *event) {
     unsigned schema;char type[32];uint64_t connection;
@@ -165,13 +191,34 @@ bool table_catalog(table_state_t *s,cJSON *j) {
        !table_timestamp(j,"generatedAt",&s->menu_generated_ms)||!table_timestamp(j,"validUntil",&s->menu_until_ms)||
        s->menu_until_ms<=s->menu_generated_ms||s->menu_until_ms-s->menu_generated_ms>60000)return false;
     for(unsigned i=0;i<rows;i++)if(strcmp(s->rows[i].unit.currency,currency)||s->rows[i].unit.decimals!=decimals)return false;
-    cJSON *product;unsigned row_index=0;
+    cJSON *product;unsigned row_index=0,scoped_count=0;
     cJSON_ArrayForEach(product,cJSON_GetObjectItemCaseSensitive(j,"products")) {
+        table_row_t *row=&s->rows[row_index++];
         cJSON *promotion=cJSON_GetObjectItemCaseSensitive(product,"promotion");
-        if(s->rows[row_index++].promotion){char pinned[TABLE_VERSION];int64_t expiry;
+        if(row->scoped_promotion) {
+            cJSON *scoped=cJSON_GetObjectItemCaseSensitive(product,"scopedPromotion");
+            char target[TABLE_UUID],campaign[TABLE_UUID],session[TABLE_UUID];unsigned version;int64_t expiry;
+            if(++scoped_count>1||!s->configured||!s->auth||!s->observed_cart||strcmp(price,s->price)||
+               !uuid_field(scoped,"targetId",target)||!uuid_field(scoped,"campaignId",campaign)||
+               !uuid_field(scoped,"sessionId",session)||strcmp(session,s->catalog_session)||
+               !number(scoped,"campaignVersion",INT32_MAX,&version)||!version||
+               !table_timestamp(scoped,"expiresAt",&expiry)||expiry<s->menu_until_ms||
+               expiry<=s->menu_generated_ms||expiry-s->menu_generated_ms>600000||
+               s->catalog_lease_ms<=s->menu_generated_ms)return false;
+            if(s->scoped_target[0]&&(strcmp(target,s->scoped_target)||strcmp(campaign,s->scoped_campaign)||
+               strcmp(row->product,s->scoped_product)||(s->scoped_version&&version!=s->scoped_version)))return false;
+            strcpy(s->scoped_target,target);strcpy(s->scoped_campaign,campaign);strcpy(s->scoped_product,row->product);s->scoped_version=version;
+        }else if(row->daily_promotion) {
+            cJSON *daily=cJSON_GetObjectItemCaseSensitive(product,"dailyPromotion");
+            char campaign[TABLE_UUID];unsigned version;int64_t start,expiry;
+            if(!uuid_field(daily,"campaignId",campaign)||!number(daily,"campaignVersion",INT32_MAX,&version)||!version||
+               !table_timestamp(daily,"startsAt",&start)||!table_timestamp(daily,"expiresAt",&expiry)||
+               start>s->menu_generated_ms||expiry<s->menu_until_ms)return false;
+        }else if(row->promotion){char pinned[TABLE_VERSION];int64_t expiry;
             if(!table_text(promotion,"priceVersion",pinned,sizeof(pinned))||strcmp(pinned,price)||
                !table_timestamp(promotion,"expiresAt",&expiry)||expiry<s->menu_until_ms)return false;}
     }
+    if(scoped_count&&s->menu_until_ms>s->catalog_lease_ms)s->menu_until_ms=s->catalog_lease_ms;
     if(index&&strcmp(s->menu,menu)){strcpy(s->notice,"Menu changed. Open Menu again");return false;}
     if(strcmp(price,s->price)){s->quote_ready=false;s->cart_label_count=0;}
     if(s->menu[0]&&strcmp(s->menu,menu))s->quote_ready=false;
@@ -186,8 +233,7 @@ bool table_quote(table_state_t *s,cJSON *j) {
        !table_settlement(cJSON_GetObjectItemCaseSensitive(j,"settlement"),&settlement))return false;
     if(cart!=s->saved.cart||strcmp(price,s->price))return false;
     int64_t expiry;if(!table_timestamp(j,"validUntil",&expiry)||lines!=s->saved.count)return false;
-    if((!strcmp(total.currency,"USD")&&(total.minor>99999999999999ULL||settlement.minor!=total.minor*10000))||
-       (!strcmp(total.currency,"USDG")&&settlement.minor!=total.minor))return false;
+    if(!table_settlement_matches(cJSON_GetObjectItemCaseSensitive(j,"settlement"),&total,&settlement))return false;
     strcpy(s->quote,quote);strcpy(s->quote_price,price);strcpy(s->quote_until,until);s->quote_cart=cart;
     s->quote_until_ms=expiry;s->scroll=0;
     s->total=total;s->settlement=settlement;s->review_count=lines;s->review_pages=pages;s->loaded_pages=0;s->quote_ready=false;s->quote_loading=true;return true;
@@ -217,9 +263,13 @@ bool table_quote_page(table_state_t *s,cJSON *j) {
     }return true;
 }
 bool table_cart(table_state_t *s,cJSON *j) {
-    table_item_t items[TABLE_LINES];uint8_t count;char session[TABLE_UUID];uint64_t cart,screen;
+    table_item_t items[TABLE_LINES];uint8_t count;char session[TABLE_UUID];uint64_t cart,screen;int64_t lease;
     if(!uuid_field(j,"sessionId",session)||!table_integer(j,"cartVersion",&cart)||!table_integer(j,"screenGeneration",&screen)||screen<s->screen||
-       !table_items(cJSON_GetObjectItemCaseSensitive(j,"items"),items,&count))return false;
+       !table_timestamp(j,"leaseUntil",&lease)||!table_items(cJSON_GetObjectItemCaseSensitive(j,"items"),items,&count))return false;
+    if(s->catalog_session[0]&&strcmp(session,s->catalog_session)){
+        s->scoped_target[0]=s->scoped_campaign[0]=s->scoped_product[0]=0;s->scoped_version=0;
+    }
+    strcpy(s->catalog_session,session);s->catalog_lease_ms=lease;
     /* Observing a server phone cart never grants edit/lease ownership or overwrites a pending journal. */
     s->screen=screen;s->observed_cart=true;s->cart_owner=false;s->order_owner=false;s->quote_ready=false;s->needs_resume=false;
     return true;
@@ -238,6 +288,8 @@ size_t table_command_json(const table_state_t *s,char *out,size_t cap) {
     else {
         APPEND("\"sessionId\":\"%s\",\"expectedScreenGeneration\":\"%" PRIu64 "\"",p->session,p->screen);
         if(p->kind==TC_OPEN){APPEND(",\"expectedAssignmentGeneration\":\"%" PRIu64 "\",\"recoverSessionId\":",p->assignment);if(p->recover[0])APPEND("\"%s\"",p->recover);else APPEND("null");}
+        if(p->kind==TC_OPEN&&s->open_offer[0]&&!strcmp(s->open_offer_request,p->request))
+            APPEND(",\"offerToken\":\"%s\"",s->open_offer);
         if(p->kind==TC_SET){APPEND(",\"expectedAssignmentGeneration\":\"%" PRIu64 "\",\"expectedCartVersion\":\"%" PRIu64 "\",\"items\":[",p->assignment,p->cart);
             for(unsigned i=0;i<s->saved.desired_count;i++){APPEND("%s{\"productId\":\"%s\",\"qty\":%u}",i?",":"",s->saved.desired[i].product,s->saved.desired[i].qty);}APPEND("]");}
         if(p->kind==TC_REVIEW||p->kind==TC_SUBMIT||p->kind==TC_RELEASE)APPEND(",\"cartVersion\":\"%" PRIu64 "\"",p->cart);
@@ -308,24 +360,56 @@ bool table_timestamp(cJSON *o,const char *key,int64_t *out) {
 }
 bool table_settlement(cJSON *j,table_money_t *out) {
     char network[32],mint[48],program[48],genesis[48];cJSON *test=cJSON_GetObjectItemCaseSensitive(j,"testToken");
-    return table_money(j,out,false)&&!strcmp(out->currency,"USDG")&&cJSON_IsTrue(test)&&
-        table_text(j,"network",network,sizeof(network))&&!strcmp(network,"solana:devnet")&&
-        table_text(j,"mint",mint,sizeof(mint))&&!strcmp(mint,"4F6PM96JJxngmHnZLBh9n58RH4aTVNWvDs2nuwrT5BP7")&&
-        table_text(j,"tokenProgram",program,sizeof(program))&&!strcmp(program,"TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb")&&
-        table_text(j,"genesisHash",genesis,sizeof(genesis))&&!strcmp(genesis,"EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG");
+    if(!table_money(j,out,false)||!cJSON_IsTrue(test)||
+       !table_text(j,"network",network,sizeof(network))||strcmp(network,"solana:devnet")||
+       !table_text(j,"mint",mint,sizeof(mint))||
+       !table_text(j,"tokenProgram",program,sizeof(program))||
+       !table_text(j,"genesisHash",genesis,sizeof(genesis))||strcmp(genesis,"EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG"))return false;
+    if(!strcmp(out->currency,"USDG"))
+        return !strcmp(mint,"4F6PM96JJxngmHnZLBh9n58RH4aTVNWvDs2nuwrT5BP7")&&!strcmp(program,"TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb");
+    if(!strcmp(out->currency,"USDC"))
+        return !strcmp(mint,"4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU")&&!strcmp(program,"TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA");
+    if(!strcmp(out->currency,"USDT")) {
+        char asset[32],label[64];
+        return !strcmp(mint,"DUZiyxqqJwpVN8UCT3p6jtYeGwnMNije4DcrE2vcvJjr")&&!strcmp(program,"TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA")&&
+               table_text(j,"assetId",asset,sizeof(asset))&&!strcmp(asset,"usdt-test-devnet")&&
+               table_text(j,"displayLabel",label,sizeof(label))&&!strcmp(label,"USDT test (BitPOS-issued)");
+    }
+    return false;
+}
+static uint64_t money_gcd(uint64_t a,uint64_t b) {
+    while(b){uint64_t remainder=a%b;a=b;b=remainder;}return a;
+}
+bool table_settlement_matches(cJSON *j,const table_money_t *total,const table_money_t *settlement) {
+    cJSON *policy=cJSON_GetObjectItemCaseSensitive(j,"denominationPolicy");
+    if(!policy){
+        if(strcmp(settlement->currency,"USDG"))return false;
+        return (!strcmp(total->currency,"USD")&&total->minor<=UINT64_MAX/(total->decimals==4?100:10000)&&settlement->minor==total->minor*(total->decimals==4?100:10000))||
+               ((!strcmp(total->currency,"USDG")||!strcmp(total->currency,"THB"))&&
+                (!strcmp(total->currency,"THB")||settlement->minor==total->minor));
+    }
+    char id[385];uint64_t numerator,denominator; /* Read already-frozen former 96-character IDs without rewriting bills. */
+    if((strcmp(total->currency,"USD")&&strcmp(total->currency,"USDG"))||!table_text(policy,"id",id,sizeof(id))||!id[0]||
+       !table_integer(policy,"numerator",&numerator)||!numerator||
+       !table_integer(policy,"denominator",&denominator)||!denominator)return false;
+    if(!strcmp(total->currency,"USDG")&&(strcmp(settlement->currency,"USDG")||strcmp(id,"USDG_RAW_IDENTITY")||numerator!=1||denominator!=1))return false;
+    uint64_t divisor=money_gcd(total->minor,denominator);
+    uint64_t value=total->minor/divisor;denominator/=divisor;
+    divisor=money_gcd(numerator,denominator);numerator/=divisor;denominator/=divisor;
+    return denominator==1&&(!numerator||value<=UINT64_MAX/numerator)&&value*numerator==settlement->minor;
 }
 
-int table_fragment(table_fragment_t *s,char buffer[8192],uint8_t opcode,bool fin,int frame_length,int offset,const char *data,int length) {
+int table_fragment(table_fragment_t *s,char buffer[16384],uint8_t opcode,bool fin,int frame_length,int offset,const char *data,int length) {
     if(opcode>=8)return 0;
     if((opcode!=0&&opcode!=1)||frame_length<0||offset<0||length<0||offset>frame_length||
        length>frame_length-offset||(!data&&length))goto bad;
     if(!offset) {
         if(opcode==1){if(s->active)goto bad;memset(s,0,sizeof(*s));s->active=true;}
         else if(!s->active||s->offset!=s->frame_length)goto bad;
-        if(++s->frames>32||s->used+(unsigned)frame_length>8191)goto bad;
+        if(++s->frames>32||s->used+(unsigned)frame_length>16383)goto bad;
         s->offset=0;s->frame_length=(unsigned)frame_length;s->frame_fin=fin;s->opcode=opcode;
     }else if(!s->active||s->frame_length!=(unsigned)frame_length||s->frame_fin!=fin||s->opcode!=opcode)goto bad;
-    if(s->offset!=(unsigned)offset||++s->chunks>128||s->used+(unsigned)length>8191)goto bad;
+    if(s->offset!=(unsigned)offset||++s->chunks>128||s->used+(unsigned)length>16383)goto bad;
     if(length){if(memchr(data,0,(size_t)length))goto bad;memcpy(buffer+s->used,data,(size_t)length);}
     s->used+=(unsigned)length;s->offset+=(unsigned)length;
     if(s->offset==s->frame_length&&fin){buffer[s->used]=0;s->active=false;return s->used?1:-1;}
@@ -334,7 +418,7 @@ bad:
     memset(s,0,sizeof(*s));return -1;
 }
 bool table_json_bounded(const char *data,size_t length) {
-    if(!length||length>8191||memchr(data,0,length))return false;
+    if(!length||length>16383||memchr(data,0,length))return false;
     unsigned depth=0;bool string=false,escaped=false;
     for(size_t i=0;i<length;i++){char c=data[i];
         if(string){if(escaped)escaped=false;else if(c=='\\')escaped=true;else if(c=='\"')string=false;continue;}

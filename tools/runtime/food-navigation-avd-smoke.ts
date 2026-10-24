@@ -1,0 +1,17 @@
+import assert from 'node:assert/strict';
+import {spawn} from 'node:child_process';
+import {once} from 'node:events';
+import {readFile,writeFile} from 'node:fs/promises';
+import {resolve} from 'node:path';
+const root=resolve(import.meta.dirname,'../..'),evidence=resolve(root,'.omp/work/flutter-delivery-20261016/evidence'),fixture=JSON.parse(await readFile(resolve(evidence,'navigation070-assigned-fixture-20261018.json'),'utf8'));
+const adb='/Users/cryptoclock/Library/Android/sdk/platform-tools/adb';
+const revision=process.env.BITPOS_NAVIGATION_EVIDENCE_REVISION??'r4';assert.match(revision,/^r[1-9][0-9]*$/);const receiptBase=`navigation070-avd-map-${revision}-20261020`;
+const mobileApi=process.env.BITPOS_MOBILE_API??'http://10.0.2.2:3007/api/mobile/v1/';assert.match(mobileApi,/^http:\/\/10\.0\.2\.2:\d+\/api\/mobile\/v1\/$/);
+async function command(args:string[]){const child=spawn(adb,args,{stdio:['ignore','pipe','pipe']}),chunks:Buffer[]=[];let error='';child.stdout.on('data',value=>chunks.push(value));child.stderr.on('data',value=>error+=String(value));const [code]=await once(child,'exit');assert.equal(code,0,error.slice(-500));return Buffer.concat(chunks);}
+const flutter=spawn('/Users/cryptoclock/development/flutter/bin/flutter',['test','integration_test/food_navigation_test.dart','-d','emulator-5554',`--dart-define=BITPOS_MOBILE_API=${mobileApi}`,'--dart-define=BITPOS_FIXTURE=true',`--dart-define=BITPOS_TEST_ORDER_ID=${fixture.orderId}`,`--dart-define=BITPOS_TEST_SHIPMENT_ID=${fixture.shipmentId}`,`--dart-define=BITPOS_TEST_ASSIGNMENT_ID=${fixture.assignmentId}`,`--dart-define=BITPOS_TEST_GENERATION=${fixture.generation}`,`--dart-define=BITPOS_TEST_LEASE_GENERATION=${fixture.leaseGeneration}`,'--no-enable-impeller','--no-uninstall'],{cwd:resolve(root,'apps/mobile-customer'),stdio:['ignore','pipe','pipe']});
+let buffer='',captured=false,capture=Promise.resolve(),captureError:unknown;
+const observe=(data:Buffer)=>{process.stdout.write(data);buffer=(buffer+String(data)).slice(-4096);if(!captured&&buffer.includes('BITPOS_NAVIGATION070_RENDERED')){captured=true;capture=command(['-s','emulator-5554','exec-out','screencap','-p']).then(png=>writeFile(resolve(evidence,`${receiptBase}.png`),png)).catch(error=>{captureError=error;});}};
+flutter.stdout.on('data',observe);flutter.stderr.on('data',observe);const deadline=setTimeout(()=>flutter.kill('SIGTERM'),180000);
+try{const [code]=await once(flutter,'exit');clearTimeout(deadline);await capture;if(captureError)throw captureError;assert.equal(code,0,'Actual assigned navigation AVD must pass');assert.equal(captured,true);
+ const receipt=JSON.parse((await command(['-s','emulator-5554','exec-out','run-as','com.bitpos.bitpos_customer','cat','code_cache/bitpos-navigation070.json'])).toString());assert.equal(receipt.status,'PASS_BOUNDED_AVD_ASSIGNED_NAVIGATION');await command(['-s','emulator-5554','shell','run-as','com.bitpos.bitpos_customer','rm','code_cache/bitpos-navigation070.json']);await writeFile(resolve(evidence,`${receiptBase}.json`),JSON.stringify({...receipt,decodedImagesAsserted:true,settledLoadingAsserted:true,screenshot:`${receiptBase}.png`,host:{actualApi:`127.0.0.1:${new URL(mobileApi).port}`,localSyntheticRouteAndTileProvider:true,privateExportRemoved:true}},null,2)+'\n');console.log(JSON.stringify({status:receipt.status,fixture:true}));
+}finally{clearTimeout(deadline);if(flutter.exitCode===null&&flutter.signalCode===null){const exited=once(flutter,'exit');flutter.kill('SIGTERM');await exited;}}

@@ -1,0 +1,66 @@
+[
+  {
+    "name": "party-popper",
+    "size": 128,
+    "error": "HTTP Error 404: Not Found"
+  },
+  {
+    "name": "party-popper",
+    "size": 512,
+    "path": "party-popper-512.gif",
+    "url": "https://fonts.gstatic.com/s/e/notoemoji/latest/1f389/512.gif",
+    "bytes": 395755,
+    "sha256": "86879c45175f3901a8676d9b0bb5132c7a98b20a9f40487c21e4c896ce196616",
+    "license": "CC BY 4.0",
+    "creator": "Google Noto Emoji",
+    "sourcePage": "https://googlefonts.github.io/noto-emoji-files/?view=docs"
+  },
+  {
+    "name": "sparkles",
+    "size": 128,
+    "error": "HTTP Error 404: Not Found"
+  },
+  {
+    "name": "sparkles",
+    "size": 512,
+    "path": "sparkles-512.gif",
+    "url": "https://fonts.gstatic.com/s/e/notoemoji/latest/2728/512.gif",
+    "bytes": 158633,
+    "sha256": "e598e4b90f9f6206ab6316defd43ef3305c14ebbb03840b09dca8f8685888261",
+    "license": "CC BY 4.0",
+    "creator": "Google Noto Emoji",
+    "sourcePage": "https://googlefonts.github.io/noto-emoji-files/?view=docs"
+  },
+  {
+    "name": "coffee",
+    "size": 128,
+    "error": "HTTP Error 404: Not Found"
+  },
+  {
+    "name": "coffee",
+    "size": 512,
+    "path": "coffee-512.gif",
+    "url": "https://fonts.gstatic.com/s/e/notoemoji/latest/2615/512.gif",
+    "bytes": 588312,
+    "sha256": "e76e9c36cf811185bba70d2a3fee4dc0d5f8e47bfbc44014ab5c93b03363cba5",
+    "license": "CC BY 4.0",
+    "creator": "Google Noto Emoji",
+    "sourcePage": "https://googlefonts.github.io/noto-emoji-files/?view=docs"
+  },
+  {
+    "name": "confetti",
+    "size": 128,
+    "error": "HTTP Error 404: Not Found"
+  },
+  {
+    "name": "confetti",
+    "size": 512,
+    "path": "confetti-512.gif",
+    "url": "https://fonts.gstatic.com/s/e/notoemoji/latest/1f38a/512.gif",
+    "bytes": 302605,
+    "sha256": "ddcf24dbe0fca0e1484169be4e398eaa02214d55b1ae1786eccdbbfb6e677f64",
+    "license": "CC BY 4.0",
+    "creator": "Google Noto Emoji",
+    "sourcePage": "https://googlefonts.github.io/noto-emoji-files/?view=docs"
+  }
+]

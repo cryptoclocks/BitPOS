@@ -1,0 +1,17 @@
+flowchart TB
+  QUOTE[Canonical server quote / integer minor units] --> ATTEMPT[Persist original payment attempt]
+  ATTEMPT --> SUBMIT[Submit through configured adapter]
+  SUBMIT --> EVIDENCE{Verifiable settlement evidence?}
+  EVIDENCE -->|Not yet / connection lost| UNKNOWN[Show pending or unknown / retain original attempt]
+  UNKNOWN --> RECON[Read and reconcile original attempt]
+  RECON --> EVIDENCE
+  EVIDENCE -->|Evidence available| CHECK[Verify network, mint, program, recipient, amount and order]
+  CHECK --> VALID{Successful and policy-final settlement?}
+  VALID -->|No / mismatch / late or conflicting| RECOVERY[Explicit recovery / financial review]
+  VALID -->|Yes| COMMIT[Transactional paid effects + deduplication]
+  COMMIT --> STOCK[Commit applicable inventory effects]
+  COMMIT --> OUTBOX[Durable outbox / downstream work]
+  COMMIT --> HISTORY[Immutable payment history]
+  RECOVERY --> REFUND[Separate refund obligation / approval / execution]
+  REFUND -. provider proof still required .-> RETURNED[Verified refund result]
+  CALLBACK[Wallet signature or client callback alone] -. never proves paid .-> CHECK

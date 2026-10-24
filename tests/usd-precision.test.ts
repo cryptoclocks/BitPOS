@@ -1,0 +1,40 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {money,settlement} from '../packages/domain/src/table-pricing';
+import {promotionPrice} from '../packages/domain/src/promotions';
+import {policyForPrecision,assetSettlement,USDG_ASSET} from '../packages/domain/src/payment-assets';
+import {parsePrice,formatMoney} from '../apps/web/src/lib/money';
+import {discountPreview,percentForReduction} from '../apps/web/src/lib/promotion-discount';
+import {discountFromDraft,discountedMinor} from '../apps/web/src/lib/menu';
+import {priceConfiguration} from '../apps/api/src/catalog';
+test('USD four-place promotion is exact from input through token settlement',()=>{
+ const base=money('USD',parsePrice('0.10','USD',4),4);
+ const price=promotionPrice(base,base,15,15);
+ assert.deepEqual(price,{currency:'USD',decimals:4,amountMinor:'850'});
+ assert.equal(formatMoney(price),'USD 0.085');
+ assert.equal(settlement('USD',850n,'merchant',4).amountMinor,'85000');
+ assert.equal(discountPreview(base,15).final.amountMinor,'850');
+ assert.equal(percentForReduction(base,'0.015',15),15);
+ assert.equal(discountedMinor(base.amountMinor,discountFromDraft({kind:'amount',value:'0.015',expiresAt:''},'USD',4)),'850');
+ const policy={id:'USD_CENTS_TO_USDG_1_TO_1',numerator:'10000',denominator:'1'};
+ const precise=policyForPrecision(policy,4);
+ assert.equal(assetSettlement(USDG_ASSET,'850',precise,'merchant').amountMinor,'85000');
+ assert.deepEqual(policy,{id:'USD_CENTS_TO_USDG_1_TO_1',numerator:'10000',denominator:'1'});
+});
+test('historical cents and raw assets retain their original denomination',()=>{
+ assert.equal(formatMoney(money('USD','9',2)),'USD 0.09');
+ assert.equal(settlement('USD',9n,'merchant',2).amountMinor,'90000');
+ assert.equal(settlement('USDG',85000n,'merchant',6).amountMinor,'85000');
+ const p={id:'old-policy',numerator:'10000',denominator:'1'};
+ assert.equal(policyForPrecision(p,2),p);
+});
+test('precision and bounds fail closed; trailing zeros do not change minor units',()=>{
+ assert.throws(()=>money('THB','1',4));assert.throws(()=>settlement('USDG',1n,'merchant',4));
+ assert.throws(()=>parsePrice('0.00001','USD',4));
+ assert.throws(()=>parsePrice('0.085','USD',2));
+ assert.equal(parsePrice('0.0850','USD',4),'850');
+ assert.equal(parsePrice('0.085','USD',4),'850');
+ assert.equal(formatMoney(money('USD','1000',4)),'USD 0.10');
+ assert.equal(formatMoney(money('USD','1',4)),'USD 0.0001');
+ assert.throws(()=>policyForPrecision({id:'x',numerator:'1',denominator:'18446744073709551615'},4));
+});

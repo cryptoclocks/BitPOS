@@ -1,0 +1,22 @@
+import {readFile,writeFile} from 'node:fs/promises';
+const path='packages/openapi/mobile-v1.json',spec=JSON.parse(await readFile(path,'utf8'));
+const ref=(name:string)=>({$ref:`#/components/schemas/${name}`}),nullable=(value:object)=>({anyOf:[value,{type:'null'}]});
+const object=(properties:Record<string,unknown>)=>({type:'object',additionalProperties:false,required:Object.keys(properties),properties});
+const uuid={type:'string',format:'uuid'},positive={type:'string',pattern:'^[1-9][0-9]{0,18}$'},version={type:'string',pattern:'^(0|[1-9][0-9]{0,18})$'},date={type:'string',format:'date-time'};
+const s=spec.components.schemas;
+s.FoodDiscoveryZone=object({merchantId:uuid,branchId:uuid});
+s.FoodDiscoveryService=object({merchantId:uuid,branchId:uuid,revision:positive,validUntil:date,eligible:{type:'boolean'},selected:{type:'boolean'}});
+s.FoodDiscoveryLocationState=object({sequence:positive,capturedAt:date,receivedAt:date,stale:{type:'boolean'}});
+s.FoodDiscoveryConsentState=object({revision:positive,enabled:{type:'boolean'},ownedBySession:{type:'boolean'},expiresAt:date,location:nullable(ref('FoodDiscoveryLocationState'))});
+s.FoodDiscoverySnapshot=object({services:{type:'array',items:ref('FoodDiscoveryService')},consent:nullable(ref('FoodDiscoveryConsentState'))});
+s.FoodDiscoveryConsentCommand=object({idempotencyKey:uuid,expectedVersion:version,enabled:{type:'boolean'},zones:{type:'array',maxItems:8,items:ref('FoodDiscoveryZone')}});
+s.FoodDiscoveryConsentReceipt=object({revision:positive,enabled:{type:'boolean'}});
+s.FoodDiscoveryServiceCommand=object({idempotencyKey:uuid,expectedVersion:version,enabled:{type:'boolean'},validUntil:date,reason:{type:'string',minLength:1,maxLength:500}});
+s.FoodDiscoveryServiceReceipt=object({revision:positive});
+s.FoodDiscoveryLocationCommand=object({revision:positive,sequence:positive,capturedAt:date,latitudeE7:{type:'integer',minimum:-900000000,maximum:900000000},longitudeE7:{type:'integer',minimum:-1800000000,maximum:1800000000},accuracyMm:{type:'integer',minimum:0,maximum:100000}});
+s.FoodDiscoveryLocationReceipt=object({sequence:positive,receivedAt:date,replayed:{type:'boolean'}});
+function operation(id:string,output:string,input?:string){return {operationId:id,security:[{mobileBearer:[]}],...(input?{requestBody:{required:true,content:{'application/json':{schema:ref(input)}}}}:{}),responses:{'200':{description:'Private owned FOOD idle discovery authority; no assignment or payment effect. Idle coordinates are never returned.',content:{'application/json':{schema:ref(output)}}}}};}
+spec.paths['/driver/food/discovery']={get:operation('foodDiscoverySnapshot','FoodDiscoverySnapshot'),put:operation('foodDiscoveryConsent','FoodDiscoveryConsentReceipt','FoodDiscoveryConsentCommand')};
+spec.paths['/driver/food/discovery/location']={post:operation('foodDiscoveryLocation','FoodDiscoveryLocationReceipt','FoodDiscoveryLocationCommand')};
+spec.paths['/platform/merchants/{merchantId}/branches/{branchId}/drivers/{driverId}/food-service']={parameters:['merchantId','branchId','driverId'].map(name=>({name,in:'path',required:true,schema:uuid})),put:operation('foodDiscoveryServiceAuthorize','FoodDiscoveryServiceReceipt','FoodDiscoveryServiceCommand')};
+await writeFile(path,JSON.stringify(spec,null,2)+'\n');console.log('Published private FOOD idle discovery contracts');

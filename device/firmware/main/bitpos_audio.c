@@ -22,6 +22,7 @@
 #define CHUNK_BYTES (CHUNK_FRAMES * FRAME_BYTES)
 #define DMA_DESCRIPTORS 4U
 #define TONE_FRAMES 2560U
+#define PICKUP_FRAMES 1280U
 #define WAV_PATH "/sdcard/bitpos/motion/v1/payment-success-device.wav"
 #define WAV_FILE_BYTES 20524U
 #define WAV_FILE_LIMIT (128U * 1024U)
@@ -39,9 +40,12 @@ static atomic_bool muted;
 static atomic_uint mute_epoch;
 static atomic_bool attract_active;
 static atomic_uint attract_epoch;
+static atomic_bool pickup_active;
+static atomic_uint pickup_epoch;
 static _Atomic(QueueHandle_t) published_queue;
 static i2s_chan_handle_t speaker;
 static int16_t native_cue[TONE_FRAMES * 2 * 2];
+static int16_t pickup_cue[PICKUP_FRAMES * 2 * 2];
 static const uint8_t silence[CHUNK_BYTES];
 
 typedef struct {
@@ -50,6 +54,8 @@ typedef struct {
     unsigned epoch;
     bool attract;
     unsigned attract_generation;
+    bool pickup;
+    unsigned pickup_generation;
 } audio_request_t;
 
 typedef enum { PLAY_COMPLETE, PLAY_LOAD_FAILED, PLAY_CANCELLED, PLAY_OUTPUT_FAILED } play_result_t;
@@ -63,7 +69,8 @@ static bool permitted(const audio_request_t *request)
 {
     QueueHandle_t queue=atomic_load_explicit(&published_queue,memory_order_acquire);
     return !atomic_load(&muted) && request->epoch == atomic_load(&mute_epoch) &&
-      (!request->attract||(atomic_load(&attract_active)&&request->attract_generation==atomic_load(&attract_epoch)&&(!queue||!uxQueueMessagesWaiting(queue))));
+      (!request->attract||(atomic_load(&attract_active)&&request->attract_generation==atomic_load(&attract_epoch)&&(!queue||!uxQueueMessagesWaiting(queue))))&&
+      (!request->pickup||(atomic_load(&pickup_active)&&request->pickup_generation==atomic_load(&pickup_epoch)));
 }
 
 static uint16_t le16(const uint8_t *p)
@@ -184,8 +191,9 @@ close:
 
 static play_result_t play_native(const audio_request_t *request, size_t *bytes)
 {
-    const uint8_t *pcm = (const uint8_t *)native_cue;
-    for(size_t offset = 0; offset < sizeof(native_cue); offset += CHUNK_BYTES) {
+    const uint8_t *pcm = (const uint8_t *)(request->pickup?pickup_cue:native_cue);
+    size_t size=request->pickup?sizeof(pickup_cue):sizeof(native_cue);
+    for(size_t offset = 0; offset < size; offset += CHUNK_BYTES) {
         play_result_t result = write_pcm(pcm + offset, CHUNK_BYTES, request, bytes);
         if(result != PLAY_COMPLETE) return result;
     }
@@ -253,8 +261,9 @@ static void audio_worker(void *argument)
         if(!permitted(&request))continue;
         if(!start_output()) continue;
         size_t bytes = 0;
-        const char *cue = request.attract?"attract":"wav";
-        play_result_t result = request.attract?play_attract(&request,buffer,&bytes):play_wav(&request, buffer, &bytes);
+        const char *cue = request.attract?"attract":request.pickup?"pickup":"wav";
+        play_result_t result = request.attract?play_attract(&request,buffer,&bytes):
+            request.pickup?play_native(&request,&bytes):play_wav(&request, buffer, &bytes);
         if(result == PLAY_LOAD_FAILED && bytes == 0 && permitted(&request)) {
             cue = "native";
             result = play_native(&request, &bytes);
@@ -263,6 +272,7 @@ static void audio_worker(void *argument)
         esp_err_t stopped = i2s_channel_disable(speaker);
         if(complete && stopped == ESP_OK && permitted(&request)) {
             if(request.attract){ESP_LOGI(TAG,"BITPOS_ATTRACT_SOUND bytes=%lu",(unsigned long)bytes);continue;}
+            if(request.pickup){ESP_LOGI(TAG,"BITPOS_PICKUP_SOUND effect=%s bytes=%lu cue=pickup",request.order,(unsigned long)bytes);continue;}
             ESP_LOGI(TAG, "BITPOS_SOUND order=%s version=%lu bytes=%lu cue=%s",
                      request.order, (unsigned long)request.version, (unsigned long)bytes, cue);
         }
@@ -282,6 +292,14 @@ void bitpos_audio_init(void)
             size_t offset = (tone * TONE_FRAMES + sample) * 2;
             native_cue[offset] = native_cue[offset + 1] = value;
         }
+    }
+    /* Pickup is 0.16s, descending1319/988Hz, rather than the ascending PAID
+     * two-tone or optional SD WAV. Fixed storage, synthesized only at startup. */
+    for(unsigned tone=0;tone<2;tone++)for(unsigned sample=0;sample<PICKUP_FRAMES;sample++){
+        float envelope=(1.0f-(float)sample/PICKUP_FRAMES)*(sample<80?(float)sample/80:1);
+        int16_t value=(int16_t)(2200*envelope*sinf(2*3.141592653589793f*(tone?988:1319)*sample/SAMPLE_RATE));
+        size_t offset=(tone*PICKUP_FRAMES+sample)*2;
+        pickup_cue[offset]=pickup_cue[offset+1]=value;
     }
     i2s_chan_config_t channel = I2S_CHANNEL_DEFAULT_CONFIG(I2S_NUM_AUTO, I2S_ROLE_MASTER);
     channel.dma_desc_num = DMA_DESCRIPTORS;
@@ -333,20 +351,35 @@ void bitpos_audio_set_attract(bool active)
     if(previous!=active)atomic_fetch_add(&attract_epoch,1);
 }
 
-void bitpos_audio_play_success(const char *order_id, uint32_t order_version)
+void bitpos_audio_set_pickup(bool active)
+{
+    bool previous=atomic_exchange(&pickup_active,active);
+    if(previous!=active)atomic_fetch_add(&pickup_epoch,1);
+}
+static void enqueue_cue(const char *id,uint32_t version,bool pickup)
 {
     QueueHandle_t queue = atomic_load_explicit(&published_queue, memory_order_acquire);
-    if(!queue || !order_id || atomic_load(&muted)) return;
-    audio_request_t request = {.version = order_version, .epoch = atomic_load(&mute_epoch)};
+    if(!queue || !id || atomic_load(&muted)) return;
+    audio_request_t request = {.version=version,.epoch=atomic_load(&mute_epoch),
+        .pickup=pickup,.pickup_generation=atomic_load(&pickup_epoch)};
     size_t length = 0;
-    while(length < ORDER_ID_SIZE && order_id[length]) {
-        unsigned char c = (unsigned char)order_id[length];
-        if(!((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ||
+    while(length < ORDER_ID_SIZE && id[length]) {
+        unsigned char c = (unsigned char)id[length];
+        if(pickup?(c<33||c>126):!((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ||
              (c >= '0' && c <= '9') || c == '-' || c == '_')) return;
         length++;
     }
     if(!length || length >= ORDER_ID_SIZE || !permitted(&request)) return;
-    memcpy(request.order, order_id, length);
+    memcpy(request.order, id, length);
     /* Aggregate initialization already terminated/zeroed the copied ID. */
     xQueueSend(queue, &request, 0);
+}
+
+void bitpos_audio_play_success(const char *order_id,uint32_t order_version)
+{
+    enqueue_cue(order_id,order_version,false);
+}
+void bitpos_audio_play_pickup(const char *effect_id)
+{
+    enqueue_cue(effect_id,0,true);
 }

@@ -1,0 +1,25 @@
+{
+  "name": "BitPOS Cafe Club \u00b7 Espresso Orbit",
+  "symbol": "BPC",
+  "description": "Original cafe collectible artwork. This local metadata is a draft for a future devnet reward and does not grant a redeemable item.",
+  "image": "../collectibles/espresso-orbit.png",
+  "attributes": [
+    {
+      "trait_type": "Collection",
+      "value": "Cafe Club"
+    },
+    {
+      "trait_type": "Design",
+      "value": "Espresso Orbit"
+    }
+  ],
+  "properties": {
+    "files": [
+      {
+        "uri": "../collectibles/espresso-orbit.png",
+        "type": "image/png"
+      }
+    ],
+    "category": "image"
+  }
+}

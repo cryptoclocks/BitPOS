@@ -1,0 +1,16 @@
+import assert from 'node:assert/strict';
+import {writeFile} from 'node:fs/promises';
+import {MobileFoodQuoteRequestSchema,MobileConfiguredFoodSnapshotSchema,MobileProductSchema} from '../../packages/contracts/src/mobile-v1.generated';
+const id=(n:number)=>'aa000000-0000-4000-8000-'+String(n).padStart(12,'0');
+const money=(amountMinor:string)=>({currency:'USD' as const,decimals:2,amountMinor});
+const groups=Array.from({length:10},(_,g)=>({id:id(100+g),name:'ก'.repeat(80),nameEn:'😀'.repeat(40),enabled:true,minSelections:0,maxSelections:20,choices:Array.from({length:20},(_,c)=>({id:id(1000+g*20+c),name:'ข'.repeat(80),nameEn:'🧋'.repeat(40),enabled:true,maxQty:10,priceDelta:money('35')}))}));
+const selections=groups.flatMap(g=>g.choices.map(c=>({groupId:g.id,choiceId:c.id,qty:1})));
+const request=MobileFoodQuoteRequestSchema.parse({branchId:id(1),serving:'pickup',items:Array.from({length:50},(_,n)=>({lineId:id(2000+n),productId:id(2),qty:1,optionVersion:id(3),selections,allergyNote:'ค'.repeat(300)}))});
+const frozen=groups.flatMap(g=>g.choices.map(c=>({groupId:g.id,groupName:g.name,groupNameEn:g.nameEn,choiceId:c.id,choiceName:c.name,choiceNameEn:c.nameEn,qty:1,priceDelta:c.priceDelta})));
+const snapshot=MobileConfiguredFoodSnapshotSchema.parse({lines:request.items.map(i=>({lineId:i.lineId,productId:i.productId,name:'ง'.repeat(320),nameEn:'😁'.repeat(160),qty:1,priceVersion:id(4),optionVersion:i.optionVersion,selections:frozen,allergyNote:i.allergyNote,productBasePrice:money('270'),productUnitPrice:money('270'),optionsUnitPrice:money('7000'),basePrice:money('7270'),unitPrice:money('7270'),lineTotal:money('7270')})),subtotal:money('363500'),discount:money('0'),fees:money('0'),tax:money('0'),total:money('363500')});
+const product=MobileProductSchema.parse({id:id(2),name:'ง'.repeat(320),nameEn:'😁'.repeat(160),category:'จ'.repeat(320),description:'ฉ'.repeat(10000),imageUrl:'x'.repeat(2000),available:100,unitPrice:money('270'),basePrice:money('270'),options:{version:id(3),revision:'1',noteEnabled:true,groups}});
+const bytes=(v:unknown)=>Buffer.byteLength(JSON.stringify(v));
+const measured={configuredItems:50,selectionsPerItem:200,requestBytes:bytes(request),snapshotBytes:bytes(snapshot),maximumRichProductBytes:bytes(product),quoteRequestLimit:2*1024*1024,configuredResponseLimit:24*1024*1024,menuPageBudget:900*1024};
+assert.ok(measured.requestBytes>16384&&measured.requestBytes<measured.quoteRequestLimit);assert.ok(measured.snapshotBytes>1024*1024&&measured.snapshotBytes+327680<measured.configuredResponseLimit);assert.ok(measured.maximumRichProductBytes<measured.menuPageBudget);
+if(process.argv[2])await writeFile(process.argv[2],JSON.stringify({request,snapshot,product}));
+const receipt={environment:'deterministic_generated_contract_fixture',measured,physicalTesting:'deferred_by_user_2026-10-16',limits:['Exact UTF8 JSON size of supported maximum counts with Thai BMP and supplementary labels; not throughput or provider evidence','Does not bound an unlimited refund history or prove ingress HTTP handling']};await writeFile('.omp/work/flutter-delivery-20261016/evidence/p1-configured-size.json',JSON.stringify(receipt,null,2)+'\n');console.log(JSON.stringify(receipt));

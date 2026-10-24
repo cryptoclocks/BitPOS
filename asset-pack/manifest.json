@@ -1,0 +1,1970 @@
+{
+  "version": "bitpos-assets-20261008-v1",
+  "date": "2026-10-08",
+  "scope": "Prepared for BitPOS devnet demo. No runtime integration, mint or hardware validation claim.",
+  "assets": [
+    {
+      "path": "audio/attention-device.wav",
+      "category": "audio",
+      "bytes": 20524,
+      "sha256": "f62e7064508420f5f4326e11a1fac4cabc653c096287c7d18587db36a8ea96bd",
+      "sampleRate": 16000,
+      "channels": 2,
+      "bits": 16,
+      "durationSeconds": 0.32,
+      "provenance": {
+        "source": "Original synthesized BitPOS cue"
+      },
+      "readiness": "Device format candidate; playback integration pending"
+    },
+    {
+      "path": "audio/attention-web.wav",
+      "category": "audio",
+      "bytes": 30764,
+      "sha256": "5466ca81b48df655c9c9d6be10014130546bf72d1d09f5ecc7062b3b459364c7",
+      "sampleRate": 48000,
+      "channels": 1,
+      "bits": 16,
+      "durationSeconds": 0.32,
+      "provenance": {
+        "source": "Original synthesized BitPOS cue"
+      },
+      "readiness": "Prepared asset"
+    },
+    {
+      "path": "audio/order-arrived-device.wav",
+      "category": "audio",
+      "bytes": 24364,
+      "sha256": "d0087fb1e7a92678092b3ed5cb525d5fc6eab75b082e8149c2fa0013c24347f1",
+      "sampleRate": 16000,
+      "channels": 2,
+      "bits": 16,
+      "durationSeconds": 0.38,
+      "provenance": {
+        "source": "Original synthesized BitPOS cue"
+      },
+      "readiness": "Device format candidate; playback integration pending"
+    },
+    {
+      "path": "audio/order-arrived-web.wav",
+      "category": "audio",
+      "bytes": 36524,
+      "sha256": "6a55ed28ade68394b8309076e812e68a490a4555cdf8fdb549f80416519cf549",
+      "sampleRate": 48000,
+      "channels": 1,
+      "bits": 16,
+      "durationSeconds": 0.38,
+      "provenance": {
+        "source": "Original synthesized BitPOS cue"
+      },
+      "readiness": "Prepared asset"
+    },
+    {
+      "path": "audio/payment-success-device.wav",
+      "category": "audio",
+      "bytes": 20524,
+      "sha256": "aa78633e92f389a5edc9216aa5068c0493ef1b17a661ebfcf81f0364e82af402",
+      "sampleRate": 16000,
+      "channels": 2,
+      "bits": 16,
+      "durationSeconds": 0.32,
+      "provenance": {
+        "source": "Original synthesized BitPOS cue"
+      },
+      "readiness": "Device format candidate; playback integration pending"
+    },
+    {
+      "path": "audio/payment-success-web.wav",
+      "category": "audio",
+      "bytes": 30764,
+      "sha256": "a315e41155e34b39b7387f05e5880498f9e91b0838db54d93fb1b5a8cfdb1afe",
+      "sampleRate": 48000,
+      "channels": 1,
+      "bits": 16,
+      "durationSeconds": 0.32,
+      "provenance": {
+        "source": "Original synthesized BitPOS cue"
+      },
+      "readiness": "Prepared asset"
+    },
+    {
+      "path": "audio/reconnected-device.wav",
+      "category": "audio",
+      "bytes": 15404,
+      "sha256": "24538c1a18d05cfb541c43dc2f27b70af40181c40929fb1efb81d0e602610ac1",
+      "sampleRate": 16000,
+      "channels": 2,
+      "bits": 16,
+      "durationSeconds": 0.24,
+      "provenance": {
+        "source": "Original synthesized BitPOS cue"
+      },
+      "readiness": "Device format candidate; playback integration pending"
+    },
+    {
+      "path": "audio/reconnected-web.wav",
+      "category": "audio",
+      "bytes": 23084,
+      "sha256": "28c83897ab698d016e3ad687fcf584ad4659e2a7b43269712289f399dc0bde36",
+      "sampleRate": 48000,
+      "channels": 1,
+      "bits": 16,
+      "durationSeconds": 0.24,
+      "provenance": {
+        "source": "Original synthesized BitPOS cue"
+      },
+      "readiness": "Prepared asset"
+    },
+    {
+      "path": "audio/reward-unlocked-device.wav",
+      "category": "audio",
+      "bytes": 26924,
+      "sha256": "a5e0df25232625d45d30342ebd8d6bd7d397464ebedd1920d06c6ad421f1566a",
+      "sampleRate": 16000,
+      "channels": 2,
+      "bits": 16,
+      "durationSeconds": 0.42,
+      "provenance": {
+        "source": "Original synthesized BitPOS cue"
+      },
+      "readiness": "Device format candidate; playback integration pending"
+    },
+    {
+      "path": "audio/reward-unlocked-web.wav",
+      "category": "audio",
+      "bytes": 40364,
+      "sha256": "b40662bdee465fc3e61cb97aec4be7e8219186c85d51531fe94c6d6ea2a9063c",
+      "sampleRate": 48000,
+      "channels": 1,
+      "bits": 16,
+      "durationSeconds": 0.42,
+      "provenance": {
+        "source": "Original synthesized BitPOS cue"
+      },
+      "readiness": "Prepared asset"
+    },
+    {
+      "path": "audio/tap-device.wav",
+      "category": "audio",
+      "bytes": 2924,
+      "sha256": "011cc9df7f3e88dee6e7befa257abad9347ed8fe664d352e8b65240a44e97d67",
+      "sampleRate": 16000,
+      "channels": 2,
+      "bits": 16,
+      "durationSeconds": 0.045,
+      "provenance": {
+        "source": "Original synthesized BitPOS cue"
+      },
+      "readiness": "Device format candidate; playback integration pending"
+    },
+    {
+      "path": "audio/tap-web.wav",
+      "category": "audio",
+      "bytes": 4364,
+      "sha256": "db664d264783cec01da352370f76f153d795034bad77043fef9ad741009d95c4",
+      "sampleRate": 48000,
+      "channels": 1,
+      "bits": 16,
+      "durationSeconds": 0.045,
+      "provenance": {
+        "source": "Original synthesized BitPOS cue"
+      },
+      "readiness": "Prepared asset"
+    },
+    {
+      "path": "brand/bitpos-logo-large.png",
+      "category": "brand",
+      "bytes": 689980,
+      "sha256": "6a3465ae297e6170419e816072c1f6c419c52f8968563e94577092e4b949cccf",
+      "width": 2172,
+      "height": 724,
+      "mode": "RGBA",
+      "hasTransparentPixels": true,
+      "provenance": {
+        "source": "BitPOS local brand, interface concept or licensed reference",
+        "details": "README.md and per-folder provenance/licences"
+      },
+      "readiness": "Prepared asset"
+    },
+    {
+      "path": "collectibles/cafe-companion.png",
+      "category": "collectibles",
+      "bytes": 2204419,
+      "sha256": "b354fa70d30eb89e03290d6f75df84c43197950882878c7799c3a52d7b818048",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGB",
+      "provenance": {
+        "source": "Built-in imagegen",
+        "promptFile": "metadata/imagegen-prompts.json"
+      },
+      "readiness": "Artwork only; not minted"
+    },
+    {
+      "path": "collectibles/croissant-comet.png",
+      "category": "collectibles",
+      "bytes": 2188765,
+      "sha256": "de5a3688fd0e04461405c4373d9e841c61184f639f252426a88d8b1be878d34b",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGB",
+      "provenance": {
+        "source": "Built-in imagegen",
+        "promptFile": "metadata/imagegen-prompts.json"
+      },
+      "readiness": "Artwork only; not minted"
+    },
+    {
+      "path": "collectibles/drink-voucher.html",
+      "category": "collectibles",
+      "bytes": 917,
+      "sha256": "924dec2266ab571f747627fdaa97b897a47aae54a12559990ef8ffe1529d17bd",
+      "provenance": {
+        "source": "BitPOS local brand, interface concept or licensed reference",
+        "details": "README.md and per-folder provenance/licences"
+      },
+      "readiness": "Artwork only; not minted"
+    },
+    {
+      "path": "collectibles/drink-voucher.png",
+      "category": "collectibles",
+      "bytes": 530883,
+      "sha256": "45695d4d49be930441a922514808563af4770e46c44036ac9b6a1fcc30e7a3e8",
+      "width": 1200,
+      "height": 600,
+      "mode": "RGB",
+      "provenance": {
+        "source": "BitPOS local brand, interface concept or licensed reference",
+        "details": "README.md and per-folder provenance/licences"
+      },
+      "readiness": "Artwork only; not minted"
+    },
+    {
+      "path": "collectibles/espresso-orbit.png",
+      "category": "collectibles",
+      "bytes": 1888607,
+      "sha256": "d495e977dc58a9ebf3d42bd7d4f788dd3d0c966b73978c8b05704a0b095be09f",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGB",
+      "provenance": {
+        "source": "Built-in imagegen",
+        "promptFile": "metadata/imagegen-prompts.json"
+      },
+      "readiness": "Artwork only; not minted"
+    },
+    {
+      "path": "collectibles/latte-sunrise.png",
+      "category": "collectibles",
+      "bytes": 2045004,
+      "sha256": "ef8f5e0f7fcca691690ded0fedd1dd42453c9fa8c1c41171e059ef6cffa3a197",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGB",
+      "provenance": {
+        "source": "Built-in imagegen",
+        "promptFile": "metadata/imagegen-prompts.json"
+      },
+      "readiness": "Artwork only; not minted"
+    },
+    {
+      "path": "collectibles/loyalty-voucher.html",
+      "category": "collectibles",
+      "bytes": 913,
+      "sha256": "f1614c4a05bb4308b710b304848ff6102e2d9fdb4268f48885cd6100ba4cbec5",
+      "provenance": {
+        "source": "BitPOS local brand, interface concept or licensed reference",
+        "details": "README.md and per-folder provenance/licences"
+      },
+      "readiness": "Artwork only; not minted"
+    },
+    {
+      "path": "collectibles/loyalty-voucher.png",
+      "category": "collectibles",
+      "bytes": 543074,
+      "sha256": "29e9c9b4cc1150f6b18d907248ca0050b29dbf5d941aeecd2315a91731c0d9f2",
+      "width": 1200,
+      "height": 600,
+      "mode": "RGB",
+      "provenance": {
+        "source": "BitPOS local brand, interface concept or licensed reference",
+        "details": "README.md and per-folder provenance/licences"
+      },
+      "readiness": "Artwork only; not minted"
+    },
+    {
+      "path": "collectibles/matcha-moon.png",
+      "category": "collectibles",
+      "bytes": 2264005,
+      "sha256": "e6f79933524030d76ae94c1f67405697d433a48ed825690994032882f8478592",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGB",
+      "provenance": {
+        "source": "Built-in imagegen",
+        "promptFile": "metadata/imagegen-prompts.json"
+      },
+      "readiness": "Artwork only; not minted"
+    },
+    {
+      "path": "fonts/DSEG14Modern-Regular.woff2",
+      "category": "fonts",
+      "bytes": 5916,
+      "sha256": "f75bb21980b68acc537f2ce7592be694d466d888adf185a0d5d9f3b34352987c",
+      "provenance": {
+        "source": "BitPOS local brand, interface concept or licensed reference",
+        "details": "README.md and per-folder provenance/licences"
+      },
+      "readiness": "Prepared asset"
+    },
+    {
+      "path": "fonts/DSEG7Modern-Regular.woff2",
+      "category": "fonts",
+      "bytes": 5132,
+      "sha256": "3ea4cfd8ce47d00563bf967151cea3a4be9109edb49d38d8b48f98fe5abf1780",
+      "provenance": {
+        "source": "BitPOS local brand, interface concept or licensed reference",
+        "details": "README.md and per-folder provenance/licences"
+      },
+      "readiness": "Prepared asset"
+    },
+    {
+      "path": "fonts/Montserrat-Medium.ttf",
+      "category": "fonts",
+      "bytes": 243180,
+      "sha256": "421f26b23e2be6b98373d32acd3cb2897b154d4bf0a77d26534ce476e4cbed53",
+      "provenance": {
+        "source": "BitPOS local brand, interface concept or licensed reference",
+        "details": "README.md and per-folder provenance/licences"
+      },
+      "readiness": "Prepared asset"
+    },
+    {
+      "path": "fonts/Sarabun-Regular.ttf",
+      "category": "fonts",
+      "bytes": 90220,
+      "sha256": "226d4f368fbc0457990ddef2692679badfd2c1a4e89e5ac4d43c10ba7743b2f1",
+      "provenance": {
+        "source": "BitPOS local brand, interface concept or licensed reference",
+        "details": "README.md and per-folder provenance/licences"
+      },
+      "readiness": "Prepared asset"
+    },
+    {
+      "path": "fonts/Sarabun-SemiBold.ttf",
+      "category": "fonts",
+      "bytes": 90200,
+      "sha256": "c0bb057d86e4a12097d701ac0953597e315788d47a446f5b63a6604ab21dceba",
+      "provenance": {
+        "source": "BitPOS local brand, interface concept or licensed reference",
+        "details": "README.md and per-folder provenance/licences"
+      },
+      "readiness": "Prepared asset"
+    },
+    {
+      "path": "icons/arrow-left.svg",
+      "category": "icons",
+      "bytes": 262,
+      "sha256": "c5f4b88076108eb1a0d95336e1aa7e7bb1419a3a92af96f6247d88cd3456f933",
+      "provenance": {
+        "path": "icons/arrow-left.svg",
+        "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/arrow-left.svg",
+        "sourcePage": "https://github.com/lucide-icons/lucide",
+        "license": "ISC; selected Feather-derived icons MIT, see third-party/LUCIDE-LICENSE.txt",
+        "sha256": "c5f4b88076108eb1a0d95336e1aa7e7bb1419a3a92af96f6247d88cd3456f933"
+      },
+      "readiness": "Web-ready SVG; rasterize and validate LVGL before hardware use"
+    },
+    {
+      "path": "icons/arrow-right.svg",
+      "category": "icons",
+      "bytes": 261,
+      "sha256": "288397fdb73bb4f783cf9eabb726ff47357df1d4e3f1201dd748090579f108b9",
+      "provenance": {
+        "path": "icons/arrow-right.svg",
+        "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/arrow-right.svg",
+        "sourcePage": "https://github.com/lucide-icons/lucide",
+        "license": "ISC; selected Feather-derived icons MIT, see third-party/LUCIDE-LICENSE.txt",
+        "sha256": "288397fdb73bb4f783cf9eabb726ff47357df1d4e3f1201dd748090579f108b9"
+      },
+      "readiness": "Web-ready SVG; rasterize and validate LVGL before hardware use"
+    },
+    {
+      "path": "icons/banknote.svg",
+      "category": "icons",
+      "bytes": 331,
+      "sha256": "212d628014554424ec0041ab56e8869149d255b7077cfd6977d4ab2be32e8cb1",
+      "provenance": {
+        "path": "icons/banknote.svg",
+        "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/banknote.svg",
+        "sourcePage": "https://github.com/lucide-icons/lucide",
+        "license": "ISC; selected Feather-derived icons MIT, see third-party/LUCIDE-LICENSE.txt",
+        "sha256": "212d628014554424ec0041ab56e8869149d255b7077cfd6977d4ab2be32e8cb1"
+      },
+      "readiness": "Web-ready SVG; rasterize and validate LVGL before hardware use"
+    },
+    {
+      "path": "icons/bell.svg",
+      "category": "icons",
+      "bytes": 393,
+      "sha256": "394889e9631fe3a9a63be9a479a95b451b708e432d895978d21d9130b5ee5dbe",
+      "provenance": {
+        "path": "icons/bell.svg",
+        "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/bell.svg",
+        "sourcePage": "https://github.com/lucide-icons/lucide",
+        "license": "ISC; selected Feather-derived icons MIT, see third-party/LUCIDE-LICENSE.txt",
+        "sha256": "394889e9631fe3a9a63be9a479a95b451b708e432d895978d21d9130b5ee5dbe"
+      },
+      "readiness": "Web-ready SVG; rasterize and validate LVGL before hardware use"
+    },
+    {
+      "path": "icons/chart-no-axes-combined.svg",
+      "category": "icons",
+      "bytes": 432,
+      "sha256": "2f8a708c357488cfde7428d9b055b9bb4a99c08dc71e9296da03ecc19291c4ab",
+      "provenance": {
+        "path": "icons/chart-no-axes-combined.svg",
+        "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/chart-no-axes-combined.svg",
+        "sourcePage": "https://github.com/lucide-icons/lucide",
+        "license": "ISC; selected Feather-derived icons MIT, see third-party/LUCIDE-LICENSE.txt",
+        "sha256": "2f8a708c357488cfde7428d9b055b9bb4a99c08dc71e9296da03ecc19291c4ab"
+      },
+      "readiness": "Web-ready SVG; rasterize and validate LVGL before hardware use"
+    },
+    {
+      "path": "icons/check.svg",
+      "category": "icons",
+      "bytes": 239,
+      "sha256": "7f33acc9a77a61659531044525fc008edebe215bf4dcf1c789c8674ad3277db0",
+      "provenance": {
+        "path": "icons/check.svg",
+        "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/check.svg",
+        "sourcePage": "https://github.com/lucide-icons/lucide",
+        "license": "ISC; selected Feather-derived icons MIT, see third-party/LUCIDE-LICENSE.txt",
+        "sha256": "7f33acc9a77a61659531044525fc008edebe215bf4dcf1c789c8674ad3277db0"
+      },
+      "readiness": "Web-ready SVG; rasterize and validate LVGL before hardware use"
+    },
+    {
+      "path": "icons/chevron-down.svg",
+      "category": "icons",
+      "bytes": 236,
+      "sha256": "66ea878e72ed3488bb3b464c39dfdccee8d1f78e560dccea40e5e12da0e87e87",
+      "provenance": {
+        "path": "icons/chevron-down.svg",
+        "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/chevron-down.svg",
+        "sourcePage": "https://github.com/lucide-icons/lucide",
+        "license": "ISC; selected Feather-derived icons MIT, see third-party/LUCIDE-LICENSE.txt",
+        "sha256": "66ea878e72ed3488bb3b464c39dfdccee8d1f78e560dccea40e5e12da0e87e87"
+      },
+      "readiness": "Web-ready SVG; rasterize and validate LVGL before hardware use"
+    },
+    {
+      "path": "icons/circle-alert.svg",
+      "category": "icons",
+      "bytes": 332,
+      "sha256": "ce3e98b7a03b78c0071131df42466e4e1ff5187fccad30e739ec9ce951cf685a",
+      "provenance": {
+        "path": "icons/circle-alert.svg",
+        "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/circle-alert.svg",
+        "sourcePage": "https://github.com/lucide-icons/lucide",
+        "license": "ISC; selected Feather-derived icons MIT, see third-party/LUCIDE-LICENSE.txt",
+        "sha256": "ce3e98b7a03b78c0071131df42466e4e1ff5187fccad30e739ec9ce951cf685a"
+      },
+      "readiness": "Web-ready SVG; rasterize and validate LVGL before hardware use"
+    },
+    {
+      "path": "icons/circle-check.svg",
+      "category": "icons",
+      "bytes": 278,
+      "sha256": "9711e045a5999f8a3b0782eb88e09b04e0559bc7b379dcc0a4ae645223e10345",
+      "provenance": {
+        "path": "icons/circle-check.svg",
+        "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/circle-check.svg",
+        "sourcePage": "https://github.com/lucide-icons/lucide",
+        "license": "ISC; selected Feather-derived icons MIT, see third-party/LUCIDE-LICENSE.txt",
+        "sha256": "9711e045a5999f8a3b0782eb88e09b04e0559bc7b379dcc0a4ae645223e10345"
+      },
+      "readiness": "Web-ready SVG; rasterize and validate LVGL before hardware use"
+    },
+    {
+      "path": "icons/clock.svg",
+      "category": "icons",
+      "bytes": 271,
+      "sha256": "e9d3e3acf4d1c280fcf8092293439dc0a4756a908ceb859de144b12451cd1cb9",
+      "provenance": {
+        "path": "icons/clock.svg",
+        "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/clock.svg",
+        "sourcePage": "https://github.com/lucide-icons/lucide",
+        "license": "ISC; selected Feather-derived icons MIT, see third-party/LUCIDE-LICENSE.txt",
+        "sha256": "e9d3e3acf4d1c280fcf8092293439dc0a4756a908ceb859de144b12451cd1cb9"
+      },
+      "readiness": "Web-ready SVG; rasterize and validate LVGL before hardware use"
+    },
+    {
+      "path": "icons/coffee.svg",
+      "category": "icons",
+      "bytes": 379,
+      "sha256": "970595bdafac0df42c00b847d53fd00c2283ecc3b83881274de2aa7dbce2bbc8",
+      "provenance": {
+        "path": "icons/coffee.svg",
+        "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/coffee.svg",
+        "sourcePage": "https://github.com/lucide-icons/lucide",
+        "license": "ISC; selected Feather-derived icons MIT, see third-party/LUCIDE-LICENSE.txt",
+        "sha256": "970595bdafac0df42c00b847d53fd00c2283ecc3b83881274de2aa7dbce2bbc8"
+      },
+      "readiness": "Web-ready SVG; rasterize and validate LVGL before hardware use"
+    },
+    {
+      "path": "icons/copy.svg",
+      "category": "icons",
+      "bytes": 339,
+      "sha256": "ea80e566c7a12628a447cb53179b19aea4f60b9143e2becd0d0f20bf260e5718",
+      "provenance": {
+        "path": "icons/copy.svg",
+        "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/copy.svg",
+        "sourcePage": "https://github.com/lucide-icons/lucide",
+        "license": "ISC; selected Feather-derived icons MIT, see third-party/LUCIDE-LICENSE.txt",
+        "sha256": "ea80e566c7a12628a447cb53179b19aea4f60b9143e2becd0d0f20bf260e5718"
+      },
+      "readiness": "Web-ready SVG; rasterize and validate LVGL before hardware use"
+    },
+    {
+      "path": "icons/credit-card.svg",
+      "category": "icons",
+      "bytes": 326,
+      "sha256": "72d2b1acd904e01c6f676b4f6d07d56550a80b5d42687d43a313b85040943a2e",
+      "provenance": {
+        "path": "icons/credit-card.svg",
+        "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/credit-card.svg",
+        "sourcePage": "https://github.com/lucide-icons/lucide",
+        "license": "ISC; selected Feather-derived icons MIT, see third-party/LUCIDE-LICENSE.txt",
+        "sha256": "72d2b1acd904e01c6f676b4f6d07d56550a80b5d42687d43a313b85040943a2e"
+      },
+      "readiness": "Web-ready SVG; rasterize and validate LVGL before hardware use"
+    },
+    {
+      "path": "icons/cup-soda.svg",
+      "category": "icons",
+      "bytes": 394,
+      "sha256": "30a13d8d625d19458457b207759f1145256c96ebfe609ce5e01026b893d51b43",
+      "provenance": {
+        "path": "icons/cup-soda.svg",
+        "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/cup-soda.svg",
+        "sourcePage": "https://github.com/lucide-icons/lucide",
+        "license": "ISC; selected Feather-derived icons MIT, see third-party/LUCIDE-LICENSE.txt",
+        "sha256": "30a13d8d625d19458457b207759f1145256c96ebfe609ce5e01026b893d51b43"
+      },
+      "readiness": "Web-ready SVG; rasterize and validate LVGL before hardware use"
+    },
+    {
+      "path": "icons/database.svg",
+      "category": "icons",
+      "bytes": 329,
+      "sha256": "471eb14bc8d144896a82dfc4aa9daf350f769f0896f4bef33e50aabdbb51130d",
+      "provenance": {
+        "path": "icons/database.svg",
+        "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/database.svg",
+        "sourcePage": "https://github.com/lucide-icons/lucide",
+        "license": "ISC; selected Feather-derived icons MIT, see third-party/LUCIDE-LICENSE.txt",
+        "sha256": "471eb14bc8d144896a82dfc4aa9daf350f769f0896f4bef33e50aabdbb51130d"
+      },
+      "readiness": "Web-ready SVG; rasterize and validate LVGL before hardware use"
+    },
+    {
+      "path": "icons/download.svg",
+      "category": "icons",
+      "bytes": 318,
+      "sha256": "3daeee13ded5a3afa2198b1bb4e2262d163922f97d96ac6ff9953e8ed4fe039d",
+      "provenance": {
+        "path": "icons/download.svg",
+        "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/download.svg",
+        "sourcePage": "https://github.com/lucide-icons/lucide",
+        "license": "ISC; selected Feather-derived icons MIT, see third-party/LUCIDE-LICENSE.txt",
+        "sha256": "3daeee13ded5a3afa2198b1bb4e2262d163922f97d96ac6ff9953e8ed4fe039d"
+      },
+      "readiness": "Web-ready SVG; rasterize and validate LVGL before hardware use"
+    },
+    {
+      "path": "icons/external-link.svg",
+      "category": "icons",
+      "bytes": 332,
+      "sha256": "3891241b8c3bfc3a8a930078f26ffc5a7e9763da6d0162ace2050b28d4c1d1fe",
+      "provenance": {
+        "path": "icons/external-link.svg",
+        "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/external-link.svg",
+        "sourcePage": "https://github.com/lucide-icons/lucide",
+        "license": "ISC; selected Feather-derived icons MIT, see third-party/LUCIDE-LICENSE.txt",
+        "sha256": "3891241b8c3bfc3a8a930078f26ffc5a7e9763da6d0162ace2050b28d4c1d1fe"
+      },
+      "readiness": "Web-ready SVG; rasterize and validate LVGL before hardware use"
+    },
+    {
+      "path": "icons/gift.svg",
+      "category": "icons",
+      "bytes": 426,
+      "sha256": "bc0651476bc7fdefa8d033f7b7572f9c8712aaca3b9196488442e6b4e76ed2a4",
+      "provenance": {
+        "path": "icons/gift.svg",
+        "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/gift.svg",
+        "sourcePage": "https://github.com/lucide-icons/lucide",
+        "license": "ISC; selected Feather-derived icons MIT, see third-party/LUCIDE-LICENSE.txt",
+        "sha256": "bc0651476bc7fdefa8d033f7b7572f9c8712aaca3b9196488442e6b4e76ed2a4"
+      },
+      "readiness": "Web-ready SVG; rasterize and validate LVGL before hardware use"
+    },
+    {
+      "path": "icons/hand-coins.svg",
+      "category": "icons",
+      "bytes": 473,
+      "sha256": "3b031c330bd625ece6cb884c9a3f2f41ff8a836c6638bc42c220968716dfb212",
+      "provenance": {
+        "path": "icons/hand-coins.svg",
+        "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/hand-coins.svg",
+        "sourcePage": "https://github.com/lucide-icons/lucide",
+        "license": "ISC; selected Feather-derived icons MIT, see third-party/LUCIDE-LICENSE.txt",
+        "sha256": "3b031c330bd625ece6cb884c9a3f2f41ff8a836c6638bc42c220968716dfb212"
+      },
+      "readiness": "Web-ready SVG; rasterize and validate LVGL before hardware use"
+    },
+    {
+      "path": "icons/image.svg",
+      "category": "icons",
+      "bytes": 358,
+      "sha256": "619c9db58c879dce6250376ba67d9c9102ca6dbb3b1efb9294c9f180e22273a5",
+      "provenance": {
+        "path": "icons/image.svg",
+        "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/image.svg",
+        "sourcePage": "https://github.com/lucide-icons/lucide",
+        "license": "ISC; selected Feather-derived icons MIT, see third-party/LUCIDE-LICENSE.txt",
+        "sha256": "619c9db58c879dce6250376ba67d9c9102ca6dbb3b1efb9294c9f180e22273a5"
+      },
+      "readiness": "Web-ready SVG; rasterize and validate LVGL before hardware use"
+    },
+    {
+      "path": "icons/link.svg",
+      "category": "icons",
+      "bytes": 359,
+      "sha256": "4f3237183dcaabfac92f4e94c776a9a9e45c3c5e77a921061a6b34b61eb5413f",
+      "provenance": {
+        "path": "icons/link.svg",
+        "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/link.svg",
+        "sourcePage": "https://github.com/lucide-icons/lucide",
+        "license": "ISC; selected Feather-derived icons MIT, see third-party/LUCIDE-LICENSE.txt",
+        "sha256": "4f3237183dcaabfac92f4e94c776a9a9e45c3c5e77a921061a6b34b61eb5413f"
+      },
+      "readiness": "Web-ready SVG; rasterize and validate LVGL before hardware use"
+    },
+    {
+      "path": "icons/loader-circle.svg",
+      "category": "icons",
+      "bytes": 251,
+      "sha256": "043021bb903919668804bdb6fee0342072e4ffea5f03fbd857774c440179ad3b",
+      "provenance": {
+        "path": "icons/loader-circle.svg",
+        "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/loader-circle.svg",
+        "sourcePage": "https://github.com/lucide-icons/lucide",
+        "license": "ISC; selected Feather-derived icons MIT, see third-party/LUCIDE-LICENSE.txt",
+        "sha256": "043021bb903919668804bdb6fee0342072e4ffea5f03fbd857774c440179ad3b"
+      },
+      "readiness": "Web-ready SVG; rasterize and validate LVGL before hardware use"
+    },
+    {
+      "path": "icons/lock-keyhole.svg",
+      "category": "icons",
+      "bytes": 337,
+      "sha256": "fc0b8b7590d1d9e9bb0112c5c2e15a78ade0bfeca6d6f8c79fbbe149236d74be",
+      "provenance": {
+        "path": "icons/lock-keyhole.svg",
+        "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/lock-keyhole.svg",
+        "sourcePage": "https://github.com/lucide-icons/lucide",
+        "license": "ISC; selected Feather-derived icons MIT, see third-party/LUCIDE-LICENSE.txt",
+        "sha256": "fc0b8b7590d1d9e9bb0112c5c2e15a78ade0bfeca6d6f8c79fbbe149236d74be"
+      },
+      "readiness": "Web-ready SVG; rasterize and validate LVGL before hardware use"
+    },
+    {
+      "path": "icons/log-out.svg",
+      "category": "icons",
+      "bytes": 317,
+      "sha256": "f24b5b45c05a3acc346af8095408f6ba197ff58ea1641a4f2cb25a9702d2c0ac",
+      "provenance": {
+        "path": "icons/log-out.svg",
+        "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/log-out.svg",
+        "sourcePage": "https://github.com/lucide-icons/lucide",
+        "license": "ISC; selected Feather-derived icons MIT, see third-party/LUCIDE-LICENSE.txt",
+        "sha256": "f24b5b45c05a3acc346af8095408f6ba197ff58ea1641a4f2cb25a9702d2c0ac"
+      },
+      "readiness": "Web-ready SVG; rasterize and validate LVGL before hardware use"
+    },
+    {
+      "path": "icons/minus.svg",
+      "category": "icons",
+      "bytes": 232,
+      "sha256": "a0c743ab6dbf545d8a6e19ef3874f48ede686ce68d25e231bd81f540d97b1f19",
+      "provenance": {
+        "path": "icons/minus.svg",
+        "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/minus.svg",
+        "sourcePage": "https://github.com/lucide-icons/lucide",
+        "license": "ISC; selected Feather-derived icons MIT, see third-party/LUCIDE-LICENSE.txt",
+        "sha256": "a0c743ab6dbf545d8a6e19ef3874f48ede686ce68d25e231bd81f540d97b1f19"
+      },
+      "readiness": "Web-ready SVG; rasterize and validate LVGL before hardware use"
+    },
+    {
+      "path": "icons/monitor.svg",
+      "category": "icons",
+      "bytes": 346,
+      "sha256": "d1a443233345724859de8e4fb48968ba91e885e12ddbd710701548bd91b39428",
+      "provenance": {
+        "path": "icons/monitor.svg",
+        "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/monitor.svg",
+        "sourcePage": "https://github.com/lucide-icons/lucide",
+        "license": "ISC; selected Feather-derived icons MIT, see third-party/LUCIDE-LICENSE.txt",
+        "sha256": "d1a443233345724859de8e4fb48968ba91e885e12ddbd710701548bd91b39428"
+      },
+      "readiness": "Web-ready SVG; rasterize and validate LVGL before hardware use"
+    },
+    {
+      "path": "icons/package.svg",
+      "category": "icons",
+      "bytes": 446,
+      "sha256": "69d6bc7650d26c4d24dd55eb22791607b982ce7637073944c256f1f61575509d",
+      "provenance": {
+        "path": "icons/package.svg",
+        "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/package.svg",
+        "sourcePage": "https://github.com/lucide-icons/lucide",
+        "license": "ISC; selected Feather-derived icons MIT, see third-party/LUCIDE-LICENSE.txt",
+        "sha256": "69d6bc7650d26c4d24dd55eb22791607b982ce7637073944c256f1f61575509d"
+      },
+      "readiness": "Web-ready SVG; rasterize and validate LVGL before hardware use"
+    },
+    {
+      "path": "icons/pencil.svg",
+      "category": "icons",
+      "bytes": 377,
+      "sha256": "7e1ca7a6f5c1eb949671df762f2baadd32f5bd841d43153c3a15279af7d78d0c",
+      "provenance": {
+        "path": "icons/pencil.svg",
+        "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/pencil.svg",
+        "sourcePage": "https://github.com/lucide-icons/lucide",
+        "license": "ISC; selected Feather-derived icons MIT, see third-party/LUCIDE-LICENSE.txt",
+        "sha256": "7e1ca7a6f5c1eb949671df762f2baadd32f5bd841d43153c3a15279af7d78d0c"
+      },
+      "readiness": "Web-ready SVG; rasterize and validate LVGL before hardware use"
+    },
+    {
+      "path": "icons/plus.svg",
+      "category": "icons",
+      "bytes": 256,
+      "sha256": "7f6af73bf1ff6c4bca3f18351c8d1bdec6749c0c2530c4de5da85d520c21df17",
+      "provenance": {
+        "path": "icons/plus.svg",
+        "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/plus.svg",
+        "sourcePage": "https://github.com/lucide-icons/lucide",
+        "license": "ISC; selected Feather-derived icons MIT, see third-party/LUCIDE-LICENSE.txt",
+        "sha256": "7f6af73bf1ff6c4bca3f18351c8d1bdec6749c0c2530c4de5da85d520c21df17"
+      },
+      "readiness": "Web-ready SVG; rasterize and validate LVGL before hardware use"
+    },
+    {
+      "path": "icons/qr-code.svg",
+      "category": "icons",
+      "bytes": 620,
+      "sha256": "920cb79ab4b2fd23c36a16de3ca533c4896cb989adb823eb7dec97fd840d30f5",
+      "provenance": {
+        "path": "icons/qr-code.svg",
+        "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/qr-code.svg",
+        "sourcePage": "https://github.com/lucide-icons/lucide",
+        "license": "ISC; selected Feather-derived icons MIT, see third-party/LUCIDE-LICENSE.txt",
+        "sha256": "920cb79ab4b2fd23c36a16de3ca533c4896cb989adb823eb7dec97fd840d30f5"
+      },
+      "readiness": "Web-ready SVG; rasterize and validate LVGL before hardware use"
+    },
+    {
+      "path": "icons/receipt.svg",
+      "category": "icons",
+      "bytes": 741,
+      "sha256": "26b4af2c5ea5aef9578c765a01585d9c8726ce00928dc64175a0d7d9f7c5f0a0",
+      "provenance": {
+        "path": "icons/receipt.svg",
+        "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/receipt.svg",
+        "sourcePage": "https://github.com/lucide-icons/lucide",
+        "license": "ISC; selected Feather-derived icons MIT, see third-party/LUCIDE-LICENSE.txt",
+        "sha256": "26b4af2c5ea5aef9578c765a01585d9c8726ce00928dc64175a0d7d9f7c5f0a0"
+      },
+      "readiness": "Web-ready SVG; rasterize and validate LVGL before hardware use"
+    },
+    {
+      "path": "icons/refresh-cw.svg",
+      "category": "icons",
+      "bytes": 392,
+      "sha256": "2e10dd403c85a24f163d59fc6151aa21147fe9402e1305dfc8979208caee8944",
+      "provenance": {
+        "path": "icons/refresh-cw.svg",
+        "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/refresh-cw.svg",
+        "sourcePage": "https://github.com/lucide-icons/lucide",
+        "license": "ISC; selected Feather-derived icons MIT, see third-party/LUCIDE-LICENSE.txt",
+        "sha256": "2e10dd403c85a24f163d59fc6151aa21147fe9402e1305dfc8979208caee8944"
+      },
+      "readiness": "Web-ready SVG; rasterize and validate LVGL before hardware use"
+    },
+    {
+      "path": "icons/scan-line.svg",
+      "category": "icons",
+      "bytes": 390,
+      "sha256": "d17ec0ebae568a92e18e18968bb85658fec088bc3d97b92b729df6f7f9c4848e",
+      "provenance": {
+        "path": "icons/scan-line.svg",
+        "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/scan-line.svg",
+        "sourcePage": "https://github.com/lucide-icons/lucide",
+        "license": "ISC; selected Feather-derived icons MIT, see third-party/LUCIDE-LICENSE.txt",
+        "sha256": "d17ec0ebae568a92e18e18968bb85658fec088bc3d97b92b729df6f7f9c4848e"
+      },
+      "readiness": "Web-ready SVG; rasterize and validate LVGL before hardware use"
+    },
+    {
+      "path": "icons/search.svg",
+      "category": "icons",
+      "bytes": 275,
+      "sha256": "283d371c2e433817bb9c0c8310caa6c77fa4177c0f4f1168d9c83b97af7389dc",
+      "provenance": {
+        "path": "icons/search.svg",
+        "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/search.svg",
+        "sourcePage": "https://github.com/lucide-icons/lucide",
+        "license": "ISC; selected Feather-derived icons MIT, see third-party/LUCIDE-LICENSE.txt",
+        "sha256": "283d371c2e433817bb9c0c8310caa6c77fa4177c0f4f1168d9c83b97af7389dc"
+      },
+      "readiness": "Web-ready SVG; rasterize and validate LVGL before hardware use"
+    },
+    {
+      "path": "icons/settings.svg",
+      "category": "icons",
+      "bytes": 586,
+      "sha256": "0ae27fd0f81999229e3127ac96c5b32edfea448e291d509e76212b917551d66b",
+      "provenance": {
+        "path": "icons/settings.svg",
+        "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/settings.svg",
+        "sourcePage": "https://github.com/lucide-icons/lucide",
+        "license": "ISC; selected Feather-derived icons MIT, see third-party/LUCIDE-LICENSE.txt",
+        "sha256": "0ae27fd0f81999229e3127ac96c5b32edfea448e291d509e76212b917551d66b"
+      },
+      "readiness": "Web-ready SVG; rasterize and validate LVGL before hardware use"
+    },
+    {
+      "path": "icons/shield-check.svg",
+      "category": "icons",
+      "bytes": 415,
+      "sha256": "8d4fcdbde5bba4abb1a2f6fe53e37ceb6343a1d5449a9d88f6f97c1971d26c4e",
+      "provenance": {
+        "path": "icons/shield-check.svg",
+        "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/shield-check.svg",
+        "sourcePage": "https://github.com/lucide-icons/lucide",
+        "license": "ISC; selected Feather-derived icons MIT, see third-party/LUCIDE-LICENSE.txt",
+        "sha256": "8d4fcdbde5bba4abb1a2f6fe53e37ceb6343a1d5449a9d88f6f97c1971d26c4e"
+      },
+      "readiness": "Web-ready SVG; rasterize and validate LVGL before hardware use"
+    },
+    {
+      "path": "icons/shopping-cart.svg",
+      "category": "icons",
+      "bytes": 457,
+      "sha256": "7cdc07053044af9e5fd24fff5e089ce97b2a39ea978933a160c4bbfebf8a167c",
+      "provenance": {
+        "path": "icons/shopping-cart.svg",
+        "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/shopping-cart.svg",
+        "sourcePage": "https://github.com/lucide-icons/lucide",
+        "license": "ISC; selected Feather-derived icons MIT, see third-party/LUCIDE-LICENSE.txt",
+        "sha256": "7cdc07053044af9e5fd24fff5e089ce97b2a39ea978933a160c4bbfebf8a167c"
+      },
+      "readiness": "Web-ready SVG; rasterize and validate LVGL before hardware use"
+    },
+    {
+      "path": "icons/smartphone.svg",
+      "category": "icons",
+      "bytes": 294,
+      "sha256": "f9fdb700b50feb5fc6436f53eb9813e9eb56a9071ac4cdcba69c7f7c1c13877d",
+      "provenance": {
+        "path": "icons/smartphone.svg",
+        "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/smartphone.svg",
+        "sourcePage": "https://github.com/lucide-icons/lucide",
+        "license": "ISC; selected Feather-derived icons MIT, see third-party/LUCIDE-LICENSE.txt",
+        "sha256": "f9fdb700b50feb5fc6436f53eb9813e9eb56a9071ac4cdcba69c7f7c1c13877d"
+      },
+      "readiness": "Web-ready SVG; rasterize and validate LVGL before hardware use"
+    },
+    {
+      "path": "icons/sparkles.svg",
+      "category": "icons",
+      "bytes": 567,
+      "sha256": "f5499f33f09d7158151e9bd2ec0faf79ff8fb57292f84fdd7286d96d0f0424d8",
+      "provenance": {
+        "path": "icons/sparkles.svg",
+        "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/sparkles.svg",
+        "sourcePage": "https://github.com/lucide-icons/lucide",
+        "license": "ISC; selected Feather-derived icons MIT, see third-party/LUCIDE-LICENSE.txt",
+        "sha256": "f5499f33f09d7158151e9bd2ec0faf79ff8fb57292f84fdd7286d96d0f0424d8"
+      },
+      "readiness": "Web-ready SVG; rasterize and validate LVGL before hardware use"
+    },
+    {
+      "path": "icons/ticket.svg",
+      "category": "icons",
+      "bytes": 396,
+      "sha256": "37dfe2d23041dd13224fef9d1cb7db4b4f589b661b850f23f57105e843534a2f",
+      "provenance": {
+        "path": "icons/ticket.svg",
+        "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/ticket.svg",
+        "sourcePage": "https://github.com/lucide-icons/lucide",
+        "license": "ISC; selected Feather-derived icons MIT, see third-party/LUCIDE-LICENSE.txt",
+        "sha256": "37dfe2d23041dd13224fef9d1cb7db4b4f589b661b850f23f57105e843534a2f"
+      },
+      "readiness": "Web-ready SVG; rasterize and validate LVGL before hardware use"
+    },
+    {
+      "path": "icons/triangle-alert.svg",
+      "category": "icons",
+      "bytes": 345,
+      "sha256": "4866f38b8560d410f21e3226413e0b77997b6dfbb6931fadfe0a0d5aef9ffeb4",
+      "provenance": {
+        "path": "icons/triangle-alert.svg",
+        "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/triangle-alert.svg",
+        "sourcePage": "https://github.com/lucide-icons/lucide",
+        "license": "ISC; selected Feather-derived icons MIT, see third-party/LUCIDE-LICENSE.txt",
+        "sha256": "4866f38b8560d410f21e3226413e0b77997b6dfbb6931fadfe0a0d5aef9ffeb4"
+      },
+      "readiness": "Web-ready SVG; rasterize and validate LVGL before hardware use"
+    },
+    {
+      "path": "icons/user-round.svg",
+      "category": "icons",
+      "bytes": 279,
+      "sha256": "84870f26f3faf8da45da84174517519e81b9e8f00319c78954fcbb74f50038a1",
+      "provenance": {
+        "path": "icons/user-round.svg",
+        "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/user-round.svg",
+        "sourcePage": "https://github.com/lucide-icons/lucide",
+        "license": "ISC; selected Feather-derived icons MIT, see third-party/LUCIDE-LICENSE.txt",
+        "sha256": "84870f26f3faf8da45da84174517519e81b9e8f00319c78954fcbb74f50038a1"
+      },
+      "readiness": "Web-ready SVG; rasterize and validate LVGL before hardware use"
+    },
+    {
+      "path": "icons/users.svg",
+      "category": "icons",
+      "bytes": 383,
+      "sha256": "eeed488a1ec95ba730dd69996536fb65061d6ea273afb2429ae47e65eebf401c",
+      "provenance": {
+        "path": "icons/users.svg",
+        "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/users.svg",
+        "sourcePage": "https://github.com/lucide-icons/lucide",
+        "license": "ISC; selected Feather-derived icons MIT, see third-party/LUCIDE-LICENSE.txt",
+        "sha256": "eeed488a1ec95ba730dd69996536fb65061d6ea273afb2429ae47e65eebf401c"
+      },
+      "readiness": "Web-ready SVG; rasterize and validate LVGL before hardware use"
+    },
+    {
+      "path": "icons/utensils.svg",
+      "category": "icons",
+      "bytes": 348,
+      "sha256": "9b5eb803bc342b8503b6a154ff63a0f754ba52a13fa24c2e270d2ab89c70f76a",
+      "provenance": {
+        "path": "icons/utensils.svg",
+        "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/utensils.svg",
+        "sourcePage": "https://github.com/lucide-icons/lucide",
+        "license": "ISC; selected Feather-derived icons MIT, see third-party/LUCIDE-LICENSE.txt",
+        "sha256": "9b5eb803bc342b8503b6a154ff63a0f754ba52a13fa24c2e270d2ab89c70f76a"
+      },
+      "readiness": "Web-ready SVG; rasterize and validate LVGL before hardware use"
+    },
+    {
+      "path": "icons/volume-2.svg",
+      "category": "icons",
+      "bytes": 476,
+      "sha256": "fb404f9c128a0579de67b399177631e5edb3502fdc247ceb30e8b15754b46071",
+      "provenance": {
+        "path": "icons/volume-2.svg",
+        "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/volume-2.svg",
+        "sourcePage": "https://github.com/lucide-icons/lucide",
+        "license": "ISC; selected Feather-derived icons MIT, see third-party/LUCIDE-LICENSE.txt",
+        "sha256": "fb404f9c128a0579de67b399177631e5edb3502fdc247ceb30e8b15754b46071"
+      },
+      "readiness": "Web-ready SVG; rasterize and validate LVGL before hardware use"
+    },
+    {
+      "path": "icons/volume-x.svg",
+      "category": "icons",
+      "bytes": 443,
+      "sha256": "f382e421b7aae01172989f2b749ee87e44c0c82c16970b13a9ad5a323b613be0",
+      "provenance": {
+        "path": "icons/volume-x.svg",
+        "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/volume-x.svg",
+        "sourcePage": "https://github.com/lucide-icons/lucide",
+        "license": "ISC; selected Feather-derived icons MIT, see third-party/LUCIDE-LICENSE.txt",
+        "sha256": "f382e421b7aae01172989f2b749ee87e44c0c82c16970b13a9ad5a323b613be0"
+      },
+      "readiness": "Web-ready SVG; rasterize and validate LVGL before hardware use"
+    },
+    {
+      "path": "icons/wallet.svg",
+      "category": "icons",
+      "bytes": 387,
+      "sha256": "76c9596f629a2abf9cfabb573452f3113ed7e9502c699aa811e630f156eb7556",
+      "provenance": {
+        "path": "icons/wallet.svg",
+        "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/wallet.svg",
+        "sourcePage": "https://github.com/lucide-icons/lucide",
+        "license": "ISC; selected Feather-derived icons MIT, see third-party/LUCIDE-LICENSE.txt",
+        "sha256": "76c9596f629a2abf9cfabb573452f3113ed7e9502c699aa811e630f156eb7556"
+      },
+      "readiness": "Web-ready SVG; rasterize and validate LVGL before hardware use"
+    },
+    {
+      "path": "icons/wifi-off.svg",
+      "category": "icons",
+      "bytes": 494,
+      "sha256": "318b290106e55c3505933f434d3663524206c7a44165a89508774fba4fdbaadd",
+      "provenance": {
+        "path": "icons/wifi-off.svg",
+        "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/wifi-off.svg",
+        "sourcePage": "https://github.com/lucide-icons/lucide",
+        "license": "ISC; selected Feather-derived icons MIT, see third-party/LUCIDE-LICENSE.txt",
+        "sha256": "318b290106e55c3505933f434d3663524206c7a44165a89508774fba4fdbaadd"
+      },
+      "readiness": "Web-ready SVG; rasterize and validate LVGL before hardware use"
+    },
+    {
+      "path": "icons/wifi.svg",
+      "category": "icons",
+      "bytes": 357,
+      "sha256": "5c4c795d014fa95d1e1038362df44a0f0f32ded9cb08c833ae72419ebadc9a91",
+      "provenance": {
+        "path": "icons/wifi.svg",
+        "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/wifi.svg",
+        "sourcePage": "https://github.com/lucide-icons/lucide",
+        "license": "ISC; selected Feather-derived icons MIT, see third-party/LUCIDE-LICENSE.txt",
+        "sha256": "5c4c795d014fa95d1e1038362df44a0f0f32ded9cb08c833ae72419ebadc9a91"
+      },
+      "readiness": "Web-ready SVG; rasterize and validate LVGL before hardware use"
+    },
+    {
+      "path": "icons/x.svg",
+      "category": "icons",
+      "bytes": 260,
+      "sha256": "4a9cdab38fbb96162e7dace28e33f4ca0e49d8963a6162abc3d4691b7d675117",
+      "provenance": {
+        "path": "icons/x.svg",
+        "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/x.svg",
+        "sourcePage": "https://github.com/lucide-icons/lucide",
+        "license": "ISC; selected Feather-derived icons MIT, see third-party/LUCIDE-LICENSE.txt",
+        "sha256": "4a9cdab38fbb96162e7dace28e33f4ca0e49d8963a6162abc3d4691b7d675117"
+      },
+      "readiness": "Web-ready SVG; rasterize and validate LVGL before hardware use"
+    },
+    {
+      "path": "menu/americano.jpg",
+      "category": "menu",
+      "bytes": 37677,
+      "sha256": "abf0b15110d9a4474d134ee85a0e47f26562cc53c4ac22969877813af2e8e606",
+      "width": 800,
+      "height": 533,
+      "mode": "RGB",
+      "provenance": {
+        "source": "BitPOS local brand, interface concept or licensed reference",
+        "details": "README.md and per-folder provenance/licences"
+      },
+      "readiness": "Prepared asset"
+    },
+    {
+      "path": "menu/blueberry-muffin.jpg",
+      "category": "menu",
+      "bytes": 178168,
+      "sha256": "49634d80d0123f42846dba684b1f474b58bf6145b588e36b40a3952bb8ed4ac3",
+      "width": 800,
+      "height": 1000,
+      "mode": "RGB",
+      "provenance": {
+        "source": "BitPOS local brand, interface concept or licensed reference",
+        "details": "README.md and per-folder provenance/licences"
+      },
+      "readiness": "Prepared asset"
+    },
+    {
+      "path": "menu/cappuccino.jpg",
+      "category": "menu",
+      "bytes": 68560,
+      "sha256": "05acb0ee26d84d9c6ba9d82462aec7d59190eda0980eb69a23afaecbfc555c59",
+      "width": 800,
+      "height": 533,
+      "mode": "RGB",
+      "provenance": {
+        "source": "BitPOS local brand, interface concept or licensed reference",
+        "details": "README.md and per-folder provenance/licences"
+      },
+      "readiness": "Prepared asset"
+    },
+    {
+      "path": "menu/cheesecake.jpg",
+      "category": "menu",
+      "bytes": 100471,
+      "sha256": "24a005be7e52c1ffef6ac38c230a60531ed29a77c1c31b43a2850f4c4dee2758",
+      "width": 800,
+      "height": 1200,
+      "mode": "RGB",
+      "provenance": {
+        "source": "BitPOS local brand, interface concept or licensed reference",
+        "details": "README.md and per-folder provenance/licences"
+      },
+      "readiness": "Prepared asset"
+    },
+    {
+      "path": "menu/chocolate-brownie.jpg",
+      "category": "menu",
+      "bytes": 100085,
+      "sha256": "d4af3fa3ab982942296e753aa7de0b2325f19ad3bc30c308ef0f4174e6bfaafc",
+      "width": 800,
+      "height": 570,
+      "mode": "RGB",
+      "provenance": {
+        "source": "BitPOS local brand, interface concept or licensed reference",
+        "details": "README.md and per-folder provenance/licences"
+      },
+      "readiness": "Prepared asset"
+    },
+    {
+      "path": "menu/croissant.jpg",
+      "category": "menu",
+      "bytes": 139116,
+      "sha256": "25b109e9814344c3f6f0786029bde2fa2ab6d0ac6f45745e7234e7e0989b340a",
+      "width": 800,
+      "height": 533,
+      "mode": "RGB",
+      "provenance": {
+        "source": "BitPOS local brand, interface concept or licensed reference",
+        "details": "README.md and per-folder provenance/licences"
+      },
+      "readiness": "Prepared asset"
+    },
+    {
+      "path": "menu/espresso.jpg",
+      "category": "menu",
+      "bytes": 22719,
+      "sha256": "f30aa8709db5df231f94b359bf8046f349fd4b92c245d9022209692b51ce40bc",
+      "width": 800,
+      "height": 600,
+      "mode": "RGB",
+      "provenance": {
+        "source": "BitPOS local brand, interface concept or licensed reference",
+        "details": "README.md and per-folder provenance/licences"
+      },
+      "readiness": "Prepared asset"
+    },
+    {
+      "path": "menu/hot-chocolate.jpg",
+      "category": "menu",
+      "bytes": 106335,
+      "sha256": "341bdf7a66bcac48322b33f15a5babe07038e57081968b7081848a1372fcf8df",
+      "width": 800,
+      "height": 1203,
+      "mode": "RGB",
+      "provenance": {
+        "source": "BitPOS local brand, interface concept or licensed reference",
+        "details": "README.md and per-folder provenance/licences"
+      },
+      "readiness": "Prepared asset"
+    },
+    {
+      "path": "menu/iced-latte.jpg",
+      "category": "menu",
+      "bytes": 46790,
+      "sha256": "f2eb6f554d934fd4318259d6b8b28a04e224b45fb74d1b3d5bc150c7b5bb92b7",
+      "width": 800,
+      "height": 534,
+      "mode": "RGB",
+      "provenance": {
+        "source": "BitPOS local brand, interface concept or licensed reference",
+        "details": "README.md and per-folder provenance/licences"
+      },
+      "readiness": "Prepared asset"
+    },
+    {
+      "path": "menu/latte.jpg",
+      "category": "menu",
+      "bytes": 74671,
+      "sha256": "2aa6f8e45a6e1c2b6916e7e2fb0cc76a1460beb67763ca828ddb92760afdcd3d",
+      "width": 800,
+      "height": 533,
+      "mode": "RGB",
+      "provenance": {
+        "source": "BitPOS local brand, interface concept or licensed reference",
+        "details": "README.md and per-folder provenance/licences"
+      },
+      "readiness": "Prepared asset"
+    },
+    {
+      "path": "menu/matcha.jpg",
+      "category": "menu",
+      "bytes": 137480,
+      "sha256": "ccea4ccd603844c82a00068a1e8530409db994b532527ef3bdeefdb940a091c2",
+      "width": 800,
+      "height": 1199,
+      "mode": "RGB",
+      "provenance": {
+        "source": "BitPOS local brand, interface concept or licensed reference",
+        "details": "README.md and per-folder provenance/licences"
+      },
+      "readiness": "Prepared asset"
+    },
+    {
+      "path": "menu/sandwich.jpg",
+      "category": "menu",
+      "bytes": 61568,
+      "sha256": "9df3dc6e6940912c7d5cfb6bc11acb881558128a111ec0ed6c4f2893d8a085a4",
+      "width": 800,
+      "height": 450,
+      "mode": "RGB",
+      "provenance": {
+        "source": "BitPOS local brand, interface concept or licensed reference",
+        "details": "README.md and per-folder provenance/licences"
+      },
+      "readiness": "Prepared asset"
+    },
+    {
+      "path": "states/bpc-01-idle.png",
+      "category": "states",
+      "bytes": 23045,
+      "sha256": "6c66c5d15efb963605b84c3a279bae7d2f9b1416731d950e0cf7a0682b55183d",
+      "width": 480,
+      "height": 320,
+      "mode": "RGB",
+      "provenance": {
+        "source": "BitPOS local brand, interface concept or licensed reference",
+        "details": "README.md and per-folder provenance/licences"
+      },
+      "readiness": "Interface concept; not physical evidence"
+    },
+    {
+      "path": "states/bpc-02-promo.png",
+      "category": "states",
+      "bytes": 35187,
+      "sha256": "4ce75294af77402350b1b0ac0a05638de8c26071f95dca07fc12d3a3b789c02e",
+      "width": 480,
+      "height": 320,
+      "mode": "RGB",
+      "provenance": {
+        "source": "BitPOS local brand, interface concept or licensed reference",
+        "details": "README.md and per-folder provenance/licences"
+      },
+      "readiness": "Interface concept; not physical evidence"
+    },
+    {
+      "path": "states/bpc-03-order.png",
+      "category": "states",
+      "bytes": 25112,
+      "sha256": "66ab34917d10333907d317b6feae779a65de6177291fdbe1862ffeb42cbe5c78",
+      "width": 480,
+      "height": 320,
+      "mode": "RGB",
+      "provenance": {
+        "source": "BitPOS local brand, interface concept or licensed reference",
+        "details": "README.md and per-folder provenance/licences"
+      },
+      "readiness": "Interface concept; not physical evidence"
+    },
+    {
+      "path": "states/bpc-04-methods.png",
+      "category": "states",
+      "bytes": 30556,
+      "sha256": "d5621054e6223791e41877bde9a84e0aac736a363b2ba8026c96ebe9e0318115",
+      "width": 480,
+      "height": 320,
+      "mode": "RGB",
+      "provenance": {
+        "source": "BitPOS local brand, interface concept or licensed reference",
+        "details": "README.md and per-folder provenance/licences"
+      },
+      "readiness": "Interface concept; not physical evidence"
+    },
+    {
+      "path": "states/bpc-05-usdg.png",
+      "category": "states",
+      "bytes": 31009,
+      "sha256": "17cc86b6f33fc8df6847f97b9edf333c531f1cfbddefbf58d2cfaab6e0b8abf9",
+      "width": 480,
+      "height": 320,
+      "mode": "RGB",
+      "provenance": {
+        "source": "BitPOS local brand, interface concept or licensed reference",
+        "details": "README.md and per-folder provenance/licences"
+      },
+      "readiness": "Interface concept; not physical evidence"
+    },
+    {
+      "path": "states/bpc-06-promptpay.png",
+      "category": "states",
+      "bytes": 30626,
+      "sha256": "59ad615ec91a2f23be17fabd4519a46e080f1b3b755489aeb1e9aae66b4e4d5d",
+      "width": 480,
+      "height": 320,
+      "mode": "RGB",
+      "provenance": {
+        "source": "BitPOS local brand, interface concept or licensed reference",
+        "details": "README.md and per-folder provenance/licences"
+      },
+      "readiness": "Interface concept; not physical evidence"
+    },
+    {
+      "path": "states/bpc-07-cash.png",
+      "category": "states",
+      "bytes": 23701,
+      "sha256": "e98054fb746d7b851650dcddbf9abd5ad99b77309392ccd13242a7ed796133c4",
+      "width": 480,
+      "height": 320,
+      "mode": "RGB",
+      "provenance": {
+        "source": "BitPOS local brand, interface concept or licensed reference",
+        "details": "README.md and per-folder provenance/licences"
+      },
+      "readiness": "Interface concept; not physical evidence"
+    },
+    {
+      "path": "states/bpc-08-confirming.png",
+      "category": "states",
+      "bytes": 24421,
+      "sha256": "0d76b5c27a60137d79ee34f969cc27985b503eb992189afa894754e65d732ea3",
+      "width": 480,
+      "height": 320,
+      "mode": "RGB",
+      "provenance": {
+        "source": "BitPOS local brand, interface concept or licensed reference",
+        "details": "README.md and per-folder provenance/licences"
+      },
+      "readiness": "Interface concept; not physical evidence"
+    },
+    {
+      "path": "states/bpc-09-paid.png",
+      "category": "states",
+      "bytes": 23071,
+      "sha256": "9b369e1d7adb8b498212dae4781d230bb298f117b84813879114cfdbffb5eef9",
+      "width": 480,
+      "height": 320,
+      "mode": "RGB",
+      "provenance": {
+        "source": "BitPOS local brand, interface concept or licensed reference",
+        "details": "README.md and per-folder provenance/licences"
+      },
+      "readiness": "Interface concept; not physical evidence"
+    },
+    {
+      "path": "states/bpc-10-claim.png",
+      "category": "states",
+      "bytes": 33741,
+      "sha256": "d2961fe2ce88ef85703c4402657ac4e9ba01ce68c24f65ad6a749f0de8e62375",
+      "width": 480,
+      "height": 320,
+      "mode": "RGB",
+      "provenance": {
+        "source": "BitPOS local brand, interface concept or licensed reference",
+        "details": "README.md and per-folder provenance/licences"
+      },
+      "readiness": "Interface concept; not physical evidence"
+    },
+    {
+      "path": "states/bpc-11-collectible.png",
+      "category": "states",
+      "bytes": 36136,
+      "sha256": "6625f16c8920ec1ab088510ddf179764881e819877ac2b20cca7449aed91727d",
+      "width": 480,
+      "height": 320,
+      "mode": "RGB",
+      "provenance": {
+        "source": "BitPOS local brand, interface concept or licensed reference",
+        "details": "README.md and per-folder provenance/licences"
+      },
+      "readiness": "Interface concept; not physical evidence"
+    },
+    {
+      "path": "states/bpc-12-loyalty.png",
+      "category": "states",
+      "bytes": 29018,
+      "sha256": "fb28456cfeed30828fdf903d54c2980ff9bf7cb7519f21f5659182c3b96b79e4",
+      "width": 480,
+      "height": 320,
+      "mode": "RGB",
+      "provenance": {
+        "source": "BitPOS local brand, interface concept or licensed reference",
+        "details": "README.md and per-folder provenance/licences"
+      },
+      "readiness": "Interface concept; not physical evidence"
+    },
+    {
+      "path": "states/bpc-13-redeem.png",
+      "category": "states",
+      "bytes": 24673,
+      "sha256": "4bb021351cf0e0ccce7cf2cc3b6ba1e17d3a06a2b41821395aa6cf26536768c9",
+      "width": 480,
+      "height": 320,
+      "mode": "RGB",
+      "provenance": {
+        "source": "BitPOS local brand, interface concept or licensed reference",
+        "details": "README.md and per-folder provenance/licences"
+      },
+      "readiness": "Interface concept; not physical evidence"
+    },
+    {
+      "path": "states/bpc-14-reward-pending.png",
+      "category": "states",
+      "bytes": 29649,
+      "sha256": "956bddf226e9c586ee85af0e83b80b9b153e676f20daa72aa771a9350fabe7b7",
+      "width": 480,
+      "height": 320,
+      "mode": "RGB",
+      "provenance": {
+        "source": "BitPOS local brand, interface concept or licensed reference",
+        "details": "README.md and per-folder provenance/licences"
+      },
+      "readiness": "Interface concept; not physical evidence"
+    },
+    {
+      "path": "states/bpc-15-failed.png",
+      "category": "states",
+      "bytes": 24684,
+      "sha256": "cefc653c6dde375b04520129b7464303d445e805660d5e82e57623c9151c94c2",
+      "width": 480,
+      "height": 320,
+      "mode": "RGB",
+      "provenance": {
+        "source": "BitPOS local brand, interface concept or licensed reference",
+        "details": "README.md and per-folder provenance/licences"
+      },
+      "readiness": "Interface concept; not physical evidence"
+    },
+    {
+      "path": "states/bpc-16-offline.png",
+      "category": "states",
+      "bytes": 26252,
+      "sha256": "715d15527626991574aeb994977fdd8985ed9997d559c1a4ea0fcfa4785d9369",
+      "width": 480,
+      "height": 320,
+      "mode": "RGB",
+      "provenance": {
+        "source": "BitPOS local brand, interface concept or licensed reference",
+        "details": "README.md and per-folder provenance/licences"
+      },
+      "readiness": "Interface concept; not physical evidence"
+    },
+    {
+      "path": "states/bpc-17-wifi.png",
+      "category": "states",
+      "bytes": 27630,
+      "sha256": "dfeed36df09f932a862e7e0f742def7050aefc9e987f9f23c561db9e75eb4048",
+      "width": 480,
+      "height": 320,
+      "mode": "RGB",
+      "provenance": {
+        "source": "BitPOS local brand, interface concept or licensed reference",
+        "details": "README.md and per-folder provenance/licences"
+      },
+      "readiness": "Interface concept; not physical evidence"
+    },
+    {
+      "path": "states/bpc-18-settings.png",
+      "category": "states",
+      "bytes": 30243,
+      "sha256": "6bea981f42d6bec620c039a8d8bfb2e506a5c60eff674ce06ed03446190108ce",
+      "width": 480,
+      "height": 320,
+      "mode": "RGB",
+      "provenance": {
+        "source": "BitPOS local brand, interface concept or licensed reference",
+        "details": "README.md and per-folder provenance/licences"
+      },
+      "readiness": "Interface concept; not physical evidence"
+    },
+    {
+      "path": "states/en-confirming.html",
+      "category": "states",
+      "bytes": 1589,
+      "sha256": "874746ce395d8a606f24b9b4dc3d7c83eda7d508f2e9663feeb403393c5c4e73",
+      "provenance": {
+        "source": "BitPOS local brand, interface concept or licensed reference",
+        "details": "README.md and per-folder provenance/licences"
+      },
+      "readiness": "Interface concept; not physical evidence"
+    },
+    {
+      "path": "states/en-confirming.png",
+      "category": "states",
+      "bytes": 21676,
+      "sha256": "78734d7d061249eda18743bbffddf357f9db349c3f88d9ab9774239373523d1e",
+      "width": 480,
+      "height": 320,
+      "mode": "RGB",
+      "provenance": {
+        "source": "BitPOS local brand, interface concept or licensed reference",
+        "details": "README.md and per-folder provenance/licences"
+      },
+      "readiness": "Interface concept; not physical evidence"
+    },
+    {
+      "path": "states/en-failed.html",
+      "category": "states",
+      "bytes": 1579,
+      "sha256": "a07b59ac2d0ebfa25a6abda01324bfa26383d3583437a337894373fe8b825278",
+      "provenance": {
+        "source": "BitPOS local brand, interface concept or licensed reference",
+        "details": "README.md and per-folder provenance/licences"
+      },
+      "readiness": "Interface concept; not physical evidence"
+    },
+    {
+      "path": "states/en-failed.png",
+      "category": "states",
+      "bytes": 22380,
+      "sha256": "8c6a6f5656a2d2cf42c863db1324f6e8205cb367d2fe103e0e8ce5942414fcce",
+      "width": 480,
+      "height": 320,
+      "mode": "RGB",
+      "provenance": {
+        "source": "BitPOS local brand, interface concept or licensed reference",
+        "details": "README.md and per-folder provenance/licences"
+      },
+      "readiness": "Interface concept; not physical evidence"
+    },
+    {
+      "path": "states/en-idle.html",
+      "category": "states",
+      "bytes": 1557,
+      "sha256": "5e03faa472bbb3f0756756971672cd0b46fcb420ef22e607037fe1bdc2e3d6c4",
+      "provenance": {
+        "source": "BitPOS local brand, interface concept or licensed reference",
+        "details": "README.md and per-folder provenance/licences"
+      },
+      "readiness": "Interface concept; not physical evidence"
+    },
+    {
+      "path": "states/en-idle.png",
+      "category": "states",
+      "bytes": 19836,
+      "sha256": "6bb98c720844a1212ad5df8168068ea96008025fc9175ffad339d2a2eedd2db4",
+      "width": 480,
+      "height": 320,
+      "mode": "RGB",
+      "provenance": {
+        "source": "BitPOS local brand, interface concept or licensed reference",
+        "details": "README.md and per-folder provenance/licences"
+      },
+      "readiness": "Interface concept; not physical evidence"
+    },
+    {
+      "path": "states/en-loyalty.html",
+      "category": "states",
+      "bytes": 1565,
+      "sha256": "c4ed53b1d3915a1bdff0666deb16420546c47a5b3194128390870aeb9113223a",
+      "provenance": {
+        "source": "BitPOS local brand, interface concept or licensed reference",
+        "details": "README.md and per-folder provenance/licences"
+      },
+      "readiness": "Interface concept; not physical evidence"
+    },
+    {
+      "path": "states/en-loyalty.png",
+      "category": "states",
+      "bytes": 19804,
+      "sha256": "ef5c2f14075ad99802a927ae654819d2c4a82df0e67701a4f8777724302cb3e5",
+      "width": 480,
+      "height": 320,
+      "mode": "RGB",
+      "provenance": {
+        "source": "BitPOS local brand, interface concept or licensed reference",
+        "details": "README.md and per-folder provenance/licences"
+      },
+      "readiness": "Interface concept; not physical evidence"
+    },
+    {
+      "path": "states/en-offline.html",
+      "category": "states",
+      "bytes": 1583,
+      "sha256": "f9442c243d6ae5e5d9a99a110f231abbde1ed9325dbca2ad60e307629d008295",
+      "provenance": {
+        "source": "BitPOS local brand, interface concept or licensed reference",
+        "details": "README.md and per-folder provenance/licences"
+      },
+      "readiness": "Interface concept; not physical evidence"
+    },
+    {
+      "path": "states/en-offline.png",
+      "category": "states",
+      "bytes": 21363,
+      "sha256": "74a3e4d2cfb3a6f4405672b6dbeed4c4f986ab0476ea6dab3dcd494af3b86f3a",
+      "width": 480,
+      "height": 320,
+      "mode": "RGB",
+      "provenance": {
+        "source": "BitPOS local brand, interface concept or licensed reference",
+        "details": "README.md and per-folder provenance/licences"
+      },
+      "readiness": "Interface concept; not physical evidence"
+    },
+    {
+      "path": "states/en-order.html",
+      "category": "states",
+      "bytes": 1639,
+      "sha256": "cad109ba2362c2bb928a78a602d1361a6ea0ae475a9e77e290328ab1a2177782",
+      "provenance": {
+        "source": "BitPOS local brand, interface concept or licensed reference",
+        "details": "README.md and per-folder provenance/licences"
+      },
+      "readiness": "Interface concept; not physical evidence"
+    },
+    {
+      "path": "states/en-order.png",
+      "category": "states",
+      "bytes": 22338,
+      "sha256": "bad44209de1fc7fb73fb4cd1c36eb5e8b8cd428c90587e679a1a7a11cfd1295e",
+      "width": 480,
+      "height": 320,
+      "mode": "RGB",
+      "provenance": {
+        "source": "BitPOS local brand, interface concept or licensed reference",
+        "details": "README.md and per-folder provenance/licences"
+      },
+      "readiness": "Interface concept; not physical evidence"
+    },
+    {
+      "path": "states/en-paid.html",
+      "category": "states",
+      "bytes": 1551,
+      "sha256": "43e96819c564cad8f04770589733191320105e73edb47e44cdfca2b03b1751a2",
+      "provenance": {
+        "source": "BitPOS local brand, interface concept or licensed reference",
+        "details": "README.md and per-folder provenance/licences"
+      },
+      "readiness": "Interface concept; not physical evidence"
+    },
+    {
+      "path": "states/en-paid.png",
+      "category": "states",
+      "bytes": 22897,
+      "sha256": "b75b3e17e73f909a2fd388b472411d6542b4579ca55f899fb861478be4135a79",
+      "width": 480,
+      "height": 320,
+      "mode": "RGB",
+      "provenance": {
+        "source": "BitPOS local brand, interface concept or licensed reference",
+        "details": "README.md and per-folder provenance/licences"
+      },
+      "readiness": "Interface concept; not physical evidence"
+    },
+    {
+      "path": "states/en-promo.html",
+      "category": "states",
+      "bytes": 1575,
+      "sha256": "6bb84071e07b3e3a88ee6e08fa0d9265a6225704b7e8d6fe2e93d84c761c5266",
+      "provenance": {
+        "source": "BitPOS local brand, interface concept or licensed reference",
+        "details": "README.md and per-folder provenance/licences"
+      },
+      "readiness": "Interface concept; not physical evidence"
+    },
+    {
+      "path": "states/en-promo.png",
+      "category": "states",
+      "bytes": 20688,
+      "sha256": "c6e54f01bf85e3123b0204ae13386d2ed14f8a7fed5043b2062f423b3523487a",
+      "width": 480,
+      "height": 320,
+      "mode": "RGB",
+      "provenance": {
+        "source": "BitPOS local brand, interface concept or licensed reference",
+        "details": "README.md and per-folder provenance/licences"
+      },
+      "readiness": "Interface concept; not physical evidence"
+    },
+    {
+      "path": "states/en-reward.html",
+      "category": "states",
+      "bytes": 1567,
+      "sha256": "34ec20258bfd4a88acd28a1980c7aaefebf436f3b506fe41928d4d0d81e17756",
+      "provenance": {
+        "source": "BitPOS local brand, interface concept or licensed reference",
+        "details": "README.md and per-folder provenance/licences"
+      },
+      "readiness": "Interface concept; not physical evidence"
+    },
+    {
+      "path": "states/en-reward.png",
+      "category": "states",
+      "bytes": 19159,
+      "sha256": "ee6e98e3dfcf66eaa868eb2b82ee2fe2dadc8e961b7eeb93a35f98dcfa763669",
+      "width": 480,
+      "height": 320,
+      "mode": "RGB",
+      "provenance": {
+        "source": "BitPOS local brand, interface concept or licensed reference",
+        "details": "README.md and per-folder provenance/licences"
+      },
+      "readiness": "Interface concept; not physical evidence"
+    },
+    {
+      "path": "states/en-scan.html",
+      "category": "states",
+      "bytes": 1568,
+      "sha256": "a0f1c3a2ea9e49f0a26d72242dae9111e6767f28651dc0f35050a3ee53d9bdf9",
+      "provenance": {
+        "source": "BitPOS local brand, interface concept or licensed reference",
+        "details": "README.md and per-folder provenance/licences"
+      },
+      "readiness": "Interface concept; not physical evidence"
+    },
+    {
+      "path": "states/en-scan.png",
+      "category": "states",
+      "bytes": 19155,
+      "sha256": "af8b95fe954313dcdc630fa117da77bdb7c3bfcd5c1e0cdd8bec0009490bcd71",
+      "width": 480,
+      "height": 320,
+      "mode": "RGB",
+      "provenance": {
+        "source": "BitPOS local brand, interface concept or licensed reference",
+        "details": "README.md and per-folder provenance/licences"
+      },
+      "readiness": "Interface concept; not physical evidence"
+    },
+    {
+      "path": "states/en-wallet.html",
+      "category": "states",
+      "bytes": 1574,
+      "sha256": "938026b9d9bde249a159bbd89ad92e7dcf57dee534f4f1caafd5285647006dae",
+      "provenance": {
+        "source": "BitPOS local brand, interface concept or licensed reference",
+        "details": "README.md and per-folder provenance/licences"
+      },
+      "readiness": "Interface concept; not physical evidence"
+    },
+    {
+      "path": "states/en-wallet.png",
+      "category": "states",
+      "bytes": 20066,
+      "sha256": "31590c6cd6d4ad9910388dfcfb69379659068baff0ff60ca9a07df89e55c80cd",
+      "width": 480,
+      "height": 320,
+      "mode": "RGB",
+      "provenance": {
+        "source": "BitPOS local brand, interface concept or licensed reference",
+        "details": "README.md and per-folder provenance/licences"
+      },
+      "readiness": "Interface concept; not physical evidence"
+    },
+    {
+      "path": "states/en-wifi.html",
+      "category": "states",
+      "bytes": 1576,
+      "sha256": "8f8cbd9f23357ef61cec13c8d9dab972cb9f911bed08bcd1c2037e758156a861",
+      "provenance": {
+        "source": "BitPOS local brand, interface concept or licensed reference",
+        "details": "README.md and per-folder provenance/licences"
+      },
+      "readiness": "Interface concept; not physical evidence"
+    },
+    {
+      "path": "states/en-wifi.png",
+      "category": "states",
+      "bytes": 21336,
+      "sha256": "7b5f2c04cb09d100714ecd820fc8a619581a253425235b44df126215d930282b",
+      "width": 480,
+      "height": 320,
+      "mode": "RGB",
+      "provenance": {
+        "source": "BitPOS local brand, interface concept or licensed reference",
+        "details": "README.md and per-folder provenance/licences"
+      },
+      "readiness": "Interface concept; not physical evidence"
+    },
+    {
+      "path": "third-party/solanaLogo.png",
+      "category": "third-party",
+      "bytes": 47946,
+      "sha256": "503f7a0d059b70f41149da2230dd8b73dbba4c1bdaecab70fda5431cd5a9076f",
+      "width": 2584,
+      "height": 384,
+      "mode": "P",
+      "provenance": {
+        "path": "third-party/solanaLogo.png",
+        "source": "https://solana.com/src/img/branding/solanaLogo.png",
+        "sourcePage": "https://solana.com/branding",
+        "license": "Solana trademark usage guidelines, not an open-source logo license",
+        "sha256": "503f7a0d059b70f41149da2230dd8b73dbba4c1bdaecab70fda5431cd5a9076f"
+      },
+      "readiness": "Prepared asset"
+    },
+    {
+      "path": "third-party/solanaLogo.svg",
+      "category": "third-party",
+      "bytes": 6205,
+      "sha256": "ccdc416707911112da5933a6ed9f60ce1f819333e70447a5701bc012d6865f51",
+      "provenance": {
+        "path": "third-party/solanaLogo.svg",
+        "source": "https://solana.com/src/img/branding/solanaLogo.svg",
+        "sourcePage": "https://solana.com/branding",
+        "license": "Solana trademark usage guidelines, not an open-source logo license",
+        "sha256": "ccdc416707911112da5933a6ed9f60ce1f819333e70447a5701bc012d6865f51"
+      },
+      "readiness": "Web-ready SVG; rasterize and validate LVGL before hardware use"
+    },
+    {
+      "path": "third-party/solanaLogoMark.svg",
+      "category": "third-party",
+      "bytes": 2519,
+      "sha256": "3d3401109aa061dec40a8659f1847817a8e647f98de1e65e76e86a95bbe1f08a",
+      "provenance": {
+        "path": "third-party/solanaLogoMark.svg",
+        "source": "https://solana.com/src/img/branding/solanaLogoMark.svg",
+        "sourcePage": "https://solana.com/branding",
+        "license": "Solana trademark usage guidelines, not an open-source logo license",
+        "sha256": "3d3401109aa061dec40a8659f1847817a8e647f98de1e65e76e86a95bbe1f08a"
+      },
+      "readiness": "Web-ready SVG; rasterize and validate LVGL before hardware use"
+    },
+    {
+      "path": "video/closing.html",
+      "category": "video",
+      "bytes": 1166,
+      "sha256": "89455c6c0571ac924cc1cd9cf33d4519d4e863cdbef18679d4aedfab54535f46",
+      "provenance": {
+        "source": "BitPOS local brand, interface concept or licensed reference",
+        "details": "README.md and per-folder provenance/licences"
+      },
+      "readiness": "Prepared asset"
+    },
+    {
+      "path": "video/closing.png",
+      "category": "video",
+      "bytes": 136331,
+      "sha256": "1f5b5b68b9051904c4b064d9d4479f4a6e57853c5cc62c9c9c7fdad1a2625149",
+      "width": 1920,
+      "height": 1080,
+      "mode": "RGB",
+      "provenance": {
+        "source": "BitPOS local brand, interface concept or licensed reference",
+        "details": "README.md and per-folder provenance/licences"
+      },
+      "readiness": "Prepared asset"
+    },
+    {
+      "path": "video/flow.html",
+      "category": "video",
+      "bytes": 1188,
+      "sha256": "56ae24c9889b82a5cacf35e725f37c65317cdcb21c96cf057e1f63285a6fbb3e",
+      "provenance": {
+        "source": "BitPOS local brand, interface concept or licensed reference",
+        "details": "README.md and per-folder provenance/licences"
+      },
+      "readiness": "Prepared asset"
+    },
+    {
+      "path": "video/flow.png",
+      "category": "video",
+      "bytes": 153249,
+      "sha256": "94cdfefc922182033c308f2d55f7362c7b95fbde58cad83661cc891333318fba",
+      "width": 1920,
+      "height": 1080,
+      "mode": "RGB",
+      "provenance": {
+        "source": "BitPOS local brand, interface concept or licensed reference",
+        "details": "README.md and per-folder provenance/licences"
+      },
+      "readiness": "Prepared asset"
+    },
+    {
+      "path": "video/lower-third.html",
+      "category": "video",
+      "bytes": 1001,
+      "sha256": "fce08c744a12618e8418ed8b5527d3b12565cc5e2ae5524014cdceed60547fb2",
+      "provenance": {
+        "source": "BitPOS local brand, interface concept or licensed reference",
+        "details": "README.md and per-folder provenance/licences"
+      },
+      "readiness": "Prepared asset"
+    },
+    {
+      "path": "video/lower-third.png",
+      "category": "video",
+      "bytes": 29080,
+      "sha256": "60f382839135dc6a479360e4040c5529ed46c6c5ab0f91de2d7c1b45a767b65a",
+      "width": 1920,
+      "height": 1080,
+      "mode": "RGBA",
+      "hasTransparentPixels": true,
+      "provenance": {
+        "source": "BitPOS local brand, interface concept or licensed reference",
+        "details": "README.md and per-folder provenance/licences"
+      },
+      "readiness": "Prepared asset"
+    },
+    {
+      "path": "video/merchant-pos-current.png",
+      "category": "video",
+      "bytes": 554342,
+      "sha256": "ee0b6819989e3e0c5260c1cd4cbe0b3c98490862948521b50c9b8de01797440e",
+      "width": 1280,
+      "height": 1462,
+      "mode": "RGB",
+      "provenance": {
+        "source": "BitPOS local brand, interface concept or licensed reference",
+        "details": "README.md and per-folder provenance/licences"
+      },
+      "readiness": "Prepared asset"
+    },
+    {
+      "path": "video/opening.html",
+      "category": "video",
+      "bytes": 1196,
+      "sha256": "f7c2893cc8ec7246a11d935a2e60485467a434df71528ecb88a43116696e8911",
+      "provenance": {
+        "source": "BitPOS local brand, interface concept or licensed reference",
+        "details": "README.md and per-folder provenance/licences"
+      },
+      "readiness": "Prepared asset"
+    },
+    {
+      "path": "video/opening.png",
+      "category": "video",
+      "bytes": 152905,
+      "sha256": "227408f5016b216f1e63bc9c753c091360f08af7fae174e46f1b65b1dd9e0c6c",
+      "width": 1920,
+      "height": 1080,
+      "mode": "RGB",
+      "provenance": {
+        "source": "BitPOS local brand, interface concept or licensed reference",
+        "details": "README.md and per-folder provenance/licences"
+      },
+      "readiness": "Prepared asset"
+    },
+    {
+      "path": "video/roadmap.html",
+      "category": "video",
+      "bytes": 1193,
+      "sha256": "d066d0a3b9d285e56dc6833fa862f10ae05d23d0f1aa4554a018f80f115bf0c5",
+      "provenance": {
+        "source": "BitPOS local brand, interface concept or licensed reference",
+        "details": "README.md and per-folder provenance/licences"
+      },
+      "readiness": "Prepared asset"
+    },
+    {
+      "path": "video/roadmap.png",
+      "category": "video",
+      "bytes": 148276,
+      "sha256": "e8f537d70a13f28871a9588aa05bf48087501125fbc5b2799c41be062c39045b",
+      "width": 1920,
+      "height": 1080,
+      "mode": "RGB",
+      "provenance": {
+        "source": "BitPOS local brand, interface concept or licensed reference",
+        "details": "README.md and per-folder provenance/licences"
+      },
+      "readiness": "Prepared asset"
+    }
+  ]
+}

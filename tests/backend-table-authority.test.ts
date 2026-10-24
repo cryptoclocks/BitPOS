@@ -44,6 +44,21 @@ test('table rename preserves the existing bill target and label while rejecting 
  const {order}=await f.tenant(f.merchant,db=>createRoutedOrder(db,f.merchant,'register',f.register.id,{...f.input(q),serving}));
  await f.reg('/api/tables/'+f.table.id,'PATCH',{label:'Renamed table'});
  const renamed=await f.tenant(f.merchant,async db=>(await db.query('SELECT label FROM merchant_tables WHERE id=$1',[f.table.id])).rows[0]);assert.equal(renamed.label,'Renamed table');
- const frozen=await f.tenant(f.merchant,async db=>orderView(db,(await db.query('SELECT * FROM orders WHERE id=$1',[order.id])).rows[0]));assert.equal(frozen.authority.serving.label,'Table 4');assert.equal(frozen.authority.kind,'versioned');assert.ok(frozen.authority.kind==='versioned');assert.equal(frozen.authority.target.deviceId,f.a.id);
+ const frozen=await f.tenant(f.merchant,async db=>orderView(db,(await db.query('SELECT * FROM orders WHERE id=$1',[order.id])).rows[0]));assert.equal(frozen.authority.serving.label,'Table 4');assert.equal(frozen.authority.kind,'versioned');assert.ok(frozen.authority.kind==='versioned'&&frozen.authority.target);assert.equal(frozen.authority.target.deviceId,f.a.id);
  await assert.rejects(f.tenant(f.other,db=>registry(db,f.other,f.actor,'owner','/api/tables/'+f.table.id,'PATCH',{label:'Forged rename'})),/RESOURCE_NOT_FOUND/);
+});
+
+test('device cart recovery retains reviewed settlement and the shorter repeat expiry',integration,async()=>{
+ const f=await tableFixture();const source=await f.create(await f.quote());const q=await f.quote();const session=randomUUID();
+ const expires=new Date(Date.now()+30_000).toISOString();
+ const reviewed={...q.settlement,amountMinor:'1234567'};
+ const screen=await f.tenant(f.merchant,async db=>{
+  await db.query(`INSERT INTO quote_coffee_constraints(merchant_id,quote_id,collection,collection_policy_version,reviewed_asset,reviewed_settlement,repeat_source_order_id,repeat_recipient,repeat_max_atomic,repeat_expires_at)
+   VALUES($1,$2,'counter',1,$3,$4,$5,$6,1234567,$7)`,[f.merchant,q.id,{assetId:'fixture-reviewed-asset'},reviewed,source.order.id,q.settlement.recipient,expires]);
+  await db.query('INSERT INTO device_sessions(merchant_id,id,device_id,assignment_generation,review_quote_id) VALUES($1,$2,$3,1,$4)',[f.merchant,session,f.a.id,q.id]);
+  await db.query("UPDATE device_screen_state SET kind='cart',session_id=$3,order_id=NULL,lease_until=clock_timestamp()+interval '2 minutes' WHERE merchant_id=$1 AND device_id=$2",[f.merchant,f.a.id,session]);
+  return (await db.query('SELECT bitpos.device_current_screen_data($1,$2) AS data',[f.merchant,f.a.id])).rows[0].data;
+ });
+ assert.deepEqual(screen.review.settlement,reviewed);
+ assert.equal(new Date(screen.review.valid_until).toISOString(),expires);
 });

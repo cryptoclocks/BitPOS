@@ -79,3 +79,11 @@
 | Release recovery | version/hash/manifest match; upgrade/reboot/rollback ตรวจบนเครื่องจริง |
 
 การสร้าง target directory และเอกสารครั้งนี้ยังไม่ผ่าน gates เหล่านี้ งาน firmware จึงยังเป็น implementation backlog
+
+## สถานะ runtime ล่าสุด — 9 ตุลาคม 2026
+
+ข้อความ “ยังไม่ได้ build/flash” ด้านบนเป็น planning snapshotเดิม ไม่ใช่สถานะปัจจุบัน. BitPOS firmware0.3.1 buildอิสระด้วย ESP-IDF5.5.1/LVGL9.2.2; app0ขนาด0x185b60อยู่ใน preserved2MB slotโดยเหลือ24%. Coordinatorตรวจ MAC14:c1:9f:4e:62:48/flash16MB/PSRAM8MB, backup hash/partition/config และ byte-readbackก่อน/หลัง app-only update. ไม่ full erase, ไม่เขียน bootloader/partition table/NVS/OTA metadata; Wi-Fi/private provisioningไม่อยู่ในbinaryหรือpubliclogs.
+
+จอ480×320จริงแสดง current table Scan to order QR แบบcached quiet-zoneพร้อม cafe artwork/clock. ไม่มี local menu/quantity/Add; phone guest cartเป็นobserver ไม่แก้ cart/renew lease และไม่ล้าง pending financial journal. Order-specific paymentQR/confirming/paidและexplicit Doneมีpriority; persistent sound-effect/render ACK invariantsคงเดิม. Actual framebuffer entry QRถูก decodeเทียบกับassigned publicmenuURL; ไม่ใช่camera/phone scanproof.
+
+3guest browserfixture/devnetรอบของsourceล่าสุด finalized/stock/outboxครั้งเดียวและมีphysicalACK759/859/1094ms. Latest humanfilming gateไม่มี30/p95; sample1094msเก็บครบ ไม่อ้างsubsecondpass. Actual authenticated clean-close replacementแล้ว ESP32reconnect253→254→255 ส่ง original paidreceipt silent snapshotสำเร็จ; hostactualLVGL smokeตรวจ pointer consumer/release,QRcache,guestownership,legacy pendingrecovery,ACKหลังflushและduplicate paidไม่เล่นเสียงซ้ำ. Framebuffer/hosttestไม่พิสูจน์actualfinger/camera/acoustics. Touch/audioยังเป็นuser-observedผลเดิม; AndroidPhantom deferred. OTArollout/upgrade rollbackacceptanceยังหลังsubmission; original backupยังprivateและไม่แตะCryptoClock OTA.

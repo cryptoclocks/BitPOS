@@ -3,7 +3,8 @@ static uint8_t pixels[480*320*2];static unsigned glyphs;static const char *outpu
 static const char *fixture_device="10000000-0000-4000-8000-000000000001";
 static const char *fixture_order="20000000-0000-4000-8000-000000000001";
 static const char *fixture_quote="30000000-0000-4000-8000-000000000001";
-static void flush(lv_display_t *display,const lv_area_t *area,uint8_t *map){(void)area;assert(map==pixels);if(host_transfer){host_flushes++;host_flush_at=++host_serial;}lv_display_flush_ready(display);}
+static unsigned host_fail_flushes;
+static void flush(lv_display_t *display,const lv_area_t *area,uint8_t *map){(void)area;assert(map==pixels);if(host_fail_flushes)host_fail_flushes--;else if(host_transfer){host_flushes++;host_flush_at=++host_serial;}lv_display_flush_ready(display);}
 static lv_obj_t *find_label(lv_obj_t *o,const char *text){if(lv_obj_check_type(o,&lv_label_class)&&!strcmp(lv_label_get_text(o),text))return o;for(unsigned i=0;i<lv_obj_get_child_count(o);i++){lv_obj_t *found=find_label(lv_obj_get_child(o,i),text);if(found)return found;}return NULL;}
 static void glyph_check(lv_obj_t *o){if(lv_obj_check_type(o,&lv_label_class)){const uint8_t *s=(const uint8_t *)lv_label_get_text(o);const lv_font_t *font=lv_obj_get_style_text_font(o,LV_PART_MAIN);while(*s){uint32_t cp=*s++;if(cp>=0xe0){cp&=15;for(unsigned i=0;i<2;i++){assert((*s&0xc0)==0x80);cp=(cp<<6)|(*s++&63);}}else if(cp>=0xc0){assert((*s&0xc0)==0x80);cp=((cp&31)<<6)|(*s++&63);}if(cp=='\n'||cp=='\r'||cp=='\t')continue;lv_font_glyph_dsc_t glyph={0};assert(lv_font_get_glyph_dsc(font,&glyph,cp,0)&&!glyph.is_placeholder);glyphs++;}}for(unsigned i=0;i<lv_obj_get_child_count(o);i++)glyph_check(lv_obj_get_child(o,i));}
 static void image(const char *name){lv_refr_now(lv_display_get_default());glyph_check(lv_screen_active());char path[1024];assert(snprintf(path,sizeof(path),"%s/%s.rgb565",output,name)<(int)sizeof(path));FILE *f=fopen(path,"wb");assert(f&&fwrite(pixels,1,sizeof(pixels),f)==sizeof(pixels)&&fclose(f)==0);}
@@ -30,12 +31,12 @@ static void open_menu(void){lv_obj_t *root=lv_screen_active();lv_obj_update_layo
 static cJSON *fixture_money(unsigned long long amount,const char *currency){cJSON *j=cJSON_CreateObject();char value[32];snprintf(value,sizeof(value),"%llu",amount);cJSON_AddStringToObject(j,"currency",currency);cJSON_AddNumberToObject(j,"decimals",!strcmp(currency,"USDG")?6:2);cJSON_AddStringToObject(j,"amountMinor",value);return j;}
 static cJSON *settlement(unsigned long long amount){cJSON *j=fixture_money(amount,"USDG");cJSON_AddStringToObject(j,"network","solana:devnet");cJSON_AddStringToObject(j,"genesisHash","EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG");cJSON_AddStringToObject(j,"mint","4F6PM96JJxngmHnZLBh9n58RH4aTVNWvDs2nuwrT5BP7");cJSON_AddStringToObject(j,"tokenProgram","TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb");cJSON_AddBoolToObject(j,"testToken",true);return j;}
 static cJSON *cart_screen(const char *session,unsigned version,unsigned quantity){cJSON *j=cJSON_CreateObject();char value[32];cJSON_AddStringToObject(j,"kind","cart");cJSON_AddStringToObject(j,"screenGeneration","2");cJSON_AddStringToObject(j,"sessionId",session);snprintf(value,sizeof(value),"%u",version);cJSON_AddStringToObject(j,"cartVersion",value);cJSON_AddStringToObject(j,"leaseUntil","2026-10-08T00:02:00.000Z");cJSON_AddNullToObject(j,"review");cJSON *items=cJSON_AddArrayToObject(j,"items");if(quantity){cJSON *item=cJSON_CreateObject();cJSON_AddStringToObject(item,"productId",table.rows[0].product);cJSON_AddNumberToObject(item,"qty",quantity);cJSON_AddItemToArray(items,item);}return j;}
-static void feed(cJSON *j){char *bytes=cJSON_PrintUnformatted(j);assert(bytes&&strlen(bytes)<=8191);message_t msg={0};strcpy(msg.json,bytes);free(bytes);cJSON_Delete(j);consume_v2(&msg);assert(!atomic_load(&resync));}
+static void feed(cJSON *j){char *bytes=cJSON_PrintUnformatted(j);assert(bytes&&strlen(bytes)<MESSAGE_MAX);message_t msg={0};strcpy(msg.json,bytes);free(bytes);cJSON_Delete(j);consume_v2(&msg);assert(!atomic_load(&resync));}
 static void reply(const char *request,cJSON *value,const char *generation){cJSON *j=cJSON_CreateObject();char connection[32],assignment[32];snprintf(connection,sizeof(connection),"%" PRIu64,table.connection);snprintf(assignment,sizeof(assignment),"%" PRIu64,table.assignment);cJSON_AddNumberToObject(j,"schemaVersion",2);cJSON_AddStringToObject(j,"type","COMMAND_RESULT");cJSON_AddStringToObject(j,"requestId",request);cJSON_AddStringToObject(j,"connectionGeneration",connection);cJSON_AddStringToObject(j,"screenGeneration",generation);cJSON_AddStringToObject(j,"assignmentGeneration",assignment);cJSON *result=cJSON_AddObjectToObject(j,"result");cJSON_AddBoolToObject(result,"ok",true);cJSON_AddItemToObject(result,"value",value);feed(j);}
 static unsigned fixture_order_version(const char *status){return !strcmp(status,"PAID")?3:!strcmp(status,"CONFIRMING")?2:1;}
 static cJSON *order_view(const char *status,bool sound){cJSON *j=cJSON_CreateObject();cJSON_AddStringToObject(j,"id",fixture_order);cJSON_AddStringToObject(j,"status",status);cJSON_AddNumberToObject(j,"version",fixture_order_version(status));cJSON *a=cJSON_AddObjectToObject(j,"authority");cJSON_AddStringToObject(a,"kind","versioned");cJSON *target=cJSON_AddObjectToObject(a,"target");cJSON_AddStringToObject(target,"deviceId",fixture_device);cJSON_AddStringToObject(target,"assignmentGeneration","1");cJSON *place=cJSON_AddObjectToObject(a,"serving");cJSON_AddStringToObject(place,"label","Host fixture table");cJSON_AddItemToObject(j,"total",fixture_money(13500,"USD"));cJSON_AddItemToObject(j,"settlement",settlement(135000000));time_t future=time(NULL)+300;struct tm utc;gmtime_r(&future,&utc);char expires[32];strftime(expires,sizeof(expires),"%Y-%m-%dT%H:%M:%S.000Z",&utc);cJSON_AddStringToObject(j,"quoteExpiresAt",expires);cJSON_AddStringToObject(j,"paymentUrl","https://example.invalid/pay/explicit-host-fixture");cJSON *items=cJSON_AddArrayToObject(j,"items");cJSON_AddItemToArray(items,cJSON_CreateString("1 x Host fixture line"));cJSON_AddItemToArray(items,cJSON_CreateString("+ 49 more items"));cJSON_AddStringToObject(j,"quoteId",fixture_quote);cJSON_AddNumberToObject(j,"lineCount",50);cJSON_AddNumberToObject(j,"pageCount",13);cJSON_AddBoolToObject(j,"canDismiss",false);cJSON_AddBoolToObject(j,"sound",sound);cJSON_AddStringToObject(j,"effectId",fixture_quote);return j;}
 static void order_event(const char *type,unsigned seq,const char *status,bool sound){cJSON *j=cJSON_CreateObject();char value[32];cJSON_AddNumberToObject(j,"schemaVersion",2);cJSON_AddStringToObject(j,"type",type);cJSON_AddStringToObject(j,"eventId",fixture_quote);cJSON_AddStringToObject(j,"deviceId",fixture_device);snprintf(value,sizeof(value),"%u",seq);cJSON_AddStringToObject(j,"deviceSeq",value);snprintf(value,sizeof(value),"%" PRIu64,table.connection);cJSON_AddStringToObject(j,"connectionGeneration",value);cJSON_AddStringToObject(j,"screenGeneration","3");cJSON_AddStringToObject(j,"occurredAt","2026-10-08T00:00:00.000Z");if(!strcmp(type,"SNAPSHOT")){cJSON *p=cJSON_AddObjectToObject(j,"payload"),*s=cJSON_AddObjectToObject(p,"screen");cJSON_AddStringToObject(s,"kind","order");cJSON_AddStringToObject(s,"screenGeneration","3");cJSON_AddItemToObject(s,"order",order_view(status,sound));cJSON_AddBoolToObject(s,"canDismiss",false);cJSON_AddNullToObject(p,"recoverableDraft");}else cJSON_AddItemToObject(j,"payload",order_view(status,sound));feed(j);}
-static void ready(void){memset(&table,0,sizeof(table));memset(&current,0,sizeof(current));memset(&presentation,0,sizeof(presentation));table.configured=table.synchronized=table.online=table.storage_ok=true;table.connection=5;table.screen=1;table.assignment=1;strcpy(table.device,fixture_device);strcpy(table.price,"fixture-price");strcpy(table.payment_origin,"https://example.invalid");strcpy(table.table_entry_url,"https://example.invalid/table/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");strcpy(table.serving,"Host fixture table");connected=true;page=0;atomic_store(&clock_synced,true);}
+static void ready(void){memset(&table,0,sizeof(table));memset(&current,0,sizeof(current));memset(&presentation,0,sizeof(presentation));memset(&pickup,0,sizeof(pickup));bitpos_audio_set_pickup(false);capability_request[0]=0;table.configured=table.synchronized=table.online=table.storage_ok=true;table.connection=5;table.screen=1;table.assignment=1;strcpy(table.device,fixture_device);strcpy(table.price,"fixture-price");strcpy(table.payment_origin,"https://example.invalid");strcpy(table.table_entry_url,"https://example.invalid/table/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");strcpy(table.serving,"Host fixture table");connected=true;page=0;atomic_store(&clock_synced,true);}
 static void refusal(const char *request,const char *code) {
     cJSON *j=cJSON_CreateObject();char connection[32],assignment[32],screen[32];
     snprintf(connection,sizeof(connection),"%" PRIu64,table.connection);snprintf(assignment,sizeof(assignment),"%" PRIu64,table.assignment);snprintf(screen,sizeof(screen),"%" PRIu64,table.screen);
@@ -74,6 +75,13 @@ static void idle_carousel(void) {
     presentation.switched=lv_tick_get();assert(physical_render());lv_tick_inc(10000);idle_advance();
     assert(presentation.photo&&ui.kind==UI_PHOTO&&find_label(lv_screen_active(),"USD 2.70"));image("v2-idle-long-name-canonical-price");
     open_menu();assert(presentation.paused&&menu_shade&&!find_label(menu_shade,"Menu")&&!find_label(menu_shade,"Cart"));
+    assert(!find_label(menu_shade,"Bill"));
+    unsigned status_sends=host_sends;int status_page=page;scene_kind_t status_kind=ui.kind;
+    click("Status");assert(find_label(menu_shade,"Device status")&&find_label(menu_shade,"No active bill"));
+    assert(host_sends==status_sends&&page==status_page&&ui.kind==status_kind&&!current.order[0]);
+    image("v2-idle-device-status");click("Close");assert(!menu_shade);
+    open_menu();click("Home");assert(!menu_shade&&!current.order[0]);open_menu();
+
     click("Home");assert(!presentation.photo&&ui.kind==UI_IDLE&&find_label(lv_screen_active(),"Tap anywhere to order"));
     assert(!find_label(lv_screen_active(),"Scan to order")&&host_attract_active);
     pointer_click(lv_screen_active());assert(ui.kind==UI_ENTRY&&find_label(lv_screen_active(),"Scan to order")&&!host_attract_active);
@@ -85,13 +93,37 @@ static void idle_carousel(void) {
     assert(host_audio==audio_before);reduced_motion=old_motion;ready();assert(physical_render());
     puts("actual_LVGL_pointer_press_consumer_release_keeps_photo_hamburger_clickable_entry_QR_cached_guest_occupancy_preempts_host_only");
 }
+static void menu_only(void) {
+    unsigned sends=host_sends;order_t original=current;
+    open_menu();assert(!find_label(menu_shade,"Bill"));click("Status");
+    assert(find_label(menu_shade,"Device status")&&find_label(menu_shade,"Online")&&find_label(menu_shade,"No active bill"));
+    assert(host_sends==sends&&!memcmp(&original,&current,sizeof(current)));
+    image("menu-idle-status");click("Close");assert(!menu_shade);
+    open_menu();click("Home");assert(!menu_shade&&!table.saved.pending.kind);
+    connected=false;assert(physical_render());open_menu();click("Status");
+    assert(find_label(menu_shade,"Reconnecting"));image("menu-offline-status");click("Close");
+    ready();order_event("ORDER",1,"AWAITING_PAYMENT",false);assert(table.order_owner&&payable());
+    open_menu();assert(lv_obj_has_state(lv_obj_get_parent(find_label(menu_shade,"Home")),LV_STATE_DISABLED));
+    click("Bill");assert(ui.kind==UI_BILL&&table.order_owner);open_menu();click("Pay QR");assert(ui.kind==UI_QR);
+    original=current;sends=host_sends;open_menu();click("Device status");
+    assert(find_label(menu_shade,"Bill on screen")&&host_sends==sends&&!memcmp(&original,&current,sizeof(current)));
+    image("menu-order-status");click("Close");assert(table.order_owner&&ui.kind==UI_QR);
+    puts("menu_idle_status_home_offline_bill_QR_active_owner_preserved_actual_LVGL_pointer_no_wire_mutations_host_only");
+    stop_scene();free(source);
+}
+#include "pickup-ui-smoke.inc"
+#if defined(BITPOS_PROMOTION_TEST)
+#include "promotion-ui-smoke.inc"
+#elif defined(BITPOS_PICKUP_TRANSPORT)
+#include "pickup-transport.inc"
+#else
 int main(int argc,char **argv){
  assert(argc==3);output=argv[1];FILE *gif=fopen(argv[2],"rb");assert(gif);source_size=85290;source=malloc(source_size);
  assert(source&&fread(source,1,source_size,gif)==source_size&&fgetc(gif)==EOF&&fclose(gif)==0);
  assert(first_transparent_background(source,source_size,initial_background_rgb));
  lv_init();lv_fs_drv_t drive;lv_fs_drv_init(&drive);drive.letter='M';drive.open_cb=fs_open;drive.close_cb=fs_close;
  drive.read_cb=decode_read;drive.seek_cb=fs_seek;drive.tell_cb=fs_tell;lv_fs_drv_register(&drive);atomic_store(&published,true);
- lv_display_t *display=lv_display_create(480,320);assert(display);lv_display_set_color_format(display,LV_COLOR_FORMAT_RGB565);lv_display_set_buffers(display,pixels,NULL,sizeof(pixels),LV_DISPLAY_RENDER_MODE_FULL);lv_display_set_flush_cb(display,flush);touches=xQueueCreate(12,sizeof(touch_t));inbox=xQueueCreate(8,sizeof(message_t));socket_client=(void *)1;state_nvs=1;pointer=lv_indev_create();lv_indev_set_type(pointer,LV_INDEV_TYPE_POINTER);lv_indev_set_display(pointer,display);lv_indev_set_read_cb(pointer,pointer_read);lv_indev_add_event_cb(pointer,any_touch,LV_EVENT_PRESSED,NULL);restore_journal();ready();assert(physical_render());image("v2-idle-entry-qr");gif_preemption();host_sends=0;
+ lv_display_t *display=lv_display_create(480,320);assert(display);lv_display_set_color_format(display,LV_COLOR_FORMAT_RGB565);lv_display_set_buffers(display,pixels,NULL,sizeof(pixels),LV_DISPLAY_RENDER_MODE_FULL);lv_display_set_flush_cb(display,flush);touches=xQueueCreate(12,sizeof(touch_t));inbox=xQueueCreate(8,sizeof(message_t));socket_client=(void *)1;state_nvs=1;pointer=lv_indev_create();lv_indev_set_type(pointer,LV_INDEV_TYPE_POINTER);lv_indev_set_display(pointer,display);lv_indev_set_read_cb(pointer,pointer_read);lv_indev_add_event_cb(pointer,any_touch,LV_EVENT_PRESSED,NULL);restore_journal();ready();assert(physical_render());image("v2-idle-entry-qr");if(getenv("BITPOS_MENU_ONLY")){menu_only();return 0;}gif_preemption();host_sends=0;
  idle_carousel();
  table.rows_count=1;strcpy(table.rows[0].product,"40000000-0000-4000-8000-000000000001");strcpy(table.rows[0].name,"Host cafe");table.rows[0].available=true;
  unsigned before=host_sends;char request[37],key[37];cJSON *v;
@@ -116,5 +148,7 @@ int main(int argc,char **argv){
  assert(host_audio==before);current=retained_order;page=retained_page;connected=retained_connection;assert(physical_render());
  puts("all_order_scene_labels_bounded_supported_glyphs_no_replayed_payment_sound_host_only");
  table_durable_t saved=table.saved;host_storage=false;table.order_owner=false;table.cart_owner=true;connected=true;table.synchronized=true;table.resolving=false;table.saved.pending.kind=TC_NONE;before=host_sends;assert(!begin_command(TC_REVIEW)&&host_sends==before&&!table.storage_ok);table.saved=saved;host_storage=true;puts("storage_failure_sends_nothing_and_preserves_owned_partition");
+ pickup_behavior();
  memset(&table,0,sizeof(table));restore_journal();assert(table.storage_ok&&journal_sequence&&table.saved.locked_order[0]);printf("glyphs_checked=%u host_frames=%u journal_sequence=%" PRIu64 "\n",glyphs,host_flushes,journal_sequence);stop_scene();lv_deinit();free(source);free(touches->bytes);free(touches);free(inbox->bytes);free(inbox);(void)consumer;return 0;
 }
+#endif

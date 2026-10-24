@@ -1,0 +1,21 @@
+@font-face{font-family:BitPOS Thai;src:url('../assets/bitpos-sarabun-regular.ttf') format('truetype');font-style:normal;font-weight:400;font-display:swap}
+@font-face{font-family:BitPOS Thai;src:url('../assets/bitpos-sarabun-semibold.ttf') format('truetype');font-style:normal;font-weight:600 900;font-display:swap}
+.shell[lang=th]{font-family:BitPOS Thai,system-ui,sans-serif;line-height:1.65}
+.shell>header{min-height:76px;padding-top:14px;padding-bottom:14px}
+.shell .workspace-help{background:#f4eef9;font-size:13px;font-weight:600;padding:10px 12px}
+.shell .workspace-bar{margin-top:20px;gap:16px 20px}
+.shell .workspace-tabs{grid-row:1;display:flex;flex-wrap:nowrap;gap:6px;padding:6px;background:white;border:1px solid #e8dfef;border-radius:16px;overflow-x:auto}
+.shell .workspace-tabs button{flex:1;min-width:max-content;padding:11px 16px;font-size:14px;background:transparent;color:#7c6a8d;border-radius:11px;font-weight:600;white-space:nowrap}
+.shell .workspace-tabs button[aria-current=page]{background:#ede2fa;color:#613692;box-shadow:inset 0 0 0 1px #dbc5f0}
+.shell .workspace-tabs button:hover:not(:disabled){background:#f1e9fa;color:#613692;transform:none}
+.shell .workspace-register{font-size:12px;color:#796887}.shell .workspace-register select{font-size:14px}
+.shell .workspace-status{border:0;background:transparent;padding:0;font-size:13px;line-height:1.7;overflow-wrap:anywhere}
+.shell .without-register>.workspace-register,.shell .without-register>.workspace-status{display:none}
+.shell .section-heading h1,.shell .promotion-heading h1{font-size:clamp(24px,2.6vw,32px);letter-spacing:-.6px;line-height:1.45}
+.shell[lang=th] h1,.shell[lang=th] h2,.shell[lang=th] h3{letter-spacing:0;line-height:1.5}
+.shell .promotion-heading{min-height:0;padding:22px 26px}.shell .promotion-heading p:not(.eyebrow){font-size:14px;line-height:1.75;max-width:65ch}
+.shell .promotion-steps{gap:8px}.shell .promotion-steps li{font-size:13px;padding:12px 16px}
+.shell .login h1{font-size:30px;line-height:1.4}.shell .login .demo-signin .toolbar{grid-template-columns:repeat(3,minmax(0,1fr))}
+@media(max-width:700px){.shell>header{padding:14px 18px}.shell .brand{font-size:21px}.shell .workspace-bar{margin-top:14px;gap:12px}.shell .workspace-tabs{gap:2px;border-radius:14px}.shell .workspace-tabs button{flex:1 0 auto;font-size:13px;padding:10px 12px}.shell .workspace-register select{font-size:15px}.shell .workspace-status{font-size:12px}.shell .promotion-heading{padding:18px}.shell .promotion-heading h1{font-size:24px}.shell .promotion-steps{display:flex;overflow-x:auto}.shell .promotion-steps li{flex:0 0 auto;padding:10px 12px;font-size:12px}.shell .workspace-help{font-size:13px}}
+@media(max-width:480px){.shell header>.toolbar{justify-content:space-between;gap:6px}.shell header .badge[data-role]{font-size:12px;padding:8px}.shell header .toolbar>button:not(.language-toggle){padding:10px;font-size:12px}.shell header .brand small{max-width:260px}.shell .demo-signin button{font-size:13px;padding:12px 6px}.shell .login{padding:24px 18px}.shell .login h1{font-size:26px}}
+@media(max-width:600px){.shell .workspace-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));overflow:visible;gap:3px;padding:5px}.shell .workspace-tabs button{min-width:0;min-height:64px;flex-direction:column;gap:5px;padding:8px 3px;font-size:11px;white-space:normal;line-height:1.5}.shell .workspace-tabs .merchant-icon{width:19px;height:19px;flex-basis:19px}}

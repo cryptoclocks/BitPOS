@@ -1,0 +1,686 @@
+{
+  "schemaVersion": 1,
+  "purpose": "Disposable local food runtime only; not actual-use admission",
+  "migrations": [
+    {
+      "name": "001_bitpos.sql",
+      "sha256": "900b1f118a22e244e56968f102c890f3eb697fbcba31aaaf32307a70f866cfea",
+      "admission": "local-runtime"
+    },
+    {
+      "name": "002_durable_demo.sql",
+      "sha256": "6f633b9b7c51ca65a439c1e9960a9011d4402c9e4b09bf2fe286cc2617703767",
+      "admission": "local-runtime"
+    },
+    {
+      "name": "003_cafe_catalog.sql",
+      "sha256": "418e51ec64d4129c80f584fa19374697cf951b14387d8336b2f086127e962bad",
+      "admission": "local-runtime"
+    },
+    {
+      "name": "004_cafe_sort_order.sql",
+      "sha256": "3edd53a26b383385f52481da1f49ee71cf3ed6182159538f380679d6ef5cd87d",
+      "admission": "local-runtime"
+    },
+    {
+      "name": "005_sponsor_verification_budget.sql",
+      "sha256": "870a1777d58517cdc652782f18e06d795ec8ec9b066764cb9764c11d30a80696",
+      "admission": "local-runtime"
+    },
+    {
+      "name": "006_authorized_devnet_sponsor_budget.sql",
+      "sha256": "e2aceb9f9669c506327020c6f91ab42144d82fe7a2825ae6bbe316276cad1a01",
+      "admission": "local-runtime"
+    },
+    {
+      "name": "007_product_offers.sql",
+      "sha256": "8e11732e610a0d2b3223eefc4dfacf14f579b8a322bf735a4fab6ee7052ae1d8",
+      "admission": "local-runtime"
+    },
+    {
+      "name": "008_table_authority.sql",
+      "sha256": "0a027616ac68851d65624db467388c610f3fc327738062f83b59b0e05a74f87a",
+      "admission": "local-runtime"
+    },
+    {
+      "name": "009_reconciliation_discovery.sql",
+      "sha256": "fb8bb7eeea7e85c867f3d1f26122b131bccf1f7a676b223f36f06599c7262b8c",
+      "admission": "local-runtime"
+    },
+    {
+      "name": "010_critical_wire_routines.sql",
+      "sha256": "3f22a1e4ddc1b49ce2fade0ebd53e38854ec0b77d53152fdbdec46f97123a6e8",
+      "admission": "local-runtime"
+    },
+    {
+      "name": "011_authorized_devnet_verification_budget.sql",
+      "sha256": "26651b653a52182153add03a26ff0e58cd8a110871578007b2b61fcaf52768be",
+      "admission": "local-runtime"
+    },
+    {
+      "name": "012_heartbeat_wire_routine.sql",
+      "sha256": "0b75e6aeabb6b48348ed1086ec5dc807a6c543c44f8923ef814147dda207733e",
+      "admission": "local-runtime"
+    },
+    {
+      "name": "013_settlement_facts.sql",
+      "sha256": "19489ee1396b60044354108b01e1aa4e50702005d90846b972fe2e0fb4dd5264",
+      "admission": "local-runtime"
+    },
+    {
+      "name": "014_funded_devnet_verification_budget.sql",
+      "sha256": "02e4b9dde7b8a9a7c84d7f6a5f7867fe7bf318da511703860aa3ddb0d342d6aa",
+      "admission": "local-runtime"
+    },
+    {
+      "name": "015_funded_final_demo_budget.sql",
+      "sha256": "0c704b46ea9af53ba721bea8c594fde2f3c8d7a3ec7db75d3af64cda0d2c4e83",
+      "admission": "local-runtime"
+    },
+    {
+      "name": "016_local_demo_access.sql",
+      "sha256": "9cf004a94153c1b41a0751a30142885734b8925f8cd072b28d798e82c58fb84e",
+      "admission": "local-runtime"
+    },
+    {
+      "name": "017_public_table_ordering.sql",
+      "sha256": "054f7b9ad9b250b21374a92b25d5f037a42aae9a8d1da6a1e4b95e80bd295801",
+      "admission": "local-runtime"
+    },
+    {
+      "name": "018_unpaid_order_closure.sql",
+      "sha256": "434256ae0947bb1c566a1afc64d54b5eb69d7b403b4e57721b548e4b72e617ba",
+      "admission": "local-runtime"
+    },
+    {
+      "name": "019_closed_screen_reconciliation.sql",
+      "sha256": "25e1a14bfb91fe1c726a7bcc79ea4da6ee32b1dedaefd4df5ecf089e53968006",
+      "admission": "local-runtime"
+    },
+    {
+      "name": "020_verified_attempt_expiry.sql",
+      "sha256": "9de7f5d9396400d3579956d8501f19bc6f6ead682510d4a0c281cf6cff28e48d",
+      "admission": "local-runtime"
+    },
+    {
+      "name": "021_reconciliation_priority.sql",
+      "sha256": "1d8cb6f1b40f46d939a3209732d984dc1e92ac74b278b75b6891cf4090ced92d",
+      "admission": "local-runtime"
+    },
+    {
+      "name": "022_pickup_fulfillment.sql",
+      "sha256": "109381d506869cced6b6fbbbd1160125dde416f54d0eab52b90eed77f40eea66",
+      "admission": "local-runtime"
+    },
+    {
+      "name": "023_pickup_session_fences.sql",
+      "sha256": "cb8083be5165fa8e0fe2a6beb73699fbb8bdb1ad93153ef64838a23c385bedcf",
+      "admission": "local-runtime"
+    },
+    {
+      "name": "024_pickup_confirmed_device_binding.sql",
+      "sha256": "f830ab4e8c5ff202d20effbe0b2d56d16748106156a3ef1facb52b3534e8f09b",
+      "admission": "local-runtime"
+    },
+    {
+      "name": "025_payment_assets.sql",
+      "sha256": "dcc2b0a4c632985199ead3befbeae01d9919605da7ef60275314e8df496b4ebb",
+      "admission": "local-runtime"
+    },
+    {
+      "name": "026_asset_settlement_routines.sql",
+      "sha256": "51ae10278c09400e64c52fd3033906381c4e6e17889b76e8b134c0de5dc3f09c",
+      "admission": "local-runtime"
+    },
+    {
+      "name": "027_promotions.sql",
+      "sha256": "fe3860e6feed9fbfb18f084e4009a50f0733651fe7d45750740604fac85a0531",
+      "admission": "local-runtime"
+    },
+    {
+      "name": "028_promotion_guards.sql",
+      "sha256": "298e5bc301652c60539b72909de2f28edf5cc4acd1baa0940fdc2f84fccda1bc",
+      "admission": "local-runtime"
+    },
+    {
+      "name": "029_coffee_copilot.sql",
+      "sha256": "d30a64a5af6cb655211b90a3ae362461b1417bdeac480b87756152b41e12d90f",
+      "admission": "local-runtime"
+    },
+    {
+      "name": "030_x402_exact.sql",
+      "sha256": "ed22434678f4b224936c1b7e7844e2d5f62c15c43dfd7a74eb97ac2bf8e0a45e",
+      "admission": "local-runtime"
+    },
+    {
+      "name": "031_delegated_payments.sql",
+      "sha256": "93145923fda197312f0502b7bf98d82ddaeb22a1b52b5e7653151d9c837aa766",
+      "admission": "local-runtime"
+    },
+    {
+      "name": "032_coffee_order_constraints.sql",
+      "sha256": "3593a709caa3f5a8559b40b2b660a1293ebfe4c0f98bdd9c80e430ee938435ba",
+      "admission": "local-runtime"
+    },
+    {
+      "name": "033_delegated_revoke_generations.sql",
+      "sha256": "f9e1e852c5db296c0cc214966689edaa28ac073f54b4b4ed4c49020ffd48b882",
+      "admission": "local-runtime"
+    },
+    {
+      "name": "034_x402_terminal_reconciliation.sql",
+      "sha256": "cc1338b9afb3f91a3fda708c7f6a82148e80a17a834948b82511f24829803b99",
+      "admission": "local-runtime"
+    },
+    {
+      "name": "035_table_occupancies.sql",
+      "sha256": "9b5b2e15554f9ecd4c44a34abda06252ff07031a6a8db0d59e0269e8c4dc3e8c",
+      "admission": "local-runtime"
+    },
+    {
+      "name": "036_daily_campaigns.sql",
+      "sha256": "3ab46a42a294851a2f618d1f53bddd4f89b36006bd77745b7d55edaa5c5900d9",
+      "admission": "local-runtime"
+    },
+    {
+      "name": "037_customer_auth_consent.sql",
+      "sha256": "35bfaa2ff6ba706c2bf6c031dc10e610bf20c581009fca9300f4d5095b12efaa",
+      "admission": "local-runtime"
+    },
+    {
+      "name": "038_promotion_playlists.sql",
+      "sha256": "8ddaaf6ddd131b0831d8f0b1039fcc59fadb52ee41ea53c4ba66e7454527b8c1",
+      "admission": "local-runtime"
+    },
+    {
+      "name": "039_personal_recipients.sql",
+      "sha256": "6b0d60f1334c450d701efe9bc8fee4d7ea76b5597aead17deccba9ccb59cbf29",
+      "admission": "local-runtime"
+    },
+    {
+      "name": "040_personal_published_daily_floor.sql",
+      "sha256": "68f8c06e8553650d4db08f28b07834f6e748fb00547e7eff5d37dbf81bc3965d",
+      "admission": "local-runtime"
+    },
+    {
+      "name": "041_personal_current_daily_floor.sql",
+      "sha256": "99838aca02e28b5d6a1b36fe9327239c7a9485e365e53b419fd80a2b6d2d215a",
+      "admission": "local-runtime"
+    },
+    {
+      "name": "042_promotion_derivations.sql",
+      "sha256": "bf7b847b9cab76ac33a32dc94ce4138ae0367cadabc83e6b19d1e238f5c2e8e1",
+      "admission": "local-runtime"
+    },
+    {
+      "name": "043_usd_fixed_precision.sql",
+      "sha256": "ceb091d7bb0a6510867edccdb5a16aa8005fef8c3f64a4b5d158f10774af2a6a",
+      "admission": "local-runtime"
+    },
+    {
+      "name": "044_customer_crm.sql",
+      "sha256": "51e7f43cddac450c9141be52411b82e42436c60cb59f35ff159e8aab89a30d9d",
+      "admission": "local-runtime"
+    },
+    {
+      "name": "045_promotion_device_queues.sql",
+      "sha256": "49485274d7951a25fb039bf8bd1ac37a608f153881b07af42f0dc6901bf8646a",
+      "admission": "local-runtime"
+    },
+    {
+      "name": "046_bundle_promotions.sql",
+      "sha256": "d46743d120e18a8db639b268f8ff843aa83294b49f4162a32fa9de3b4da07145",
+      "admission": "local-runtime"
+    },
+    {
+      "name": "047_bundle_quote_route.sql",
+      "sha256": "5405698e9a3db473b44933694dbdb6ee98e1882389ca123e2c4bd242cbb27054",
+      "admission": "local-runtime"
+    },
+    {
+      "name": "048_bundle_snapshot_bounds.sql",
+      "sha256": "dfa1d77287cf0832ba4b881579920fe67280ba8c97dd33c690e94baa4a51a8be",
+      "admission": "local-runtime"
+    },
+    {
+      "name": "049_mobile_identity.sql",
+      "sha256": "65d8c7f6dd039863bbd579622b1f447f9ba733bc99b3df36bc58d266d16cb0e5",
+      "admission": "local-runtime"
+    },
+    {
+      "name": "050_mobile_refresh_lifecycle.sql",
+      "sha256": "ef737d62212da7108fd7659acbe3da927928cc33742c789c4f9b9bc82d885f87",
+      "admission": "local-runtime"
+    },
+    {
+      "name": "051_online_order_authority.sql",
+      "sha256": "d6bb2ebe77bebf5f034c3de0596c36c33e06118834fefae1571ad5c4d7ab308d",
+      "admission": "local-runtime"
+    },
+    {
+      "name": "052_mobile_food_lifecycle.sql",
+      "sha256": "95b2c23d010171d07e952f27b9d7c795f48c81fcfd5c57cd5b4daa794fc1da5f",
+      "admission": "local-runtime"
+    },
+    {
+      "name": "053_mobile_quote_locator.sql",
+      "sha256": "9a533304d9014a274648aea2d8872c5f00c9e4e6c56210f4d33d4d37af056231",
+      "admission": "local-runtime"
+    },
+    {
+      "name": "054_mobile_profile_addresses.sql",
+      "sha256": "8ef43f07ced9a0273ff6acc24cd6702a709142f6757d5342ae3c92c0b7db5504",
+      "admission": "local-runtime"
+    },
+    {
+      "name": "055_online_acceptance_decisions.sql",
+      "sha256": "9fa826ea7c3080ae540e68f8d53b3627a4e6061ae3526663fe0f01c7526cbf46",
+      "admission": "local-runtime"
+    },
+    {
+      "name": "056_online_product_options.sql",
+      "sha256": "837850e27957a471b053c171c232cfbd9c30570613c322e67104c962ddcc59fc",
+      "admission": "local-runtime"
+    },
+    {
+      "name": "057_configured_food_authority.sql",
+      "sha256": "0678dc4a1969ebb82f63a25810361be0f0374247a6879a9fcbb033dbde862460",
+      "admission": "local-runtime"
+    },
+    {
+      "name": "058_driver_identity.sql",
+      "sha256": "a288cf80a07df7eb45bb500eaeeba008ba5da02b06b8aa984e2b8e92353843ce",
+      "admission": "local-runtime"
+    },
+    {
+      "name": "059_food_delivery_authority.sql",
+      "sha256": "e6567ae91842b296307c2a3ab043cdb4e8eef91372f6af8beb9df0b5b6b6c2c3",
+      "admission": "local-runtime"
+    },
+    {
+      "name": "060_food_delivery_snapshots.sql",
+      "sha256": "63bf5830ebf29b98516f715e22d1251fb71ac91b345433aa820e2255f8dee0ab",
+      "admission": "local-runtime"
+    },
+    {
+      "name": "061_food_dispatch_runtime.sql",
+      "sha256": "4ee93eeb4ddd4040dbc036e8ccfc08ef7f8273f7fa0c3190ba4a3e0a66792681",
+      "admission": "local-runtime"
+    },
+    {
+      "name": "062_food_earning_obligations.sql",
+      "sha256": "35ddeee74849d2b0605dbad807637d07173fbd5c0236d441993d05b101169d80",
+      "admission": "local-runtime"
+    },
+    {
+      "name": "063_food_custody_earnings.sql",
+      "sha256": "0837f53d72003ffd4757f514895c14749ebc34ea93e32f8a00a05697108de050",
+      "admission": "local-runtime"
+    },
+    {
+      "name": "064_food_allocation_guards.sql",
+      "sha256": "dd2fa8e8a9231a36cb0de80a1dc63939bc137404f16ce1cc8d94b1faff0a1cd0",
+      "admission": "local-runtime"
+    },
+    {
+      "name": "065_food_driver_work.sql",
+      "sha256": "0ba807b62bc0d09c39f9cb304d8638662675f1c0e13142f209a72731c0caf54c",
+      "admission": "local-runtime"
+    },
+    {
+      "name": "066_food_merchant_work.sql",
+      "sha256": "1d0664f59539baa96b44146d7fb02af968b5ade3fb2f672698f05b7afc089680",
+      "admission": "local-runtime"
+    },
+    {
+      "name": "067_food_customer_work.sql",
+      "sha256": "ce9c84800f2515488698a176acbdcfc74a33f62096b4f6dc8681626031cc7bf2",
+      "admission": "local-runtime"
+    },
+    {
+      "name": "068_food_proof_expiry_recovery.sql",
+      "sha256": "483d6580b7897848dceed7be7a7d91af856090539ad25460a87711e65c3506d6",
+      "admission": "local-runtime"
+    },
+    {
+      "name": "069_food_realtime.sql",
+      "sha256": "2835f130a54228cbe746b25c4caab1d32a070c88debfc1dc86a151659a1fda52",
+      "admission": "local-runtime"
+    },
+    {
+      "name": "070_food_navigation.sql",
+      "sha256": "9cb90ac5eb4b4b6aa4bcbfcb4ac8cadd41d9a29db76403faf932dde00b71ceed",
+      "admission": "local-runtime"
+    },
+    {
+      "name": "071_food_idle_discovery.sql",
+      "sha256": "a9a164902523527a6c0e7e845229266ab62a033f2591a6b7567914c167185c46",
+      "admission": "local-runtime"
+    },
+    {
+      "name": "072_food_idle_authorization.sql",
+      "sha256": "23841e86e52c58017c5adfeceb6d901c672b9a60a7b437768a96b61ec0bba136",
+      "admission": "local-runtime"
+    },
+    {
+      "name": "073_food_dispatch_policy.sql",
+      "sha256": "6f386dabc7c9eeddc3f24fba87ebda921c616ddc893767a2897b9aa0469686a1",
+      "admission": "local-runtime"
+    },
+    {
+      "name": "074_food_dispatch_search.sql",
+      "sha256": "e880b4c033b2a42d929cc61c8973fb69002956c694c096a7fc2c26258128f485",
+      "admission": "local-runtime"
+    },
+    {
+      "name": "075_food_dispatch_ranking.sql",
+      "sha256": "8db19c89b6238d6071702713f37342a9962509937447dec8537fa6748679ad03",
+      "admission": "local-runtime"
+    },
+    {
+      "name": "076_food_ranking_fences.sql",
+      "sha256": "bf5048f2f0edc6bf2be43906a91f348e55e7193e04f533b809566f40b6899809",
+      "admission": "local-runtime"
+    },
+    {
+      "name": "077_food_offer_lifecycle.sql",
+      "sha256": "7bc56ad9565d440f1c8149326e59e13e6d995e25fc79f992a18416fb5e66d567",
+      "admission": "local-runtime"
+    },
+    {
+      "name": "078_food_driver_authority.sql",
+      "sha256": "32324ed323388cf0a6ebd51ba40c4672b9fd05ae26bd8964bea9207d3099f83d",
+      "admission": "local-runtime"
+    },
+    {
+      "name": "079_food_customer_authority_projection.sql",
+      "sha256": "01ac7cd85760b0931bd82525825fcbde3238ae102b01a05dc605619fba8964fa",
+      "admission": "local-runtime"
+    },
+    {
+      "name": "080_food_assignment_recovery.sql",
+      "sha256": "7d3baaf322ae9a19d572286aed7983412215e5d719413197048b1b0ba7c7aed1",
+      "admission": "local-runtime"
+    },
+    {
+      "name": "081_food_incident_authority.sql",
+      "sha256": "1e79de7b09f535c61519aa87bd34d77905cc27ffb53be6e15eb9d5844e3514a2",
+      "admission": "local-runtime"
+    },
+    {
+      "name": "082_food_incident_review_snapshot.sql",
+      "sha256": "01da5420ad99a3bfb8449c09df25af0335ed4eece49d776452f30483b84a7909",
+      "admission": "local-runtime"
+    },
+    {
+      "name": "083_food_cancellation_review.sql",
+      "sha256": "1675a2b7acca854898a1604f47909af290d9089b5135861de9e150672de51334",
+      "admission": "local-runtime"
+    },
+    {
+      "name": "084_food_cancellation_review_root_fences.sql",
+      "sha256": "6c81e4dea86cb8594b3e4131b7eb811eefc662b40f51077c2cc2ea91b5badad9",
+      "admission": "local-runtime"
+    },
+    {
+      "name": "085_food_dispatch_console.sql",
+      "sha256": "42d00ccc88308b91b7cc56dd94c24ede46e9181927dfa464fcfdb8f2fd2f011e",
+      "admission": "local-runtime"
+    },
+    {
+      "name": "086_food_customer_dispatch_progress.sql",
+      "sha256": "5974141fbea8b01c1e07c89257cfda7bf4f51ba89b4460cae2bedb71af75704e",
+      "admission": "local-runtime"
+    },
+    {
+      "name": "087_mobile_push.sql",
+      "sha256": "b232a4a9ec200eef4a4e4b035a51c22ac919429bfd111f17a191267f312bd80a",
+      "admission": "local-runtime"
+    },
+    {
+      "name": "088_driver_settlement.sql",
+      "sha256": "2b16a197a83997bde065fe5878039843375093ab3ab4cf507949c029e4dae1a8",
+      "admission": "local-runtime"
+    },
+    {
+      "name": "089_deferred_ledger_authority.sql",
+      "sha256": "401a9dcea1371d75135e0fdbd3f13c14945f5b86e3e2029b56beb4706c3371fa",
+      "admission": "local-runtime"
+    },
+    {
+      "name": "090_beneficiary_authority_retirement.sql",
+      "sha256": "0e3089eb1af5503e21bbceba746e251fa17c5dce5580d1372a8e6df09bd3126c",
+      "admission": "local-runtime"
+    },
+    {
+      "name": "091_filtered_branch_discovery.sql",
+      "sha256": "2c083c040d1c056d2982fecd54a2a9e91552026bb26cd4db5b661c5ac21030f0",
+      "admission": "local-runtime"
+    },
+    {
+      "name": "092_customer_favourites.sql",
+      "sha256": "e4a14b1fae8ee6fe1ca962969e0fe5f999abcabf0427e54efc12d142fceba6c4",
+      "admission": "local-runtime"
+    },
+    {
+      "name": "093_customer_support.sql",
+      "sha256": "b03260171c2ad51a9d238cb8e3a78cc018612182175232d6250b27d8189ca735",
+      "admission": "local-runtime"
+    },
+    {
+      "name": "094_support_staff.sql",
+      "sha256": "527cb93e39cf37edcbc8dff253858df6da72a67f9db317aaa7b47a552c318468",
+      "admission": "local-runtime"
+    },
+    {
+      "name": "095_food_reviews.sql",
+      "sha256": "f33686f3c2799a1615f1435d447d7cd475a83d8e7923ca181aacd66d21d08f83",
+      "admission": "local-runtime"
+    },
+    {
+      "name": "096_coupon_pricing.sql",
+      "sha256": "833c7266456c7cc1bdc40e5822dd510256d2c5ba33695c79880876cb36a23035",
+      "admission": "candidate"
+    },
+    {
+      "name": "097_coupon_holds.sql",
+      "sha256": "07aa60310eb204d2140a6d3e50a345da092a915ee35bd92dc3e29ed82940b5db",
+      "admission": "candidate"
+    },
+    {
+      "name": "098_coupon_quotes.sql",
+      "sha256": "c1b5aa339e7cfddba91441c0fa119f649029ca0937dc2c5cf7d5c5ffab2ce7dc",
+      "admission": "candidate"
+    },
+    {
+      "name": "100_driver_food_history.sql",
+      "sha256": "6a9dc9b796daf7366847f0166320ac4198d57ebaeb007868dda32cecfe63f7a5",
+      "admission": "local-runtime"
+    },
+    {
+      "name": "101_driver_daily_earnings.sql",
+      "sha256": "ed72ec46d4255d07ebdd785bf3b311370892eebdaeeb71f981d81d96dbf70bc4",
+      "admission": "local-runtime"
+    },
+    {
+      "name": "102_food_assignment_chat.sql",
+      "sha256": "4d9045d7f71ae87a2c3de3b35d576aa67c29fede87783d009d2964de226b4205",
+      "admission": "local-runtime"
+    },
+    {
+      "name": "103_food_chat_reads.sql",
+      "sha256": "694407b33bb6f9ea8f392a4589544ed284de9444faeb28063fe2b5d3c62fc373",
+      "admission": "local-runtime"
+    },
+    {
+      "name": "104_food_chat_private_uploads.sql",
+      "sha256": "f7959f6f5e8a4038835240b002eb26250681a70943bc5a3845f97997f645f867",
+      "admission": "local-runtime"
+    },
+    {
+      "name": "105_food_chat_image_messages.sql",
+      "sha256": "ad0a65be0df5935fc7ecb18f5c5e33be2a64d08863ef4b4489955ee2eb36b2fe",
+      "admission": "local-runtime"
+    },
+    {
+      "name": "106_driver_review_summary.sql",
+      "sha256": "a4984f841b98085696d0f67743741381e4c00b2ce92c06a3041df24c3ec770ed",
+      "admission": "local-runtime"
+    },
+    {
+      "name": "107_food_schedule_holds.sql",
+      "sha256": "80071a47b6b496c9508ff4fd429302f6812e6a3f4be085c47e261e91092637bc",
+      "admission": "candidate"
+    },
+    {
+      "name": "108_food_return_cases.sql",
+      "sha256": "8640e377d5cfc7d1bfe16f87915b84c66e3ad2db73a8e12009b5e3632d545aa2",
+      "admission": "candidate"
+    },
+    {
+      "name": "109_food_return_financial_decisions.sql",
+      "sha256": "961b6018082a89d913057593b7d0642569dcdae65e5ccffb5136542fcbf340ee",
+      "admission": "candidate"
+    },
+    {
+      "name": "110_food_refund_attempt_journal.sql",
+      "sha256": "d01676639e7ee6866d6acd31977026c360bd766b4e5800fc1dcc1d5198f0db20",
+      "admission": "candidate"
+    },
+    {
+      "name": "111_food_refund_funding_reservations.sql",
+      "sha256": "39ea41514df1e74cfebdf97bed20b887754dc0841c24fbe0439cdc16862f1d0a",
+      "admission": "candidate"
+    },
+    {
+      "name": "112_food_refund_receipt_ledger.sql",
+      "sha256": "0c96f81f88cf17b65e9766e266442cbe8423e8ef768dc5253b74c77c90fb9f60",
+      "admission": "candidate"
+    },
+    {
+      "name": "113_food_refund_fee_reservations.sql",
+      "sha256": "2e8d2086da292827b770387aac5fbc3ee2236eee6c867242d614411c216d7308",
+      "admission": "candidate"
+    },
+    {
+      "name": "114_food_refund_submission.sql",
+      "sha256": "d202b154b789f1fc2eb2e0fd85f668f705ab694f7438aa2349245b26b958bcdd",
+      "admission": "candidate"
+    },
+    {
+      "name": "115_food_refund_fee_costs.sql",
+      "sha256": "a979405cc365608103173c479112d941232d9de1db7d59db5e94390eb1dba8a6",
+      "admission": "candidate"
+    },
+    {
+      "name": "116_food_refund_execution_projection.sql",
+      "sha256": "06376c14dea52da6acf3b1be2c48674d99b88d75098a26de985a18dfb7f7a678",
+      "admission": "candidate"
+    },
+    {
+      "name": "117_customer_refund_execution.sql",
+      "sha256": "8d0db9698a539592165eaeca26a19feb7bf8851cf46fcca32a2158d3473efa47",
+      "admission": "candidate"
+    },
+    {
+      "name": "118_merchant_refund_execution.sql",
+      "sha256": "205e366fc67b0a41b7efb32abb59b551613a38c5544772ab1e6fcbd543bdf4df",
+      "admission": "candidate"
+    },
+    {
+      "name": "119_food_refund_late_payments.sql",
+      "sha256": "cd88722e4b9fc4e2140f6b5060717ac103fe983c5cf7a59e357af0faf2b9c6cf",
+      "admission": "candidate"
+    },
+    {
+      "name": "120_food_return_compensation.sql",
+      "sha256": "3881a3575eb6c8058e3983b7cb03f65a4dd6fe54a28d0969531c3b8ace7715af",
+      "admission": "candidate"
+    },
+    {
+      "name": "121_food_compensation_policy_publication.sql",
+      "sha256": "4ce1198cb76f863aa5900123fdc85bb8d5eb8c67319bb8cd6056d82200a906b8",
+      "admission": "candidate"
+    },
+    {
+      "name": "122_food_compensation_policy_retirement.sql",
+      "sha256": "f6945dd7e9dcd0f0184a8a0bedaa3ca4338475ec2bf57907b7ac2f5c4499d29a",
+      "admission": "candidate"
+    },
+    {
+      "name": "123_food_compensation_payout_fact.sql",
+      "sha256": "d72a4b2ce1a9859c0ecbbdca824431f4517fbb0a0b9e0ff71e03a093101b394b",
+      "admission": "candidate"
+    },
+    {
+      "name": "124_food_compensation_reservations.sql",
+      "sha256": "96632e0daa242913febd9d911a7eb0345385b13b96fcfc678665d36198965905",
+      "admission": "candidate"
+    },
+    {
+      "name": "125_food_compensation_funding.sql",
+      "sha256": "aa59686622a08ce9946c4532b54cebed83aaa534e32d5354fee247f7eb20b004",
+      "admission": "candidate"
+    },
+    {
+      "name": "126_food_compensation_attempt_intents.sql",
+      "sha256": "e351a86a7106da53944f7f12a9cc9ff8bf2d0be3b013e75248482475a60ab49a",
+      "admission": "candidate"
+    },
+    {
+      "name": "127_food_compensation_fee_claims.sql",
+      "sha256": "c1d63978cbba470010c8c023bf998587a811c5bf4efbedfefb91fed56551c92e",
+      "admission": "candidate"
+    },
+    {
+      "name": "128_food_compensation_prepared_journal.sql",
+      "sha256": "dc75c4ec9a804f1c46c7353bde555fb18f7c362c75f98ae836d5cbb6e6bea57d",
+      "admission": "candidate"
+    },
+    {
+      "name": "129_food_compensation_worker_snapshot.sql",
+      "sha256": "b4b3571eb6c46f27fc04d63859c9b36bc3b6f44a708c8b7c7a1be0a6a763dcf8",
+      "admission": "candidate"
+    },
+    {
+      "name": "130_food_compensation_submission_journal.sql",
+      "sha256": "27121db5f5c585a7a7f74b087727a497debd283de56f81f20bf959c7cdf9dbfe",
+      "admission": "candidate"
+    },
+    {
+      "name": "131_food_compensation_verified_receipts.sql",
+      "sha256": "fc4d3082c80c998b007b54eef2ebffea0577303d70230ee64e213af90fa787af",
+      "admission": "candidate"
+    },
+    {
+      "name": "132_food_compensation_recovery_snapshot.sql",
+      "sha256": "0b314d10faaa13e6e00b96595e01ad32f8aa20d1a70f740c66a726d88529c518",
+      "admission": "candidate"
+    },
+    {
+      "name": "133_food_compensation_execution_projection.sql",
+      "sha256": "63c3e372ab6703db7beb921ab8ab26af94489536172d2febde98d90327abeab7",
+      "admission": "candidate"
+    },
+    {
+      "name": "134_driver_food_compensation.sql",
+      "sha256": "e7c8582b9b49a73e20c3106c86ee23671cb56ce2225aed76b44576c226b015ee",
+      "admission": "candidate"
+    },
+    {
+      "name": "135_food_selected_line_refunds.sql",
+      "sha256": "a68e92a7d595549519cae4c31404e9a5d01509064a9ee40e33b77818e8a4512f",
+      "admission": "candidate"
+    },
+    {
+      "name": "136_food_merchant_rider_summary.sql",
+      "sha256": "4dfbe2ac63c424b9939b018de389147ab30c416edb8b79bb329bf5117ab5f7e5",
+      "admission": "candidate"
+    },
+    {
+      "name": "137_online_food_preparation_estimate.sql",
+      "sha256": "af9e156dd31a085f0b10b6b007e698688049644824cab833e6a50c2633b6f688",
+      "admission": "candidate"
+    }
+  ]
+}

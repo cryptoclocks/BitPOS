@@ -1,0 +1,29 @@
+{
+  "photos": {
+    "source": "../../../docs/CAFE_PHOTO_CREDITS.md",
+    "files": [
+      "latte.jpg",
+      "iced-latte.jpg",
+      "croissant.jpg",
+      "espresso.jpg",
+      "matcha.jpg"
+    ]
+  },
+  "logo": {
+    "source": "../../../asset-pack/brand/PROVENANCE.md",
+    "file": "bitpos-logo.png",
+    "kind": "existing AI-assisted BitPOS raster logo"
+  },
+  "font": {
+    "source": "CryptoClockPro read-only font reference",
+    "license": "fonts/OFL-NotoSansThai.txt",
+    "file": "fonts/NotoSansThai-Variable.ttf"
+  },
+  "upstream": {
+    "url": "https://github.com/Tarikul711/flutter-food-delivery-app-ui",
+    "commit": "201e1387c31c3a1cfe4e790680e33b3c9bc6c73b",
+    "use": "five labelled screenshot references and UI information architecture; no third-party source implementation imported by design scripts",
+    "rights": "No LICENSE found at root; product distribution requires rights review. Reference screenshots remain attributed."
+  },
+  "drawings": "Original editable BitPOS SVG compositions; sample customer/driver/orders/maps/QR are fictional design fixtures"
+}

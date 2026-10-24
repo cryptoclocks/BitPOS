@@ -1,0 +1,2 @@
+# Original BitPOS cues
+Synthesized locally, no third-party sound or music samples. Web versions: 48 kHz mono 16-bit PCM WAV. Device candidates: 16 kHz stereo 16-bit PCM WAV, matching current I2S sample configuration. These files are not integrated into firmware. Payment-success follows the current firmware tone frequencies and durations. Hardware level/playback must still be checked. Do not replay success during snapshots/reconnect, keep event deduplication and a mute control. No background music included.

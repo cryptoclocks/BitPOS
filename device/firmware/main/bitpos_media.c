@@ -30,10 +30,8 @@
 #define SYSTEM_MARGIN (8U * 1024U)
 #define PSRAM_CAPS (MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)
 
-/* IDF 5.5.1 exports this helper from vfs.c; its own vfs_fat_spiflash.c
- * declares/uses it identically. No public SD readonly mount option exists.
- * Set BEFORE f_mount/open; write-refusing diskio is the independent backstop.
- */
+/* Legacy VFS remains read-only. Only fixed-slot cache operations below may
+ * temporarily enable disk writes, never formatting/erase/TRIM or arbitrary files. */
 extern esp_err_t esp_vfs_set_readonly_flag(const char *base_path);
 
 static const char *TAG = "BitPOSMedia";
@@ -56,6 +54,7 @@ static lv_fs_drv_t media_fs;
 #define PHOTO_SLAB_BYTES (BITPOS_MENU_PHOTO_BYTES * BITPOS_MENU_ASSET_COUNT)
 static atomic_bool photos_published;
 static lv_image_dsc_t photos[BITPOS_MENU_ASSET_COUNT];
+static atomic_bool media_mounted, cache_writing;
 
 typedef struct {
     const char *name;
@@ -83,7 +82,7 @@ static const approved_gif_t approved[] = {
 static DSTATUS media_disk_status(BYTE pdrv)
 {
     if(pdrv != drive || sdmmc_get_status(&card) != ESP_OK) return STA_NOINIT;
-    return STA_PROTECT;
+    return atomic_load(&cache_writing)?0:STA_PROTECT;
 }
 
 static DRESULT media_disk_read(BYTE pdrv, BYTE *buffer, DWORD sector, UINT count)
@@ -95,15 +94,16 @@ static DRESULT media_disk_read(BYTE pdrv, BYTE *buffer, DWORD sector, UINT count
 
 static DRESULT media_disk_write(BYTE pdrv, const BYTE *buffer, DWORD sector, UINT count)
 {
-    (void)pdrv; (void)buffer; (void)sector; (void)count;
-    return RES_WRPRT;
+    if(pdrv!=drive||!atomic_load(&cache_writing))return RES_WRPRT;
+    if(!count||sector>=card.csd.capacity||count>card.csd.capacity-sector)return RES_PARERR;
+    return sdmmc_write_sectors(&card,buffer,sector,count)==ESP_OK?RES_OK:RES_ERROR;
 }
 
 static DRESULT media_disk_ioctl(BYTE pdrv, BYTE command, void *buffer)
 {
     if(pdrv != drive) return RES_PARERR;
     switch(command) {
-    case CTRL_SYNC: return RES_OK; /* No pending writes can exist. */
+    case CTRL_SYNC: return sdmmc_get_status(&card)==ESP_OK?RES_OK:RES_ERROR;
     case GET_SECTOR_COUNT: *(DWORD *)buffer = card.csd.capacity; return RES_OK;
     case GET_SECTOR_SIZE: *(WORD *)buffer = card.csd.sector_size; return RES_OK;
     case GET_BLOCK_SIZE: *(DWORD *)buffer = 1; return RES_OK;
@@ -150,6 +150,7 @@ static bool mount_readonly(void)
         esp_vfs_fat_unregister_path("/sdcard");
         goto fail_disk;
     }
+    atomic_store_explicit(&media_mounted,true,memory_order_release);
     return true;
 fail_disk:
     ff_diskio_unregister(drive);
@@ -523,4 +524,50 @@ bool bitpos_media_prepare_canvas(lv_obj_t *gif)
     lv_image_cache_drop(image);lv_obj_invalidate(gif);
     ESP_LOGI(TAG,"BITPOS_MEDIA transparent_canvas pixels=%u",cleared);
     return true;
+}
+
+/* Single image worker owns cache operations. Raw FatFs intentionally bypasses
+ * read-only VFS only for these literal paths; it does not expose a writable drive. */
+static bool promotion_cache_path(unsigned slot,bool temporary,char path[64]) {
+    if(slot>=2||!atomic_load_explicit(&media_mounted,memory_order_acquire))return false;
+    snprintf(path,64,"%s/bitpos/promotions/v1/%u.%s",fat_drive,slot,temporary?"tmp":"rgb");
+    return true;
+}
+bool bitpos_media_promotion_read(unsigned slot,const char *hash,uint8_t *pixels) {
+    char path[64],stored[64];FIL file;UINT got;
+    if(!promotion_cache_path(slot,false,path)||f_open(&file,path,FA_READ)!=FR_OK)return false;
+    bool ok=f_size(&file)==64+112000&&f_read(&file,stored,64,&got)==FR_OK&&got==64&&!memcmp(stored,hash,64)&&
+        f_read(&file,pixels,112000,&got)==FR_OK&&got==112000;
+    return f_close(&file)==FR_OK&&ok;
+}
+bool bitpos_media_promotion_write(unsigned slot,const char *hash,const uint8_t *pixels) {
+    char path[64],temporary[64],directory[64];FIL file;UINT put;
+    if(!promotion_cache_path(slot,false,path)||!promotion_cache_path(slot,true,temporary))return false;
+    bool expected=false;
+    if(!atomic_compare_exchange_strong(&cache_writing,&expected,true))return false;
+    bool ok=false,opened=false;
+    /* bitpos is inherited and must already exist; no adoption/format on failure. */
+    const char *directories[]={"/bitpos/promotions","/bitpos/promotions/v1"};
+    for(unsigned i=0;i<2;i++) {
+        snprintf(directory,sizeof(directory),"%s%s",fat_drive,directories[i]);
+        FRESULT result=f_mkdir(directory);
+        if(result!=FR_OK&&result!=FR_EXIST)goto done;
+    }
+    if(f_open(&file,temporary,FA_WRITE|FA_CREATE_ALWAYS)!=FR_OK)goto done;
+    opened=true;
+    ok=f_write(&file,hash,64,&put)==FR_OK&&put==64&&
+       f_write(&file,pixels,112000,&put)==FR_OK&&put==112000&&f_sync(&file)==FR_OK;
+    if(f_close(&file)!=FR_OK)ok=false;
+    opened=false;
+    if(ok) {
+        /* Inactive slot only. A reset in the unlink/rename window is a cache miss,
+         * never publication of unvalidated bytes or mutation of legacy assets. */
+        FRESULT removed=f_unlink(path);
+        ok=(removed==FR_OK||removed==FR_NO_FILE)&&f_rename(temporary,path)==FR_OK;
+    }
+done:
+    if(opened)f_close(&file);
+    if(!ok)f_unlink(temporary);
+    atomic_store(&cache_writing,false);
+    return ok;
 }

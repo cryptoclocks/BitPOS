@@ -1,0 +1,25 @@
+{
+  "name": "BitPOS Cafe Club \u00b7 Matcha Moon",
+  "symbol": "BPC",
+  "description": "Original cafe collectible artwork. This local metadata is a draft for a future devnet reward and does not grant a redeemable item.",
+  "image": "../collectibles/matcha-moon.png",
+  "attributes": [
+    {
+      "trait_type": "Collection",
+      "value": "Cafe Club"
+    },
+    {
+      "trait_type": "Design",
+      "value": "Matcha Moon"
+    }
+  ],
+  "properties": {
+    "files": [
+      {
+        "uri": "../collectibles/matcha-moon.png",
+        "type": "image/png"
+      }
+    ],
+    "category": "image"
+  }
+}

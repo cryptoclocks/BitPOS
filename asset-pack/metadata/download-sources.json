@@ -1,0 +1,380 @@
+[
+  {
+    "path": "icons/coffee.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/coffee.svg",
+    "sourcePage": "https://github.com/lucide-icons/lucide",
+    "license": "ISC; selected Feather-derived icons MIT, see third-party/LUCIDE-LICENSE.txt",
+    "sha256": "970595bdafac0df42c00b847d53fd00c2283ecc3b83881274de2aa7dbce2bbc8"
+  },
+  {
+    "path": "icons/cup-soda.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/cup-soda.svg",
+    "sourcePage": "https://github.com/lucide-icons/lucide",
+    "license": "ISC; selected Feather-derived icons MIT, see third-party/LUCIDE-LICENSE.txt",
+    "sha256": "30a13d8d625d19458457b207759f1145256c96ebfe609ce5e01026b893d51b43"
+  },
+  {
+    "path": "icons/utensils.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/utensils.svg",
+    "sourcePage": "https://github.com/lucide-icons/lucide",
+    "license": "ISC; selected Feather-derived icons MIT, see third-party/LUCIDE-LICENSE.txt",
+    "sha256": "9b5eb803bc342b8503b6a154ff63a0f754ba52a13fa24c2e270d2ab89c70f76a"
+  },
+  {
+    "path": "icons/shopping-cart.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/shopping-cart.svg",
+    "sourcePage": "https://github.com/lucide-icons/lucide",
+    "license": "ISC; selected Feather-derived icons MIT, see third-party/LUCIDE-LICENSE.txt",
+    "sha256": "7cdc07053044af9e5fd24fff5e089ce97b2a39ea978933a160c4bbfebf8a167c"
+  },
+  {
+    "path": "icons/receipt.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/receipt.svg",
+    "sourcePage": "https://github.com/lucide-icons/lucide",
+    "license": "ISC; selected Feather-derived icons MIT, see third-party/LUCIDE-LICENSE.txt",
+    "sha256": "26b4af2c5ea5aef9578c765a01585d9c8726ce00928dc64175a0d7d9f7c5f0a0"
+  },
+  {
+    "path": "icons/wallet.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/wallet.svg",
+    "sourcePage": "https://github.com/lucide-icons/lucide",
+    "license": "ISC; selected Feather-derived icons MIT, see third-party/LUCIDE-LICENSE.txt",
+    "sha256": "76c9596f629a2abf9cfabb573452f3113ed7e9502c699aa811e630f156eb7556"
+  },
+  {
+    "path": "icons/qr-code.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/qr-code.svg",
+    "sourcePage": "https://github.com/lucide-icons/lucide",
+    "license": "ISC; selected Feather-derived icons MIT, see third-party/LUCIDE-LICENSE.txt",
+    "sha256": "920cb79ab4b2fd23c36a16de3ca533c4896cb989adb823eb7dec97fd840d30f5"
+  },
+  {
+    "path": "icons/scan-line.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/scan-line.svg",
+    "sourcePage": "https://github.com/lucide-icons/lucide",
+    "license": "ISC; selected Feather-derived icons MIT, see third-party/LUCIDE-LICENSE.txt",
+    "sha256": "d17ec0ebae568a92e18e18968bb85658fec088bc3d97b92b729df6f7f9c4848e"
+  },
+  {
+    "path": "icons/check.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/check.svg",
+    "sourcePage": "https://github.com/lucide-icons/lucide",
+    "license": "ISC; selected Feather-derived icons MIT, see third-party/LUCIDE-LICENSE.txt",
+    "sha256": "7f33acc9a77a61659531044525fc008edebe215bf4dcf1c789c8674ad3277db0"
+  },
+  {
+    "path": "icons/circle-check.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/circle-check.svg",
+    "sourcePage": "https://github.com/lucide-icons/lucide",
+    "license": "ISC; selected Feather-derived icons MIT, see third-party/LUCIDE-LICENSE.txt",
+    "sha256": "9711e045a5999f8a3b0782eb88e09b04e0559bc7b379dcc0a4ae645223e10345"
+  },
+  {
+    "path": "icons/circle-alert.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/circle-alert.svg",
+    "sourcePage": "https://github.com/lucide-icons/lucide",
+    "license": "ISC; selected Feather-derived icons MIT, see third-party/LUCIDE-LICENSE.txt",
+    "sha256": "ce3e98b7a03b78c0071131df42466e4e1ff5187fccad30e739ec9ce951cf685a"
+  },
+  {
+    "path": "icons/triangle-alert.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/triangle-alert.svg",
+    "sourcePage": "https://github.com/lucide-icons/lucide",
+    "license": "ISC; selected Feather-derived icons MIT, see third-party/LUCIDE-LICENSE.txt",
+    "sha256": "4866f38b8560d410f21e3226413e0b77997b6dfbb6931fadfe0a0d5aef9ffeb4"
+  },
+  {
+    "path": "icons/wifi.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/wifi.svg",
+    "sourcePage": "https://github.com/lucide-icons/lucide",
+    "license": "ISC; selected Feather-derived icons MIT, see third-party/LUCIDE-LICENSE.txt",
+    "sha256": "5c4c795d014fa95d1e1038362df44a0f0f32ded9cb08c833ae72419ebadc9a91"
+  },
+  {
+    "path": "icons/wifi-off.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/wifi-off.svg",
+    "sourcePage": "https://github.com/lucide-icons/lucide",
+    "license": "ISC; selected Feather-derived icons MIT, see third-party/LUCIDE-LICENSE.txt",
+    "sha256": "318b290106e55c3505933f434d3663524206c7a44165a89508774fba4fdbaadd"
+  },
+  {
+    "path": "icons/refresh-cw.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/refresh-cw.svg",
+    "sourcePage": "https://github.com/lucide-icons/lucide",
+    "license": "ISC; selected Feather-derived icons MIT, see third-party/LUCIDE-LICENSE.txt",
+    "sha256": "2e10dd403c85a24f163d59fc6151aa21147fe9402e1305dfc8979208caee8944"
+  },
+  {
+    "path": "icons/clock.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/clock.svg",
+    "sourcePage": "https://github.com/lucide-icons/lucide",
+    "license": "ISC; selected Feather-derived icons MIT, see third-party/LUCIDE-LICENSE.txt",
+    "sha256": "e9d3e3acf4d1c280fcf8092293439dc0a4756a908ceb859de144b12451cd1cb9"
+  },
+  {
+    "path": "icons/gift.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/gift.svg",
+    "sourcePage": "https://github.com/lucide-icons/lucide",
+    "license": "ISC; selected Feather-derived icons MIT, see third-party/LUCIDE-LICENSE.txt",
+    "sha256": "bc0651476bc7fdefa8d033f7b7572f9c8712aaca3b9196488442e6b4e76ed2a4"
+  },
+  {
+    "path": "icons/ticket.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/ticket.svg",
+    "sourcePage": "https://github.com/lucide-icons/lucide",
+    "license": "ISC; selected Feather-derived icons MIT, see third-party/LUCIDE-LICENSE.txt",
+    "sha256": "37dfe2d23041dd13224fef9d1cb7db4b4f589b661b850f23f57105e843534a2f"
+  },
+  {
+    "path": "icons/sparkles.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/sparkles.svg",
+    "sourcePage": "https://github.com/lucide-icons/lucide",
+    "license": "ISC; selected Feather-derived icons MIT, see third-party/LUCIDE-LICENSE.txt",
+    "sha256": "f5499f33f09d7158151e9bd2ec0faf79ff8fb57292f84fdd7286d96d0f0424d8"
+  },
+  {
+    "path": "icons/user-round.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/user-round.svg",
+    "sourcePage": "https://github.com/lucide-icons/lucide",
+    "license": "ISC; selected Feather-derived icons MIT, see third-party/LUCIDE-LICENSE.txt",
+    "sha256": "84870f26f3faf8da45da84174517519e81b9e8f00319c78954fcbb74f50038a1"
+  },
+  {
+    "path": "icons/users.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/users.svg",
+    "sourcePage": "https://github.com/lucide-icons/lucide",
+    "license": "ISC; selected Feather-derived icons MIT, see third-party/LUCIDE-LICENSE.txt",
+    "sha256": "eeed488a1ec95ba730dd69996536fb65061d6ea273afb2429ae47e65eebf401c"
+  },
+  {
+    "path": "icons/settings.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/settings.svg",
+    "sourcePage": "https://github.com/lucide-icons/lucide",
+    "license": "ISC; selected Feather-derived icons MIT, see third-party/LUCIDE-LICENSE.txt",
+    "sha256": "0ae27fd0f81999229e3127ac96c5b32edfea448e291d509e76212b917551d66b"
+  },
+  {
+    "path": "icons/search.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/search.svg",
+    "sourcePage": "https://github.com/lucide-icons/lucide",
+    "license": "ISC; selected Feather-derived icons MIT, see third-party/LUCIDE-LICENSE.txt",
+    "sha256": "283d371c2e433817bb9c0c8310caa6c77fa4177c0f4f1168d9c83b97af7389dc"
+  },
+  {
+    "path": "icons/plus.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/plus.svg",
+    "sourcePage": "https://github.com/lucide-icons/lucide",
+    "license": "ISC; selected Feather-derived icons MIT, see third-party/LUCIDE-LICENSE.txt",
+    "sha256": "7f6af73bf1ff6c4bca3f18351c8d1bdec6749c0c2530c4de5da85d520c21df17"
+  },
+  {
+    "path": "icons/minus.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/minus.svg",
+    "sourcePage": "https://github.com/lucide-icons/lucide",
+    "license": "ISC; selected Feather-derived icons MIT, see third-party/LUCIDE-LICENSE.txt",
+    "sha256": "a0c743ab6dbf545d8a6e19ef3874f48ede686ce68d25e231bd81f540d97b1f19"
+  },
+  {
+    "path": "icons/pencil.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/pencil.svg",
+    "sourcePage": "https://github.com/lucide-icons/lucide",
+    "license": "ISC; selected Feather-derived icons MIT, see third-party/LUCIDE-LICENSE.txt",
+    "sha256": "7e1ca7a6f5c1eb949671df762f2baadd32f5bd841d43153c3a15279af7d78d0c"
+  },
+  {
+    "path": "icons/copy.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/copy.svg",
+    "sourcePage": "https://github.com/lucide-icons/lucide",
+    "license": "ISC; selected Feather-derived icons MIT, see third-party/LUCIDE-LICENSE.txt",
+    "sha256": "ea80e566c7a12628a447cb53179b19aea4f60b9143e2becd0d0f20bf260e5718"
+  },
+  {
+    "path": "icons/external-link.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/external-link.svg",
+    "sourcePage": "https://github.com/lucide-icons/lucide",
+    "license": "ISC; selected Feather-derived icons MIT, see third-party/LUCIDE-LICENSE.txt",
+    "sha256": "3891241b8c3bfc3a8a930078f26ffc5a7e9763da6d0162ace2050b28d4c1d1fe"
+  },
+  {
+    "path": "icons/shield-check.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/shield-check.svg",
+    "sourcePage": "https://github.com/lucide-icons/lucide",
+    "license": "ISC; selected Feather-derived icons MIT, see third-party/LUCIDE-LICENSE.txt",
+    "sha256": "8d4fcdbde5bba4abb1a2f6fe53e37ceb6343a1d5449a9d88f6f97c1971d26c4e"
+  },
+  {
+    "path": "icons/lock-keyhole.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/lock-keyhole.svg",
+    "sourcePage": "https://github.com/lucide-icons/lucide",
+    "license": "ISC; selected Feather-derived icons MIT, see third-party/LUCIDE-LICENSE.txt",
+    "sha256": "fc0b8b7590d1d9e9bb0112c5c2e15a78ade0bfeca6d6f8c79fbbe149236d74be"
+  },
+  {
+    "path": "icons/package.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/package.svg",
+    "sourcePage": "https://github.com/lucide-icons/lucide",
+    "license": "ISC; selected Feather-derived icons MIT, see third-party/LUCIDE-LICENSE.txt",
+    "sha256": "69d6bc7650d26c4d24dd55eb22791607b982ce7637073944c256f1f61575509d"
+  },
+  {
+    "path": "icons/chart-no-axes-combined.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/chart-no-axes-combined.svg",
+    "sourcePage": "https://github.com/lucide-icons/lucide",
+    "license": "ISC; selected Feather-derived icons MIT, see third-party/LUCIDE-LICENSE.txt",
+    "sha256": "2f8a708c357488cfde7428d9b055b9bb4a99c08dc71e9296da03ecc19291c4ab"
+  },
+  {
+    "path": "icons/bell.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/bell.svg",
+    "sourcePage": "https://github.com/lucide-icons/lucide",
+    "license": "ISC; selected Feather-derived icons MIT, see third-party/LUCIDE-LICENSE.txt",
+    "sha256": "394889e9631fe3a9a63be9a479a95b451b708e432d895978d21d9130b5ee5dbe"
+  },
+  {
+    "path": "icons/volume-2.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/volume-2.svg",
+    "sourcePage": "https://github.com/lucide-icons/lucide",
+    "license": "ISC; selected Feather-derived icons MIT, see third-party/LUCIDE-LICENSE.txt",
+    "sha256": "fb404f9c128a0579de67b399177631e5edb3502fdc247ceb30e8b15754b46071"
+  },
+  {
+    "path": "icons/volume-x.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/volume-x.svg",
+    "sourcePage": "https://github.com/lucide-icons/lucide",
+    "license": "ISC; selected Feather-derived icons MIT, see third-party/LUCIDE-LICENSE.txt",
+    "sha256": "f382e421b7aae01172989f2b749ee87e44c0c82c16970b13a9ad5a323b613be0"
+  },
+  {
+    "path": "icons/credit-card.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/credit-card.svg",
+    "sourcePage": "https://github.com/lucide-icons/lucide",
+    "license": "ISC; selected Feather-derived icons MIT, see third-party/LUCIDE-LICENSE.txt",
+    "sha256": "72d2b1acd904e01c6f676b4f6d07d56550a80b5d42687d43a313b85040943a2e"
+  },
+  {
+    "path": "icons/banknote.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/banknote.svg",
+    "sourcePage": "https://github.com/lucide-icons/lucide",
+    "license": "ISC; selected Feather-derived icons MIT, see third-party/LUCIDE-LICENSE.txt",
+    "sha256": "212d628014554424ec0041ab56e8869149d255b7077cfd6977d4ab2be32e8cb1"
+  },
+  {
+    "path": "icons/smartphone.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/smartphone.svg",
+    "sourcePage": "https://github.com/lucide-icons/lucide",
+    "license": "ISC; selected Feather-derived icons MIT, see third-party/LUCIDE-LICENSE.txt",
+    "sha256": "f9fdb700b50feb5fc6436f53eb9813e9eb56a9071ac4cdcba69c7f7c1c13877d"
+  },
+  {
+    "path": "icons/monitor.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/monitor.svg",
+    "sourcePage": "https://github.com/lucide-icons/lucide",
+    "license": "ISC; selected Feather-derived icons MIT, see third-party/LUCIDE-LICENSE.txt",
+    "sha256": "d1a443233345724859de8e4fb48968ba91e885e12ddbd710701548bd91b39428"
+  },
+  {
+    "path": "icons/download.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/download.svg",
+    "sourcePage": "https://github.com/lucide-icons/lucide",
+    "license": "ISC; selected Feather-derived icons MIT, see third-party/LUCIDE-LICENSE.txt",
+    "sha256": "3daeee13ded5a3afa2198b1bb4e2262d163922f97d96ac6ff9953e8ed4fe039d"
+  },
+  {
+    "path": "icons/arrow-left.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/arrow-left.svg",
+    "sourcePage": "https://github.com/lucide-icons/lucide",
+    "license": "ISC; selected Feather-derived icons MIT, see third-party/LUCIDE-LICENSE.txt",
+    "sha256": "c5f4b88076108eb1a0d95336e1aa7e7bb1419a3a92af96f6247d88cd3456f933"
+  },
+  {
+    "path": "icons/arrow-right.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/arrow-right.svg",
+    "sourcePage": "https://github.com/lucide-icons/lucide",
+    "license": "ISC; selected Feather-derived icons MIT, see third-party/LUCIDE-LICENSE.txt",
+    "sha256": "288397fdb73bb4f783cf9eabb726ff47357df1d4e3f1201dd748090579f108b9"
+  },
+  {
+    "path": "icons/chevron-down.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/chevron-down.svg",
+    "sourcePage": "https://github.com/lucide-icons/lucide",
+    "license": "ISC; selected Feather-derived icons MIT, see third-party/LUCIDE-LICENSE.txt",
+    "sha256": "66ea878e72ed3488bb3b464c39dfdccee8d1f78e560dccea40e5e12da0e87e87"
+  },
+  {
+    "path": "icons/x.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/x.svg",
+    "sourcePage": "https://github.com/lucide-icons/lucide",
+    "license": "ISC; selected Feather-derived icons MIT, see third-party/LUCIDE-LICENSE.txt",
+    "sha256": "4a9cdab38fbb96162e7dace28e33f4ca0e49d8963a6162abc3d4691b7d675117"
+  },
+  {
+    "path": "icons/image.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/image.svg",
+    "sourcePage": "https://github.com/lucide-icons/lucide",
+    "license": "ISC; selected Feather-derived icons MIT, see third-party/LUCIDE-LICENSE.txt",
+    "sha256": "619c9db58c879dce6250376ba67d9c9102ca6dbb3b1efb9294c9f180e22273a5"
+  },
+  {
+    "path": "icons/log-out.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/log-out.svg",
+    "sourcePage": "https://github.com/lucide-icons/lucide",
+    "license": "ISC; selected Feather-derived icons MIT, see third-party/LUCIDE-LICENSE.txt",
+    "sha256": "f24b5b45c05a3acc346af8095408f6ba197ff58ea1641a4f2cb25a9702d2c0ac"
+  },
+  {
+    "path": "icons/database.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/database.svg",
+    "sourcePage": "https://github.com/lucide-icons/lucide",
+    "license": "ISC; selected Feather-derived icons MIT, see third-party/LUCIDE-LICENSE.txt",
+    "sha256": "471eb14bc8d144896a82dfc4aa9daf350f769f0896f4bef33e50aabdbb51130d"
+  },
+  {
+    "path": "icons/link.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/link.svg",
+    "sourcePage": "https://github.com/lucide-icons/lucide",
+    "license": "ISC; selected Feather-derived icons MIT, see third-party/LUCIDE-LICENSE.txt",
+    "sha256": "4f3237183dcaabfac92f4e94c776a9a9e45c3c5e77a921061a6b34b61eb5413f"
+  },
+  {
+    "path": "icons/loader-circle.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/loader-circle.svg",
+    "sourcePage": "https://github.com/lucide-icons/lucide",
+    "license": "ISC; selected Feather-derived icons MIT, see third-party/LUCIDE-LICENSE.txt",
+    "sha256": "043021bb903919668804bdb6fee0342072e4ffea5f03fbd857774c440179ad3b"
+  },
+  {
+    "path": "icons/hand-coins.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/hand-coins.svg",
+    "sourcePage": "https://github.com/lucide-icons/lucide",
+    "license": "ISC; selected Feather-derived icons MIT, see third-party/LUCIDE-LICENSE.txt",
+    "sha256": "3b031c330bd625ece6cb884c9a3f2f41ff8a836c6638bc42c220968716dfb212"
+  },
+  {
+    "path": "third-party/LUCIDE-LICENSE.txt",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/main/LICENSE",
+    "sourcePage": "https://github.com/lucide-icons/lucide/blob/main/LICENSE",
+    "license": "Lucide ISC and Feather MIT",
+    "sha256": "b495047bd93a9b06913511076f504daba17d5bbeb3e0650f3bb53a4220329c57"
+  },
+  {
+    "path": "third-party/solanaLogo.svg",
+    "source": "https://solana.com/src/img/branding/solanaLogo.svg",
+    "sourcePage": "https://solana.com/branding",
+    "license": "Solana trademark usage guidelines, not an open-source logo license",
+    "sha256": "ccdc416707911112da5933a6ed9f60ce1f819333e70447a5701bc012d6865f51"
+  },
+  {
+    "path": "third-party/solanaLogoMark.svg",
+    "source": "https://solana.com/src/img/branding/solanaLogoMark.svg",
+    "sourcePage": "https://solana.com/branding",
+    "license": "Solana trademark usage guidelines, not an open-source logo license",
+    "sha256": "3d3401109aa061dec40a8659f1847817a8e647f98de1e65e76e86a95bbe1f08a"
+  },
+  {
+    "path": "third-party/solanaLogo.png",
+    "source": "https://solana.com/src/img/branding/solanaLogo.png",
+    "sourcePage": "https://solana.com/branding",
+    "license": "Solana trademark usage guidelines, not an open-source logo license",
+    "sha256": "503f7a0d059b70f41149da2230dd8b73dbba4c1bdaecab70fda5431cd5a9076f"
+  }
+]

@@ -1,0 +1,25 @@
+{
+  "name": "BitPOS Cafe Club \u00b7 Cafe Companion",
+  "symbol": "BPC",
+  "description": "Original cafe collectible artwork. This local metadata is a draft for a future devnet reward and does not grant a redeemable item.",
+  "image": "../collectibles/cafe-companion.png",
+  "attributes": [
+    {
+      "trait_type": "Collection",
+      "value": "Cafe Club"
+    },
+    {
+      "trait_type": "Design",
+      "value": "Cafe Companion"
+    }
+  ],
+  "properties": {
+    "files": [
+      {
+        "uri": "../collectibles/cafe-companion.png",
+        "type": "image/png"
+      }
+    ],
+    "category": "image"
+  }
+}

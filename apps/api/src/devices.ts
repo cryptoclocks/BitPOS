@@ -9,8 +9,12 @@ import {safeRelease} from '../../../packages/domain/src/table-pricing';
 import {routingLock,fail} from './authority';
 import {ensureDevice,expireCart} from './registry';
 import {streamEvent} from './orders';
-import {commandSchema,applyDeviceCommand,currentScreen,recoverableDraft,catalogPage,type DeviceActor} from './device-commands';
+import {commandSchema,applyDeviceCommand,currentScreen,recoverableDraft,catalogPage,validateActor,type DeviceActor} from './device-commands';
+import {reconcilePickup} from './fulfillment';
+import {reconcilePromotions} from './promotion-lifecycle';
 import type {DeviceCommand,DeviceEvent,DeviceScreen,DeviceConfig} from '../../../packages/contracts/src/index';
+import {currentPromotionPlaylist,reconcilePromotionPlaylist} from './promotion-playlists';
+import type {DevicePromotionPlaylist} from '../../../packages/contracts/src/daily-promotions';
 
 type StreamRow={
  label:string;table_id:string|null;assignment_generation:string;table_label:string|null;table_entry_token:string|null;
@@ -18,6 +22,7 @@ type StreamRow={
  kind:DeviceScreen['kind'];screen_generation:string;expired:boolean|null;
  status:string|null;reservation_released:boolean|null;recovery_resolved_at:string|null;
  ambiguous:boolean;rendered:boolean;pending:boolean;
+ promotion_playlist?:DevicePromotionPlaylist|null;
 };
 type ClaimResult={refresh:true;row:StreamRow;events:[]}|{refresh:false;row:StreamRow;events:DeviceEvent[]};
 type StreamState={row:StreamRow;payload:DeviceConfig;ownerSnapshot:{kind:DeviceScreen['kind'];generation:string;canDismiss:boolean};digest:string;owner:string};
@@ -25,7 +30,8 @@ function actorArgs(a:DeviceActor){return [a.merchant,a.device,a.tokenHash,a.auth
 // The DB row is authoritative; payloads and hashes remain service-owned scheduling
 // hints. In particular, paymentOrigin and limits are not mutable database facts.
 function streamMetadata(a:DeviceActor,row:StreamRow):StreamState{
- const payload:DeviceConfig={paymentOrigin:customerOrigin,tableEntryUrl:row.table_entry_token?customerOrigin+'/table/'+row.table_entry_token:null,merchantId:a.merchant,deviceId:a.device,label:row.label,tableId:row.table_id,tableLabel:row.table_label??null,assignmentGeneration:row.assignment_generation,pairingGeneration:row.pairing_generation??null,pairing:row.register_id&&row.pairing_generation?{registerId:row.register_id,pairingGeneration:row.pairing_generation}:null,priceVersion:row.active_price_version_id??null,pricingReady:!!row.active_price_version_id,limits:{cartLines:50,quantity:100,pageRows:4,inboundBytes:8191,outboundBytes:7168},heartbeatSeconds:30,leaseSeconds:120};
+ const payload:DeviceConfig={paymentOrigin:customerOrigin,tableEntryUrl:row.table_entry_token?customerOrigin+'/table/'+row.table_entry_token:null,merchantId:a.merchant,deviceId:a.device,label:row.label,tableId:row.table_id,tableLabel:row.table_label??null,assignmentGeneration:row.assignment_generation,authGeneration:a.authGeneration,pairingGeneration:row.pairing_generation??null,pairing:row.register_id&&row.pairing_generation?{registerId:row.register_id,pairingGeneration:row.pairing_generation}:null,priceVersion:row.active_price_version_id??null,pricingReady:!!row.active_price_version_id,limits:{cartLines:50,quantity:100,pageRows:4,inboundBytes:8191,outboundBytes:7168},heartbeatSeconds:30,leaseSeconds:120};
+ if(row.promotion_playlist)payload.promotionPlaylist=row.promotion_playlist;
  const canDismiss=row.kind==='order'&&safeRelease(row.status??'',!!row.reservation_released,Number(row.ambiguous),row.rendered,!!row.recovery_resolved_at);
  const ownerSnapshot={kind:row.kind,generation:row.screen_generation,canDismiss};
  return {row,payload,ownerSnapshot,digest:hash(JSON.stringify(payload)),owner:hash(JSON.stringify(ownerSnapshot))};
@@ -53,6 +59,7 @@ export function attachDevices(server:http.Server){
  function connect(ws:WebSocket,a:DeviceActor){
  const key=a.merchant+':'+a.device;sockets.get(key)?.close(1000,'Replaced connection');sockets.set(key,ws);
  let busy=false,initialized=false,closed=false,requested=false,notified=false,processing=false,catalogBusy=false;
+ let nextPickup=0;
  let configHash='',ownerHash='',nextCatalog=0;
  let memo:StreamState|undefined;
  const inbound:{command:DeviceCommand;receivedAt:string}[]=[];
@@ -74,6 +81,13 @@ export function attachDevices(server:http.Server){
  async function pump(){
  if(busy||processing||closed||ws.readyState!==WebSocket.OPEN)return;busy=true;requested=false;
  try{
+ if(initialized&&Date.now()>=nextPickup){
+ nextPickup=Date.now()+1000;
+ await tenant(a.merchant,async db=>{
+ const pending=(await db.query("SELECT 1 FROM pickup_notifications WHERE merchant_id=$1 AND target_device_id=$2 AND (state IN ('PENDING','DELIVERED','RENDERED','UNSUPPORTED') OR state='TARGET_CHANGED' AND last_event_id IS NOT NULL AND cancel_event_id IS NULL AND expires_at>clock_timestamp()) UNION ALL SELECT 1 FROM promotion_targets WHERE merchant_id=$1 AND target_device_id=$2 AND state IN ('QUEUED','DELIVERED','RENDERED') UNION ALL SELECT 1 FROM promotion_playlist_targets WHERE merchant_id=$1 AND target_device_id=$2 AND state IN ('QUEUED','DEFERRED_BUSY','DEFERRED_OFFLINE','DELIVERED','RENDERED','UNSUPPORTED') LIMIT 1",[a.merchant,a.device])).rowCount;
+ if(pending){await routingLock(db,a.merchant);await validateActor(db,a);await reconcilePickup(db,a.merchant,a.device,a.connectionGeneration);await reconcilePromotions(db,a.merchant,a.device,a.connectionGeneration);await reconcilePromotionPlaylist(db,a.merchant,a.device,a.connectionGeneration);}
+ });
+ }
  // A committed NOTIFY can go directly to the authenticated claim. Memo is
  // comparison input only; the routine rereads live state after its mutex wait.
  const notification=notified;notified=false;
@@ -90,7 +104,7 @@ export function attachDevices(server:http.Server){
  if(!claimed.refresh)committed={events:claimed.events,state:streamMetadata(a,claimed.row)};
  }
  if(!committed)committed=await tenant(a.merchant,async db=>{
- await routingLock(db,a.merchant);let state=await streamState(db,a);
+ await routingLock(db,a.merchant);await currentPromotionPlaylist(db,a.merchant,a.device);let state=await streamState(db,a);
  if(state.row.expired){await expireCart(db,a.merchant,a.device);state=await streamState(db,a);}
  await db.query('SAVEPOINT device_stream_refresh');
  if(!initialized)await db.query("INSERT INTO device_event_deliveries(merchant_id,device_id,event_id,device_seq,connection_generation,status) SELECT merchant_id,target_device_id,id,device_seq,$3,'superseded' FROM outbox_events WHERE merchant_id=$1 AND target_device_id=$2 ON CONFLICT DO NOTHING",[a.merchant,a.device,a.connectionGeneration]);
@@ -99,7 +113,7 @@ export function attachDevices(server:http.Server){
  const screen=await currentScreen(db,a.merchant,a.device);
  const order=screen.kind==='order'?(await db.query('SELECT * FROM orders WHERE merchant_id=$1 AND id=$2 AND version=$3',[a.merchant,screen.order.id,screen.order.version])).rows[0]:undefined;
  if(screen.kind==='order'&&!order)fail('DELIVERY_UNAVAILABLE',503);
- await streamEvent(db,a.merchant,a.device,state.row.assignment_generation,screen.screenGeneration,'SNAPSHOT',{screen,recoverableDraft:await recoverableDraft(db,a)},order);
+ await streamEvent(db,a.merchant,a.device,state.row.assignment_generation,screen.screenGeneration,'SNAPSHOT',{screen,recoverableDraft:await recoverableDraft(db,a),promotionPlaylist:state.payload.promotionPlaylist},order);
  }
  const claimed=await claimEvents(db,a,state);
  // A lease can expire during slow snapshot construction. Roll back those

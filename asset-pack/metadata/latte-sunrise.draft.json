@@ -1,0 +1,25 @@
+{
+  "name": "BitPOS Cafe Club \u00b7 Latte Sunrise",
+  "symbol": "BPC",
+  "description": "Original cafe collectible artwork. This local metadata is a draft for a future devnet reward and does not grant a redeemable item.",
+  "image": "../collectibles/latte-sunrise.png",
+  "attributes": [
+    {
+      "trait_type": "Collection",
+      "value": "Cafe Club"
+    },
+    {
+      "trait_type": "Design",
+      "value": "Latte Sunrise"
+    }
+  ],
+  "properties": {
+    "files": [
+      {
+        "uri": "../collectibles/latte-sunrise.png",
+        "type": "image/png"
+      }
+    ],
+    "category": "image"
+  }
+}

@@ -1,6 +1,7 @@
 import type { CartItem } from '../../../../packages/contracts/src/index';
 import type { CounterRequest, ReviewQuote, ServingSelection, Session } from './table';
 import { z } from 'zod';
+import { settlementSchema } from './payment-assets';
 export interface Draft { items: CartItem[]; customerId: string; serving: ServingSelection }
 export type CounterState = Draft & { revision: number } & (
   | { phase: 'draft'; reason: string }
@@ -12,13 +13,13 @@ export const emptyDraft: CounterState = { revision: 0, items: [], customerId: ''
 const digits = z.string().regex(/^(0|[1-9]\d*)$/);
 const cartItems = z.array(z.object({ productId: z.string().min(1), qty: z.number().int().min(1).max(100) }).strict()).max(50).refine(items => new Set(items.map(item => item.productId)).size === items.length);
 const servingSchema = z.union([z.object({ kind: z.literal('table'), tableId: z.string().min(1) }).strict(), z.object({ kind: z.enum(['counter', 'takeaway']) }).strict()]);
-const moneySchema = z.union([z.object({ currency: z.enum(['USD', 'THB']), decimals: z.literal(2), amountMinor: digits }), z.object({ currency: z.literal('USDG'), decimals: z.literal(6), amountMinor: digits })]);
+const moneySchema = z.union([z.object({currency:z.literal('THB'),decimals:z.literal(2),amountMinor:digits}),z.object({ currency: z.literal('USD'), decimals: z.union([z.literal(2),z.literal(4)]), amountMinor: digits }), z.object({ currency: z.enum(['USDG', 'USDC', 'USDT']), decimals: z.literal(6), amountMinor: digits })]);
 const promotionSchema = z.object({ priceVersion: z.string(), revision: digits, expiresAt: z.iso.datetime({ offset: true }), discount: z.union([z.object({ kind: z.literal('percent'), percent: z.number().int().min(1).max(99) }), z.object({ kind: z.literal('amount'), amountMinor: digits })]) });
 const authoritySchema = z.object({ kind: z.literal('versioned'), source: z.union([z.object({ kind: z.literal('register'), registerId: z.string(), label: z.string() }), z.object({ kind: z.literal('device'), deviceId: z.string(), label: z.string() })]), serving: z.union([z.object({ kind: z.literal('table'), tableId: z.string(), label: z.string() }), z.object({ kind: z.enum(['counter', 'takeaway', 'legacy_unknown']), label: z.string() })]), target: z.object({ deviceId: z.string(), assignmentGeneration: digits }), pairingGeneration: digits.nullable() });
 const quoteSchema = z.object({
   id: z.string().min(1), priceVersion: z.string().min(1), pricingRevision: digits, cartVersion: digits.nullable(),
   lines: z.array(z.object({ productId: z.string(), name: z.string(), nameEn: z.string(), qty: z.number().int().min(1).max(100), priceVersion: z.string(), basePrice: moneySchema, unitPrice: moneySchema, promotion: promotionSchema.nullable() })).min(1).max(50),
-  total: moneySchema, settlement: z.object({ currency: z.literal('USDG'), decimals: z.literal(6), amountMinor: digits, network: z.literal('solana:devnet'), genesisHash: z.string(), mint: z.string(), tokenProgram: z.string(), testToken: z.literal(true), recipient: z.string(), sponsor: z.literal('merchant_funded') }),
+  total: moneySchema, settlement: settlementSchema,
   quotedAt: z.iso.datetime({ offset: true }), validUntil: z.iso.datetime({ offset: true }), authority: authoritySchema,
   pairingGeneration: digits, targetOnline: z.boolean(), targetBusy: z.boolean(),
 });

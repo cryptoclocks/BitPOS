@@ -1,0 +1,32 @@
+[
+  {
+    "name": "espresso-orbit",
+    "source": "Built-in image generation tool",
+    "prompt": "Use case: stylized-concept. Asset type: square collectible NFT artwork for BitPOS cafe loyalty, a coherent five-piece collection. Primary subject: A small sculptural espresso cup with crema shaped into an orbital clock dial, floating inside an orange-purple orbital ring. Style: premium playful 3D clay sculpture, crisp polished surfaces, soft studio lighting. Palette: deep purple #64188A, orange #FF8500, warm ivory #FFF8F0, restrained accent colors appropriate to subject. Composition: single clearly readable central subject fully inside frame, generous safe margins, square artwork, subtle purple-to-plum background, restrained floating orbital details. No text, no logo, no QR code, no watermark, no coin price, no imitation of existing NFT collections. This is original illustrative reward artwork, not a photograph of a real product.",
+    "path": "collectibles/espresso-orbit.png"
+  },
+  {
+    "name": "latte-sunrise",
+    "source": "Built-in image generation tool",
+    "prompt": "Use case: stylized-concept. Asset type: square collectible NFT artwork for BitPOS cafe loyalty, a coherent five-piece collection. Primary subject: A sculptural latte cup with a luminous orange sunrise emerging from milk foam and small purple clock-hand motif. Style: premium playful 3D clay sculpture, crisp polished surfaces, soft studio lighting. Palette: deep purple #64188A, orange #FF8500, warm ivory #FFF8F0, restrained accent colors appropriate to subject. Composition: single clearly readable central subject fully inside frame, generous safe margins, square artwork, subtle purple-to-plum background, restrained floating orbital details. No text, no logo, no QR code, no watermark, no coin price, no imitation of existing NFT collections. This is original illustrative reward artwork, not a photograph of a real product.",
+    "path": "collectibles/latte-sunrise.png"
+  },
+  {
+    "name": "matcha-moon",
+    "source": "Built-in image generation tool",
+    "prompt": "Use case: stylized-concept. Asset type: square collectible NFT artwork for BitPOS cafe loyalty, a coherent five-piece collection. Primary subject: A sculptural matcha bowl with soft green foam and a deep purple crescent moon, an orange orbit connecting a tiny clock star. Style: premium playful 3D clay sculpture, crisp polished surfaces, soft studio lighting. Palette: deep purple #64188A, orange #FF8500, warm ivory #FFF8F0, restrained accent colors appropriate to subject. Composition: single clearly readable central subject fully inside frame, generous safe margins, square artwork, subtle purple-to-plum background, restrained floating orbital details. No text, no logo, no QR code, no watermark, no coin price, no imitation of existing NFT collections. This is original illustrative reward artwork, not a photograph of a real product.",
+    "path": "collectibles/matcha-moon.png"
+  },
+  {
+    "name": "croissant-comet",
+    "source": "Built-in image generation tool",
+    "prompt": "Use case: stylized-concept. Asset type: square collectible NFT artwork for BitPOS cafe loyalty, a coherent five-piece collection. Primary subject: A golden butter croissant traveling as a playful comet through a deep purple orbit, orange flour sparks and tiny clock charm. Style: premium playful 3D clay sculpture, crisp polished surfaces, soft studio lighting. Palette: deep purple #64188A, orange #FF8500, warm ivory #FFF8F0, restrained accent colors appropriate to subject. Composition: single clearly readable central subject fully inside frame, generous safe margins, square artwork, subtle purple-to-plum background, restrained floating orbital details. No text, no logo, no QR code, no watermark, no coin price, no imitation of existing NFT collections. This is original illustrative reward artwork, not a photograph of a real product.",
+    "path": "collectibles/croissant-comet.png"
+  },
+  {
+    "name": "cafe-companion",
+    "source": "Built-in image generation tool",
+    "prompt": "Use case: stylized-concept. Asset type: square collectible NFT artwork for BitPOS cafe loyalty, a coherent five-piece collection. Primary subject: A friendly original plush-like cafe mascot shaped as a small rounded purple clock, holding an orange coffee cup, two simple ears, cute dignified face. Style: premium playful 3D clay sculpture, crisp polished surfaces, soft studio lighting. Palette: deep purple #64188A, orange #FF8500, warm ivory #FFF8F0, restrained accent colors appropriate to subject. Composition: single clearly readable central subject fully inside frame, generous safe margins, square artwork, subtle purple-to-plum background, restrained floating orbital details. No text, no logo, no QR code, no watermark, no coin price, no imitation of existing NFT collections. This is original illustrative reward artwork, not a photograph of a real product.",
+    "path": "collectibles/cafe-companion.png"
+  }
+]

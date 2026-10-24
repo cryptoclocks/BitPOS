@@ -4,14 +4,16 @@ import {z} from 'zod';
 import {hash} from '../../../packages/domain/src/index';
 import {audit} from './db';
 import {fail,requireRole,routingLock,uuid,label,integer} from './authority';
+import {clearTableOccupancy} from './table-occupancy';
 export async function ensureDevice(db:pg.PoolClient,merchant:string,id:string){for(const table of ['device_presence','device_screen_state','device_event_counters'])await db.query(`INSERT INTO ${table}(merchant_id,device_id) VALUES($1,$2) ON CONFLICT DO NOTHING`,[merchant,id]);}
 export async function expireCart(db:pg.PoolClient,merchant:string,id:string){await db.query("UPDATE device_sessions SET ended_at=clock_timestamp() WHERE merchant_id=$1 AND id IN (SELECT session_id FROM device_screen_state WHERE device_id=$2 AND kind='cart' AND lease_until<=clock_timestamp())",[merchant,id]);await db.query("UPDATE device_screen_state SET kind='idle',screen_generation=screen_generation+1,session_id=NULL,lease_until=NULL WHERE merchant_id=$1 AND device_id=$2 AND kind='cart' AND lease_until<=clock_timestamp()",[merchant,id]);}
 export async function registry(db:pg.PoolClient,merchant:string,actor:string,role:string,path:string,method:string,input:unknown){
- const match=path.match(/^\/api\/(tables|devices|registers)(?:\/([^/]+)(?:\/(pairing|credential|submissions)\/?([^/]*)?)?)?$/);if(!match)return undefined;
+ const match=path.match(/^\/api\/(tables|devices|registers)(?:\/([^/]+)(?:\/(pairing|credential|submissions|clear)\/?([^/]*)?)?)?$/);if(!match)return undefined;
  const [,kind,raw,action]=match;const id=raw?uuid.parse(raw):undefined;
  if(action==='submissions')return undefined;
+ if(kind==='tables'&&id&&action==='clear'&&method==='POST')return clearTableOccupancy(db,merchant,actor,role,id,input);
  if(method==='GET'&&!id){
- if(kind==='tables')return {tables:(await db.query('SELECT id,label,retired_at AS "retiredAt" FROM merchant_tables ORDER BY label,id')).rows};
+ if(kind==='tables')return {tables:(await db.query(`SELECT t.id,t.label,t.retired_at AS "retiredAt",jsonb_build_object('generation',t.occupancy_generation::text,'active',o.id IS NOT NULL,'joined',false,'openedAt',o.opened_at,'lastActivityAt',o.last_activity_at,'timeoutMinutes',t.occupancy_timeout_minutes) AS occupancy FROM merchant_tables t LEFT JOIN table_occupancies o ON o.merchant_id=t.merchant_id AND o.table_id=t.id AND o.closed_at IS NULL ORDER BY t.label,t.id`)).rows};
  if(kind==='registers')return {registers:(await db.query('SELECT r.id,r.label,r.paired_device_id AS "deviceId",r.pairing_generation::text AS "pairingGeneration",r.retired_at AS "retiredAt",coalesce(p.connected_until>clock_timestamp(),false) AS "targetOnline" FROM registers r LEFT JOIN device_presence p ON p.merchant_id=r.merchant_id AND p.device_id=r.paired_device_id ORDER BY r.label,r.id')).rows};
  const rows=(await db.query('SELECT d.id,d.label,d.table_id AS "tableId",t.label AS "tableLabel",d.assignment_generation::text AS "assignmentGeneration",d.auth_generation::text AS "authGeneration",d.revoked_at AS "revokedAt",coalesce(p.connected_until>clock_timestamp(),false) AND d.revoked_at IS NULL AS online,p.last_seen_at AS "lastSeenAt",coalesce(p.connection_generation,0)::text AS "connectionGeneration",jsonb_build_object(\'kind\',coalesce(s.kind,\'idle\'),\'screenGeneration\',coalesce(s.screen_generation,1)::text,\'orderId\',s.order_id,\'sessionId\',s.session_id) AS screen FROM devices d LEFT JOIN merchant_tables t ON t.merchant_id=d.merchant_id AND t.id=d.table_id LEFT JOIN device_presence p ON p.merchant_id=d.merchant_id AND p.device_id=d.id LEFT JOIN device_screen_state s ON s.merchant_id=d.merchant_id AND s.device_id=d.id ORDER BY d.label,d.id')).rows;return {devices:rows};
  }
@@ -42,7 +44,7 @@ export async function registry(db:pg.PoolClient,merchant:string,actor:string,rol
   await audit(db,merchant,actor,kind+'.create',row.id);return {id:row.id,label:d.label};
  }
  if(method==='PATCH'&&id&&kind==='tables'){
- const d=z.object({label:label.optional(),retired:z.boolean().optional()}).strict().parse(input);if(d.retired&&(await db.query('SELECT id FROM devices WHERE merchant_id=$1 AND table_id=$2 AND revoked_at IS NULL',[merchant,id])).rowCount)fail('DEVICE_BUSY');await db.query('UPDATE merchant_tables SET label=coalesce($3,label),retired_at=CASE WHEN $4::boolean IS NULL THEN retired_at WHEN $4 THEN clock_timestamp() ELSE NULL END WHERE merchant_id=$1 AND id=$2',[merchant,id,d.label,d.retired]);await audit(db,merchant,actor,'table.update',id);return {id};
+ const d=z.object({label:label.optional(),retired:z.boolean().optional(),occupancyTimeoutMinutes:z.number().int().min(30).max(1440).optional()}).strict().parse(input);if(d.retired&&(await db.query('SELECT id FROM devices WHERE merchant_id=$1 AND table_id=$2 AND revoked_at IS NULL',[merchant,id])).rowCount)fail('DEVICE_BUSY');await db.query('UPDATE merchant_tables SET label=coalesce($3,label),retired_at=CASE WHEN $4::boolean IS NULL THEN retired_at WHEN $4 THEN clock_timestamp() ELSE NULL END,occupancy_timeout_minutes=coalesce($5,occupancy_timeout_minutes) WHERE merchant_id=$1 AND id=$2',[merchant,id,d.label,d.retired,d.occupancyTimeoutMinutes]);await audit(db,merchant,actor,'table.update',id);return {id};
  }
  if(method==='PATCH'&&id&&kind==='devices'){
  const d=z.object({label:label.optional(),tableId:uuid.nullable().optional(),expectedAssignmentGeneration:integer.optional(),revoked:z.boolean().optional()}).strict().parse(input);if(d.revoked!==undefined)requireRole(role,true);await ensureDevice(db,merchant,id);await expireCart(db,merchant,id);

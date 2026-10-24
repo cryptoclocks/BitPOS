@@ -34,6 +34,12 @@ bool bitpos_media_available(void);
 const lv_image_dsc_t *bitpos_media_photo(unsigned asset_id);
 bool bitpos_media_photos_available(void);
 
+/* Image-worker only: fixed two-slot promotion cache; legacy VFS/LVGL read-only.
+ * Writes are gated raw FatFs calls to bitpos/promotions/v1/{0,1}.{rgb,tmp}.
+ * Existing files outside that namespace are never opened for write or removed. */
+bool bitpos_media_promotion_read(unsigned slot,const char *hash,uint8_t *pixels);
+bool bitpos_media_promotion_write(unsigned slot,const char *hash,const uint8_t *pixels);
+
 /* After successful lv_gif_set_src, under LVGL lock and before first paint:
  * correct the pinned decoder's opaque initial background using validated
  * unique transparent-palette semantics. No source bytes/art colors change. */

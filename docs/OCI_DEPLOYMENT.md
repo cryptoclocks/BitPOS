@@ -1,17 +1,12 @@
 # BitPOS OCI runtime
 
-`infra/oci/compose.yaml` deploys the application only. It reuses the single existing dedicated BitPOS Supabase installation. Do not start a second database stack or modify unrelated CryptoClock services.
+The production deployment compose file, host paths and operations scripts are kept privately by the project owner and are not part of this public repository. `infra/oci/Dockerfile` and the Python proxies in `infra/oci/` show how the application image and public boundaries are built. It reuses the single existing dedicated BitPOS Supabase installation.
 
 ## Private prerequisites
 
-Provision these files with mode 600 in an owner-only directory, never inside a repository archive:
+Provision the application environment (database/auth loopback URLs, app secret and devnet RPC), the devnet fee sponsor key, optional evaluation logins and the tunnel credential with mode 600 in an owner-only directory outside any repository or image build context.
 
-- `/home/ubuntu/bitpos-private/runtime.env`: application environment; database/auth loopback URLs, app secret and devnet RPC. Set `DEVNET_PRIVATE_DIR=/run/bitpos`.
-- `keys/fee-sponsor.json`: only the devnet fee sponsor, not customer wallets.
-- `demo-login.json`: dedicated evaluation users, if role shortcuts are explicitly enabled.
-- `cloudflare/bitpos-tunnel.token`: named tunnel credential.
-
-The app image uses Node 24 and frozen pnpm dependencies. Build from the repository root with `docker compose -f infra/oci/compose.yaml build api`. Start with `docker compose -f infra/oci/compose.yaml up -d --no-build`. All listeners are loopback-only; Cloudflare Tunnel provides public HTTPS/WSS. Containers restart unless stopped. Stop the previous worker and named tunnel connector before cutover to avoid two active deployment owners.
+The app image uses Node 24 and frozen pnpm dependencies. All listeners are loopback-only; Cloudflare Tunnel provides public HTTPS/WSS. Containers restart unless stopped. Stop the previous worker and named tunnel connector before cutover to avoid two active deployment owners.
 
 ## Host routing
 

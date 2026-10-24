@@ -156,3 +156,18 @@ BitPOS/
 These are plans; Kora, Commerce Kit and Surfpool are not installed or implemented.
 
 Source: https://github.com/solana-foundation/solana-dev-skill/blob/main/skills/solana-dev/references/payments.md
+
+## ล่าสุด: public table QR/mobile guest demo — 9 ตุลาคม 2026
+
+- ใช้ Supabase actual-use BitPOS บน OCI ชุดเดียวที่มีอยู่ ไม่สร้าง staging อีกชุด; original CryptoClock/Cashless workspaces เป็น read-only references.
+- จอ BitPOS0.3.1 แสดง Scan to order QR ของ current table/device/assignment/auth generation. มือถือ guest เปิด photo menu/cart โดยไม่ login ร้าน; Review สร้าง private visit/device-session lease และ canonical integer quote. Confirm ใช้ existing immutable device-origin order factory; ไม่มี device credential หรือ fake DeviceActor ใน browser.
+- Entry QR กับ exact-order payment QR คนละ payload. ไม่มี on-device menu/quantity/Add; payment QR/confirming/paid มี priority. Guest cart เป็น observer ของเครื่อง ไม่ถูกเครื่องแก้หรือ renew lease. Pending financial journal และ sound/ACK dedup คงเดิม.
+- ผลปัจจุบัน: guest LAN narrow browser3รอบ → marked test-wallet fixture → sponsored0.100000USDG/ลูกค้า0SOL → finalized PAID/stock/outbox และ actual physical ACK ทั้ง3รอบ. Latencies759/859/1094ms เก็บครบ ไม่อ้าง p95/30-sample/subsecond guarantee. Latest human filming gateเหลือ3current-source rounds; historical failed cohortsยังเป็นfailed.
+- Physical Android Phantom scanning/payment deferred ตามคำสั่ง8ต.ค. Browser fixtures และ framebuffer QR decodeไม่ใช่มือถือ/กล้องจริง. Fresh native high review/gateของsourceล่าสุดต้องเสร็จก่อนacceptance; docs/CHECKPOINT.mdเป็นสถานะ authoritative.
+- Full POS25-screen inventory, Cash/PromptPay parity, AI/NFT/rewards/native Actions/Blinks, mainnet/Grab/home notifications/CLOCK/OTA rolloutยังเป็นroadmap ไม่ลด inventory หรืออ้างว่าimplementedเพื่อส่งงาน.
+
+## แผนต่อยอด Flutter food delivery / ride platform — 16 ตุลาคม 2026
+
+ตามคำขอผู้ใช้ วางแผนแอพลูกค้า Flutter โดยใช้ `Tarikul711/flutter-food-delivery-app-ui` เป็นฐาน UI ที่ต้องปรับ SDK/ตรวจสิทธิ์ พร้อมแอพคนขับ ระบบส่งอาหาร/ติดตาม รถรับส่งผู้โดยสาร ศูนย์ออเดอร์บน `pos.cashlessthailand.com` และหลังบ้านแพลตฟอร์ม รายละเอียดอยู่ที่ [แผน Flutter Food Delivery และ Ride Platform](plans/FLUTTER_FOOD_DELIVERY_RIDE_PLATFORM_TH_20261016.md)
+
+เป็น roadmap ใหม่ที่ต่อยอดเฟส 2–3 และ 7 เดิม ไม่ใช่การรับรองว่า mobile/dispatch/rides หรือ POS parity ที่ยังขาดเสร็จแล้ว ใช้ canonical quote/stock/payment และ Supabase BitPOS บน OCI ชุดเดียว เพิ่ม online-order authority โดยไม่ปลอม device/register และไม่ผูกการสั่งจากแอพกับ Mini. ผู้ใช้ยืนยันเริ่มไรเดอร์ส่งอาหารก่อน แล้วเพิ่มรถรับส่งผู้โดยสารภายหลัง: พัฒนา pickup vertical slice → delivery pilot → commerce/operations → passenger rides → advanced marketplace พร้อม acceptance แยกแต่ละระยะ; Solana คง devnet และการเลือก fleet/provider/payment/พื้นที่เปิดบริการยังต้องสรุปใน P0
