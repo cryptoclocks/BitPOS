@@ -1,4 +1,5 @@
-.ride-console .dispatch-panel { margin-bottom: 24px; }
+.ride-console .dispatch-panel { margin:0 32px 24px; padding:20px 24px; border:1px solid #E9E1F1; background:#fff; border-radius:22px; }
+.ride-console .dispatch-main>[role=status] { margin:0 32px 24px; }
 .ride-console label { display:flex; flex-direction:column; gap:8px; margin:12px 0; }
 .ride-console input,.ride-console select,.ride-console textarea { box-sizing:border-box; width:100%; min-height:44px; border:1px solid #d8cde4; border-radius:10px; padding:10px; font:inherit; background:#fff; color:#29183f; }
 .ride-console button { min-height:44px; margin:4px 8px 4px 0; }
@@ -13,3 +14,4 @@
 .ride-incident[aria-pressed=true] { outline:2px solid #6e2593; }
 .ride-incident-body { white-space:pre-wrap; overflow-wrap:anywhere; border-left:3px solid #d8cde4; padding:12px; }
 @media(max-width:720px) { .ride-rate-grid,.ride-incident-grid { grid-template-columns:1fr; } .ride-toolbar { flex-wrap:wrap; } }
+@media(max-width:760px) { .ride-console .dispatch-panel,.ride-console .dispatch-main>[role=status] { margin-inline:16px; padding:16px; } }

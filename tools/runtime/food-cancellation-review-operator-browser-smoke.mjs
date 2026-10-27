@@ -2,13 +2,13 @@ import assert from 'node:assert/strict';
 // Native tab helpers exercise real React inputs; no fetch/auth/domain substitution.
 export async function verifyFoodCancellationReviewOperator(tab,fixture){
  const text=()=>tab.text('body'),button=label=>'role/button[name="'+label+'" exact]';
- let continuedAuthenticated=(await tab.count('input[pattern="[0-9a-fA-F-]{36}"]'))>0;
+ let continuedAuthenticated=(await tab.count('input[pattern^="[0-9a-fA-F"]'))>0;
  if(!continuedAuthenticated){
   await tab.waitForSelector('input[type="tel"]');if((await text()).includes('ขอ OTP'))await tab.click(button('English'));
-  await tab.fill('input[type="tel"]',fixture.phone);await tab.click(button('Request OTP'));await tab.waitForSelector('input[autocomplete="one-time-code"]');await tab.fill('input[autocomplete="one-time-code"]',fixture.otp);await tab.click(button('Verify OTP'));await tab.waitForSelector('input[pattern="[0-9a-fA-F-]{36}"]');
+  await tab.fill('input[type="tel"]',fixture.phone);await tab.click(button('Request OTP'));await tab.waitForSelector('input[autocomplete="one-time-code"]');await tab.fill('input[autocomplete="one-time-code"]',fixture.otp);await tab.click(button('Verify OTP'));await tab.waitForSelector('input[pattern^="[0-9a-fA-F"]');
  }
  assert(!(await text()).includes('Original command unresolved'),'Recover existing pending command first');
- await tab.fill('input[pattern="[0-9a-fA-F-]{36}"]',fixture.merchantId);await tab.click(button('Load latest reviews'));await tab.waitForSelector('button.platform-driver');await tab.click('button.platform-driver');await tab.waitForSelector('textarea');
+ await tab.fill('input[pattern^="[0-9a-fA-F"]',fixture.merchantId);await tab.click(button('Load latest reviews'));await tab.waitForSelector('button.platform-driver');await tab.click('button.platform-driver');await tab.waitForSelector('textarea');
  assert((await text()).includes('AT_PICKUP'));assert(!(await text()).includes('Synthetic PRIVATE customer cancellation-review detail'));
  await tab.fill('input[maxlength="500"]','Synthetic native-helper browser audited review investigation');await tab.click(button('Inspect private detail with access audit'));await tab.waitForSelector('aside');assert((await tab.text('aside')).includes('Synthetic PRIVATE customer cancellation-review detail'));
  const privatePersisted=await tab.evaluate(()=>Object.values(localStorage).some(value=>value.includes('Synthetic PRIVATE customer cancellation-review detail')));assert.equal(privatePersisted,false);
