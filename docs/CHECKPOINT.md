@@ -3211,3 +3211,7 @@ Kept CLOSED and not implemented: ride payment/earnings, per-child or parent grou
 - Do not expose the private claim to app/worker roles. Candidates 154-159 are NOT admitted to actual use. Reopen only after the owner sets the limits and approves the custody redesign.
 - DS58 closed as PARTIAL (local software scope) by Claude 2026-10-27; owner asked to skip the remaining serial regression (48/127 files run). See DS58/handoff.md 'Final acceptance statement'.
 - Fresh E2E (2026-10-27, Claude): Flutter 178/305/245 pass, ride+group AVD pass, web joined 13/13 pass; details in DS58/handoff.md. Food continuous journey not re-run.
+
+### Local commits (2026-10-27)
+- Work committed locally on branch `codex/bitpos-h2-local-scope-20261027` (16 commits on top of `a79544f`), grouped by area (design, migrations 022-095 / 096-137 closed / 138-153 / 154-159 closed, domain+contracts, api+worker, web, mobile customer, mobile driver, firmware, tests, tools, docs, omp, .gitignore). NOT pushed. The worktree was on a detached HEAD before; the branch was created for these commits.
+- Deliberately left untracked: `tools/runtime/coffee-copilot-deploy.py` and `tools/runtime/coffee-copilot-private-env.ts` (they embed the production OCI host and SSH key path; owner should review/parameterise before committing). Content scan of all committed files found no private keys, tokens or service-role values.
