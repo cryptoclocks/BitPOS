@@ -47,13 +47,13 @@ int main(void){
  puts("journal_absolute50_paused_desired_pending_before_send_crc_header_and_torn_record");
  s.saved.pending.kind=TC_SUBMIT;strcpy(s.saved.pending.key,quote);strcpy(s.saved.pending.quote,quote);strcpy(s.saved.pending.price,"fixture-price");assert(table_command_json(&s,sent,sizeof(sent)));assert(table_command_json(&s,retry,sizeof(retry))&&!strcmp(sent,retry));
  s.saved.pending.kind=TC_OPEN;strcpy(s.saved.pending.recover,session);s.needs_resume=true;assert(table_command_json(&s,sent,sizeof(sent)));s.needs_resume=false;strcpy(s.saved.session,quote);assert(table_command_json(&s,retry,sizeof(retry))&&!strcmp(sent,retry));puts("timeout_keeps_submit_key_and_exact_recover_semantics");
- table_fragment_t f={0};char buffer[8192];assert(table_fragment(&f,buffer,1,false,4,0,"{\"x\"",2)==0);assert(table_fragment(&f,buffer,1,false,4,2,"x\"",2)==0);assert(table_fragment(&f,buffer,9,true,1,0,"p",1)==0);assert(table_fragment(&f,buffer,0,true,3,0,":1}",3)==1&&!strcmp(buffer,"{\"x\":1}"));
- char payload[8192];memset(payload,'x',sizeof(payload));memset(&f,0,sizeof(f));assert(table_fragment(&f,buffer,1,true,8191,0,payload,8191)==1);
- memset(&f,0,sizeof(f));assert(table_fragment(&f,buffer,1,true,8192,0,payload,0)==-1);assert(table_fragment(&f,buffer,2,true,1,0,"x",1)==-1);
+ table_fragment_t f={0};char buffer[16384];assert(table_fragment(&f,buffer,1,false,4,0,"{\"x\"",2)==0);assert(table_fragment(&f,buffer,1,false,4,2,"x\"",2)==0);assert(table_fragment(&f,buffer,9,true,1,0,"p",1)==0);assert(table_fragment(&f,buffer,0,true,3,0,":1}",3)==1&&!strcmp(buffer,"{\"x\":1}"));
+ char payload[16384];memset(payload,'x',sizeof(payload));memset(&f,0,sizeof(f));assert(table_fragment(&f,buffer,1,true,16383,0,payload,16383)==1);
+ memset(&f,0,sizeof(f));assert(table_fragment(&f,buffer,1,true,16384,0,payload,0)==-1);assert(table_fragment(&f,buffer,2,true,1,0,"x",1)==-1);
  assert(table_fragment(&f,buffer,1,true,4,0,"{}",2)==0);assert(table_fragment(&f,buffer,1,true,4,3,"}",1)==-1);
  const char *deep="[[[[[[[[[[[[[[[[[]]]]]]]]]]]]]]]]]";
  assert(table_json_bounded("{\"x\":[{}]}",strlen("{\"x\":[{}]}")));assert(!table_json_bounded(deep,strlen(deep)));
- puts("SDK_chunks_RFC_fragments_controls_8191_overflow_gaps_binary_depth_resync");
+ puts("SDK_chunks_RFC_fragments_controls_16383_overflow_gaps_binary_depth_resync");
  memset(&s,0,sizeof(s));strcpy(s.price,"fixture-price");strcpy(s.saved.session,session);s.saved.cart=1;s.saved.count=50;for(unsigned i=0;i<50;i++){id(s.saved.acknowledged[i].product,i+1);s.saved.acknowledged[i].qty=1;}
  j=quote_header(50);assert(table_quote(&s,j));cJSON_Delete(j);for(unsigned i=0;i<13;i++){j=page(i,50);assert(table_quote_page(&s,j));cJSON_Delete(j);assert(s.quote_ready==(i==12));}assert(s.review[49].qty==1&&s.total.minor==13500);puts("all50_canonical_review_full13_pages_before_confirm");
  j=quote_header(50);assert(table_quote(&s,j));cJSON_Delete(j);j=page(0,50);cJSON_ReplaceItemInObjectCaseSensitive(cJSON_GetArrayItem(cJSON_GetObjectItem(j,"lines"),0),"priceVersion",cJSON_CreateString("other-price"));assert(!table_quote_page(&s,j)&&!s.quote_ready);cJSON_Delete(j);

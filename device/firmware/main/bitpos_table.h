@@ -15,7 +15,7 @@ typedef struct { char product[TABLE_UUID]; uint8_t qty; } table_item_t;
 typedef struct {
     char product[TABLE_UUID], name[96], category[96];
     table_money_t unit; uint8_t qty; int8_t asset; bool available;
-    uint64_t discount; uint8_t percent; bool promotion;
+    uint64_t discount; uint8_t percent; bool promotion, scoped_promotion, daily_promotion;
 } table_row_t;
 typedef enum { TC_NONE, TC_OPEN, TC_SET, TC_REVIEW, TC_SUBMIT, TC_RELEASE, TC_DISMISS, TC_CANCEL } table_command_t;
 typedef struct {
@@ -37,11 +37,12 @@ typedef struct {
 typedef struct { char product[TABLE_UUID],name[96];table_money_t unit; } table_cart_label_t;
 typedef struct {
     table_durable_t saved;
-    uint64_t connection, screen, assignment, pairing, seq;
+    uint64_t connection, screen, assignment, pairing, seq, auth;
     bool configured, synchronized, online, storage_ok, resolving, cart_owner, order_owner;
     bool menu_advance, observed_cart;
     bool quote_ready, quote_loading, can_dismiss, needs_resume;
     char device[TABLE_UUID], label[96], serving[96], menu[TABLE_VERSION], price[TABLE_VERSION];
+    char table_id[TABLE_UUID]; /* CONFIG authority, not a display identity. */
     char quote[TABLE_UUID], quote_price[TABLE_VERSION], quote_until[32];
     char payment_origin[192], table_entry_url[256];
     int64_t menu_generated_ms,menu_until_ms;
@@ -51,6 +52,12 @@ typedef struct {
     table_row_t rows[TABLE_PAGE_ROWS], review[TABLE_LINES];
     char notice[96], read_request[TABLE_UUID], sync_request[TABLE_UUID];
     char ack_request[TABLE_UUID],heartbeat_request[TABLE_UUID];
+    /* Volatile explicit promotion claim: never included in BPT2 financial journal. */
+    char open_offer[44], open_offer_request[TABLE_UUID];
+    /* Authenticated observed-cart/catalog metadata; never serialized in BPT2. */
+    char catalog_session[TABLE_UUID], scoped_target[TABLE_UUID], scoped_campaign[TABLE_UUID], scoped_product[TABLE_UUID];
+    unsigned scoped_version;
+    int64_t catalog_lease_ms;
     uint32_t read_started, pending_started, heartbeat_at;
     unsigned view, scroll, detail; /* 0 home, 1 menu, 2 cart, 3 review, 4 photo */
     char category[96];
@@ -67,6 +74,7 @@ bool table_money(cJSON *json,table_money_t *out,bool legacy);
 void table_format_money(const table_money_t *money,char *out,size_t cap);
 bool table_timestamp(cJSON *json,const char *key,int64_t *out);
 bool table_settlement(cJSON *json,table_money_t *out);
+bool table_settlement_matches(cJSON *json,const table_money_t *total,const table_money_t *settlement);
 bool table_items(cJSON *json,table_item_t *items,uint8_t *count);
 bool table_rows(cJSON *json,table_row_t *rows,unsigned *count,bool review);
 bool table_config(table_state_t *state,cJSON *payload);
@@ -82,7 +90,7 @@ size_t table_journal_encode(const table_durable_t *saved,uint64_t sequence,uint8
 bool table_journal_decode(const uint8_t *data,size_t length,table_durable_t *saved,uint64_t *sequence);
 typedef struct { unsigned used,offset,frame_length,frames,chunks;bool active,frame_fin;uint8_t opcode; } table_fragment_t;
 /* -1 requires transport resync, 0 waits/ignores control, 1 complete text. */
-int table_fragment(table_fragment_t *state,char buffer[8192],uint8_t opcode,bool fin,int frame_length,int offset,const char *data,int length);
+int table_fragment(table_fragment_t *state,char buffer[16384],uint8_t opcode,bool fin,int frame_length,int offset,const char *data,int length);
 bool table_json_bounded(const char *data,size_t length);
 bool table_display_text(const char *text);
 bool table_version(const char *text);
