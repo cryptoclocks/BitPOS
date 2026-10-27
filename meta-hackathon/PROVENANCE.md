@@ -26,6 +26,7 @@ Conventions: every new file starts with `Meta hackathon work (2026-10-26..11-04)
 | 2026-10-27 | `apps/api/src/meta/stripe.ts`, `tests/meta-stripe.test.ts` | Stripe sandbox agent payment: charge a Shared Payment Token for the canonical quote (idempotent, response must match amount/currency/checkout, live mode refused), Stripe webhook signature verification, paid-fact extraction; 6 tests |
 | 2026-10-27 | `packages/meta-ai/src/ntag424.ts`, `tests/meta-ntag424.test.ts` | NTAG 424 DNA SUN verification (AES-CMAC, PICCData decryption, per-sticker key derivation); NXP and RFC 4493 vectors |
 | 2026-10-27 | `supabase/migrations/301_meta_tap.sql` | Sticker registry, replay-safe counter advance, single-use 120 s tap sessions |
+| 2026-10-28 | `supabase/migrations/302_meta_identity.sql`, `apps/api/src/meta/{messenger,identity,routes}.ts`, `tests/meta-{messenger,identity-flow}.test.ts` | Tap route, Messenger consent identity, single-use sign-in links, customer web sessions; 7 tests incl. end-to-end on PostgreSQL |
 | 2026-10-27 | `tools/meta/stripe-smoke.ts` | Stripe test-mode probe (account country, card charge, agent shared-payment-token charge); refuses non-test keys |
 
 ## Pre-existing files modified during the hackathon
@@ -35,6 +36,7 @@ Every line changed in a pre-existing file is listed here with the reason.
 | File | Change | Reason |
 |---|---|---|
 | `docs/CHECKPOINT.md` | Prepended a dated Meta hackathon section | Project rule: every work session updates the checkpoint |
+| `apps/api/src/index.ts` | Import `serveMeta`/`metaRouteDepsFromEnv`; build `metaDeps` once; call `serveMeta` first in the request chain (3 lines) | Mount the `/meta/` routes; returns false for every other path, so existing routes are unchanged |
 
 ## Tools used
 - Meta models: list each model and provider exactly as recorded in `meta_ai_invocations` (fill in after the first live calls).

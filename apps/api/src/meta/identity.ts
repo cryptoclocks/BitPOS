@@ -1,0 +1,151 @@
+// Meta hackathon work (2026-10-26..11-04). See meta-hackathon/PROVENANCE.md.
+// Tap → Messenger consent → known customer. Every write happens inside the shop's RLS transaction;
+// network calls (Messenger Send API) are returned as an outbox and made by the caller after commit.
+// Each insert reads the clock once (CTE `n`) so created_at/expires_at satisfy the exact TTL checks.
+import type pg from 'pg';
+import {createHash,randomBytes} from 'node:crypto';
+import {deriveTagKeys,verifySun,SunError} from '../../../../packages/meta-ai/src/ntag424';
+import {REF,type Outgoing,type ParsedEvent} from './messenger';
+
+export interface MetaDb {
+ /** Runs as the application role outside any tenant (SECURITY DEFINER lookups only). */
+ query<R extends pg.QueryResultRow=any>(sql:string,params:unknown[]):Promise<{rows:R[]}>;
+ tenant<T>(merchant:string,fn:(db:pg.PoolClient)=>Promise<T>):Promise<T>;
+}
+export interface IdentityDeps {db:MetaDb;masterKey:Buffer;publicOrigin:string}
+
+const sha=(s:string)=>createHash('sha256').update(s).digest();
+const token=()=>randomBytes(32).toString('base64url');
+const TAG=/^[A-Za-z0-9_-]{4,64}$/,TOKEN=/^[A-Za-z0-9_-]{43}$/;
+export const CONSENT_VERSION='bitpos-meta-offers-v1';
+
+export type TapOutcome=
+ {kind:'invalid'}|{kind:'replayed'}|{kind:'no_page';merchantId:string}|
+ {kind:'known';merchantId:string;tapSessionId:string;deviceId:string}|
+ {kind:'messenger';merchantId:string;tapSessionId:string;url:string};
+
+export async function handleTap(deps:IdentityDeps,tagId:string,e:string|null,m:string|null,cookieToken?:string|null):Promise<TapOutcome>{
+ if(!TAG.test(tagId)||!e||!m)return {kind:'invalid'};
+ let sun;try{sun=verifySun(deriveTagKeys(deps.masterKey,tagId),e,m);}catch(err){if(err instanceof SunError)return {kind:'invalid'};throw err;}
+ const tap=(await deps.db.query<{merchant_id:string;device_id:string;session_id:string}>('SELECT merchant_id,device_id,session_id FROM bitpos.meta_record_tap($1,$2,$3,$4)',[tagId,sun.uid,sun.counter,sha(token())])).rows[0];
+ if(!tap)return {kind:'replayed'};
+ const merchantId=tap.merchant_id,tapSessionId=tap.session_id;
+ if(cookieToken&&TOKEN.test(cookieToken)){
+  const owner=(await deps.db.query<{m:string|null}>('SELECT bitpos.meta_session_merchant($1) AS m',[sha(cookieToken)])).rows[0]?.m;
+  if(owner===merchantId){
+   const bound=await deps.db.tenant(merchantId,async db=>{
+    const link=await activeLinkForSession(db,cookieToken);if(!link)return false;
+    return (await db.query("UPDATE meta_tap_sessions SET link_id=$2,bound_at=clock_timestamp(),claimed_at=clock_timestamp() WHERE id=$1 AND link_id IS NULL AND claimed_at IS NULL AND expires_at>clock_timestamp()",[tapSessionId,link])).rowCount===1;
+   });
+   if(bound)return {kind:'known',merchantId,tapSessionId,deviceId:tap.device_id};
+  }
+ }
+ return deps.db.tenant(merchantId,async db=>{
+  const page=(await db.query<{page_username:string}>('SELECT page_username FROM meta_messenger_pages WHERE retired_at IS NULL')).rows[0];
+  if(!page)return {kind:'no_page',merchantId} as const;
+  const ref=randomBytes(24).toString('base64url');
+  await db.query("WITH n AS (SELECT clock_timestamp() AS t) INSERT INTO meta_messenger_refs(merchant_id,tap_session_id,ref_sha256,created_at,expires_at) SELECT $1,$2,$3,t,t+interval '10 minutes' FROM n",[merchantId,tapSessionId,sha(ref)]);
+  return {kind:'messenger',merchantId,tapSessionId,url:`https://m.me/${page.page_username}?ref=${ref}`} as const;
+ });
+}
+
+async function activeLinkForSession(db:pg.PoolClient,cookieToken:string):Promise<string|null>{
+ return (await db.query<{link_id:string}>('SELECT s.link_id FROM meta_customer_sessions s JOIN meta_customer_links l ON l.merchant_id=s.merchant_id AND l.id=s.link_id WHERE s.token_sha256=$1 AND s.revoked_at IS NULL AND s.expires_at>clock_timestamp() AND l.revoked_at IS NULL',[sha(cookieToken)])).rows[0]?.link_id??null;
+}
+
+async function bindTap(db:pg.PoolClient,tapSessionId:string|null,linkId:string):Promise<boolean>{
+ if(!tapSessionId)return false;
+ return (await db.query("UPDATE meta_tap_sessions SET link_id=$2,bound_at=clock_timestamp() WHERE id=$1 AND link_id IS NULL AND created_at>clock_timestamp()-interval '15 minutes'",[tapSessionId,linkId])).rowCount===1;
+}
+
+async function magicLink(deps:IdentityDeps,db:pg.PoolClient,merchantId:string,linkId:string,tapSessionId:string|null):Promise<string>{
+ const t=token();
+ await db.query("WITH n AS (SELECT clock_timestamp() AS t) INSERT INTO meta_magic_links(merchant_id,link_id,tap_session_id,token_sha256,created_at,expires_at) SELECT $1,$2,$3,$4,t,t+interval '10 minutes' FROM n",[merchantId,linkId,tapSessionId,sha(t)]);
+ return `${deps.publicOrigin}/meta/login?t=${t}`;
+}
+
+const T={
+ consent:'สวัสดีค่ะ ให้ร้านจำคุณไว้เพื่อเสนอโปรที่ตรงใจและทักทายเมื่อแตะที่เครื่องไหม? ร้านเก็บแค่รหัสแชทนี้กับประวัติการซื้อที่ร้าน ลบได้ทุกเมื่อโดยพิมพ์ "ลบข้อมูล"\nLet this shop remember you for personal offers when you tap? Only this chat id and your purchases here are kept. Type STOP anytime.',
+ welcome:'ยินดีต้อนรับค่ะ ร้านจำคุณได้แล้ว ครั้งหน้าแค่แตะที่เครื่อง\nWelcome! Next time, just tap.',
+ back:'ยินดีต้อนรับกลับค่ะ 👋\nWelcome back!',
+ declined:'รับทราบค่ะ ร้านจะไม่จำข้อมูลของคุณ\nOK, the shop will not remember you.',
+ expired:'ลิงก์หมดอายุแล้ว กรุณาแตะที่เครื่องอีกครั้ง\nThis link expired. Please tap again.',
+ revoked:'ลบการเชื่อมต่อกับร้านแล้วค่ะ\nYou are disconnected from this shop.',
+};
+const openButton=(url:string)=>({type:'web_url' as const,title:'เปิดหน้าร้าน / Open',url});
+
+/** Applies verified webhook events. Returns messages to send after the transactions commit. */
+export async function handleMessengerEvents(deps:IdentityDeps,events:ParsedEvent[]):Promise<Outgoing[]>{
+ const out:Outgoing[]=[];
+ for(const {event,key} of events){
+  const merchantId=(await deps.db.query<{m:string|null}>('SELECT bitpos.meta_page_merchant($1) AS m',[event.pageId])).rows[0]?.m;
+  if(!merchantId)continue;
+  const reply=await deps.db.tenant(merchantId,async db=>{
+   if(!(await db.query('INSERT INTO meta_messenger_events(merchant_id,event_sha256) VALUES($1,$2) ON CONFLICT DO NOTHING',[merchantId,key])).rowCount)return null;
+   const {pageId,psid}=event;
+   if(event.kind==='revoke'){
+    const links=(await db.query<{id:string}>('UPDATE meta_customer_links SET revoked_at=clock_timestamp() WHERE page_id=$1 AND psid=$2 AND revoked_at IS NULL RETURNING id',[pageId,psid])).rows;
+    if(links.length)await db.query('UPDATE meta_customer_sessions SET revoked_at=clock_timestamp() WHERE link_id=ANY($1::uuid[]) AND revoked_at IS NULL',[links.map(l=>l.id)]);
+    return {kind:'text',psid,text:T.revoked} as Outgoing;
+   }
+   if(event.kind==='referral'){
+    if(!REF.test(event.ref))return null;
+    const tap=(await db.query<{tap_session_id:string}>('UPDATE meta_messenger_refs SET consumed_at=clock_timestamp(),consumed_psid=$2 WHERE ref_sha256=$1 AND consumed_at IS NULL AND expires_at>clock_timestamp() RETURNING tap_session_id',[sha(event.ref),psid])).rows[0];
+    if(!tap)return {kind:'text',psid,text:T.expired} as Outgoing;
+    const link=(await db.query<{id:string}>('SELECT id FROM meta_customer_links WHERE page_id=$1 AND psid=$2 AND revoked_at IS NULL',[pageId,psid])).rows[0];
+    if(link){await bindTap(db,tap.tap_session_id,link.id);return {kind:'buttons',psid,text:T.back,buttons:[openButton(await magicLink(deps,db,merchantId,link.id,tap.tap_session_id))]} as Outgoing;}
+    const request=(await db.query<{id:string}>("WITH n AS (SELECT clock_timestamp() AS t) INSERT INTO meta_consent_requests(merchant_id,page_id,psid,tap_session_id,created_at,expires_at) SELECT $1,$2,$3,$4,t,t+interval '15 minutes' FROM n RETURNING id",[merchantId,pageId,psid,tap.tap_session_id])).rows[0];
+    return {kind:'buttons',psid,text:T.consent,buttons:[{type:'postback',title:'ยินยอม / Allow',payload:`BITPOS_CONSENT_ACCEPT:${request.id}`},{type:'postback',title:'ไม่ / No',payload:`BITPOS_CONSENT_DECLINE:${request.id}`}]} as Outgoing;
+   }
+   const decided=(await db.query<{tap_session_id:string|null}>('UPDATE meta_consent_requests SET decided_at=clock_timestamp(),decision=$4 WHERE id=$1 AND page_id=$2 AND psid=$3 AND decided_at IS NULL AND expires_at>clock_timestamp() RETURNING tap_session_id',[event.requestId,pageId,psid,event.accept?'ACCEPTED':'DECLINED'])).rows[0];
+   if(!decided)return {kind:'text',psid,text:T.expired} as Outgoing;
+   if(!event.accept)return {kind:'text',psid,text:T.declined} as Outgoing;
+   await db.query('INSERT INTO meta_customer_links(merchant_id,page_id,psid,consent_version) VALUES($1,$2,$3,$4) ON CONFLICT (page_id,psid) WHERE revoked_at IS NULL DO NOTHING',[merchantId,pageId,psid,CONSENT_VERSION]);
+   const link=(await db.query<{id:string}>('SELECT id FROM meta_customer_links WHERE page_id=$1 AND psid=$2 AND revoked_at IS NULL',[pageId,psid])).rows[0];
+   await bindTap(db,decided.tap_session_id,link.id);
+   return {kind:'buttons',psid,text:T.welcome,buttons:[openButton(await magicLink(deps,db,merchantId,link.id,decided.tap_session_id))]} as Outgoing;
+  });
+  if(reply)out.push(reply);
+ }
+ return out;
+}
+
+export interface CustomerSession {merchantId:string;sessionToken:string;tapSessionId:string|null}
+
+/** Single-use sign-in link from Messenger → a 30-day web session for that shop only. */
+export async function consumeMagicLink(deps:IdentityDeps,magic:string):Promise<CustomerSession|null>{
+ if(!TOKEN.test(magic))return null;
+ const merchantId=(await deps.db.query<{m:string|null}>('SELECT bitpos.meta_magic_merchant($1) AS m',[sha(magic)])).rows[0]?.m;
+ if(!merchantId)return null;
+ return deps.db.tenant(merchantId,async db=>{
+  const row=(await db.query<{link_id:string;tap_session_id:string|null}>('UPDATE meta_magic_links ml SET consumed_at=clock_timestamp() FROM meta_customer_links l WHERE ml.token_sha256=$1 AND ml.consumed_at IS NULL AND ml.expires_at>clock_timestamp() AND l.merchant_id=ml.merchant_id AND l.id=ml.link_id AND l.revoked_at IS NULL RETURNING ml.link_id,ml.tap_session_id',[sha(magic)])).rows[0];
+  if(!row)return null;
+  const sessionToken=token();
+  await db.query("WITH n AS (SELECT clock_timestamp() AS t) INSERT INTO meta_customer_sessions(merchant_id,link_id,token_sha256,created_at,expires_at) SELECT $1,$2,$3,t,t+interval '30 days' FROM n",[merchantId,row.link_id,sha(sessionToken)]);
+  return {merchantId,sessionToken,tapSessionId:row.tap_session_id};
+ });
+}
+
+export interface CustomerView {merchantId:string;linkId:string;consentedAt:string;lastTap:{deviceId:string;boundAt:string}|null}
+
+export async function customerFromSession(deps:IdentityDeps,sessionToken:string|null|undefined):Promise<CustomerView|null>{
+ if(!sessionToken||!TOKEN.test(sessionToken))return null;
+ const merchantId=(await deps.db.query<{m:string|null}>('SELECT bitpos.meta_session_merchant($1) AS m',[sha(sessionToken)])).rows[0]?.m;
+ if(!merchantId)return null;
+ return deps.db.tenant(merchantId,async db=>{
+  const linkId=await activeLinkForSession(db,sessionToken);if(!linkId)return null;
+  const link=(await db.query<{consented_at:Date}>('SELECT consented_at FROM meta_customer_links WHERE id=$1',[linkId])).rows[0];
+  const tap=(await db.query<{device_id:string;bound_at:Date}>("SELECT device_id,bound_at FROM meta_tap_sessions WHERE link_id=$1 AND bound_at>clock_timestamp()-interval '15 minutes' ORDER BY bound_at DESC LIMIT 1",[linkId])).rows[0];
+  return {merchantId,linkId,consentedAt:link.consented_at.toISOString(),lastTap:tap?{deviceId:tap.device_id,boundAt:tap.bound_at.toISOString()}:null};
+ });
+}
+
+/** Customer-initiated forget from the web page: ends the link and every session of it. */
+export async function revokeFromSession(deps:IdentityDeps,sessionToken:string|null|undefined):Promise<boolean>{
+ const me=await customerFromSession(deps,sessionToken);if(!me)return false;
+ return deps.db.tenant(me.merchantId,async db=>{
+  await db.query('UPDATE meta_customer_links SET revoked_at=clock_timestamp() WHERE id=$1 AND revoked_at IS NULL',[me.linkId]);
+  await db.query('UPDATE meta_customer_sessions SET revoked_at=clock_timestamp() WHERE link_id=$1 AND revoked_at IS NULL',[me.linkId]);
+  return true;
+ });
+}
