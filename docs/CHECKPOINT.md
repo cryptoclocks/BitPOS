@@ -3238,3 +3238,8 @@ Kept CLOSED and not implemented: ride payment/earnings, per-child or parent grou
 - ติ๊ก checklist 4 ข้อที่มีหลักฐานครบ (DS20 states, DS21 states, DS23 filter/export, DS26 action visibility); เหลือ `[ ]` 243 ข้อ (ส่วนมากเป็นเทียบ FigCraft/Codex รับงาน และ DS28–33)
 - แก้บั๊ก UI 5 จุด (ดู README) ยังไม่ deploy; web tests 64 ผ่าน
 - ต่อไป: DS28–30 (Pay) และ DS31–33 (Platform) ด้วยวิธีเดียวกัน
+
+## 2026-10-27 — A5 ส่วนที่ 2: ตรวจ Pay/Table/Platform (DS28–33)
+- เดินหน้า pay, table และ 9 หน้า platform บน stack ชั่วคราว (ไม่ชำระ ไม่ส่งคำสั่งตรวจคนส่ง); ติ๊ก checklist 1 ข้อ (DS31 responsive/guard); เหลือ `[ ]` 242 ข้อ
+- แก้บั๊ก 3 จุด: หน้า rides ไม่มี padding, UUID pattern ใน 3 หน้า platform ใช้ไม่ได้ใน Chrome ปัจจุบัน, หน้า drivers โชว์ error code ดิบ; web tests 64 ผ่าน; ยังไม่ deploy
+- ต่อไป: DS34 (shared states/theme/locale) หรือสร้างข้อมูลทดสอบที่ชำระแล้วเพื่อตรวจ order action/refund/receipt
