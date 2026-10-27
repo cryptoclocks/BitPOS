@@ -22,3 +22,11 @@
  .shell[data-merchant-shell]>header>.brand small{font-size:16px;font-weight:600;color:var(--bp-ink)}
  .shell[data-merchant-shell]>main,.shell[data-merchant-shell]>.menu-pane,.shell[data-merchant-shell]>.section-heading{max-width:none;margin:0;padding-left:32px;padding-right:32px;box-sizing:border-box}
 }
+
+/* Sales heading and filters follow the FigCraft P02 layout: title and subtitle, then one full-width search/category row. */
+.menu-pane .sales-heading{display:flex;flex-direction:column;align-items:stretch;gap:16px}
+.menu-pane .sales-heading h1{margin:0}
+.menu-pane .sales-sub{margin:4px 0 0;color:#7a7089;font-size:14px}
+.menu-pane .sales-heading .menu-filters{display:flex;flex-wrap:wrap;gap:12px;align-items:center;width:100%}
+.menu-pane .sales-heading .menu-filters input{flex:1 1 320px;min-width:0}
+.menu-pane .sales-heading .menu-filters select{flex:0 1 220px}
