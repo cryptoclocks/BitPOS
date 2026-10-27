@@ -32,3 +32,7 @@
 .menu-pane .sales-heading .menu-filters select{flex:0 1 220px}
 
 @media(min-width:1100px){.shell[data-merchant-shell] .settings-workspace{margin-top:24px}}
+
+/* Opening-hours day groups: rounded cards like the rest of Settings instead of the browser's square fieldset outline. */
+.opening-day{margin:0 0 14px;padding:12px 16px 16px;border:1px solid var(--bp-line,#e9e1f1);border-radius:16px;background:#fff}
+.opening-day>legend{padding:0 8px;font-weight:700;color:var(--bp-ink,#321b50)}
