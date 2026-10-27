@@ -157,7 +157,7 @@ void main() {
     await tester.tap(find.text('Account'));
     await tester.pumpAndSettle();
     expect(find.text('Your earnings'), findsNothing);
-    expect(find.text('Food driver sign in'), findsNothing);
+    expect(find.text('Rider sign in'), findsNothing);
     final work = await tester.runAsync(() => api.foodDriverWork());
     expect(work!.assignment, isNull);
     expect(work.offers, isEmpty);
@@ -218,7 +218,7 @@ void main() {
     expect(find.textContaining('Quoted delivery fee:'), findsWidgets);
     await tester.runAsync(() => api.logout());
     await tester.pumpAndSettle();
-    expect(find.text('Food driver sign in'), findsOneWidget);
+    expect(find.text('Rider sign in'), findsOneWidget);
     expect(find.textContaining('Quoted delivery fee:'), findsNothing);
   });
 }

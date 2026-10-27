@@ -13,7 +13,7 @@ void main(){IntegrationTestWidgetsFlutterBinding.ensureInitialized();testWidgets
  debugPrint('BITPOS_RIDER_WELCOME_ROOT_VISIBLE');await tester.runAsync(()=>Future<void>.delayed(const Duration(seconds:2)));
  await tester.tap(find.text('English'));await tester.pumpAndSettle();expect(find.text('Map illustration'),findsOneWidget);
  await tester.ensureVisible(start);await tester.pumpAndSettle();await tester.tap(start);await tester.pumpAndSettle();
- expect(find.text('Food driver sign in'),findsOneWidget);expect(find.byType(TextFormField),findsOneWidget);
+ expect(find.text('Rider sign in'),findsOneWidget);expect(find.byType(TextFormField),findsOneWidget);
  debugPrint('BITPOS_RIDER_LOGIN_ROOT_VISIBLE');await tester.runAsync(()=>Future<void>.delayed(const Duration(seconds:2)));
  expect(tester.takeException(),isNull);await tester.pumpWidget(const SizedBox.shrink());await tester.pumpAndSettle();
 });}
