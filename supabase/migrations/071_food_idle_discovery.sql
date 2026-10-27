@@ -1,0 +1,184 @@
+-- Private opt-in FOOD discovery. Assignment GPS retains its separate061 authority.
+SET search_path=bitpos,public;
+CREATE TABLE driver_food_service_grants(
+ driver_id uuid NOT NULL REFERENCES driver_profiles,merchant_id uuid NOT NULL,branch_id uuid NOT NULL,
+ revision bigint NOT NULL CHECK(revision>0),profile_version bigint NOT NULL CHECK(profile_version>0),
+ vehicle_type text NOT NULL CHECK(vehicle_type IN('MOTORCYCLE','CAR')),enabled boolean NOT NULL,
+ valid_until timestamptz NOT NULL CHECK(isfinite(valid_until)),issued_by uuid NOT NULL REFERENCES mobile_accounts,
+ issued_grant_id uuid NOT NULL REFERENCES platform_staff_role_grants,reason text NOT NULL CHECK(length(btrim(reason)) BETWEEN 1 AND 500),
+ PRIMARY KEY(driver_id,merchant_id,branch_id),FOREIGN KEY(merchant_id,branch_id) REFERENCES branch_delivery_policies
+);
+CREATE TABLE driver_food_discovery_consents(
+ driver_id uuid PRIMARY KEY REFERENCES driver_occupancy,revision bigint NOT NULL CHECK(revision>0),
+ owner_session_id uuid NOT NULL REFERENCES mobile_sessions,enabled boolean NOT NULL,
+ expires_at timestamptz NOT NULL CHECK(isfinite(expires_at)),updated_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+ last_sequence bigint NOT NULL DEFAULT 0 CHECK(last_sequence>=0),last_captured_at timestamptz,last_received_at timestamptz
+);
+CREATE TABLE driver_food_discovery_zones(
+ driver_id uuid NOT NULL REFERENCES driver_food_discovery_consents,merchant_id uuid NOT NULL,branch_id uuid NOT NULL,
+ PRIMARY KEY(driver_id,merchant_id,branch_id),FOREIGN KEY(driver_id,merchant_id,branch_id) REFERENCES driver_food_service_grants
+);
+CREATE TABLE driver_food_idle_locations(
+ driver_id uuid PRIMARY KEY REFERENCES driver_food_discovery_consents,consent_revision bigint NOT NULL CHECK(consent_revision>0),
+ sequence bigint NOT NULL CHECK(sequence>0),captured_at timestamptz NOT NULL CHECK(isfinite(captured_at)),received_at timestamptz NOT NULL,
+ latitude_e7 integer NOT NULL CHECK(abs(latitude_e7::bigint)<=900000000),longitude_e7 integer NOT NULL CHECK(abs(longitude_e7::bigint)<=1800000000),
+ accuracy_mm integer NOT NULL CHECK(accuracy_mm BETWEEN 0 AND 100000)
+);
+CREATE TABLE food_discovery_commands(
+ actor_account_id uuid NOT NULL REFERENCES mobile_accounts,idempotency_key uuid NOT NULL,request jsonb NOT NULL,response jsonb NOT NULL,
+ created_at timestamptz NOT NULL DEFAULT clock_timestamp(),PRIMARY KEY(actor_account_id,idempotency_key)
+);
+CREATE TABLE food_discovery_audit(
+ id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,actor_account_id uuid NOT NULL REFERENCES mobile_accounts,
+ driver_id uuid NOT NULL REFERENCES driver_profiles,action text NOT NULL,merchant_id uuid,branch_id uuid,revision bigint NOT NULL,
+ reason text NOT NULL DEFAULT '',created_at timestamptz NOT NULL DEFAULT clock_timestamp()
+);
+DO $$DECLARE n text;BEGIN
+ FOREACH n IN ARRAY ARRAY['driver_food_service_grants','driver_food_discovery_consents','driver_food_discovery_zones','driver_food_idle_locations','food_discovery_commands','food_discovery_audit'] LOOP
+  EXECUTE format('REVOKE ALL ON %I FROM PUBLIC,bitpos_app',n);EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY',n);
+ END LOOP;
+END $$;
+CREATE FUNCTION food_discovery_grant_live(driver uuid,merchant uuid,branch uuid) RETURNS boolean LANGUAGE sql VOLATILE SECURITY DEFINER SET search_path=pg_catalog,bitpos,pg_temp AS $$
+ SELECT EXISTS(SELECT 1 FROM driver_food_service_grants f JOIN driver_profiles p ON p.id=f.driver_id
+ JOIN driver_vehicles v ON v.driver_id=p.id JOIN platform_staff_role_grants g ON g.id=f.issued_grant_id
+ JOIN mobile_accounts issuer ON issuer.id=g.account_id JOIN platform_role_scopes sc ON sc.grant_id=g.id AND sc.merchant_id=f.merchant_id
+ WHERE f.driver_id=driver AND f.merchant_id=merchant AND f.branch_id=branch AND f.enabled AND f.valid_until>clock_timestamp()
+ AND f.profile_version=p.version AND f.vehicle_type=v.vehicle_type AND p.status='APPROVED' AND p.verified_until>clock_timestamp()
+ AND p.license_expires_at>clock_timestamp() AND v.registration_expires_at>clock_timestamp()
+ AND g.role IN('dispatcher','administrator') AND g.revoked_at IS NULL AND g.expires_at>clock_timestamp() AND issuer.disabled_at IS NULL)
+$$;
+CREATE FUNCTION food_discovery_service_command(driver uuid,merchant uuid,branch uuid,payload jsonb) RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,bitpos,pg_temp AS $$
+DECLARE actor uuid:=dispatch_live_actor();p driver_profiles;v driver_vehicles;f driver_food_service_grants;sponsor_grant uuid;key uuid;old food_discovery_commands;receipt jsonb;until_time timestamptz;
+BEGIN
+ IF current_setting('transaction_isolation')<>'read committed' THEN RAISE EXCEPTION 'DISPATCH_READ_COMMITTED_REQUIRED' USING ERRCODE='25001';END IF;
+ IF jsonb_typeof(payload) IS DISTINCT FROM 'object' OR (SELECT count(*) FROM jsonb_object_keys(payload))<>5 OR NOT payload ?& ARRAY['idempotencyKey','expectedVersion','enabled','validUntil','reason']
+ OR NOT coalesce(canonical_online_option_uuid(payload->>'idempotencyKey'),false) OR jsonb_typeof(payload->'expectedVersion') IS DISTINCT FROM 'string'
+ OR (payload->>'expectedVersion')!~'^(0|[1-9][0-9]{0,18})$' OR (payload->>'expectedVersion')::numeric>9223372036854775807
+ OR jsonb_typeof(payload->'enabled') IS DISTINCT FROM 'boolean' OR jsonb_typeof(payload->'validUntil') IS DISTINCT FROM 'string'
+ OR jsonb_typeof(payload->'reason') IS DISTINCT FROM 'string' OR length(btrim(payload->>'reason')) NOT BETWEEN 1 AND 500 THEN RAISE EXCEPTION 'INVALID_REQUEST';END IF;
+ key:=(payload->>'idempotencyKey')::uuid;until_time:=(payload->>'validUntil')::timestamptz;
+ SELECT g.id INTO sponsor_grant FROM platform_staff_role_grants g JOIN platform_role_scopes sc ON sc.grant_id=g.id
+ WHERE g.account_id=actor AND sc.merchant_id=merchant AND g.role IN('dispatcher','administrator') AND g.revoked_at IS NULL AND g.expires_at>clock_timestamp() ORDER BY g.id LIMIT 1;
+ IF sponsor_grant IS NULL THEN RAISE EXCEPTION 'ROLE_REQUIRED';END IF;
+ PERFORM 1 FROM platform_staff_role_grants WHERE id=sponsor_grant FOR SHARE;
+ PERFORM 1 FROM platform_role_scopes sc WHERE sc.grant_id=sponsor_grant AND sc.merchant_id=merchant FOR SHARE;
+ PERFORM 1 FROM driver_occupancy WHERE driver_id=driver FOR UPDATE;
+ SELECT * INTO p FROM driver_profiles WHERE id=driver;IF NOT FOUND THEN RAISE EXCEPTION 'RESOURCE_NOT_FOUND';END IF;
+ IF p.account_id=actor THEN RAISE EXCEPTION 'ROLE_REQUIRED';END IF;
+ SELECT * INTO STRICT v FROM driver_vehicles WHERE driver_id=driver;
+ PERFORM pg_advisory_xact_lock(hashtextextended(actor::text||key::text,71));
+ SELECT * INTO old FROM food_discovery_commands WHERE actor_account_id=actor AND idempotency_key=key;
+ IF FOUND THEN IF old.request<>jsonb_build_array(driver,merchant,branch,payload) THEN RAISE EXCEPTION 'IDEMPOTENCY_CONFLICT';END IF;RETURN old.response;END IF;
+ SELECT * INTO f FROM driver_food_service_grants WHERE driver_id=driver AND merchant_id=merchant AND branch_id=branch;
+ IF coalesce(f.revision,0)<>(payload->>'expectedVersion')::bigint THEN RAISE EXCEPTION 'VERSION_CONFLICT';END IF;
+ IF (payload->>'enabled')::boolean AND (NOT isfinite(until_time) OR until_time<=clock_timestamp() OR until_time>least(p.verified_until,p.license_expires_at,v.registration_expires_at,clock_timestamp()+interval '90 days') OR p.status<>'APPROVED') THEN RAISE EXCEPTION 'DRIVER_VERIFICATION_REQUIRED';END IF;
+ actor:=dispatch_live_actor();IF NOT EXISTS(SELECT 1 FROM platform_staff_role_grants g JOIN platform_role_scopes sc ON sc.grant_id=g.id WHERE g.id=sponsor_grant AND g.account_id=actor AND sc.merchant_id=merchant AND g.revoked_at IS NULL AND g.expires_at>clock_timestamp()) THEN RAISE EXCEPTION 'ROLE_REQUIRED';END IF;
+ INSERT INTO driver_food_service_grants VALUES(driver,merchant,branch,coalesce(f.revision,0)+1,p.version,v.vehicle_type,(payload->>'enabled')::boolean,until_time,actor,sponsor_grant,btrim(payload->>'reason'))
+ ON CONFLICT(driver_id,merchant_id,branch_id) DO UPDATE SET revision=EXCLUDED.revision,profile_version=EXCLUDED.profile_version,vehicle_type=EXCLUDED.vehicle_type,enabled=EXCLUDED.enabled,valid_until=EXCLUDED.valid_until,issued_by=EXCLUDED.issued_by,issued_grant_id=EXCLUDED.issued_grant_id,reason=EXCLUDED.reason;
+ DELETE FROM driver_food_idle_locations WHERE driver_id=driver;
+ receipt:=jsonb_build_object('revision',(coalesce(f.revision,0)+1)::text);
+ INSERT INTO food_discovery_commands VALUES(actor,key,jsonb_build_array(driver,merchant,branch,payload),receipt,clock_timestamp());
+ INSERT INTO food_discovery_audit(actor_account_id,driver_id,action,merchant_id,branch_id,revision,reason) VALUES(actor,driver,'service.authorize',merchant,branch,coalesce(f.revision,0)+1,btrim(payload->>'reason'));
+ RETURN receipt;
+END $$;
+CREATE FUNCTION food_discovery_consent(payload jsonb) RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,bitpos,pg_temp AS $$
+DECLARE actor uuid:=dispatch_live_actor();driver uuid;c driver_food_discovery_consents;key uuid;old food_discovery_commands;zone jsonb;receipt jsonb;enabled boolean;session uuid:=current_setting('bitpos.mobile_session')::uuid;
+BEGIN
+ IF current_setting('transaction_isolation')<>'read committed' THEN RAISE EXCEPTION 'DISPATCH_READ_COMMITTED_REQUIRED' USING ERRCODE='25001';END IF;
+ IF jsonb_typeof(payload) IS DISTINCT FROM 'object' OR (SELECT count(*) FROM jsonb_object_keys(payload))<>4 OR NOT payload ?& ARRAY['idempotencyKey','expectedVersion','enabled','zones']
+ OR NOT coalesce(canonical_online_option_uuid(payload->>'idempotencyKey'),false) OR jsonb_typeof(payload->'expectedVersion') IS DISTINCT FROM 'string'
+ OR (payload->>'expectedVersion')!~'^(0|[1-9][0-9]{0,18})$' OR (payload->>'expectedVersion')::numeric>9223372036854775807 OR jsonb_typeof(payload->'enabled') IS DISTINCT FROM 'boolean'
+ OR jsonb_typeof(payload->'zones') IS DISTINCT FROM 'array' OR jsonb_array_length(payload->'zones')>8 THEN RAISE EXCEPTION 'INVALID_REQUEST';END IF;
+ enabled:=(payload->>'enabled')::boolean;key:=(payload->>'idempotencyKey')::uuid;
+ IF enabled AND jsonb_array_length(payload->'zones')=0 OR NOT enabled AND jsonb_array_length(payload->'zones')<>0 THEN RAISE EXCEPTION 'INVALID_REQUEST';END IF;
+ SELECT id INTO driver FROM driver_profiles WHERE account_id=actor;IF driver IS NULL THEN RAISE EXCEPTION 'DRIVER_VERIFICATION_REQUIRED';END IF;
+ PERFORM 1 FROM driver_occupancy WHERE driver_id=driver FOR UPDATE;
+ PERFORM pg_advisory_xact_lock(hashtextextended(actor::text||key::text,71));
+ SELECT * INTO old FROM food_discovery_commands WHERE actor_account_id=actor AND idempotency_key=key;
+ IF FOUND THEN IF old.request<>jsonb_build_array('consent',session,payload) THEN RAISE EXCEPTION 'IDEMPOTENCY_CONFLICT';END IF;RETURN old.response;END IF;
+ SELECT * INTO c FROM driver_food_discovery_consents WHERE driver_id=driver;
+ IF coalesce(c.revision,0)<>(payload->>'expectedVersion')::bigint THEN RAISE EXCEPTION 'VERSION_CONFLICT';END IF;
+ IF enabled AND (NOT dispatch_eligible_driver(driver) OR EXISTS(SELECT 1 FROM driver_assignment_leases WHERE driver_id=driver AND state='ACTIVE')) THEN RAISE EXCEPTION 'DRIVER_UNAVAILABLE';END IF;
+ FOR zone IN SELECT value FROM jsonb_array_elements(payload->'zones') LOOP
+  IF jsonb_typeof(zone) IS DISTINCT FROM 'object' OR (SELECT count(*) FROM jsonb_object_keys(zone))<>2 OR NOT zone ?& ARRAY['merchantId','branchId']
+  OR NOT coalesce(canonical_online_option_uuid(zone->>'merchantId'),false) OR NOT coalesce(canonical_online_option_uuid(zone->>'branchId'),false) THEN RAISE EXCEPTION 'INVALID_REQUEST';END IF;
+  IF NOT food_discovery_grant_live(driver,(zone->>'merchantId')::uuid,(zone->>'branchId')::uuid) THEN RAISE EXCEPTION 'ROLE_REQUIRED';END IF;
+ END LOOP;
+ IF (SELECT count(DISTINCT ((value->>'merchantId')::uuid,(value->>'branchId')::uuid)) FROM jsonb_array_elements(payload->'zones'))<>jsonb_array_length(payload->'zones') THEN RAISE EXCEPTION 'INVALID_REQUEST';END IF;
+ actor:=dispatch_live_actor();
+ INSERT INTO driver_food_discovery_consents(driver_id,revision,owner_session_id,enabled,expires_at,updated_at) VALUES(driver,coalesce(c.revision,0)+1,session,enabled,clock_timestamp()+interval '8 hours',clock_timestamp())
+ ON CONFLICT(driver_id) DO UPDATE SET revision=EXCLUDED.revision,owner_session_id=EXCLUDED.owner_session_id,enabled=EXCLUDED.enabled,expires_at=EXCLUDED.expires_at,updated_at=EXCLUDED.updated_at,last_sequence=0,last_captured_at=NULL,last_received_at=NULL;
+ DELETE FROM driver_food_idle_locations WHERE driver_id=driver;DELETE FROM driver_food_discovery_zones WHERE driver_id=driver;
+ INSERT INTO driver_food_discovery_zones SELECT driver,(value->>'merchantId')::uuid,(value->>'branchId')::uuid FROM jsonb_array_elements(payload->'zones');
+ receipt:=jsonb_build_object('revision',(coalesce(c.revision,0)+1)::text,'enabled',enabled);
+ INSERT INTO food_discovery_commands VALUES(actor,key,jsonb_build_array('consent',session,payload),receipt,clock_timestamp());
+ INSERT INTO food_discovery_audit(actor_account_id,driver_id,action,revision) VALUES(actor,driver,'consent.change',coalesce(c.revision,0)+1);
+ RETURN receipt;
+END $$;
+CREATE FUNCTION food_discovery_location(revision bigint,seq bigint,captured timestamptz,latitude integer,longitude integer,accuracy integer) RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,bitpos,pg_temp AS $$
+DECLARE actor uuid:=dispatch_live_actor();driver uuid;c driver_food_discovery_consents;prior driver_food_idle_locations;at timestamptz;elapsed numeric;distance_m double precision;
+BEGIN
+ IF revision IS NULL OR revision<1 OR seq IS NULL OR seq<1 OR captured IS NULL OR NOT isfinite(captured) OR latitude IS NULL OR abs(latitude::bigint)>900000000 OR longitude IS NULL OR abs(longitude::bigint)>1800000000 OR accuracy IS NULL OR accuracy NOT BETWEEN 0 AND 100000 THEN RAISE EXCEPTION 'LOCATION_INVALID';END IF;
+ IF current_setting('transaction_isolation')<>'read committed' THEN RAISE EXCEPTION 'DISPATCH_READ_COMMITTED_REQUIRED' USING ERRCODE='25001';END IF;
+ SELECT id INTO driver FROM driver_profiles WHERE account_id=actor;IF driver IS NULL THEN RAISE EXCEPTION 'RESOURCE_NOT_FOUND';END IF;
+ PERFORM 1 FROM driver_occupancy WHERE driver_id=driver FOR UPDATE;actor:=dispatch_live_actor();
+ SELECT * INTO c FROM driver_food_discovery_consents WHERE driver_id=driver;
+ IF c.revision IS DISTINCT FROM revision OR NOT c.enabled OR c.owner_session_id<>current_setting('bitpos.mobile_session')::uuid OR c.expires_at<=clock_timestamp() THEN RAISE EXCEPTION 'ASSIGNMENT_CHANGED';END IF;
+ IF NOT dispatch_eligible_driver(driver) OR EXISTS(SELECT 1 FROM driver_assignment_leases WHERE driver_id=driver AND state='ACTIVE') THEN RAISE EXCEPTION 'DRIVER_UNAVAILABLE';END IF;
+ IF NOT EXISTS(SELECT 1 FROM driver_food_discovery_zones z WHERE z.driver_id=driver AND food_discovery_grant_live(driver,z.merchant_id,z.branch_id)) THEN RAISE EXCEPTION 'ROLE_REQUIRED';END IF;
+ at:=clock_timestamp();SELECT * INTO prior FROM driver_food_idle_locations WHERE driver_id=driver;
+ IF FOUND AND prior.consent_revision=revision AND prior.sequence=seq THEN
+  IF (prior.captured_at,prior.latitude_e7,prior.longitude_e7,prior.accuracy_mm) IS DISTINCT FROM (captured,latitude,longitude,accuracy) THEN RAISE EXCEPTION 'LOCATION_SEQUENCE_CONFLICT';END IF;
+  RETURN jsonb_build_object('sequence',seq::text,'receivedAt',prior.received_at,'replayed',true);
+ END IF;
+ IF captured<at-interval '30 seconds' OR captured>at+interval '10 seconds' THEN RAISE EXCEPTION 'LOCATION_STALE';END IF;
+ IF seq<=c.last_sequence OR captured<=c.last_captured_at THEN RAISE EXCEPTION 'LOCATION_SEQUENCE_CONFLICT';END IF;
+ IF at<c.last_received_at+interval '5 seconds' THEN RAISE EXCEPTION 'LOCATION_RATE_LIMITED';END IF;
+ IF prior.driver_id IS NOT NULL AND prior.consent_revision=revision THEN
+  IF seq<=prior.sequence OR captured<=prior.captured_at THEN RAISE EXCEPTION 'LOCATION_SEQUENCE_CONFLICT';END IF;
+  IF at<prior.received_at+interval '5 seconds' THEN RAISE EXCEPTION 'LOCATION_RATE_LIMITED';END IF;
+  elapsed:=extract(epoch FROM captured-prior.captured_at);
+  distance_m:=6371000*2*asin(sqrt(least(1.0,power(sin(radians((latitude::double precision-prior.latitude_e7)/10000000)/2),2)+cos(radians(latitude::double precision/10000000))*cos(radians(prior.latitude_e7::double precision/10000000))*power(sin(radians((longitude::double precision-prior.longitude_e7)/10000000)/2),2))));
+  IF distance_m>elapsed*70+(accuracy+prior.accuracy_mm)::numeric/1000+100 THEN RAISE EXCEPTION 'LOCATION_IMPLAUSIBLE';END IF;
+ END IF;
+ INSERT INTO driver_food_idle_locations VALUES(driver,revision,seq,captured,at,latitude,longitude,accuracy)
+ ON CONFLICT(driver_id) DO UPDATE SET consent_revision=EXCLUDED.consent_revision,sequence=EXCLUDED.sequence,captured_at=EXCLUDED.captured_at,received_at=EXCLUDED.received_at,latitude_e7=EXCLUDED.latitude_e7,longitude_e7=EXCLUDED.longitude_e7,accuracy_mm=EXCLUDED.accuracy_mm;
+ UPDATE driver_food_discovery_consents SET last_sequence=seq,last_captured_at=captured,last_received_at=at WHERE driver_id=driver;
+ RETURN jsonb_build_object('sequence',seq::text,'receivedAt',at,'replayed',false);
+END $$;
+REVOKE ALL ON FUNCTION food_discovery_grant_live(uuid,uuid,uuid),food_discovery_service_command(uuid,uuid,uuid,jsonb),food_discovery_consent(jsonb),food_discovery_location(bigint,bigint,timestamptz,integer,integer,integer) FROM PUBLIC,bitpos_app;
+GRANT EXECUTE ON FUNCTION food_discovery_service_command(uuid,uuid,uuid,jsonb),food_discovery_consent(jsonb),food_discovery_location(bigint,bigint,timestamptz,integer,integer,integer) TO bitpos_app;
+CREATE FUNCTION food_discovery_own_snapshot() RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,bitpos,pg_temp AS $$
+DECLARE actor uuid:=dispatch_live_actor();driver uuid;c driver_food_discovery_consents;point driver_food_idle_locations;zones jsonb;
+BEGIN
+ IF current_setting('transaction_isolation')<>'read committed' THEN RAISE EXCEPTION 'DISPATCH_READ_COMMITTED_REQUIRED' USING ERRCODE='25001';END IF;
+ SELECT id INTO driver FROM driver_profiles WHERE account_id=actor;
+ IF driver IS NULL THEN RETURN jsonb_build_object('consent',NULL,'services','[]'::jsonb);END IF;
+ PERFORM 1 FROM driver_occupancy WHERE driver_id=driver FOR SHARE;actor:=dispatch_live_actor();
+ SELECT * INTO c FROM driver_food_discovery_consents WHERE driver_id=driver;
+ SELECT * INTO point FROM driver_food_idle_locations WHERE driver_id=driver AND consent_revision=c.revision;
+ SELECT coalesce(jsonb_agg(jsonb_build_object('merchantId',f.merchant_id,'branchId',f.branch_id,'revision',f.revision::text,'validUntil',f.valid_until,'eligible',food_discovery_grant_live(driver,f.merchant_id,f.branch_id),'selected',EXISTS(SELECT 1 FROM driver_food_discovery_zones z WHERE z.driver_id=driver AND z.merchant_id=f.merchant_id AND z.branch_id=f.branch_id)) ORDER BY f.merchant_id,f.branch_id),'[]'::jsonb)
+ INTO zones FROM driver_food_service_grants f WHERE f.driver_id=driver;
+ RETURN jsonb_build_object('services',zones,'consent',CASE WHEN c.driver_id IS NULL THEN NULL ELSE jsonb_build_object('revision',c.revision::text,'enabled',c.enabled,'ownedBySession',c.owner_session_id=current_setting('bitpos.mobile_session')::uuid,'expiresAt',c.expires_at,
+ 'location',CASE WHEN point.driver_id IS NULL OR point.received_at<clock_timestamp()-interval '120 seconds' THEN NULL ELSE jsonb_build_object('sequence',point.sequence::text,'capturedAt',point.captured_at,'receivedAt',point.received_at,'stale',least(point.captured_at,point.received_at)<clock_timestamp()-interval '30 seconds') END) END);
+END $$;
+DO $$BEGIN
+ IF NOT EXISTS(SELECT 1 FROM pg_roles WHERE rolname='bitpos_food_dispatch_worker') THEN CREATE ROLE bitpos_food_dispatch_worker NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOBYPASSRLS;END IF;
+END $$;
+GRANT USAGE ON SCHEMA bitpos TO bitpos_food_dispatch_worker;
+CREATE FUNCTION food_discovery_prune() RETURNS integer LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,bitpos,pg_temp AS $$
+DECLARE removed integer;
+BEGIN
+ WITH stale AS (
+  SELECT l.driver_id FROM driver_food_idle_locations l JOIN driver_food_discovery_consents c ON c.driver_id=l.driver_id
+  WHERE l.received_at<clock_timestamp()-interval '120 seconds' OR NOT c.enabled OR c.expires_at<=clock_timestamp() OR c.revision<>l.consent_revision
+  OR NOT EXISTS(SELECT 1 FROM mobile_sessions s JOIN mobile_accounts a ON a.id=s.account_id WHERE s.id=c.owner_session_id AND s.revoked_at IS NULL AND s.access_expires_at>clock_timestamp() AND s.refresh_expires_at>clock_timestamp() AND a.disabled_at IS NULL)
+  OR NOT dispatch_eligible_driver(l.driver_id) OR EXISTS(SELECT 1 FROM driver_assignment_leases lease WHERE lease.driver_id=l.driver_id AND lease.state='ACTIVE')
+  OR NOT EXISTS(SELECT 1 FROM driver_food_discovery_zones z WHERE z.driver_id=l.driver_id AND food_discovery_grant_live(l.driver_id,z.merchant_id,z.branch_id))
+  ORDER BY l.received_at,l.driver_id LIMIT 50 FOR UPDATE OF l SKIP LOCKED
+ ) DELETE FROM driver_food_idle_locations l USING stale WHERE l.driver_id=stale.driver_id;
+ GET DIAGNOSTICS removed=ROW_COUNT;RETURN removed;
+END $$;
+REVOKE ALL ON FUNCTION food_discovery_own_snapshot(),food_discovery_prune() FROM PUBLIC,bitpos_app,bitpos_food_dispatch_worker;
+GRANT EXECUTE ON FUNCTION food_discovery_own_snapshot() TO bitpos_app;
+GRANT EXECUTE ON FUNCTION food_discovery_prune() TO bitpos_food_dispatch_worker;
