@@ -3232,3 +3232,9 @@ Kept CLOSED and not implemented: ride payment/earnings, per-child or parent grou
 - Rollback: restore from the dump into the stack (schema `bitpos` only) and delete the 63 names from `public.bitpos_migrations`. Disk on the OCI host is 94% used (13 GB free) - watch it before any deploy.
 - Scripts used: scratchpad-only (`apply-selected.sh`); the selection logic is the rule above, not a repo tool.
 - Final serial backend run (2026-10-27): 127 files, 125 pass; only `backend-promotions-lifecycle` (needs Pillow, not installed) and `backend-demo-access` (env-only: needs the normal http PUBLIC_URL; passes with it) fail.
+
+## 2026-10-27 — A5 ตรวจหน้าจอ POS (DS20–27) ด้วยเบราว์เซอร์
+- รัน web+fixture API+DB ชั่วคราวและเดินทุกแท็บ/สถานะ EN/TH desktop/mobile; หลักฐานและข้อจำกัดอยู่ที่ `.omp/work/h2-merchant-pricing-20261026/A5/README.md`
+- ติ๊ก checklist 4 ข้อที่มีหลักฐานครบ (DS20 states, DS21 states, DS23 filter/export, DS26 action visibility); เหลือ `[ ]` 243 ข้อ (ส่วนมากเป็นเทียบ FigCraft/Codex รับงาน และ DS28–33)
+- แก้บั๊ก UI 5 จุด (ดู README) ยังไม่ deploy; web tests 64 ผ่าน
+- ต่อไป: DS28–30 (Pay) และ DS31–33 (Platform) ด้วยวิธีเดียวกัน
