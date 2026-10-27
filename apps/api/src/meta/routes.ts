@@ -2,18 +2,24 @@
 // Raw HTTP handlers under /meta/: the NTAG424 tap URL, the Messenger webhook and the customer web session.
 // They need the exact request bytes (webhook signature), cookies and redirects, so they sit beside the JSON API.
 import type http from 'node:http';
-import {consumeMagicLink,customerFromSession,handleMessengerEvents,handleTap,revokeFromSession,type IdentityDeps} from './identity';
+import {consumeMagicLink,customerFromSession,handleMessengerEvents,handleTap,offerForTap,offerMessage,revokeFromSession,type IdentityDeps,type OfferDeps,type OfferView} from './identity';
+import {invocationSink} from './evidence';
+import {createMetaRouter,metaProvidersFromEnv} from '../../../../packages/meta-ai/src/router';
 import {MessengerError,messengerConfigFromEnv,parseMessengerWebhook,sendMessenger,verifyMessengerSignature,verifySubscription,type MessengerConfig,type MessengerFetch} from './messenger';
 
-export interface MetaRouteDeps {identity:IdentityDeps;messenger:MessengerConfig;fetch?:MessengerFetch;log?:(msg:string)=>void}
+export interface MetaRouteDeps {identity:IdentityDeps;messenger:MessengerConfig;offers:OfferDeps|null;fetch?:MessengerFetch;log?:(msg:string)=>void}
 export const COOKIE='bitpos_meta';
 const MAX_WEBHOOK=65536;
 
-export function metaRouteDepsFromEnv(env:Record<string,string|undefined>,db:IdentityDeps['db']):MetaRouteDeps|null{
+export function metaRouteDepsFromEnv(env:Record<string,string|undefined>,db:IdentityDeps['db'],menu?:OfferDeps['menu']):MetaRouteDeps|null{
  const master=env.META_TAP_MASTER_KEY,origin=env.META_PUBLIC_URL;
  if(!master||!/^[0-9a-fA-F]{32}$/.test(master)||!origin)return null;
  const u=new URL(origin);if(!['https:','http:'].includes(u.protocol)||u.pathname!=='/'||u.search||u.hash||u.username)return null;
- try{return {identity:{db,masterKey:Buffer.from(master,'hex'),publicOrigin:u.origin},messenger:messengerConfigFromEnv(env)};}catch{return null;}
+ let messenger;try{messenger=messengerConfigFromEnv(env);}catch{return null;}
+ // Offers work without a model (deterministic fallback); with META_AI_* providers set, Muse Spark chooses.
+ const providers=metaProvidersFromEnv(env as NodeJS.ProcessEnv);
+ const offers=menu?{menu,router:providers.length?createMetaRouter({providers,record:invocationSink(db)}):null}:null;
+ return {identity:{db,masterKey:Buffer.from(master,'hex'),publicOrigin:u.origin},messenger,offers};
 }
 
 const esc=(s:string)=>s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]!));
@@ -21,6 +27,14 @@ function page(res:http.ServerResponse,status:number,title:string,lines:string[],
  const html=`<!doctype html><html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)}</title><style>body{font:17px/1.5 system-ui,sans-serif;margin:0;padding:32px 20px;background:#f7f5ff;color:#1d1440}main{max-width:420px;margin:auto;background:#fff;border-radius:16px;padding:24px;box-shadow:0 2px 12px #0001}h1{font-size:22px;color:#5b34d6;margin:0 0 12px}p{margin:8px 0}button{font:inherit;padding:10px 16px;border-radius:10px;border:1px solid #c9bdf5;background:#fff;color:#5b34d6}</style></head><body><main><h1>${esc(title)}</h1>${lines.map(l=>`<p>${l}</p>`).join('')}</main></body></html>`;
  res.writeHead(status,{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store','Content-Security-Policy':"default-src 'none'; style-src 'unsafe-inline'; form-action 'self'",'Referrer-Policy':'no-referrer','X-Content-Type-Options':'nosniff',...extraHeaders});
  res.end(html);
+}
+function offerCard(o:OfferView|null):string[]{
+ if(!o)return [];
+ return [`<strong>${esc(o.emoji)} ${esc(o.name)} ${esc(o.price)}</strong> <s>${esc(o.basePrice)}</s> · ลด ${o.discountPercent}%`,esc(o.reasonTh),`<small>${esc(o.nameEn)} — ${esc(o.reasonEn)}${o.chosenBy==='model'?' · picked by Muse Spark':''}</small>`];
+}
+async function offerOrNull(deps:MetaRouteDeps,merchantId:string,linkId:string,tapSessionId:string):Promise<OfferView|null>{
+ if(!deps.offers)return null;
+ try{return await offerForTap(deps.identity,deps.offers,merchantId,linkId,tapSessionId);}catch{deps.log?.('Offer selection failed');return null;}
 }
 function json(res:http.ServerResponse,status:number,value:unknown){res.writeHead(status,{'Content-Type':'application/json','Cache-Control':'no-store'});res.end(JSON.stringify(value));}
 
@@ -48,7 +62,7 @@ export async function serveMeta(req:http.IncomingMessage,res:http.ServerResponse
  if(tap&&method==='GET'){
   const r=await handleTap(deps.identity,tap[1],url.searchParams.get('e'),url.searchParams.get('m'),cookieValue(req.headers.cookie));
   if(r.kind==='messenger'){res.writeHead(303,{Location:r.url,'Cache-Control':'no-store','Referrer-Policy':'no-referrer'});res.end();return true;}
-  if(r.kind==='known'){page(res,200,'สวัสดีค่ะ 👋',['ร้านจำคุณได้แล้ว ดูโปรของคุณได้ที่หน้าจอและในหน้านี้','Welcome back — the shop knows it is you.']);return true;}
+  if(r.kind==='known'){page(res,200,'สวัสดีค่ะ 👋',['ร้านจำคุณได้แล้ว','Welcome back — the shop knows it is you.',...offerCard(await offerOrNull(deps,r.merchantId,r.linkId,r.tapSessionId))]);return true;}
   if(r.kind==='replayed'){page(res,409,'กรุณาแตะใหม่อีกครั้ง',['ลิงก์นี้ใช้ไปแล้ว ให้แตะมือถือที่เครื่องอีกครั้ง','This tap link was already used. Tap the device again.']);return true;}
   if(r.kind==='no_page'){page(res,503,'ร้านยังไม่ได้เชื่อม Messenger',['The shop has not connected a Messenger page yet.']);return true;}
   page(res,400,'แตะไม่สำเร็จ',['ให้แตะมือถือที่เครื่องอีกครั้ง','Please tap the device again.']);return true;
@@ -60,22 +74,30 @@ export async function serveMeta(req:http.IncomingMessage,res:http.ServerResponse
    if(!raw){json(res,413,{error:'REQUEST_TOO_LARGE'});return true;}
    try{verifyMessengerSignature(raw,req.headers['x-hub-signature-256'] as string|undefined,deps.messenger.appSecret);}catch{json(res,401,{error:'SIGNATURE_INVALID'});return true;}
    let events;try{events=parseMessengerWebhook(JSON.parse(raw.toString('utf8')));}catch{json(res,400,{error:'PAYLOAD_INVALID'});return true;}
-   const outbox=await handleMessengerEvents(deps.identity,events);
+   const {outbox,offers}=await handleMessengerEvents(deps.identity,events);
    json(res,200,{received:events.length});
-   for(const message of outbox){try{await sendMessenger(deps.messenger,message,deps.fetch);}catch(e){log(`Messenger send failed: ${e instanceof MessengerError?e.code:'UNKNOWN'}`);}}
+   const send=async(message:Parameters<typeof sendMessenger>[1])=>{try{await sendMessenger(deps.messenger,message,deps.fetch);}catch(e){log(`Messenger send failed: ${e instanceof MessengerError?e.code:'UNKNOWN'}`);}};
+   for(const message of outbox)await send(message);
+   // Offers are chosen after the webhook transaction committed, so the model call never holds a lock.
+   for(const o of offers){const view=await offerOrNull(deps,o.merchantId,o.linkId,o.tapSessionId);if(view)await send(offerMessage(o.psid,view));}
    return true;
   }
  }
  if(path==='/meta/login'&&method==='GET'){
   const s=await consumeMagicLink(deps.identity,url.searchParams.get('t')??'');
   if(!s){page(res,410,'ลิงก์หมดอายุ',['ขอลิงก์ใหม่ได้โดยแตะที่เครื่องอีกครั้ง','This sign-in link expired or was already used.']);return true;}
-  page(res,200,'เชื่อมต่อแล้ว ✓',['ครั้งหน้าแค่แตะมือถือที่เครื่อง ร้านจะรู้ว่าเป็นคุณ','Next time, just tap your phone on the device.','<form method="post" action="/meta/me/revoke"><button>ลบการเชื่อมต่อ / Forget me</button></form>'],{'Set-Cookie':sessionCookie(deps,s.sessionToken,2592000)});
+  page(res,200,'เชื่อมต่อแล้ว ✓',['ครั้งหน้าแค่แตะมือถือที่เครื่อง ร้านจะรู้ว่าเป็นคุณ','Next time, just tap your phone on the device.',...offerCard(s.tapSessionId?await offerOrNull(deps,s.merchantId,s.linkId,s.tapSessionId):null),'<form method="post" action="/meta/me/revoke"><button>ลบการเชื่อมต่อ / Forget me</button></form>'],{'Set-Cookie':sessionCookie(deps,s.sessionToken,2592000)});
   return true;
  }
  if(path==='/meta/me'&&method==='GET'){
   const me=await customerFromSession(deps.identity,cookieValue(req.headers.cookie));
   if(!me){json(res,401,{error:'AUTH_REQUIRED'});return true;}
   json(res,200,{consentedAt:me.consentedAt,lastTap:me.lastTap});return true;
+ }
+ if(path==='/meta/offer'&&method==='GET'){
+  const me=await customerFromSession(deps.identity,cookieValue(req.headers.cookie));
+  if(!me){json(res,401,{error:'AUTH_REQUIRED'});return true;}
+  json(res,200,{offer:me.lastTap?await offerOrNull(deps,me.merchantId,me.linkId,me.lastTap.tapSessionId):null});return true;
  }
  if(path==='/meta/me/revoke'&&method==='POST'){
   // A cross-site form must not be able to disconnect someone: same-origin requests only.

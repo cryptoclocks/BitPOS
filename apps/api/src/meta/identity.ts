@@ -6,6 +6,10 @@ import type pg from 'pg';
 import {createHash,randomBytes} from 'node:crypto';
 import {deriveTagKeys,verifySun,SunError} from '../../../../packages/meta-ai/src/ntag424';
 import {REF,type Outgoing,type ParsedEvent} from './messenger';
+import type {EffectiveMenu} from '../offers';
+import type {MetaRouter} from '../../../../packages/meta-ai/src/router';
+import {approvedOffers,formatMoney,selectOffer} from './offer-select';
+import type {Money} from '../../../../packages/contracts/src/index';
 
 export interface MetaDb {
  /** Runs as the application role outside any tenant (SECURITY DEFINER lookups only). */
@@ -21,7 +25,7 @@ export const CONSENT_VERSION='bitpos-meta-offers-v1';
 
 export type TapOutcome=
  {kind:'invalid'}|{kind:'replayed'}|{kind:'no_page';merchantId:string}|
- {kind:'known';merchantId:string;tapSessionId:string;deviceId:string}|
+ {kind:'known';merchantId:string;tapSessionId:string;deviceId:string;linkId:string}|
  {kind:'messenger';merchantId:string;tapSessionId:string;url:string};
 
 export async function handleTap(deps:IdentityDeps,tagId:string,e:string|null,m:string|null,cookieToken?:string|null):Promise<TapOutcome>{
@@ -33,11 +37,11 @@ export async function handleTap(deps:IdentityDeps,tagId:string,e:string|null,m:s
  if(cookieToken&&TOKEN.test(cookieToken)){
   const owner=(await deps.db.query<{m:string|null}>('SELECT bitpos.meta_session_merchant($1) AS m',[sha(cookieToken)])).rows[0]?.m;
   if(owner===merchantId){
-   const bound=await deps.db.tenant(merchantId,async db=>{
-    const link=await activeLinkForSession(db,cookieToken);if(!link)return false;
-    return (await db.query("UPDATE meta_tap_sessions SET link_id=$2,bound_at=clock_timestamp(),claimed_at=clock_timestamp() WHERE id=$1 AND link_id IS NULL AND claimed_at IS NULL AND expires_at>clock_timestamp()",[tapSessionId,link])).rowCount===1;
+   const linkId=await deps.db.tenant(merchantId,async db=>{
+    const link=await activeLinkForSession(db,cookieToken);if(!link)return null;
+    return (await db.query("UPDATE meta_tap_sessions SET link_id=$2,bound_at=clock_timestamp(),claimed_at=clock_timestamp() WHERE id=$1 AND link_id IS NULL AND claimed_at IS NULL AND expires_at>clock_timestamp()",[tapSessionId,link])).rowCount===1?link:null;
    });
-   if(bound)return {kind:'known',merchantId,tapSessionId,deviceId:tap.device_id};
+   if(linkId)return {kind:'known',merchantId,tapSessionId,deviceId:tap.device_id,linkId};
   }
  }
  return deps.db.tenant(merchantId,async db=>{
@@ -74,9 +78,12 @@ const T={
 };
 const openButton=(url:string)=>({type:'web_url' as const,title:'เปิดหน้าร้าน / Open',url});
 
-/** Applies verified webhook events. Returns messages to send after the transactions commit. */
-export async function handleMessengerEvents(deps:IdentityDeps,events:ParsedEvent[]):Promise<Outgoing[]>{
- const out:Outgoing[]=[];
+/** A customer just became known at a tap: the caller picks and sends an offer after commit. */
+export interface OfferRequest {merchantId:string;linkId:string;tapSessionId:string;psid:string}
+
+/** Applies verified webhook events. Returns messages and offer requests to handle after the transactions commit. */
+export async function handleMessengerEvents(deps:IdentityDeps,events:ParsedEvent[]):Promise<{outbox:Outgoing[];offers:OfferRequest[]}>{
+ const out:Outgoing[]=[],offers:OfferRequest[]=[];
  for(const {event,key} of events){
   const merchantId=(await deps.db.query<{m:string|null}>('SELECT bitpos.meta_page_merchant($1) AS m',[event.pageId])).rows[0]?.m;
   if(!merchantId)continue;
@@ -93,7 +100,7 @@ export async function handleMessengerEvents(deps:IdentityDeps,events:ParsedEvent
     const tap=(await db.query<{tap_session_id:string}>('UPDATE meta_messenger_refs SET consumed_at=clock_timestamp(),consumed_psid=$2 WHERE ref_sha256=$1 AND consumed_at IS NULL AND expires_at>clock_timestamp() RETURNING tap_session_id',[sha(event.ref),psid])).rows[0];
     if(!tap)return {kind:'text',psid,text:T.expired} as Outgoing;
     const link=(await db.query<{id:string}>('SELECT id FROM meta_customer_links WHERE page_id=$1 AND psid=$2 AND revoked_at IS NULL',[pageId,psid])).rows[0];
-    if(link){await bindTap(db,tap.tap_session_id,link.id);return {kind:'buttons',psid,text:T.back,buttons:[openButton(await magicLink(deps,db,merchantId,link.id,tap.tap_session_id))]} as Outgoing;}
+    if(link){if(await bindTap(db,tap.tap_session_id,link.id))offers.push({merchantId,linkId:link.id,tapSessionId:tap.tap_session_id,psid});return {kind:'buttons',psid,text:T.back,buttons:[openButton(await magicLink(deps,db,merchantId,link.id,tap.tap_session_id))]} as Outgoing;}
     const request=(await db.query<{id:string}>("WITH n AS (SELECT clock_timestamp() AS t) INSERT INTO meta_consent_requests(merchant_id,page_id,psid,tap_session_id,created_at,expires_at) SELECT $1,$2,$3,$4,t,t+interval '15 minutes' FROM n RETURNING id",[merchantId,pageId,psid,tap.tap_session_id])).rows[0];
     return {kind:'buttons',psid,text:T.consent,buttons:[{type:'postback',title:'ยินยอม / Allow',payload:`BITPOS_CONSENT_ACCEPT:${request.id}`},{type:'postback',title:'ไม่ / No',payload:`BITPOS_CONSENT_DECLINE:${request.id}`}]} as Outgoing;
    }
@@ -102,15 +109,15 @@ export async function handleMessengerEvents(deps:IdentityDeps,events:ParsedEvent
    if(!event.accept)return {kind:'text',psid,text:T.declined} as Outgoing;
    await db.query('INSERT INTO meta_customer_links(merchant_id,page_id,psid,consent_version) VALUES($1,$2,$3,$4) ON CONFLICT (page_id,psid) WHERE revoked_at IS NULL DO NOTHING',[merchantId,pageId,psid,CONSENT_VERSION]);
    const link=(await db.query<{id:string}>('SELECT id FROM meta_customer_links WHERE page_id=$1 AND psid=$2 AND revoked_at IS NULL',[pageId,psid])).rows[0];
-   await bindTap(db,decided.tap_session_id,link.id);
+   if(await bindTap(db,decided.tap_session_id,link.id))offers.push({merchantId,linkId:link.id,tapSessionId:decided.tap_session_id!,psid});
    return {kind:'buttons',psid,text:T.welcome,buttons:[openButton(await magicLink(deps,db,merchantId,link.id,decided.tap_session_id))]} as Outgoing;
   });
   if(reply)out.push(reply);
  }
- return out;
+ return {outbox:out,offers};
 }
 
-export interface CustomerSession {merchantId:string;sessionToken:string;tapSessionId:string|null}
+export interface CustomerSession {merchantId:string;sessionToken:string;linkId:string;tapSessionId:string|null}
 
 /** Single-use sign-in link from Messenger → a 30-day web session for that shop only. */
 export async function consumeMagicLink(deps:IdentityDeps,magic:string):Promise<CustomerSession|null>{
@@ -122,11 +129,11 @@ export async function consumeMagicLink(deps:IdentityDeps,magic:string):Promise<C
   if(!row)return null;
   const sessionToken=token();
   await db.query("WITH n AS (SELECT clock_timestamp() AS t) INSERT INTO meta_customer_sessions(merchant_id,link_id,token_sha256,created_at,expires_at) SELECT $1,$2,$3,t,t+interval '30 days' FROM n",[merchantId,row.link_id,sha(sessionToken)]);
-  return {merchantId,sessionToken,tapSessionId:row.tap_session_id};
+  return {merchantId,sessionToken,linkId:row.link_id,tapSessionId:row.tap_session_id};
  });
 }
 
-export interface CustomerView {merchantId:string;linkId:string;consentedAt:string;lastTap:{deviceId:string;boundAt:string}|null}
+export interface CustomerView {merchantId:string;linkId:string;consentedAt:string;lastTap:{tapSessionId:string;deviceId:string;boundAt:string}|null}
 
 export async function customerFromSession(deps:IdentityDeps,sessionToken:string|null|undefined):Promise<CustomerView|null>{
  if(!sessionToken||!TOKEN.test(sessionToken))return null;
@@ -135,8 +142,8 @@ export async function customerFromSession(deps:IdentityDeps,sessionToken:string|
  return deps.db.tenant(merchantId,async db=>{
   const linkId=await activeLinkForSession(db,sessionToken);if(!linkId)return null;
   const link=(await db.query<{consented_at:Date}>('SELECT consented_at FROM meta_customer_links WHERE id=$1',[linkId])).rows[0];
-  const tap=(await db.query<{device_id:string;bound_at:Date}>("SELECT device_id,bound_at FROM meta_tap_sessions WHERE link_id=$1 AND bound_at>clock_timestamp()-interval '15 minutes' ORDER BY bound_at DESC LIMIT 1",[linkId])).rows[0];
-  return {merchantId,linkId,consentedAt:link.consented_at.toISOString(),lastTap:tap?{deviceId:tap.device_id,boundAt:tap.bound_at.toISOString()}:null};
+  const tap=(await db.query<{id:string;device_id:string;bound_at:Date}>("SELECT id,device_id,bound_at FROM meta_tap_sessions WHERE link_id=$1 AND bound_at>clock_timestamp()-interval '15 minutes' ORDER BY bound_at DESC LIMIT 1",[linkId])).rows[0];
+  return {merchantId,linkId,consentedAt:link.consented_at.toISOString(),lastTap:tap?{tapSessionId:tap.id,deviceId:tap.device_id,boundAt:tap.bound_at.toISOString()}:null};
  });
 }
 
@@ -148,4 +155,50 @@ export async function revokeFromSession(deps:IdentityDeps,sessionToken:string|nu
   await db.query('UPDATE meta_customer_sessions SET revoked_at=clock_timestamp() WHERE link_id=$1 AND revoked_at IS NULL',[me.linkId]);
   return true;
  });
+}
+
+export interface OfferDeps {
+ /** The inherited catalog: approved product/daily offers with server prices. */
+ menu:(db:pg.PoolClient,merchant:string)=>Promise<EffectiveMenu>;
+ router:MetaRouter|null;deadlineMs?:number;timeZone?:string;
+}
+export interface OfferView {offerId:string;emoji:string;name:string;nameEn:string;price:string;basePrice:string;discountPercent:number;reasonTh:string;reasonEn:string;chosenBy:'model'|'fallback'}
+
+interface ImpressionRow {offer_id:string;emoji:string;name:string;name_en:string;currency:string;decimals:number;base_price_minor:string;unit_price_minor:string;reason_th:string;reason_en:string;chosen_by:'model'|'fallback'}
+const IMPRESSION_SQL='SELECT i.offer_id,p.emoji,p.name,p.name_en,i.currency,i.decimals,i.base_price_minor::text,i.unit_price_minor::text,i.reason_th,i.reason_en,i.chosen_by FROM meta_offer_impressions i JOIN products p ON p.merchant_id=i.merchant_id AND p.id=i.product_id WHERE i.tap_session_id=$1';
+function view(r:ImpressionRow):OfferView{
+ const m=(v:string)=>({currency:r.currency,decimals:r.decimals,amountMinor:v}) as Money,base=BigInt(r.base_price_minor),unit=BigInt(r.unit_price_minor);
+ return {offerId:r.offer_id,emoji:r.emoji,name:r.name,nameEn:r.name_en,price:formatMoney(m(r.unit_price_minor)),basePrice:formatMoney(m(r.base_price_minor)),discountPercent:Number((base-unit)*100n/base),reasonTh:r.reason_th,reasonEn:r.reason_en,chosenBy:r.chosen_by};
+}
+
+/**
+ * One offer per tap for the customer bound to it. Three phases so no model call runs inside a
+ * transaction: read menu + facts, ask Muse Spark (or fall back), then store the impression once.
+ */
+export async function offerForTap(deps:IdentityDeps,offers:OfferDeps,merchantId:string,linkId:string,tapSessionId:string):Promise<OfferView|null>{
+ const hour=Number(new Intl.DateTimeFormat('en-GB',{hour:'2-digit',hourCycle:'h23',timeZone:offers.timeZone??'Asia/Bangkok'}).format(new Date()));
+ const prep=await deps.db.tenant(merchantId,async db=>{
+  if(!(await db.query('SELECT 1 FROM meta_tap_sessions WHERE id=$1 AND link_id=$2',[tapSessionId,linkId])).rowCount)return null;
+  const existing=(await db.query<ImpressionRow>(IMPRESSION_SQL,[tapSessionId])).rows[0];
+  if(existing)return {kind:'existing' as const,row:existing};
+  const candidates=approvedOffers(await offers.menu(db,merchantId));
+  const visitCount=Number((await db.query<{n:string}>('SELECT count(*)::text AS n FROM meta_tap_sessions WHERE link_id=$1',[linkId])).rows[0].n);
+  const recentlyShown=(await db.query<{offer_id:string}>('SELECT offer_id FROM meta_offer_impressions WHERE link_id=$1 ORDER BY created_at DESC LIMIT 3',[linkId])).rows.map(r=>r.offer_id);
+  return {kind:'new' as const,candidates,facts:{visitCount,localHour:hour,recentlyShown}};
+ });
+ if(!prep)return null;
+ if(prep.kind==='existing')return view(prep.row);
+ const choice=await selectOffer(offers.router,merchantId,prep.candidates,prep.facts,offers.deadlineMs);
+ if(!choice)return null;
+ return deps.db.tenant(merchantId,async db=>{
+  const c=choice.candidate;
+  await db.query('INSERT INTO meta_offer_impressions(merchant_id,link_id,tap_session_id,offer_id,product_id,currency,decimals,base_price_minor,unit_price_minor,candidate_count,chosen_by,invocation_id,reason_th,reason_en) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) ON CONFLICT (merchant_id,tap_session_id) DO NOTHING',
+   [merchantId,linkId,tapSessionId,c.offerId,c.productId,c.unitPrice.currency,c.unitPrice.decimals,c.basePrice.amountMinor,c.unitPrice.amountMinor,prep.candidates.length,choice.chosenBy,choice.invocationId,choice.reasonTh,choice.reasonEn]);
+  const row=(await db.query<ImpressionRow>(IMPRESSION_SQL,[tapSessionId])).rows[0];
+  return row?view(row):null;
+ });
+}
+
+export function offerMessage(psid:string,o:OfferView):Outgoing{
+ return {kind:'text',psid,text:`${o.emoji} โปรสำหรับคุณ: ${o.name} ${o.price} (ปกติ ${o.basePrice})\n${o.reasonTh}\n\n${o.emoji} For you: ${o.nameEn} ${o.price} (was ${o.basePrice})\n${o.reasonEn}`};
 }

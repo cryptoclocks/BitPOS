@@ -9,7 +9,10 @@ import http from 'node:http';
 import type {AddressInfo} from 'node:net';
 import pg from 'pg';
 import {aesCmac,deriveTagKeys} from '../packages/meta-ai/src/ntag424';
-import {consumeMagicLink,customerFromSession,handleMessengerEvents,handleTap,type IdentityDeps,type MetaDb} from '../apps/api/src/meta/identity';
+import {consumeMagicLink,customerFromSession,handleMessengerEvents,handleTap,offerForTap,type IdentityDeps,type MetaDb,type OfferDeps} from '../apps/api/src/meta/identity';
+import {invocationSink} from '../apps/api/src/meta/evidence';
+import {createMetaRouter} from '../packages/meta-ai/src/router';
+import type {EffectiveMenu} from '../apps/api/src/offers';
 import {parseMessengerWebhook,type Outgoing} from '../apps/api/src/meta/messenger';
 import {serveMeta,type MetaRouteDeps} from '../apps/api/src/meta/routes';
 
@@ -35,6 +38,7 @@ function sunParams(tagId:string,uid:string,counter:number){
 // Timestamps are offset per run: the event ledger persists across runs and would treat reused deliveries as duplicates.
 const T0=Date.now();
 const webhook=(m:Record<string,unknown>,ts:number,page=PAGE_A)=>parseMessengerWebhook({object:'page',entry:[{id:page,messaging:[{sender:{id:PSID},recipient:{id:page},timestamp:T0+ts,...m}]}]});
+const outboxOf=async(e:ReturnType<typeof parseMessengerWebhook>)=>(await handleMessengerEvents(deps,e)).outbox;
 const refOf=(u:string)=>new URL(u).searchParams.get('ref')!;
 const magicOf=(o:Outgoing)=>{assert.equal(o.kind,'buttons');const b=(o as any).buttons.find((x:any)=>x.type==='web_url');return new URL(b.url).searchParams.get('t')!;};
 
@@ -61,17 +65,17 @@ test('new customer: tap → Messenger consent → web session; replays and dupli
  assert.equal((await handleTap(deps,TAG_A,first.e,'00'.repeat(8),null)).kind,'invalid');
 
  const ref=refOf((t1 as any).url);
- const consent=await handleMessengerEvents(deps,webhook({referral:{ref,source:'SHORTLINK',type:'OPEN_THREAD'}},1));
+ const consent=await outboxOf(webhook({referral:{ref,source:'SHORTLINK',type:'OPEN_THREAD'}},1));
  assert.equal(consent.length,1);assert.equal(consent[0].kind,'buttons');
  const accept=(consent[0] as any).buttons[0].payload as string;
  assert.match(accept,/^BITPOS_CONSENT_ACCEPT:/);
- assert.deepEqual(await handleMessengerEvents(deps,webhook({referral:{ref,source:'SHORTLINK',type:'OPEN_THREAD'}},1)),[],'same delivery twice');
- const reused=await handleMessengerEvents(deps,webhook({referral:{ref}},2));
+ assert.deepEqual(await outboxOf(webhook({referral:{ref,source:'SHORTLINK',type:'OPEN_THREAD'}},1)),[],'same delivery twice');
+ const reused=await outboxOf(webhook({referral:{ref}},2));
  assert.equal((reused[0] as any).text.includes('หมดอายุ'),true,'a ref is single-use');
 
- const welcome=await handleMessengerEvents(deps,webhook({postback:{payload:accept}},3));
+ const welcome=await outboxOf(webhook({postback:{payload:accept}},3));
  const magic=magicOf(welcome[0]);
- assert.equal((await handleMessengerEvents(deps,webhook({postback:{payload:accept}},4)))[0].kind,'text','consent cannot be decided twice');
+ assert.equal((await outboxOf(webhook({postback:{payload:accept}},4)))[0].kind,'text','consent cannot be decided twice');
 
  const s=await consumeMagicLink(deps,magic);
  assert.ok(s);assert.equal(s!.merchantId,A);assert.equal(s!.tapSessionId,(t1 as any).tapSessionId);
@@ -89,11 +93,11 @@ test('new customer: tap → Messenger consent → web session; replays and dupli
  // Returning customer without the cookie: Messenger recognises the PSID, no second consent.
  const third=sunParams(TAG_A,UID_A,3);
  const t3=await handleTap(deps,TAG_A,third.e,third.m,null);
- const back=await handleMessengerEvents(deps,webhook({referral:{ref:refOf((t3 as any).url)}},5));
+ const back=await outboxOf(webhook({referral:{ref:refOf((t3 as any).url)}},5));
  assert.equal(back[0].kind,'buttons');assert.match((back[0] as any).text,/Welcome back/);
 
  // STOP revokes the link and every web session.
- const stop=await handleMessengerEvents(deps,webhook({message:{mid:`stop-${run}`,text:'STOP'}},6));
+ const stop=await outboxOf(webhook({message:{mid:`stop-${run}`,text:'STOP'}},6));
  assert.match((stop[0] as any).text,/disconnected/);
  assert.equal(await customerFromSession(deps,s!.sessionToken),null);
  const fourth=sunParams(TAG_A,UID_A,4);
@@ -103,17 +107,17 @@ test('new customer: tap → Messenger consent → web session; replays and dupli
 test('declining consent stores no link',{skip},async()=>{
  const tap=sunParams(TAG_A,UID_A,10);
  const t=await handleTap(deps,TAG_A,tap.e,tap.m,null);
- const consent=await handleMessengerEvents(deps,webhook({referral:{ref:refOf((t as any).url)}},20));
+ const consent=await outboxOf(webhook({referral:{ref:refOf((t as any).url)}},20));
  const decline=(consent[0] as any).buttons[1].payload as string;
  assert.match(decline,/^BITPOS_CONSENT_DECLINE:/);
- const reply=await handleMessengerEvents(deps,webhook({postback:{payload:decline}},21));
+ const reply=await outboxOf(webhook({postback:{payload:decline}},21));
  assert.match((reply[0] as any).text,/will not remember/);
  assert.equal((await admin.query('SELECT count(*)::int AS n FROM meta_customer_links WHERE psid=$1 AND revoked_at IS NULL',[PSID])).rows[0].n,0);
 });
 
 test('HTTP: tap redirects to m.me, webhook rejects bad signatures and sends replies after commit',{skip},async()=>{
  const sent:unknown[]=[];
- const routeDeps:MetaRouteDeps={identity:deps,messenger:{appSecret:'app-secret',verifyToken:'verify-me',pageToken:'page-token',graphVersion:'v24.0'},fetch:async(_u,init)=>{sent.push(JSON.parse(String(init.body)));return new Response('{}',{status:200});}};
+ const routeDeps:MetaRouteDeps={identity:deps,offers:null,messenger:{appSecret:'app-secret',verifyToken:'verify-me',pageToken:'page-token',graphVersion:'v24.0'},fetch:async(_u,init)=>{sent.push(JSON.parse(String(init.body)));return new Response('{}',{status:200});}};
  const server=http.createServer(async(req,res)=>{if(!(await serveMeta(req,res,routeDeps))){res.writeHead(404);res.end();}});
  await new Promise<void>(r=>server.listen(0,'127.0.0.1',r));
  const base=`http://127.0.0.1:${(server.address() as AddressInfo).port}`;
@@ -133,4 +137,45 @@ test('HTTP: tap redirects to m.me, webhook rejects bad signatures and sends repl
   const revoke=await fetch(`${base}/meta/me/revoke`,{method:'POST',headers:{origin:'https://evil.example'}});
   assert.equal(revoke.status,403);
  }finally{server.close();}
+});
+
+test('offer on tap: Muse Spark picks from approved offers once per tap; the call is in the ledger',{skip},async()=>{
+ const products=(await admin.query<{id:string}>(`INSERT INTO products(merchant_id,name,name_en,emoji,price_minor,stock) VALUES($1,'ครัวซองต์','Croissant','🥐',6500,5),($1,'ลาเต้','Latte','☕',8000,20) RETURNING id`,[A])).rows;
+ const thb=(v:string)=>({currency:'THB' as const,decimals:2 as const,amountMinor:v});
+ const menu:OfferDeps['menu']=async()=>({merchant:{id:A,name:'demo'},asOf:new Date().toISOString(),priceValidUntil:new Date(Date.now()+3600e3).toISOString(),menuVersion:'v',priceVersion:null,pricingRevision:'1',currency:null,decimals:null,
+  products:[
+   {id:products[0].id,catalogKey:null,name:'ครัวซองต์',nameEn:'Croissant',emoji:'🥐',available:5,imageUrl:null,category:'bakery',description:null,basePrice:thb('6500'),unitPrice:thb('5200'),promotion:{revision:'3',expiresAt:new Date(Date.now()+3600e3).toISOString(),discount:{kind:'percent',percent:20},priceVersion:A}},
+   {id:products[1].id,catalogKey:null,name:'ลาเต้',nameEn:'Latte',emoji:'☕',available:20,imageUrl:null,category:'drink',description:null,basePrice:thb('8000'),unitPrice:thb('7200'),promotion:{revision:'4',expiresAt:new Date(Date.now()+3600e3).toISOString(),discount:{kind:'percent',percent:10},priceVersion:A}},
+  ]} as EffectiveMenu);
+ let calls=0;
+ const router=createMetaRouter({providers:[{id:'meta_api',baseUrl:'https://api.example.test/v1',apiKey:'k',model:'muse-spark-1.3',weights:'closed',location:'cloud',timeoutMs:5000,supportsJsonSchema:true,supportsImages:false}],record:invocationSink(deps.db),
+  fetch:async(_u,init)=>{calls++;const ids=JSON.parse(JSON.parse(String(init!.body)).messages[1].content).offers.map((o:any)=>o.offerId);
+   return new Response(JSON.stringify({model:'muse-spark-1.3',choices:[{finish_reason:'stop',message:{content:JSON.stringify({offerId:ids.find((i:string)=>i.includes(products[1].id)),reasonTh:'ลาเต้หอมๆ เข้ากับเช้านี้',reasonEn:'A smooth latte for your morning'})}}],usage:{prompt_tokens:10,completion_tokens:5}}),{status:200});}});
+ const offers:OfferDeps={menu,router};
+
+ const tap=sunParams(TAG_A,UID_A,50);
+ const t=await handleTap(deps,TAG_A,tap.e,tap.m,null);
+ const consent=await outboxOf(webhook({referral:{ref:refOf((t as any).url)}},50));
+ const accepted=await handleMessengerEvents(deps,webhook({postback:{payload:(consent[0] as any).buttons[0].payload}},51));
+ assert.equal(accepted.offers.length,1,'a newly bound tap asks for one offer');
+ const req=accepted.offers[0];
+ assert.equal(req.tapSessionId,(t as any).tapSessionId);
+
+ const first=await offerForTap(deps,offers,req.merchantId,req.linkId,req.tapSessionId);
+ assert.equal(first?.chosenBy,'model');assert.equal(first?.nameEn,'Latte');
+ assert.equal(first?.price,'฿72');assert.equal(first?.basePrice,'฿80');assert.equal(first?.discountPercent,10);
+ const again=await offerForTap(deps,offers,req.merchantId,req.linkId,req.tapSessionId);
+ assert.deepEqual(again,first,'one offer per tap, also on webhook retry or page refresh');
+ assert.equal(calls,1,'the model is not asked twice for the same tap');
+ const rows=(await admin.query('SELECT i.chosen_by,a.task,a.outcome,a.provider FROM meta_offer_impressions i JOIN meta_ai_invocations a ON a.merchant_id=i.merchant_id AND a.id=i.invocation_id WHERE i.tap_session_id=$1',[req.tapSessionId])).rows;
+ assert.deepEqual(rows,[{chosen_by:'model',task:'offer_selection',outcome:'OK',provider:'meta_api'}]);
+ // Another customer's link cannot read or create an offer for this tap.
+ assert.equal(await offerForTap(deps,offers,req.merchantId,'00000000-0000-4000-8000-0000000000ff',req.tapSessionId),null);
+ // Without a model the shop still gets a deterministic pick (not the one just shown).
+ const tap2=sunParams(TAG_A,UID_A,51);
+ const t2=await handleTap(deps,TAG_A,tap2.e,tap2.m,null);
+ const back=await handleMessengerEvents(deps,webhook({referral:{ref:refOf((t2 as any).url)}},52));
+ const fallback=await offerForTap(deps,{menu,router:null},back.offers[0].merchantId,back.offers[0].linkId,back.offers[0].tapSessionId);
+ assert.equal(fallback?.chosenBy,'fallback');assert.equal(fallback?.nameEn,'Croissant');
+ await outboxOf(webhook({message:{mid:`stop-offer-${run}`,text:'STOP'}},53));
 });

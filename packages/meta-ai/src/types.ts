@@ -2,7 +2,7 @@
 import type {z} from 'zod';
 
 export type MetaProviderId='meta_api'|'baseten'|'modal'|'local_mac'|'local_v100';
-export type MetaTask='counter_reasoning'|'tray_reasoning'|'promotion_copy'|'poster_direction';
+export type MetaTask='counter_reasoning'|'tray_reasoning'|'promotion_copy'|'poster_direction'|'offer_selection';
 export type MetaWeights='closed'|'open';
 export type MetaLocation='cloud'|'self_hosted';
 export type MetaOutcome='OK'|'PROVIDER_TIMEOUT'|'PROVIDER_UNREACHABLE'|'PROVIDER_RATE_LIMITED'|'PROVIDER_AUTH_REJECTED'|'PROVIDER_UNAVAILABLE'|'PROVIDER_REJECTED'|'PROVIDER_RESPONSE_TOO_LARGE'|'PROVIDER_RESPONSE_INVALID'|'OUTPUT_SCHEMA_INVALID';
