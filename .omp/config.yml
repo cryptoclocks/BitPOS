@@ -1,13 +1,9 @@
 modelRoles:
   default: openai-codex/gpt-6.1-sol:low
-  task: openai-codex/gpt-6.1-sol:low
-  smol: openai-codex/gpt-6.1-sol:low
-  plan: openai-codex/gpt-6.1-sol:high
+  task: openai-codex/gpt-5.6-terra:medium
+  smol: openai-codex/gpt-5.6-terra:medium
   slow: openai-codex/gpt-6.1-sol:high
   audit: openai-codex/gpt-6.1-sol:high
-  designer: openai-codex/gpt-6.1-sol:low
-modelRoleStorage: project
-cycleOrder: [default]
 autoResume: false
 prewalk:
   enabled: false
@@ -16,31 +12,23 @@ tools:
   speculativeExecution:
     enabled: false
 task:
-  batch: true
-  speculativeLaunch: false
-  maxConcurrency: 3
+  maxConcurrency: 1
   maxRecursionDepth: 1
-  enableEffort: true
-  maxEffort: high
+  enableEffort: false
   prewalk: false
   completionProbe: false
+  speculativeLaunch: false
   showResolvedModelBadge: true
   isolation:
-    enabled: true
+    enabled: false
     apply: false
-    merge: patch
   agentModelOverrides:
-    architect: openai-codex/gpt-6.1-sol:high
-    pos-web: openai-codex/gpt-6.1-sol:low
-    payment-backend: openai-codex/gpt-6.1-sol:low
-    firmware: openai-codex/gpt-6.1-sol:low
-    final-reviewer: openai-codex/gpt-6.1-sol:high
-    task: openai-codex/gpt-6.1-sol:low
+    h2-ui: openai-codex/gpt-5.6-terra:medium
+    h2-reviewer: openai-codex/gpt-6.1-sol:high
 retry:
   enabled: true
   maxRetries: 3
   usageAwareFallback: true
-  usageReservePct: 0
   modelFallback: false
   waitForUsageReset: true
 advisor:
@@ -51,8 +39,8 @@ goal:
   enabled: true
   continuationModes: [interactive]
 skills:
-  includeSkills: [omp-pstack-bitpos, poteto-mode, how, architect, swarm, tdd, principle-*]
-  customDirectories: [.omp/vendor/pstack/plugins/pstack/skills]
+  includeSkills: []
+  customDirectories: []
   enableClaudeProject: false
   enableClaudeUser: false
   enablePiProject: false

@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "origin": "https://github.com/google-research/harness2",
+  "commit": "1cfe254e8d25b15f37048c3730134686abe60335",
+  "license": "Apache-2.0",
+  "licenseSha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+  "package": "harness2",
+  "versionInstalled": "0.1.0",
+  "installMode": "isolated editable checkout; no live OMP integration",
+  "checkout": "/Users/cryptoclock/.local/share/bitpos-harness-lab/harness2",
+  "python": "Python 3.12.15",
+  "uvVersion": "uv 0.13.5 (46776a95d 2026-10-21 aarch64-apple-darwin)",
+  "upstreamUnmodified": true,
+  "dependencies": [],
+  "notInstalled": [
+    "render",
+    "bridge",
+    "benchmark dependencies",
+    "model credentials",
+    "omp executor"
+  ],
+  "sourcePins": {
+    "pyproject.toml": "c78fd0d09d2f92bf796871c168b548dd4d33e21566dbb582e343266e24a0bada",
+    "harness2/core/recursion.py": "b299813b5334f2c0f89024a7f14162f0fdd5418ebd4413be93920b5334a204c1",
+    "harness2/core/ledger.py": "7059de5d90fc9fb8d4b3b799ff075f09d34f182ba0fdb56eb9d8b8383d0bbf55",
+    "harness2/core/library.py": "00219fda201a030f43b35b49c4e73ccf336aedc81164144c435b4b06a1256dd3",
+    "harness2/core/schedule.py": "6e46c5ab1e4ac111818ff3acd6b636e39d650898189ac0c21802a8233ad4cd38"
+  }
+}
