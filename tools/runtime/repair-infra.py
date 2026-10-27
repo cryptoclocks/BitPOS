@@ -3,7 +3,14 @@
 import json, subprocess, sys
 from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
-SSH = ['ssh', '-i', '/Users/cryptoclock/Desktop/OCI/bitterm2.key', 'ubuntu@138.2.83.177']
+import os as _os
+def _oci_ssh_target():
+    key,target=_os.environ.get('BITPOS_OCI_SSH_KEY'),_os.environ.get('BITPOS_OCI_SSH_TARGET')
+    if not key or not target:
+        raise SystemExit('Set BITPOS_OCI_SSH_KEY (private key path, kept outside the repo) and BITPOS_OCI_SSH_TARGET (user@host)')
+    return key,target
+_KEY, _TARGET = _oci_ssh_target()
+SSH = ['ssh', '-i', _KEY, _TARGET]
 PROJECT = '/home/ubuntu/bitpos-staging'
 def remote(command, data=None):
     result = subprocess.run(SSH + [command], input=data, capture_output=True)
