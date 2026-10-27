@@ -1,3 +1,4 @@
+import {localApiOrigin} from './src/lib/api-origin.ts';
 import { defineConfig } from 'astro/config';
 import react from '@astrojs/react';
 import node from '@astrojs/node';
@@ -12,12 +13,13 @@ const publicOrigin = publicUrl ? new URL(publicUrl) : null;
 const allowedOrigins = ['http://localhost:4321', 'http://127.0.0.1:4321', 'https://pos.cashlessthailand.com', 'https://pay.cashlessthailand.com', ...(publicOrigin ? [publicOrigin.origin] : [])];
 export default defineConfig({
   output: 'server',
+  devToolbar: {enabled:false},
   adapter: node({ mode: 'standalone' }),
   integrations: [react()],
   server: { port: 4321 },
   security: { checkOrigin: true, allowedDomains: [...new Set(allowedOrigins)].map(origin => { const url = new URL(origin); return { protocol: url.protocol.slice(0, -1), hostname: url.hostname, port: url.port }; }) },
   vite: { server: {
     fs: { strict: true, allow: ['src', 'node_modules', '../../node_modules'].map(path => fileURLToPath(new URL(path, import.meta.url))) },
-    proxy: { '/api': { target: 'http://127.0.0.1:3001', ws: true } },
+    proxy: { '/api': { target: localApiOrigin(process.env.BITPOS_WEB_API_ORIGIN), ws: true } },
   } },
 });

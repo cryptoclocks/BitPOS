@@ -1,0 +1,91 @@
+.customer-avatar{width:46px;height:46px;flex:0 0 46px;font-family:inherit}.customer-row-list{display:grid;gap:8px;max-height:300px;overflow:auto;padding:3px}.shell .customer-profile-row{width:100%;display:flex;align-items:center;text-align:left;gap:13px;padding:13px 15px;border:1px solid #e9e1f1;border-radius:16px;background:#fff;color:#362347;box-shadow:none;min-height:74px;transform:none}.shell .customer-profile-row:hover:not(:disabled){background:#faf7fe;border-color:#b698d7;transform:none}.shell .customer-profile-row[aria-pressed=true]{border-color:#8c5fbc;background:#f5effc;box-shadow:0 0 0 1px #8c5fbc}.customer-row-copy{display:grid;gap:4px;flex:1;min-width:0}.customer-row-copy strong{font-size:15px;line-height:1.5;overflow-wrap:anywhere;white-space:normal}.customer-row-copy small{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:12px;line-height:1.6;color:#83718f}.customer-row-check{display:flex;align-items:center;color:#8455b2;flex:0 0 20px}.customer-search{display:grid;gap:9px;font-size:14px;margin-bottom:12px}.customer-empty,.customer-result-note{color:#85728e;font-size:13px;padding:12px}.customers-workspace{max-width:1180px;margin:24px auto;padding:0 24px}.customers-heading{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:24px}.customers-heading h1{margin:4px 0;font-size:30px}.customers-heading p{color:#8c789c;font-size:13px;margin:0}.customers-columns{display:grid;grid-template-columns:minmax(0,1fr) minmax(300px,390px);gap:24px;align-items:start}.customers-list-panel,.customer-profile-editor{border:1px solid #ece4f2;background:white;border-radius:22px;padding:22px;min-width:0}.customers-directory-list{display:grid;gap:9px;margin-top:20px}.customer-profile-editor{position:sticky;top:20px}.customer-profile-heading{display:flex;gap:14px;align-items:center;margin-bottom:22px}.customer-profile-heading h2{font-size:20px;line-height:1.5;overflow-wrap:anywhere;margin:0}.customer-profile-heading small{color:#84708f}.customer-profile-editor form{display:grid;gap:16px}.customer-profile-editor label{display:grid;gap:7px;font-size:14px}.customer-profile-editor input,.customer-profile-editor textarea{width:100%;box-sizing:border-box}.customer-profile-editor details summary{min-height:44px;display:flex;align-items:center;color:#77548f;cursor:pointer;font-size:13px}.customer-contact-fields{display:grid;gap:14px;padding:10px 0}.customer-profile-actions{display:flex;gap:8px;flex-wrap:wrap}.customer-profile-editor .customer-wallets{font-size:12px;color:#83718f;overflow-wrap:anywhere}.customer-directory-footer{display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px;margin-top:16px}.shell .promotion-form-grid>.customer-picker{grid-column:1/-1}.customer-profile-message{color:#398267;font-size:13px}.customer-picker .customer-row-list{grid-template-columns:repeat(2,minmax(0,1fr))}@media(max-width:700px){.customers-workspace{padding:0 16px;margin-top:18px}.customers-columns{grid-template-columns:1fr}.customer-profile-editor{position:static}.customers-heading{align-items:flex-start}.customers-heading h1{font-size:26px}.customers-heading>.toolbar{flex-wrap:wrap;justify-content:flex-end}.customers-list-panel,.customer-profile-editor{padding:16px}.customer-picker .customer-row-list{grid-template-columns:1fr}.shell .customer-profile-row{padding:12px;gap:11px}.customer-row-copy strong{font-size:14px}.shell .workspace-tabs{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.customer-avatar{border-radius:16px;object-fit:cover}.customer-avatar-picker{border:1px solid #eee4f5;border-radius:16px;padding:12px;min-width:0}.customer-avatar-picker legend{font-size:13px;color:#806a8d;padding:0 5px}.customer-avatar-options{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:6px 0 14px}.shell .customer-avatar-options button{padding:8px;display:flex;justify-content:center;border:1px solid #eee4f5;background:#fff}.shell .customer-avatar-options button[aria-pressed=true]{border-color:#8753bb;background:#f4eafa}.customer-photo-upload input{font-size:12px;max-width:100%}.customer-profile-editor select{width:100%}.customer-profile-editor details{border-bottom:1px solid #f0e9f5;padding-bottom:6px}
+
+.customer-picker-compact{max-width:600px;display:grid;gap:10px}.customer-picker-compact label{display:grid;gap:7px}.customer-picker-compact select{width:100%;min-width:0}.customer-selection-summary{display:flex;align-items:center;gap:12px;padding:12px;border-radius:14px;background:#faf7fc}.customer-picker-compact .customer-search{margin:0}
+.customers-heading .eyebrow{margin:0 0 5px;color:#9568bf;font-size:11px;font-weight:700;letter-spacing:.12em}.customer-error{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 18px;padding:12px 14px;border:1px solid #e3b9c8;border-radius:14px;background:#fff7f8;color:#89364f}.customer-error p{margin:0;font-size:13px;overflow-wrap:anywhere}.customer-directory-actions{display:flex;flex-wrap:wrap;gap:8px;padding-bottom:14px;border-bottom:1px solid #f0e9f5}.customers-directory-list{min-height:76px}.customer-profile-placeholder{display:grid;place-items:center;min-height:180px}.customer-profile-placeholder .customer-empty{max-width:260px;text-align:center}@media(max-width:700px){.customer-error{align-items:flex-start;flex-direction:column}.customer-directory-actions{align-items:stretch}.customer-directory-actions button{width:100%;justify-content:center}}
+
+/* P22 directory and P23 editor are separate workspace compositions. */
+.customers-workspace{color:var(--bp-ink);font-family:var(--bp-font-thai),var(--bp-font-latin),sans-serif}
+.customers-workspace[data-editing=false] .customers-columns{grid-template-columns:1fr}
+.customers-workspace[data-editing=false] .customers-list-panel{background:transparent;border:0;padding:0}
+.customers-workspace[data-editing=false] .customer-profile-placeholder{margin-top:164px;min-height:112px;place-items:start;padding:24px}
+.customers-workspace[data-editing=true] .customers-columns{grid-template-columns:minmax(0,744fr) minmax(0,372fr);gap:28px}
+.customers-workspace[data-editing=true] .customers-list-panel{grid-column:1/-1;order:3}
+.customers-workspace[data-editing=true] .customer-profile-editor{position:static;padding:26px;border-radius:22px}
+.customer-profile-preview{box-sizing:border-box;min-height:720px;padding:24px;border:1px solid var(--bp-line);border-radius:22px;background:var(--bp-white)}
+.customer-profile-preview h2{margin:0 0 30px;font-size:22px;line-height:32px;font-weight:600}
+.customer-profile-preview>p{margin-top:36px;color:var(--bp-muted);font-size:14px;line-height:25px}
+.customer-draft-status{border:1px solid var(--bp-line);border-radius:20px;padding:18px}
+.customer-draft-status small,.customer-draft-status p{font-size:12px;color:var(--bp-muted)}
+.customer-draft-status strong{display:block;margin-top:8px;color:var(--bp-primary);font-size:24px;line-height:36px}
+.customers-workspace .customers-heading h1{font-size:28px;line-height:40px;font-weight:600}
+.customers-workspace .customer-profile-editor input,.customers-workspace .customer-profile-editor select{min-height:52px;border-radius:16px}
+.customers-workspace .customer-profile-actions>button{flex:1;min-height:52px}
+@media(min-width:1100px){
+ .shell:has(>.customers-workspace){padding-left:232px;background:var(--bp-bg)}
+ .shell:has(>.customers-workspace)>header{height:86px;box-sizing:border-box;margin:0;padding:16px 32px;background:var(--bp-white)}
+ .shell:has(>.customers-workspace)>.workspace-bar{margin:0;padding:0;display:block}
+ .shell:has(>.customers-workspace)>.workspace-bar>:not(.workspace-tabs){display:none}
+ .shell:has(>.customers-workspace) .workspace-tabs{position:fixed;inset:86px auto 0 0;width:232px;box-sizing:border-box;padding:58px 16px 24px;display:flex;flex-direction:column;gap:14px;background:var(--bp-white);border:0;border-radius:0}
+ .shell:has(>.customers-workspace) .workspace-tabs button{width:100%;justify-content:flex-start;min-height:52px}
+ .shell:has(>.customers-workspace)>.customers-workspace{max-width:none;margin:0;padding:20px 32px 32px}
+ .customers-workspace .customers-heading{margin-bottom:32px}
+ .customers-workspace .customers-heading .eyebrow{display:none}
+}
+@media(max-width:700px){
+ .customers-workspace[data-editing=true] .customers-columns{grid-template-columns:1fr}
+ .customers-workspace{padding-inline:24px}
+ .customer-profile-preview{min-height:0;padding:24px}
+ .customers-workspace[data-editing=false] .customer-profile-placeholder{margin-top:24px}
+}
+@media(min-width:1100px){
+ .shell:has(>.customers-workspace) .workspace-tabs{height:calc(100dvh - 86px);min-height:0;max-height:calc(100dvh - 86px);justify-content:flex-start;align-items:stretch;overflow:auto}
+ .shell:has(>.customers-workspace) .workspace-tabs button{flex:none;height:52px}
+}
+.customer-directory-head{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.7fr) minmax(0,.7fr);gap:24px;background:var(--bp-tint);border-radius:14px;padding:16px;color:var(--bp-primary);font-size:12px;font-weight:600;margin-top:32px}
+.customers-workspace .customers-directory-list{gap:0;margin-top:0}
+.customers-workspace .customer-profile-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.7fr) minmax(0,.7fr);gap:24px;min-height:64px;border:0;border-bottom:1px solid var(--bp-line);border-radius:0;padding:12px 16px;font-size:13px;font-weight:400}
+.customer-directory-name{display:flex;align-items:center;gap:12px;min-width:0}
+.customer-directory-name strong{font-size:13px;font-weight:500;overflow-wrap:anywhere}
+.customer-directory-name .customer-avatar{width:32px;height:32px;flex-basis:32px}
+.customer-directory-description{overflow-wrap:anywhere}
+.customer-directory-status{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:13px}
+@media(max-width:700px){
+ .customer-directory-head{display:none}
+ .customers-workspace .customer-profile-row{grid-template-columns:minmax(0,1fr) auto;gap:8px 12px;min-height:82px;padding:16px 12px;border-radius:16px;border:1px solid var(--bp-line);margin-top:12px}
+ .customer-directory-name{grid-column:1}
+ .customer-directory-description{grid-column:1;font-size:12px;color:var(--bp-muted)}
+ .customer-directory-status{grid-column:2;grid-row:1/span 2;max-width:110px;overflow-wrap:anywhere}
+}
+@media(min-width:1100px){
+ .customers-workspace .customers-heading{margin-bottom:28px}
+ .customers-workspace .customer-profile-editor{min-height:720px}
+ .customers-workspace .customer-profile-editor form>.customer-profile-actions{margin-top:24px}
+ .shell:has(>.customers-workspace) .workspace-tabs{font-family:var(--bp-font-thai),var(--bp-font-latin),sans-serif}
+}
+.shell .customers-workspace .customer-profile-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.7fr) minmax(0,.7fr);justify-content:stretch;text-align:left}
+.customers-workspace .customer-directory-head,.customers-workspace .customer-profile-row{box-sizing:border-box}
+.customers-workspace .customer-profile-editor textarea{min-height:52px;border:1px solid var(--bp-line);border-radius:16px;padding:12px;font:inherit}
+@media(max-width:700px){.shell .customers-workspace .customer-profile-row{grid-template-columns:minmax(0,1fr) auto}}
+.customers-workspace .customer-profile-editor form>label,.customers-workspace .customer-contact-fields>label{margin:0}
+.customers-workspace .customer-profile-editor form>details{margin:0}
+.customers-workspace .customer-contact-fields{padding:0;gap:16px}
+.customer-history{grid-column:1/-1;min-width:0;padding:24px;border:1px solid var(--bp-line);border-radius:22px;background:#fff}
+.customer-history h2{margin:0 0 12px;font-size:22px;line-height:32px}
+.customer-history>p{color:var(--bp-muted);overflow-wrap:anywhere}
+.customer-history>details{margin-top:16px;padding:16px;border:1px solid var(--bp-line);border-radius:16px;overflow-wrap:anywhere}
+
+/* P23 core fields are in DOM order; extended profile fields follow progressively. */
+.customers-workspace .customer-profile-editor form{display:flex;flex-direction:column;gap:14px}.customers-workspace .customer-contact-details{display:grid;gap:12px}.customers-workspace .customer-contact-details h3{margin:0;font-size:13px}.customers-workspace .customer-profile-editor details>summary{min-height:44px;display:flex;align-items:center;cursor:pointer}.customers-workspace .customer-profile-editor details[open]>summary{margin-bottom:10px}.customers-workspace .customer-contact-fields{display:grid;gap:12px}.customers-workspace .customer-profile-editor textarea{min-height:72px;resize:vertical}.customers-workspace .customer-profile-actions{display:flex;gap:12px}
+@media(min-width:1100px){.customers-workspace[data-editing=true] .customer-profile-editor{min-height:0}.customers-workspace .customer-profile-editor form>.customer-profile-actions{margin-top:2px}.customer-profile-preview{min-height:862px}}
+
+/* P22 keeps search, the primary create action, filters, then the truthful directory. */
+.customers-workspace[data-editing=false] .customer-directory-search-row{display:grid;grid-template-columns:minmax(0,760fr) minmax(0,352fr);gap:32px;align-items:start;height:52px;margin-top:26px}.customers-workspace[data-editing=false] .customer-directory-search-row .customer-search{position:relative;display:block;height:52px;padding:0!important;font-size:0;line-height:0;overflow:visible}.customers-workspace[data-editing=false] .customer-directory-search-row .customer-search input{position:absolute;inset:0;box-sizing:border-box;height:52px;min-height:52px;margin:0;font-size:16px;transform:translateY(-14px)}.customers-workspace[data-editing=false] .customer-directory-search-row>button{min-height:52px}.customers-workspace[data-editing=false] .customer-directory-actions{margin-top:36px;padding-bottom:14px}.customers-workspace[data-editing=false] .customer-directory-head{margin-top:0}
+@media(min-width:701px){.shell .customers-workspace[data-editing=false] .customer-profile-row{height:64px;min-height:64px;padding:8px 16px}}
+@media(max-width:700px){.customers-workspace[data-editing=false] .customer-directory-search-row{grid-template-columns:1fr;gap:12px;margin-top:18px;height:auto}.customers-workspace[data-editing=false] .customer-directory-search-row .customer-search input{transform:none}.customers-workspace[data-editing=false] .customer-directory-actions{margin-top:18px}}
+@media(min-width:1100px){
+ .customers-workspace[data-editing=true] .customer-profile-preview{align-self:start;min-height:719px}
+ .customers-workspace[data-editing=false] .customer-directory-head{height:48px;padding-block:15px}
+ .shell .customers-workspace[data-editing=false] .customer-profile-row{height:65px;min-height:65px}
+ .customers-workspace[data-editing=false] .customer-directory-search-row .customer-search input{font-size:14px}
+}
