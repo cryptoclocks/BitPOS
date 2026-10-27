@@ -43,7 +43,7 @@ export function ProductDetailsForm({ product, token, language, onSaved, onClose 
     <label>{text('คำอธิบาย', 'Description')}<input value={draft.description} maxLength={200} onChange={set('description')} /></label>
     {message && <p className={conflict ? 'error' : 'notice'} role="alert">{message}</p>}
     {product && <p><button type="button" className="secondary" disabled={busy} onClick={() => void archive()}>{text('เก็บสินค้าเข้าคลัง', 'Archive product')}</button></p>}
-    <div className="toolbar"><button disabled={!dirty || !valid || busy || conflict}>{busy ? text('กำลังบันทึก…', 'Saving…') : text('บันทึก', 'Save')}</button><button type="button" className="secondary" onClick={onClose}>{text('ยกเลิก', 'Cancel')}</button></div>
+    <div className="toolbar"><button disabled={!dirty || !valid || busy || conflict}>{busy ? text('กำลังบันทึก…', 'Saving…') : text('บันทึก', 'Save')}</button><button type="button" className="secondary" onClick={() => { if (!dirty || window.confirm(text('ทิ้งข้อความที่ยังไม่บันทึก?', 'Discard unsaved edits?'))) onClose(); }}>{text('ยกเลิก', 'Cancel')}</button></div>
   </form>;
 }
 
