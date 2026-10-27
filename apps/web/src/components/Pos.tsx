@@ -166,7 +166,7 @@ export default function Pos() {
       if (inFlight || acting.current) return; inFlight = true;
       const generation = incomingGeneration.current;
       try { await refreshRegistry(); const result = await api<{ orders: PrivateOrder[] }>('/orders', undefined, session.token); if (active && generation === incomingGeneration.current && !acting.current) { setIncoming(current => result.orders.map(row => latestOrder(current.find(p => p.id === row.id), row))); setIncomingReadError('');setIncomingReady(true); } }
-      catch (error) { if (active && generation === incomingGeneration.current && !acting.current) { setRegistryError('Reconnecting to POSClock. Please wait.'); setIncomingReadError(error);setIncomingReady(true); } }
+      catch (error) { if (active && generation === incomingGeneration.current && !acting.current) { setRegistryError(document.documentElement.lang === 'th' ? 'กำลังเชื่อมต่อ POSClock ใหม่ กรุณารอสักครู่' : 'Reconnecting to POSClock. Please wait.'); setIncomingReadError(error);setIncomingReady(true); } }
       finally { inFlight = false; }
     };
     void poll(); const timer = setInterval(poll, 2000);

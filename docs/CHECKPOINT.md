@@ -3243,3 +3243,10 @@ Kept CLOSED and not implemented: ride payment/earnings, per-child or parent grou
 - เดินหน้า pay, table และ 9 หน้า platform บน stack ชั่วคราว (ไม่ชำระ ไม่ส่งคำสั่งตรวจคนส่ง); ติ๊ก checklist 1 ข้อ (DS31 responsive/guard); เหลือ `[ ]` 242 ข้อ
 - แก้บั๊ก 3 จุด: หน้า rides ไม่มี padding, UUID pattern ใน 3 หน้า platform ใช้ไม่ได้ใน Chrome ปัจจุบัน, หน้า drivers โชว์ error code ดิบ; web tests 64 ผ่าน; ยังไม่ deploy
 - ต่อไป: DS34 (shared states/theme/locale) หรือสร้างข้อมูลทดสอบที่ชำระแล้วเพื่อตรวจ order action/refund/receipt
+
+## 2026-10-27 — A5 ส่วนที่ 3: ปิดข้อสังเกตค้าง, DS34 บน POS, e2e ส่งอาหาร และออเดอร์ที่ชำระแล้ว
+- แก้ใน web: เมนูลิงก์ข้ามหน้าของ Platform 3 หน้า (drivers/food-incidents/food-cancellation-reviews), ป้าย "รุ่นที่คาดหวัง" ภาษาไทยหน้า driver-earnings, ข้อความ error/reconnect ของ POS เป็นไทยเมื่อเลือกไทย (`errorMessage` ดูภาษาของหน้า), ข้อความช่วยเหลือในกล่องนโยบาย dispatch ก่อนเลือกร้าน, ร่างฟอร์มสินค้าไม่หายเมื่อออกจากแท็บ (เก็บใน sessionStorage ของแท็บเท่านั้น ใช้ต่อเมื่อค่าเดิมของสินค้ายังตรงกัน), และรายงาน "รับเข้าสินค้า" ต่อกับ ledger `/inventory/movements` (เฉพาะ RECEIVE, เจ้าของ/ผู้จัดการ, ช่วงวันที่ที่เลือก)
+- ตรวจด้วยเบราว์เซอร์: แท็บ POS ทั้งหมด × EN/TH ที่ 1440/720/390 ไม่ overflow, focus ทุกจุดมีเส้น, offline แสดงข้อความ; ออเดอร์ที่ชำระผ่าน `settleAttempt` (payment attempt แบบ fixture ติดป้าย) ผ่านครัว Paid→Preparing→Ready→Collected และหน้า /pay แสดง "ชำระเงินสำเร็จ" ตรงยอด
+- รัน 12 scenario e2e ส่งอาหาร (`dispatch-http-smoke.ts --current-e2e`) บน DB ชั่วคราวของ worktree นี้ ผ่านทั้งหมด (ไม่ใช้ fixture ที่ผูกกับ checkout MAIN); ไม่มี UI/AVD/ผู้ให้บริการจริง
+- ติ๊ก checklist เพิ่ม 3 ข้อ (DS35 counterpart, DS36 no-driver/withdrawal/incident, DS36 counterpart); เหลือ `[ ]` 239 ข้อ
+- ช่องว่างที่ยืนยันแล้วและยังเปิดอยู่: Net & payouts ใน Reports ไม่มีข้อมูล fee/deduction/payout round จากเซิร์ฟเวอร์ (หน้าจอระบุตามจริง), ไม่มี dark theme บนเว็บ (ตามการออกแบบ), ไม่มีผลตรวจ Customer/Rider mobile (ต้อง AVD/iOS), ไม่มีผลเทียบ FigCraft, ยังไม่ deploy
