@@ -21,3 +21,19 @@ Base URL `https://api.meta.ai/v1`, Bearer key, OpenAI-SDK compatible; Muse Spark
 
 ## Not verified
 No live Muse Spark call yet: the clipboard held 6 characters, not the API key, so `~/.bitpos-meta/meta-api.env` does not exist. `tools/meta/muse-smoke.ts` is ready for that call. Whether `/v1/chat/completions` accepts `response_format: json_schema` on Meta's API is unconfirmed until that run.
+
+## Live Muse Spark (Meta Model API) — 2026-10-28
+Key saved only in `~/.bitpos-meta/meta-api.env` (600). Endpoint `https://api.meta.ai/v1/chat/completions`, model `muse-spark-1.3`.
+- First run: `PROVIDER_RESPONSE_INVALID`, so the router fell back. A raw call showed why: Muse Spark is a reasoning model, used 298 of the 300-token budget on reasoning, and returned `content: null` with `finish_reason: "length"`.
+- Raw calls with `reasoning_effort` `low` / `minimal` and `max_completion_tokens: 2000` returned `finish_reason: "stop"` and JSON that obeyed the `response_format: json_schema` enum (about 3.4 s).
+- Fix: the router passes an optional `reasoningEffort`; offer selection uses `minimal`, 2,000 tokens, and an 8 s deadline (was 2.5 s, shorter than the real latency).
+- `npx tsx tools/meta/muse-smoke.ts`, 4 runs after the fix, all `OK` and `chosenBy: model`:
+
+| Run | Latency | Prompt / completion tokens | Choice | Reason (EN) |
+|---|---|---|---|---|
+| 1 | 3,336 ms | 442 / 256 | Iced latte | Start your morning with a smooth iced latte |
+| 2 | 3,339 ms | 442 / 254 | Iced latte | Smooth iced latte for a bright fresh morning start |
+| 3 | 3,475 ms | 442 / 309 | Iced latte | Start your morning fresh with a smooth iced latte |
+| 4 | 3,173 ms | 442 / 264 | Thai tea | Sweet and refreshing, perfect for your morning |
+
+All Thai and English reasons were digit- and price-free, so none was rejected. Meta tests 32 pass + 4 skipped without the DB URL; `tsc` pass.

@@ -74,7 +74,7 @@ export function createMetaRouter(options:MetaRouterOptions){
  }
 
  async function call(p:MetaProviderConfig,req:MetaInvokeRequest<unknown>,timeoutMs:number){
-  const body:Record<string,unknown>={model:p.model,messages:req.messages,temperature:0,max_completion_tokens:req.maxOutputTokens??1024};
+  const body:Record<string,unknown>={model:p.model,messages:req.messages,temperature:0,max_completion_tokens:req.maxOutputTokens??1024,...(req.reasoningEffort?{reasoning_effort:req.reasoningEffort}:{})};
   if(p.supportsJsonSchema)body.response_format={type:'json_schema',json_schema:{name:req.output.name,strict:true,schema:req.output.jsonSchema}};
   const signals=[AbortSignal.timeout(timeoutMs),...(req.signal?[req.signal]:[])];
   let response:Response;

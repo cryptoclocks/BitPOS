@@ -32,6 +32,8 @@ export interface MetaInvokeRequest<T> {
  messages:MetaMessage[];
  output:MetaOutputSpec<T>;
  maxOutputTokens?:number;
+ /** Reasoning models (Muse Spark) spend output tokens thinking; lower effort for short structured answers. */
+ reasoningEffort?:'minimal'|'low'|'medium'|'high';
  /** Dashboard toggle: try this location first, still fall back to the other. */
  prefer?:MetaLocation;
  /** Open-weight-only proof runs never fall back to a closed model. */

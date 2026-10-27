@@ -47,7 +47,8 @@ Write one short friendly reason in Thai (reasonTh) and English (reasonEn), each 
 Never write numbers, prices, percentages, currency symbols or links in the reasons; the shop shows prices itself.
 Prefer offers the customer has not been shown recently, and items that suit the time of day.`;
 
-export async function selectOffer(router:MetaRouter|null,merchantId:string,candidates:OfferCandidate[],facts:CustomerFacts,deadlineMs=2500):Promise<OfferChoice|null>{
+// Muse Spark 1.3 answered in about 3.4 s live (2026-10-28), so allow 8 s before falling back.
+export async function selectOffer(router:MetaRouter|null,merchantId:string,candidates:OfferCandidate[],facts:CustomerFacts,deadlineMs=8000):Promise<OfferChoice|null>{
  if(!candidates.length)return null;
  if(!router)return fallbackChoice(candidates,facts);
  const ids=candidates.map(c=>c.offerId) as [string,...string[]];
@@ -58,7 +59,7 @@ export async function selectOffer(router:MetaRouter|null,merchantId:string,candi
  const list=candidates.map(c=>({offerId:c.offerId,item:c.nameEn,itemTh:c.name,category:c.category,discountPercent:c.discountPercent,lowStock:c.available<=3,recentlyShown:facts.recentlyShown.includes(c.offerId)}));
  try{
   const r=await router.invoke({task:'offer_selection',merchantId,messages:[{role:'system',content:SYSTEM},{role:'user',content:JSON.stringify({customer:{visit,daypart},offers:list})}],
-   output:{name:'offer_choice',schema,jsonSchema},maxOutputTokens:300,deadlineMs});
+   output:{name:'offer_choice',schema,jsonSchema},maxOutputTokens:2000,reasoningEffort:'minimal',deadlineMs});
   const v=r.value;
   if(NO_DIGITS.test(v.reasonTh)||NO_DIGITS.test(v.reasonEn)||FORBIDDEN.test(v.reasonTh)||FORBIDDEN.test(v.reasonEn))return fallbackChoice(candidates,facts);
   return {candidate:candidates.find(c=>c.offerId===v.offerId)!,chosenBy:'model',invocationId:r.invocation.id,reasonTh:v.reasonTh,reasonEn:v.reasonEn};
