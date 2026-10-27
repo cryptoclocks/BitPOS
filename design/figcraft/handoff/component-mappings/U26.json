@@ -1,0 +1,34 @@
+{
+  "screen": "U26",
+  "component": "CouponOfferBanner",
+  "review": "Native U26 hero rectangle and text sizes; use responsive Column, preserve intrinsic growth for large text.",
+  "selectors": {
+    "hero": {
+      "type": "rectangle",
+      "boundsInScreen": [
+        24,
+        139,
+        342,
+        151
+      ]
+    },
+    "amount": {
+      "type": "text",
+      "fontSize": 32
+    },
+    "title": {
+      "type": "text",
+      "text": "สิทธิพิเศษสำหรับคุณ"
+    },
+    "subtitle": {
+      "type": "text",
+      "text": "เลือกใช้ก่อนยืนยันออเดอร์"
+    }
+  },
+  "responsive": "Min-height only, no fixed height or positioned text; allow wrapping and scroll. Callers supply all copy and amounts.",
+  "reviewedFlowSpacing": {
+    "titleAmountGap": 9,
+    "amountSubtitleGap": 6,
+    "heroBottomGap": 26
+  }
+}
