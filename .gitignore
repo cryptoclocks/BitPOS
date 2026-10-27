@@ -21,6 +21,7 @@ BitPOS-Devnet-Private/
 **/*.keypair.json
 **/*.base58.txt
 **/keys/
+/Ai/
 
 local/
 artifacts/runtime/
