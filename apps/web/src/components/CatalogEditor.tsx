@@ -1,8 +1,13 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { api, ApiError, errorMessage } from '../lib/api';
 import type { Product } from '../lib/menu';
 
 interface Details { name: string; nameEn: string; category: string; description: string }
+// An unsaved draft survives leaving the page for this browser tab only. It is used again only
+// while the stored product still matches what the draft started from.
+const draftKey = (product?: Product) => `bitpos.catalog-draft.${product?.id ?? 'new'}`;
+const readDraft = (key: string, start: Details): Details | undefined => { try { const raw = JSON.parse(window.sessionStorage.getItem(key) ?? 'null') as { start: Details; draft: Details } | null; return raw && JSON.stringify(raw.start) === JSON.stringify(start) ? raw.draft : undefined; } catch { return undefined; } };
+const writeDraft = (key: string, value?: { start: Details; draft: Details }) => { try { if (value) window.sessionStorage.setItem(key, JSON.stringify(value)); else window.sessionStorage.removeItem(key); } catch { /* storage unavailable: the draft just is not kept */ } };
 const detailsOf = (p: Product): Details => ({ name: p.name, nameEn: p.nameEn, category: p.category, description: p.description });
 
 // Descriptive product edits and category rename (owner/manager). Price, stock, offers and
@@ -10,12 +15,13 @@ const detailsOf = (p: Product): Details => ({ name: p.name, nameEn: p.nameEn, ca
 // are sent back, so an edit made elsewhere in the meantime is refused, not overwritten.
 export function ProductDetailsForm({ product, token, language, onSaved, onClose }: { product?: Product; token: string; language: 'th' | 'en'; onSaved: () => void; onClose: () => void }) {
   const text = (th: string, en: string) => language === 'th' ? th : en;
-  const [start] = useState<Details>(() => product ? detailsOf(product) : { name: '', nameEn: '', category: '', description: '' }); const [draft, setDraft] = useState(start); const [busy, setBusy] = useState(false); const [message, setMessage] = useState(''); const [conflict, setConflict] = useState(false);
+  const [start] = useState<Details>(() => product ? detailsOf(product) : { name: '', nameEn: '', category: '', description: '' }); const key = draftKey(product); const [draft, setDraft] = useState<Details>(() => readDraft(key, start) ?? start); const restored = JSON.stringify(draft) !== JSON.stringify(start); const [busy, setBusy] = useState(false); const [message, setMessage] = useState(''); const [conflict, setConflict] = useState(false);
   const dirty = JSON.stringify(draft) !== JSON.stringify(start), valid = draft.name.trim() !== '' && draft.nameEn.trim() !== '';
-  const set = (key: keyof Details) => (event: React.ChangeEvent<HTMLInputElement>) => setDraft({ ...draft, [key]: event.target.value });
+  useEffect(() => { writeDraft(key, dirty ? { start, draft } : undefined); }, [key, start, draft, dirty]);
+  const set = (field: keyof Details) => (event: React.ChangeEvent<HTMLInputElement>) => setDraft({ ...draft, [field]: event.target.value });
   async function save() {
     setBusy(true); setMessage('');
-    try { if (product) await api(`/products/${encodeURIComponent(product.id)}`, { ...draft, expected: start }, token, 'PATCH'); else await api('/products', draft, token); onSaved(); onClose(); }
+    try { if (product) await api(`/products/${encodeURIComponent(product.id)}`, { ...draft, expected: start }, token, 'PATCH'); else await api('/products', draft, token); writeDraft(key); onSaved(); onClose(); }
     catch (error) {
       if (error instanceof ApiError && error.code === 'PRODUCT_CHANGED' && !product) setMessage(text('มีสินค้าชื่ออังกฤษนี้อยู่แล้ว', 'A product with this English name already exists.'));
       else if (error instanceof ApiError && error.code === 'PRODUCT_CHANGED') { setConflict(true); setMessage(text('สินค้านี้ถูกแก้จากที่อื่น ปิดแล้วเปิดใหม่เพื่อดูค่าล่าสุด (ร่างของคุณยังอยู่ในฟอร์มนี้)', 'This product changed elsewhere. Close and reopen to see the latest (your draft stays in this form).')); }
@@ -41,9 +47,10 @@ export function ProductDetailsForm({ product, token, language, onSaved, onClose 
     <label>{text('ชื่อ (อังกฤษ)', 'Name (English)')}<input value={draft.nameEn} maxLength={80} onChange={set('nameEn')} required /></label>
     <label>{text('หมวด', 'Category')}<input value={draft.category} maxLength={40} onChange={set('category')} /></label>
     <label>{text('คำอธิบาย', 'Description')}<input value={draft.description} maxLength={200} onChange={set('description')} /></label>
+    {restored && !message && <p className="notice" role="status">{text('กู้ร่างที่ยังไม่บันทึกกลับมา', 'Restored your unsaved draft.')}</p>}
     {message && <p className={conflict ? 'error' : 'notice'} role="alert">{message}</p>}
     {product && <p><button type="button" className="secondary" disabled={busy} onClick={() => void archive()}>{text('เก็บสินค้าเข้าคลัง', 'Archive product')}</button></p>}
-    <div className="toolbar"><button disabled={!dirty || !valid || busy || conflict}>{busy ? text('กำลังบันทึก…', 'Saving…') : text('บันทึก', 'Save')}</button><button type="button" className="secondary" onClick={() => { if (!dirty || window.confirm(text('ทิ้งข้อความที่ยังไม่บันทึก?', 'Discard unsaved edits?'))) onClose(); }}>{text('ยกเลิก', 'Cancel')}</button></div>
+    <div className="toolbar"><button disabled={!dirty || !valid || busy || conflict}>{busy ? text('กำลังบันทึก…', 'Saving…') : text('บันทึก', 'Save')}</button><button type="button" className="secondary" onClick={() => { if (!dirty || window.confirm(text('ทิ้งข้อความที่ยังไม่บันทึก?', 'Discard unsaved edits?'))) { writeDraft(key); onClose(); } }}>{text('ยกเลิก', 'Cancel')}</button></div>
   </form>;
 }
 

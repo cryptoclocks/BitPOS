@@ -4,6 +4,7 @@ import {FoodReturnSession} from '../lib/food-return-session';
 import FoodReturnPanel from './FoodReturnPanel';
 import {PlatformError} from '../lib/platform-session';
 import type {FoodIncidentPage,FoodIncidentReview,FoodIncidentInspection} from '../../../../packages/contracts/src/mobile-v1.generated';
+import PlatformLinks from './PlatformLinks';
 import '../styles/platform.css';
 export default function PlatformFoodIncidents(){
  const api=useRef<FoodReturnSession|null>(null);if(!api.current)api.current=new FoodReturnSession();const service=api.current;
@@ -22,7 +23,7 @@ export default function PlatformFoodIncidents(){
  async function submit(saved:PendingFoodIncident){const generation=owner.current,selected=detail?.incident.incidentId;try{const result=await service.submitIncident(saved);if(!alive.current||generation!==owner.current)return;setReceipt(result.kind==='ACK'?t('บันทึกการรับทราบแล้ว ไม่ใช่การอนุญาตให้ทำงานต่อ','Acknowledgement recorded — not permission to resume'):t('บันทึกการอนุญาตให้ทำงานเดิมต่อในขณะนั้นแล้ว ไม่ใช่การส่งมอบ คืนเงิน หรือจ่ายเงิน','Same-custody resume recorded at that time — not delivery, refund or payout'));setReason('');if(selected)await open(selected);if(merchant.trim())await load(null);}finally{if(alive.current&&generation===owner.current&&service.accountId)setPending(service.pendingIncident());}}
  const incident=detail?.incident,canResume=management&&detail?.currentDuty&&detail.unresolvedBlocking>0&&detail.unacknowledgedBlocking===0&&['ACCEPTED','AT_PICKUP','PICKED_UP','AT_DROPOFF'].includes(detail.assignmentState);
  const status=(ack:string|null,resolved:string|null,resolution:string|null)=>resolution==='RETURNED_TO_MERCHANT'?t('คืนอาหารที่ร้านและปิดหน้าที่แล้ว การเงินตรวจแยก','Returned to merchant; duty closed. Financial review is separate.'):resolved?t('อนุญาตให้ทำงานเดิมต่อในขณะนั้นแล้ว','Same-custody resume recorded'):ack?t('รับทราบแล้ว ยังไม่ใช่การอนุญาตให้ทำงานต่อ','Acknowledged — not resume'):t('รอรับทราบ','Awaiting acknowledgement');
- return <main className="platform"><header><div><small>BITPOS · PLATFORM</small><h1>{t('เหตุและความช่วยเหลืองานส่งอาหาร','Food incidents and support')}</h1></div><button onClick={()=>setThai(!thai)}>{thai?'English':'ไทย'}</button></header>
+ return <main className="platform"><header><div><small>BITPOS · PLATFORM</small><h1>{t('เหตุและความช่วยเหลืองานส่งอาหาร','Food incidents and support')}</h1></div><button onClick={()=>setThai(!thai)}>{thai?'English':'ไทย'}</button></header><PlatformLinks thai={thai} current="/platform/food-incidents"/>
  <a href="/platform/food-cancellation-reviews">{t('ตรวจคำขอยกเลิกออร์เดอร์ — ไม่ใช่ดำเนินการคืนเงิน','Order cancellation reviews — not refund execution')}</a>
  <a href="/platform/support">{t('ช่วยเหลือลูกค้า','Customer support')}</a>
  <a href="/platform/food-dispatch">{t('ศูนย์จัดส่งและนโยบายไรเดอร์','Food dispatch and matching policy')}</a>

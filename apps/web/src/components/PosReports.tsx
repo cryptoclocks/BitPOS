@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { api, errorMessage } from '../lib/api';
 import { formatMoney } from '../lib/money';
 import type { PrivateOrder } from '../lib/table';
+import type { Product } from '../lib/menu';
 import { channelOf, hourlyBuckets, sumSingleDenomination } from '../lib/pos-overview';
 import { dailyTotals, inRange, ordersCsv, statusCounts, topProducts } from '../lib/pos-reports';
 import '../styles/pos-reports.css';
@@ -12,8 +13,9 @@ const localDay = (date = new Date()) => `${date.getFullYear()}-${String(date.get
 // Every figure is computed from the orders the POS already loaded (a recent window,
 // not the full history) and says so. Nothing here is a closed-shift or accounting report.
 interface SalesGroup { currency: string; decimals: number; sourceKind: string; orders: number; totalMinor: string }
+interface ReceiveMove { id: string; productId: string; kind: 'RECEIVE' | 'ADJUST'; delta: number; reason: string; reference: string; createdAt: string }
 interface SalesReport { from: string; to: string; timeZone: string; days: { day: string; groups: SalesGroup[] }[]; excludedOrders: number }
-export default function PosReports({ orders, ready, failed, language, token }: { orders: PrivateOrder[]; ready: boolean; failed: boolean; language: 'th' | 'en'; token?: string }) {
+export default function PosReports({ orders, ready, failed, language, token, products = [] }: { orders: PrivateOrder[]; ready: boolean; failed: boolean; language: 'th' | 'en'; token?: string; products?: Product[] }) {
   const text = (th: string, en: string) => language === 'th' ? th : en;
   const [view, setView] = useState<View>('daily');
   const [range, setRange] = useState({ from: localDay(), to: localDay() });
@@ -25,6 +27,26 @@ export default function PosReports({ orders, ready, failed, language, token }: {
     api<SalesReport>(`/reports/sales?from=${range.from}&to=${range.to}`, undefined, token).then(next => { if (active) { setServer(next); setServerState('idle'); } }).catch(error => { if (active) { setServer(undefined); setServerError(errorMessage(error)); setServerState('error'); } });
     return () => { active = false; };
   }, [token, view, range.from, range.to]);
+  const [receipts, setReceipts] = useState<ReceiveMove[]>([]); const [receiptState, setReceiptState] = useState<'idle' | 'loading' | 'error'>('idle'); const [receiptError, setReceiptError] = useState(''); const [receiptMore, setReceiptMore] = useState(false);
+  useEffect(() => {
+    if (!token || view !== 'receive') return;
+    let active = true; setReceiptState('loading'); setReceiptError(''); setReceiptMore(false);
+    const first = new Date(`${range.from}T00:00:00`).getTime(), last = new Date(`${range.to}T23:59:59.999`).getTime();
+    (async () => {
+      const found: ReceiveMove[] = []; let cursor = ''; let pages = 0; let more = false;
+      while (pages < 20) {
+        const page = await api<{ movements: ReceiveMove[]; nextCursor: string | null }>(`/inventory/movements${cursor ? `?cursor=${cursor}` : ''}`, undefined, token);
+        pages++;
+        for (const move of page.movements) { const at = new Date(move.createdAt).getTime(); if (move.kind === 'RECEIVE' && at >= first && at <= last) found.push(move); }
+        const oldest = page.movements[page.movements.length - 1];
+        if (!page.nextCursor || !oldest || new Date(oldest.createdAt).getTime() < first) break;
+        cursor = page.nextCursor; if (pages === 20) more = true;
+      }
+      if (active) { setReceipts(found); setReceiptMore(more); setReceiptState('idle'); }
+    })().catch(error => { if (active) { setReceipts([]); setReceiptError(errorMessage(error)); setReceiptState('error'); } });
+    return () => { active = false; };
+  }, [token, view, range.from, range.to]);
+  const productName = (id: string) => { const p = products.find(item => item.id === id); return p ? (language === 'th' ? p.name : p.nameEn) : id.slice(0, 8); };
   const serverView = !!server && (view === 'daily' || view === 'period');
   const sourceLabel = (kind: string) => ({ register: text('จุดขาย', 'Register'), device: text('POSClock', 'POSClock'), online: text('แอป', 'App'), legacy_counter: text('เดิม', 'Legacy') } as Record<string, string>)[kind] ?? kind;
   const serverMoney = (g: SalesGroup) => formatMoney({ currency: g.currency, decimals: g.decimals, amountMinor: g.totalMinor } as never);
@@ -43,11 +65,11 @@ export default function PosReports({ orders, ready, failed, language, token }: {
   return <main className="pos-reports" aria-label={text('รายงาน', 'Reports')}>
     <div className="section-heading"><div><p className="eyebrow">{text('รายงาน', 'REPORTS')}</p><h1>{text('รายงานการขาย', 'Sales reports')}</h1><p className="reports-sub">{serverView ? text('ยอดจากเซิร์ฟเวอร์ตามวันที่เลือก ไม่ใช่รายงานบัญชี', 'Totals from the server for the selected dates. This is not an accounting report.') : text('คำนวณจากออเดอร์ล่าสุดที่โหลดอยู่ ไม่ใช่ประวัติทั้งหมดหรือรายงานบัญชี', 'Calculated from the recent orders currently loaded, not the full history or an accounting report.')}</p></div></div>
     <div className="reports-views" role="group" aria-label={text('มุมมองรายงาน', 'Report views')}>{views.map(([id, label]) => <button type="button" key={id} aria-pressed={view === id} onClick={() => setView(id)}>{label}</button>)}</div>
-    {view !== 'receive' && view !== 'payouts' && <div className="reports-range"><label>{text('ตั้งแต่', 'From')}<input type="date" value={range.from} max={range.to} onChange={event => event.target.value && setRange({ ...range, from: event.target.value })} /></label><label>{text('ถึง', 'To')}<input type="date" value={range.to} min={range.from} onChange={event => event.target.value && setRange({ ...range, to: event.target.value })} /></label><small>{serverView ? text(`วันที่ตามเวลาร้าน (${server!.timeZone})`, `Dates use the shop’s time (${server!.timeZone})`) : text('วันที่ตามเวลาเครื่องนี้', 'Dates use this device’s time zone')}</small></div>}
+    {view !== 'payouts' && <div className="reports-range"><label>{text('ตั้งแต่', 'From')}<input type="date" value={range.from} max={range.to} onChange={event => event.target.value && setRange({ ...range, from: event.target.value })} /></label><label>{text('ถึง', 'To')}<input type="date" value={range.to} min={range.from} onChange={event => event.target.value && setRange({ ...range, to: event.target.value })} /></label><small>{serverView ? text(`วันที่ตามเวลาร้าน (${server!.timeZone})`, `Dates use the shop’s time (${server!.timeZone})`) : text('วันที่ตามเวลาเครื่องนี้', 'Dates use this device’s time zone')}</small></div>}
     {serverState === 'loading' && (view === 'daily' || view === 'period') && <p className="notice" role="status">{text('กำลังโหลดยอดจากเซิร์ฟเวอร์…', 'Loading server totals…')}</p>}
     {serverState === 'error' && (view === 'daily' || view === 'period') && <p className="notice" role="status">{text('ยังไม่ได้ยอดจากเซิร์ฟเวอร์ แสดงเฉพาะออเดอร์ล่าสุดที่โหลดอยู่', 'Server totals are unavailable, so only the recent loaded orders are shown.')} {serverError}</p>}
     {failed && <p className="error" role="status">{text('โหลดออเดอร์ไม่สำเร็จ ตัวเลขอาจไม่ล่าสุด', 'Orders could not be loaded. Figures may be stale.')}</p>}
-    {!ready ? <p className="notice" role="status">{text('กำลังโหลด…', 'Loading…')}</p> : view === 'receive' ? <section className="reports-card"><h2>{text('รายงานรับเข้าสินค้า', 'Stock received report')}</h2><p className="notice">{text('ยังไม่เปิดใช้งาน ต้องมีบัญชีสต็อกฝั่งเซิร์ฟเวอร์ก่อน', 'Not available yet. It needs a server-side stock ledger.')}</p></section>
+    {!ready ? <p className="notice" role="status">{text('กำลังโหลด…', 'Loading…')}</p> : view === 'receive' ? <section className="reports-card"><h2>{text('รายงานรับเข้าสินค้า', 'Stock received report')}</h2>{!token ? <p className="notice">{text('เฉพาะเจ้าของร้านและผู้จัดการ', 'Owner or manager only.')}</p> : receiptState === 'loading' ? <p className="notice" role="status">{text('กำลังโหลดรายการรับเข้า…', 'Loading stock received…')}</p> : receiptState === 'error' ? <p className="error" role="status">{text('โหลดรายการรับเข้าไม่สำเร็จ', 'Stock received could not be loaded.')} {receiptError}</p> : receipts.length ? <><p className="reports-sub">{text('จากบัญชีสต็อกฝั่งเซิร์ฟเวอร์ ไม่รวมการปรับสต็อก', 'From the server stock ledger. Adjustments are not included.')}</p>{receiptMore && <p className="notice" role="status">{text('แสดงเฉพาะรายการล่าสุดที่โหลดได้ ลดช่วงวันที่เพื่อดูให้ครบ', 'Showing the latest entries only. Narrow the date range to see all.')}</p>}<table className="catalog-table"><thead><tr><th>{text('เวลา', 'When')}</th><th>{text('สินค้า', 'Product')}</th><th>{text('จำนวน', 'Quantity')}</th><th>{text('เหตุผล', 'Reason')}</th></tr></thead><tbody>{receipts.map(move => <tr key={move.id}><td>{new Date(move.createdAt).toLocaleString(language === 'th' ? 'th-TH' : 'en-GB')}</td><td>{productName(move.productId)}</td><td>+{move.delta}</td><td>{move.reason}{move.reference ? ` · ${move.reference}` : ''}</td></tr>)}</tbody><tfoot><tr><th colSpan={2}>{text('รวมทั้งหมด', 'Total received')}</th><td colSpan={2}>{receipts.reduce((sum, move) => sum + move.delta, 0)}</td></tr></tfoot></table></> : <p className="notice">{text('ไม่มีรายการรับเข้าในช่วงนี้', 'No stock was received in this range.')}</p>}</section>
     : view === 'payouts' ? <section className="reports-card"><h2>{text('ยอดสุทธิและรอบโอน', 'Net sales & payout rounds')}</h2><p className="notice" role="status">{text('ยังไม่เปิดใช้งาน เซิร์ฟเวอร์ยังไม่ส่งค่าธรรมเนียม ส่วนลดที่หักจริง หรือรอบโอนของร้านค้า ตัวเลขยอดขายในหน้านี้จึงไม่ใช่ยอดที่จะได้รับ', 'Not available yet. The server does not provide merchant fees, applied deductions or payout rounds, so the sales figures here are not an amount you will receive.')}</p></section>
     : (view === 'daily' || view === 'period') && server ? <section className="reports-card" aria-label={text('ยอดขายจากเซิร์ฟเวอร์', 'Server sales totals')}>
       <p className="reports-sub">{text(`ยอดชำระแล้วจากเซิร์ฟเวอร์ ตลอดช่วงที่เลือก (${server.timeZone}) ก่อนหักคืนเงินและค่าธรรมเนียม ไม่รวมยอดข้ามสกุลเงิน`, `Paid totals from the server for the whole selected range (${server.timeZone}), before refunds and fees. Never added across currencies.`)}</p>
