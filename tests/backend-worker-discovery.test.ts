@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {randomUUID} from 'node:crypto';
 import pg from 'pg';
+import {fixturePaymentAttempt} from './backend-payment-fixture';
 
 test('worker finds only actionable merchant IDs despite ordinary cross-tenant RLS, without exposing payment rows',{skip:process.env.BITPOS_BACKEND_INTEGRATION!=='1',timeout:30000},async()=>{
  const {config}=await import('../apps/api/src/config');
@@ -27,7 +28,7 @@ test('worker finds only actionable merchant IDs despite ordinary cross-tenant RL
    await db.query("SELECT set_config('bitpos.merchant',$1,true)",[merchant]);
    const customer=(await db.query('INSERT INTO bitpos.customers(merchant_id) VALUES($1) RETURNING id',[merchant])).rows[0].id;
    const order=(await db.query("INSERT INTO bitpos.orders(merchant_id,customer_id,thb_minor,usdg_minor,treasury,terminal_id,idempotency_key,access_token,request_hash,quote_expires_at,status) VALUES($1,$2,100,1,'11111111111111111111111111111111','rollback-fixture',$3,$4,'rollback-worker-discovery',clock_timestamp()+CASE WHEN $5::boolean THEN interval '-1 day' ELSE interval '1 day' END,$6) RETURNING id",[merchant,customer,randomUUID(),randomUUID(),fixture.expired,fixture.order])).rows[0].id;
-   if(fixture.attempt)await db.query("INSERT INTO bitpos.payment_attempts(merchant_id,order_id,reference,payer,recipient,amount_minor,mint,token_program,status,signature,failure_reconciled_at) VALUES($1,$2,$3,'unsigned-rollback-payer','unsigned-rollback-recipient',1,'rollback-mint','rollback-program',$4,$5,CASE WHEN $6::boolean THEN clock_timestamp() END)",[merchant,order,randomUUID(),fixture.attempt,fixture.signed?'rollback-signed-'+randomUUID():null,'reconciled' in fixture&&fixture.reconciled===true]);
+   if(fixture.attempt)await fixturePaymentAttempt(db,{merchant:merchant,order:order,reference:randomUUID(),status:fixture.attempt,amount:String(1),signature:fixture.signed?'rollback-signed-'+randomUUID():null,failureReconciled:'reconciled' in fixture&&fixture.reconciled===true});
   }
   await db.query("SELECT set_config('bitpos.merchant','',true)");
   assert.equal((await db.query('SELECT id FROM bitpos.orders WHERE merchant_id=ANY($1::uuid[])',[ids])).rowCount,0,'ordinary row visibility remains tenant restricted');
