@@ -12,7 +12,7 @@
 - สิทธิ์โฟลเดอร์ `700`; ไฟล์ส่วนตัว `600` จำกัดให้บัญชี macOS เจ้าของอ่านได้
 - Repository เก็บเฉพาะเครื่องมือ, public address และ snapshot; `.gitignore` ป้องกัน keypair/import files เพิ่มอีกชั้น ไม่ส่งคีย์เข้า GitHub, AI, firmware หรือ frontend
 
-## ครบ 19 role
+## ครบ 21 role (19 เดิม + rider-1, rider-2 เพิ่ม 2026-10-27)
 
 | Role | Devnet SOL เป้าหมาย | ใช้ทดลอง |
 |---|---:|---|
@@ -35,6 +35,8 @@
 | program-deployer | 5.00 | เงินสำรอง deploy โปรแกรมในเฟสถัดไป |
 | unauthorized-user | 0.25 | wallet มีเงิน แต่ไม่มีสิทธิ์ร้าน |
 | customer-no-sol | **0 ตั้งใจ** | มี USDG แต่ไม่มี SOL เพื่อทดสอบ sponsorship |
+| rider-1 | 0.25 | ไรเดอร์ 1: ผู้รับเงินจ่ายไรเดอร์ / wallet-proof ของ beneficiary (สิทธิ์แอปยังต้องผ่าน Auth/RBAC) |
+| rider-2 | 0.25 | ไรเดอร์ 2: คนที่สอง ใช้ทดสอบ replacement/แยกตัวตน |
 
 รวมเป้าหมาย **16 SOL** บวกค่าเปิดบัญชี/transaction และเงินสำรองเพิ่ม โค้ดแจก 14 SOL ให้ role อื่นหลังตรวจว่ามีเงินเหลือใน reserve อย่างน้อย 2.1 SOL ไม่ได้ deploy โปรแกรม BitPOS หรือสร้างบัญชี Auth/RLS ด้วยการสร้าง wallet นี้
 
@@ -140,3 +142,9 @@ node tools/devnet/export.cjs
 ## Live funding / smoke snapshot — 2026-10-07
 
 Received 10 devnet SOL in reserve; starter distribution and four USDG transfer/refund tests confirmed, including zero-SOL sponsored customer. After fee top-up: total SOL 9.99995, reserve 9.31995; all 19 wallets retain 100 USDG each. Starter verification passed; full 16 SOL profile not reached. Public transaction links appear in devnet dashboard. No Kora/POS/NFT/hardware test is implied.
+
+## เพิ่ม rider และจ่ายจริงครั้งแรกผ่านหน้า pay (2026-10-27)
+- เพิ่ม role `rider-1`, `rider-2` ใน `tools/devnet/roles.json`; สร้างกุญแจด้วย `setup.cjs` ลงโฟลเดอร์ส่วนตัวนอก repository ตรวจ genesis hash ของ devnet ก่อนทุกธุรกรรม ได้ SOL เริ่มต้น 0.02 ต่อใบจาก reserve และขอ USDG ทดสอบจาก Paxos sandbox (rider-1 ได้ 100 USDG แล้ว rider-2 รอ faucet) กุญแจไม่อยู่ใน repository
+- ทดสอบจ่ายจริง 1.50 USDG ทดสอบจาก `customer-alice` ไป `merchant-a-treasury` ผ่านหน้า `/pay` โดยเซิร์ฟเวอร์เป็นผู้ออกธุรกรรมและให้ `fee-sponsor` จ่ายค่าธรรมเนียม กุญแจ customer-alice อยู่ใน process ทดสอบฝั่ง Node เท่านั้น (wallet จำลองผ่าน hook `?testWallet=1` บน localhost) ไม่ถูกส่งเข้าเพจ; worker ตรวจสอบจนออเดอร์เป็น PAID และ attempt เป็น FINALIZED
+- ตรวจบนเชนอิสระ: customer-alice 100 → 98.5, merchant-a-treasury 197.757187 → 199.257187, fee payer คือ fee-sponsor, ธุรกรรม finalized ไม่มี error
+- ข้อสังเกต: เมื่อไม่มี worker ทำงานระหว่างจ่าย API จะแค่บันทึกธุรกรรมที่เซ็นแล้ว (SUBMITTING) และ worker จะส่งต่อ ถ้าปล่อยไว้จน blockhash หมดอายุ ระบบจะปิด attempt เป็น EXPIRED โดยไม่บันทึกการรับเงินและไม่ส่งธุรกรรมที่หมดอายุแล้ว (ตรวจแล้วในการทดลองครั้งแรก)
