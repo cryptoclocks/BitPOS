@@ -3215,3 +3215,11 @@ Kept CLOSED and not implemented: ride payment/earnings, per-child or parent grou
 ### Local commits (2026-10-27)
 - Work committed locally on branch `codex/bitpos-h2-local-scope-20261027` (16 commits on top of `a79544f`), grouped by area (design, migrations 022-095 / 096-137 closed / 138-153 / 154-159 closed, domain+contracts, api+worker, web, mobile customer, mobile driver, firmware, tests, tools, docs, omp, .gitignore). NOT pushed. The worktree was on a detached HEAD before; the branch was created for these commits.
 - Deliberately left untracked: `tools/runtime/coffee-copilot-deploy.py` and `tools/runtime/coffee-copilot-private-env.ts` (they embed the production OCI host and SSH key path; owner should review/parameterise before committing). Content scan of all committed files found no private keys, tokens or service-role values.
+
+### Owner decisions B1-B5, C1, C2 (2026-10-27)
+- B1 ride fare: flat 50.00 THB (~1.5 USDC/USDT, informational only; ride payment stays closed). Seeded by `160_ride_default_fare.sql` only when no fare is active (base 5000, per-km 0, per-minute 0, minimum 5000, shared discount 25%). An administrator can still publish another rate. Ride tests (`ride-fare`, `passenger-trips`, `mobile-rides`) pass with it.
+- B2 batching limits: keep the existing provisional defaults (pairwise 5 minutes and 2 km, 1-3 stops). Batching itself stays closed (see DS51).
+- B3 group size cap: 12 (unchanged).
+- B4 retention/erase: demo defaults stay - incident text 30-day fail-closed expiry, account erase = anonymise. Demo scope only; no legal approval is claimed.
+- B5 migrations 096-137 stay closed.
+- C1 push/PR authorised after A and B are done. C2 migrations on the actual-use OCI Supabase stack authorised (backup first; admitted migrations only; no deploy authorised).
