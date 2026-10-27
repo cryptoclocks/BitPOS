@@ -3223,3 +3223,11 @@ Kept CLOSED and not implemented: ride payment/earnings, per-child or parent grou
 - B4 retention/erase: demo defaults stay - incident text 30-day fail-closed expiry, account erase = anonymise. Demo scope only; no legal approval is claimed.
 - B5 migrations 096-137 stay closed.
 - C1 push/PR authorised after A and B are done. C2 migrations on the actual-use OCI Supabase stack authorised (backup first; admitted migrations only; no deploy authorised).
+
+### C2 executed: migrations applied to the actual-use OCI Supabase stack (2026-10-27)
+- Authorised by the owner. Method: (1) private `pg_dump` of schema `bitpos` twice (local/private/db-backups, ignored by git, 600 perms, `PGDMP` verified, 73.7 MB; the script's evidence-file step fails because `.omp/work/evidence` does not exist, the dump itself is valid); (2) rehearsal: restored the dump into a scratch DB `bitpos_oci_rehearsal` on the local cluster and applied the selection there first; (3) applied to `bitpos-staging-db-1` one migration per transaction, stopping on first error.
+- Selection applied: 049-095, 138-152, 160 (63 migrations; table `public.bitpos_migrations` 48 -> 111). NOT applied (closed): 096-137 (coupon/schedule/refund), 153-159 (food batching groundwork). `tools/runtime/migrate.ts` was deliberately NOT used because it applies every file in the directory.
+- The rehearsal found two real defects that would also have failed on the server, both fixed in the migration files before the real run: 088 set `search_path=bitpos,public` but `gen_random_bytes` lives in schema `extensions` on Supabase (now `bitpos,public,extensions`); 160 lacked `SET LOCAL search_path`.
+- After: 934 orders unchanged, active fare THB 5000, no coupon/batch tables, all bitpos-runtime containers up, no errors in the API log for the preceding 10 minutes. No code was deployed: the running API/web/worker are still the older images, which is safe only while the changes stay additive (050/051/055 add constraints to existing tables; they passed on the real rows).
+- Rollback: restore from the dump into the stack (schema `bitpos` only) and delete the 63 names from `public.bitpos_migrations`. Disk on the OCI host is 94% used (13 GB free) - watch it before any deploy.
+- Scripts used: scratchpad-only (`apply-selected.sh`); the selection logic is the rule above, not a repo tool.

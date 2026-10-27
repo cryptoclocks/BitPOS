@@ -2,7 +2,7 @@
 -- Dependency: actual runtime migrations001-087, never the colliding finance drafts.
 -- No provider is provisioned here. Empty configuration/funding is deliberately unavailable.
 BEGIN;
-SET LOCAL search_path=bitpos,public;
+SET LOCAL search_path=bitpos,public,extensions;
 DO $$ BEGIN
  IF NOT EXISTS(SELECT 1 FROM pg_roles WHERE rolname='bitpos_settlement_worker') THEN
   CREATE ROLE bitpos_settlement_worker NOLOGIN;
