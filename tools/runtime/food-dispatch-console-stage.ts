@@ -1,0 +1,11 @@
+import assert from 'node:assert/strict';import {randomUUID} from 'node:crypto';import {writeFile} from 'node:fs/promises';import type pg from 'pg';
+export async function stageFoodDispatchConsole(db:pg.Client,c:{merchant:string;branch:string;shipmentId:string;orderId:string;driverId:string}){
+ assert.equal((await db.query('SELECT current_database() n')).rows[0].n,'bitpos_delivery_fixture');
+ const account=(await db.query("INSERT INTO bitpos.mobile_accounts(auth_subject) VALUES('fa000000-0000-4000-8000-000000000002') ON CONFLICT(auth_subject) DO UPDATE SET auth_subject=excluded.auth_subject RETURNING id")).rows[0].id;
+ await db.query("UPDATE bitpos.platform_staff_role_grants SET revoked_at=clock_timestamp() WHERE account_id=$1 AND role='dispatcher' AND revoked_at IS NULL AND expires_at<=clock_timestamp() AND granted_by LIKE 'Synthetic%local browser fixture'",[account]);
+ let grant=(await db.query("SELECT id FROM bitpos.platform_staff_role_grants WHERE account_id=$1 AND role='dispatcher' AND revoked_at IS NULL AND expires_at>clock_timestamp()",[account])).rows[0]?.id;
+ if(!grant){grant=randomUUID();await db.query("INSERT INTO bitpos.platform_staff_role_grants(id,account_id,role,granted_by,expires_at) VALUES($1,$2,'dispatcher','Synthetic085 local browser fixture',clock_timestamp()+interval '1 hour')",[grant,account]);}
+ await db.query('INSERT INTO bitpos.platform_role_scopes(grant_id,merchant_id) VALUES($1,$2) ON CONFLICT DO NOTHING',[grant,c.merchant]);
+ const state=(await db.query('SELECT state,active_assignment_id FROM bitpos.food_shipments WHERE id=$1',[c.shipmentId])).rows[0];assert.equal(state.active_assignment_id,null);assert.equal((await db.query('SELECT count(*)::int n FROM bitpos.food_dispatch_searches WHERE shipment_id=$1',[c.shipmentId])).rows[0].n,0);
+ const receipt={status:'FIXTURE_PREPARED_NOT_ACCEPTED',...c,accountId:account,staffGrantId:grant,state,phone:'+66900000002',otp:'123456',fixture:'Actual canonical quote/order/merchant acceptance/READY; SQL-only synthetic payment verifier and finite scoped synthetic OTP staff. No SMS/chain payment/real delivery.',physicalTesting:'deferred_by_user_2026-10-16'};await writeFile('.omp/work/flutter-delivery-20261016/evidence/dispatch085-console-browser-fixture-20261019.json',JSON.stringify(receipt,null,2)+'\n');console.log(JSON.stringify(receipt));
+}

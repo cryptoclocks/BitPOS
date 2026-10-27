@@ -1,0 +1,6 @@
+import assert from 'node:assert/strict';import {mkdir,readFile,writeFile} from 'node:fs/promises';import {createHash} from 'node:crypto';
+const source='/tmp/bitpos-scheduled086-20261017',destination='.omp/work/flutter-delivery-20261016/schedule086-source';await mkdir(destination,{recursive:true});
+async function preserve(path:string,bytes:Buffer|string){try{await writeFile(path,bytes,{flag:'wx'});}catch(error){if(!error||typeof error!=='object'||!('code'in error)||error.code!=='EEXIST')throw error;assert.deepEqual(await readFile(path),Buffer.from(bytes),'Existing preserved source differs; never overwrite evidence');}}
+const manifest:Record<string,string>={};
+for(const name of ['core.sql','graph.sql','commands.sql','guards.sql','timing.sql','expiry.sql','frozen_options.sql','acl.sql','release_options_smoke.ts']){const bytes=await readFile(source+'/'+name);await preserve(destination+'/'+name,bytes);manifest[name]=createHash('sha256').update(bytes).digest('hex');}
+await preserve(destination+'/manifest.json',JSON.stringify({scope:'isolated proposed086 local-only source; not installed runtime migration',source,manifest,physicalTesting:'deferred_by_user_2026-10-16'},null,2)+'\n');console.log(JSON.stringify({status:'SNAPSHOT_PRESERVED',destination,files:Object.keys(manifest).length}));

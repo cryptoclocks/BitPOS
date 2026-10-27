@@ -1,0 +1,25 @@
+import assert from 'node:assert/strict';import {randomUUID,randomBytes,createHash} from 'node:crypto';import {spawn} from 'node:child_process';import {once} from 'node:events';import {mkdir,writeFile} from 'node:fs/promises';import pg from 'pg';import {ReviewAvdScope} from './food-cancellation-review-avd-smoke';
+const db=new pg.Client({host:'127.0.0.1',port:55446,database:'bitpos_w01_fixture'}),scope=new ReviewAvdScope(),account=randomUUID(),session=randomUUID(),device=randomUUID(),access=randomBytes(32).toString('base64url');
+const evidence='.omp/work/flutter-delivery-20261016/evidence/account-overview-'+new Date().toISOString().replaceAll(':','-');await mkdir(evidence,{recursive:true});await db.connect();
+try{
+ assert.equal((await db.query('SELECT current_database() n')).rows[0].n,'bitpos_w01_fixture');
+ await db.query("INSERT INTO bitpos.mobile_accounts(id,auth_subject,display_name) VALUES($1,$2,'Account AVD fixture')",[account,randomUUID()]);
+ await db.query("INSERT INTO bitpos.mobile_sessions(id,account_id,device_id,access_hash,refresh_hash,access_expires_at,refresh_expires_at) VALUES($1,$2,$3,$4,$5,clock_timestamp()+interval '10 minutes',clock_timestamp()+interval '10 minutes')",[session,account,device,createHash('sha256').update(access).digest('hex'),createHash('sha256').update(randomBytes(32)).digest('hex')]);
+ await db.query("INSERT INTO bitpos.mobile_sessions(id,account_id,device_id,access_hash,refresh_hash,access_expires_at,refresh_expires_at) VALUES($1,$2,$3,$4,$5,clock_timestamp()+interval '10 minutes',clock_timestamp()+interval '10 minutes')",[randomUUID(),account,randomUUID(),createHash('sha256').update(randomBytes(32)).digest('hex'),createHash('sha256').update(randomBytes(32)).digest('hex')]);
+ const data={accountId:account,sessionId:session,accessToken:access,refreshToken:'r'.repeat(43),accessExpiresAt:new Date(Date.now()+600000).toISOString(),refreshExpiresAt:new Date(Date.now()+600000).toISOString()};
+ const child=scope.track(spawn('/Users/cryptoclock/development/flutter/bin/flutter',['test','integration_test/account_overview_test.dart','-d','emulator-5554','--dart-define=BITPOS_FIXTURE=true','--dart-define=BITPOS_MOBILE_API=http://10.0.2.2:3046/api/mobile/v1/','--dart-define=BITPOS_TEST_SESSION_BASE64='+Buffer.from(JSON.stringify(data)).toString('base64'),'--dart-define=BITPOS_TEST_DEVICE_ID='+device,'--no-enable-impeller','--no-uninstall'],{cwd:'apps/mobile-customer',stdio:['ignore','pipe','pipe']}));
+ const captured=new Set<string>();let shotPromise=Promise.resolve();const observe=(chunk:Buffer)=>{
+  process.stdout.write(chunk);
+  for(const [marker,stage] of [['BITPOS_ACCOUNT_OVERVIEW_VISIBLE','overview'],['BITPOS_ACCOUNT_SESSIONS_VISIBLE','sessions'],['BITPOS_ACCOUNT_PRIVACY_VISIBLE','privacy'],['BITPOS_ACCOUNT_SETTINGS_VISIBLE','settings']]){
+   if(captured.has(stage)||!chunk.toString().includes(marker))continue;captured.add(stage);
+   shotPromise=shotPromise.then(async()=>{const shot=scope.track(spawn('/Users/cryptoclock/Library/Android/sdk/platform-tools/adb',['-s','emulator-5554','exec-out','screencap','-p'],{stdio:['ignore','pipe','pipe']}));const bytes:Buffer[]=[];shot.stdout.on('data',x=>bytes.push(x));assert.equal((await scope.wait(once(shot,'exit')))[0],0);await writeFile(evidence+'/account-'+stage+'-avd-direct-20261020.png',Buffer.concat(bytes));});void shotPromise.catch(e=>scope.abort(e));
+  }
+ };
+ child.stdout.on('data',observe);child.stderr.on('data',observe);assert.equal((await scope.wait(once(child,'exit')))[0],0);await shotPromise;assert.equal(captured.size,4);
+ assert.equal((await db.query("SELECT count(*)::int n FROM bitpos.mobile_identity_audit WHERE account_id=$1 AND action='session.revoke'",[account])).rows[0].n,1);
+ assert.equal((await db.query("SELECT count(*)::int n FROM bitpos.mobile_support_cases WHERE account_id=$1 AND subject='Account data copy request'",[account])).rows[0].n,1);
+ const state=(await db.query('SELECT revoked_at IS NOT NULL revoked,(SELECT display_name FROM bitpos.mobile_accounts WHERE id=$1) name,(SELECT count(*)::int FROM bitpos.mobile_sessions WHERE account_id=$1 AND revoked_at IS NULL) active_sessions FROM bitpos.mobile_sessions WHERE id=$2',[account,session])).rows[0];assert.deepEqual(state,{revoked:true,name:'Account AVD updated',active_sessions:0});
+ await writeFile(evidence+'/receipt.json',JSON.stringify({status:'PASS_ACTUAL_AVD_ACCOUNT_SETTINGS_PRIVACY_REQUEST_SESSIONS_LOGOUT_ALL',state,screenshots:['account-overview-avd-direct-20261020.png','account-sessions-avd-direct-20261020.png','account-privacy-avd-direct-20261020.png','account-settings-avd-direct-20261020.png'],fixture:'Synthetic isolated account, real3046HTTP and persisted W01 SQL; no actual-use changes',physicalTesting:'deferred_by_user_2026-10-16'},null,2)+'\n',{flag:'wx'});console.log(JSON.stringify({status:'PASS',evidence}));
+}finally{
+ scope.close();await db.query('UPDATE bitpos.mobile_sessions SET revoked_at=COALESCE(revoked_at,clock_timestamp()) WHERE account_id=$1',[account]);await db.query('UPDATE bitpos.mobile_accounts SET disabled_at=clock_timestamp() WHERE id=$1',[account]);await db.end();
+}

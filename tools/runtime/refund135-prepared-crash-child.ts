@@ -1,0 +1,14 @@
+// Deliberate disposable worker crash AFTER durable submission admission, before
+// any broadcast. Recovery must reuse identical bytes and existing reservations.
+import assert from 'node:assert/strict';import pg from 'pg';import {writeFile} from 'node:fs/promises';import {createFoodRefundSqlStore,createRefundSqlTransaction} from '../../apps/worker/src/food-refund-store';
+const name=process.argv[2],path=process.argv[3],crash=process.argv.includes('--crash');assert.match(name??'',/^bitpos_refund_commit_[a-f0-9]{12}$/);assert.match(path??'',/^\.omp\/work\/flutter-delivery-20261016\/evidence\/refund135-prepared-(crash|recover)-[a-f0-9]{12}\.json$/);
+const admin=new pg.Client({host:'127.0.0.1',port:55446,database:name});await admin.connect();const pool=new pg.Pool({host:'127.0.0.1',port:55446,database:name,user:'bitpos_refund110_fixture',max:1});
+try{
+ assert.equal((await admin.query('SELECT current_database() n')).rows[0].n,name);const attempts=(await admin.query("SELECT id FROM bitpos.food_refund110_attempts WHERE state='UNKNOWN'")).rows;assert.equal(attempts.length,1);
+ const store=createFoodRefundSqlStore(createRefundSqlTransaction(pool),{receipts:'112',submission:'114'}),before=await store.snapshot(attempts[0].id);assert.equal(before.state,'UNKNOWN');assert.equal(before.fundingAvailable,true);assert.ok(before.prepared);
+ const admitted=await store.authorizeSubmission(before);assert.ok(admitted);assert.equal(admitted.prepared?.signedBytesSha256,before.prepared.signedBytesSha256);assert.equal(admitted.prepared?.signedBase64,before.prepared.signedBase64);
+ const persisted=await store.snapshot(before.attemptId);assert.equal(persisted.state,'UNKNOWN');assert.equal(persisted.prepared?.signedBytesSha256,before.prepared.signedBytesSha256);
+ const facts=(await admin.query('SELECT (SELECT count(*)::int FROM bitpos.food_refund112_receipts) receipts,(SELECT count(*)::int FROM bitpos.food_refund111_claims) AS "principalClaims",(SELECT count(*)::int FROM bitpos.food_refund113_claims) AS "feeClaims",(SELECT count(*)::int FROM bitpos.ledger_transactions) postings,(SELECT count(*)::int FROM bitpos.food_refund114_submissions) submissions')).rows[0];assert.equal(facts.receipts,0);
+ await writeFile(path,JSON.stringify({status:crash?'DURABLE_SUBMISSION_COMMITTED_BEFORE_DELIBERATE_SIGKILL':'PASS_NEW_PROCESS_RESUMES_UNKNOWN_SAME_BYTES_EXISTING_RESERVATIONS',processId:process.pid,attemptId:before.attemptId,signedBytesSha256:before.prepared.signedBytesSha256,amountMinor:before.amountMinor,beneficiary:before.beneficiaryOwner,asset:before.asset,state:persisted.state,facts,limits:['No provider broadcast invoked; deliberate crash occurs after committed114admission','Synthetic local payment/funding/signing fixture only']},null,2)+'\n');
+ if(crash)process.kill(process.pid,'SIGKILL');
+}finally{await pool.end();await admin.end();}
