@@ -156,3 +156,5 @@
  .customer-checkout .checkout-details dl{grid-template-columns:minmax(0,1fr)}
 }
 @media(prefers-reduced-motion:reduce){.customer-checkout button,.customer-checkout .button{transition:none;transform:none}}
+
+.checkout-state.is-expired .checkout-progress-mark{background:#fff0dc;color:#c2610c}
