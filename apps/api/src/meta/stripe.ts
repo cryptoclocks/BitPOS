@@ -1,0 +1,82 @@
+// Meta hackathon work (2026-10-26..11-04). See meta-hackathon/PROVENANCE.md.
+// Stripe sandbox payments for BitPOS × Muse: charge an agent Shared Payment Token (SPT) for a canonical
+// server quote, and verify Stripe webhooks. Test mode only. A client redirect or an agent's claim is never
+// proof of payment: only a signature-verified webhook whose amount, currency and metadata match the quote is.
+import {createHmac,timingSafeEqual} from 'node:crypto';
+
+export interface StripeSandboxConfig {secretKey:string;webhookSecret:string;apiBase?:string;timeoutMs?:number}
+export type StripeFetch=(input:string,init:RequestInit)=>Promise<Response>;
+export class StripePaymentError extends Error {constructor(readonly code:'CONFIGURATION_REQUIRED'|'LIVE_MODE_REFUSED'|'INVALID_AMOUNT'|'PROVIDER_OUTCOME_UNKNOWN'|'PAYMENT_FAILED'|'RESPONSE_MISMATCH'|'WEBHOOK_INVALID',readonly detail?:string){super(code);}}
+
+const MAX_MINOR=99999999n;
+const CURRENCY=/^[a-z]{3}$/;
+
+export function stripeSandboxFromEnv(env:Record<string,string|undefined>):StripeSandboxConfig {
+ const secretKey=env.STRIPE_TEST_SECRET_KEY,webhookSecret=env.STRIPE_TEST_WEBHOOK_SECRET;
+ if(!secretKey||!webhookSecret)throw new StripePaymentError('CONFIGURATION_REQUIRED');
+ if(!/^(sk|rk)_test_[A-Za-z0-9]+$/.test(secretKey))throw new StripePaymentError('LIVE_MODE_REFUSED');
+ if(!/^whsec_[A-Za-z0-9]+$/.test(webhookSecret))throw new StripePaymentError('CONFIGURATION_REQUIRED');
+ return {secretKey,webhookSecret};
+}
+
+export interface AgentCharge {
+ /** Stable per checkout attempt; reused on retry so Stripe never charges twice. */
+ checkoutId:string;merchantId:string;orderId:string;quoteId:string;
+ /** Canonical quote total in the currency's minor unit, never a value supplied by the agent. */
+ amountMinor:bigint;currency:string;sharedPaymentToken:string;
+}
+export interface AgentChargeResult {outcome:'SUCCEEDED'|'PROCESSING'|'FAILED';paymentIntentId:string|null;declineCode:string|null}
+
+export async function chargeSharedPaymentToken(config:StripeSandboxConfig,charge:AgentCharge,fetchImpl:StripeFetch=fetch):Promise<AgentChargeResult>{
+ if(charge.amountMinor<=0n||charge.amountMinor>MAX_MINOR||!CURRENCY.test(charge.currency))throw new StripePaymentError('INVALID_AMOUNT');
+ if(!/^spt_[A-Za-z0-9_]+$/.test(charge.sharedPaymentToken))throw new StripePaymentError('PAYMENT_FAILED','invalid_token');
+ const form=new URLSearchParams({amount:charge.amountMinor.toString(),currency:charge.currency,confirm:'true',
+  'payment_method_data[shared_payment_granted_token]':charge.sharedPaymentToken,
+  'metadata[bitpos_merchant]':charge.merchantId,'metadata[bitpos_order]':charge.orderId,'metadata[bitpos_quote]':charge.quoteId,'metadata[bitpos_checkout]':charge.checkoutId});
+ let res:Response;
+ try{res=await fetchImpl(`${config.apiBase??'https://api.stripe.com'}/v1/payment_intents`,{method:'POST',redirect:'error',signal:AbortSignal.timeout(config.timeoutMs??20000),
+  headers:{Authorization:`Bearer ${config.secretKey}`,'Content-Type':'application/x-www-form-urlencoded','Idempotency-Key':`bitpos-meta-spt-${charge.checkoutId}`},body:form});}
+ catch{throw new StripePaymentError('PROVIDER_OUTCOME_UNKNOWN');}
+ let body:any;try{body=await res.json();}catch{throw new StripePaymentError('PROVIDER_OUTCOME_UNKNOWN');}
+ if(res.status>=500)throw new StripePaymentError('PROVIDER_OUTCOME_UNKNOWN');
+ if(!res.ok){
+  // A card error still creates a failed PaymentIntent; anything else (bad token, limits) is a clean refusal.
+  const pi=body?.error?.payment_intent;
+  return {outcome:'FAILED',paymentIntentId:typeof pi?.id==='string'?pi.id:null,declineCode:String(body?.error?.decline_code??body?.error?.code??'payment_failed')};
+ }
+ if(body?.object!=='payment_intent'||typeof body.id!=='string')throw new StripePaymentError('PROVIDER_OUTCOME_UNKNOWN');
+ if(body.livemode!==false)throw new StripePaymentError('LIVE_MODE_REFUSED');
+ if(String(body.amount)!==charge.amountMinor.toString()||body.currency!==charge.currency||body.metadata?.bitpos_checkout!==charge.checkoutId)throw new StripePaymentError('RESPONSE_MISMATCH');
+ if(body.status==='succeeded')return {outcome:'SUCCEEDED',paymentIntentId:body.id,declineCode:null};
+ if(body.status==='processing')return {outcome:'PROCESSING',paymentIntentId:body.id,declineCode:null};
+ return {outcome:'FAILED',paymentIntentId:body.id,declineCode:String(body.last_payment_error?.code??body.status)};
+}
+
+export interface StripeEvent {id:string;type:string;livemode:boolean;created:number;data:{object:any}}
+
+/** Verifies `Stripe-Signature` (scheme v1, HMAC-SHA256 over `${t}.${rawBody}`) against the exact raw body bytes. */
+export function verifyStripeWebhook(rawBody:string,signatureHeader:string|null|undefined,webhookSecret:string,nowSeconds:number,toleranceSeconds=300):StripeEvent{
+ if(!signatureHeader||signatureHeader.length>2048)throw new StripePaymentError('WEBHOOK_INVALID','missing_signature');
+ let timestamp:number|null=null;const signatures:string[]=[];
+ for(const part of signatureHeader.split(',')){const i=part.indexOf('=');if(i<0)continue;const k=part.slice(0,i).trim(),v=part.slice(i+1).trim();
+  if(k==='t'&&/^\d{1,12}$/.test(v))timestamp=Number(v);else if(k==='v1'&&/^[0-9a-f]{64}$/.test(v))signatures.push(v);}
+ if(timestamp===null||signatures.length===0)throw new StripePaymentError('WEBHOOK_INVALID','malformed_signature');
+ if(Math.abs(nowSeconds-timestamp)>toleranceSeconds)throw new StripePaymentError('WEBHOOK_INVALID','stale_signature');
+ const expected=createHmac('sha256',webhookSecret).update(`${timestamp}.${rawBody}`,'utf8').digest();
+ if(!signatures.some(s=>timingSafeEqual(Buffer.from(s,'hex'),expected)))throw new StripePaymentError('WEBHOOK_INVALID','bad_signature');
+ let event:any;try{event=JSON.parse(rawBody);}catch{throw new StripePaymentError('WEBHOOK_INVALID','bad_json');}
+ if(typeof event?.id!=='string'||typeof event.type!=='string'||typeof event.data?.object!=='object')throw new StripePaymentError('WEBHOOK_INVALID','bad_event');
+ if(event.livemode!==false)throw new StripePaymentError('LIVE_MODE_REFUSED');
+ return event as StripeEvent;
+}
+
+export interface PaymentFact {eventId:string;paymentIntentId:string;merchantId:string;orderId:string;quoteId:string;checkoutId:string;amountMinor:bigint;currency:string}
+
+/** Extracts a paid fact from `payment_intent.succeeded`; the caller must still match it to the stored quote inside its transaction. */
+export function paymentFactFromEvent(event:StripeEvent):PaymentFact|null{
+ if(event.type!=='payment_intent.succeeded')return null;
+ const pi=event.data.object,m=pi?.metadata??{};
+ if(pi?.object!=='payment_intent'||pi.status!=='succeeded'||!Number.isSafeInteger(pi.amount_received)||pi.amount_received<=0||!CURRENCY.test(String(pi.currency)))throw new StripePaymentError('WEBHOOK_INVALID','bad_payment_intent');
+ for(const k of ['bitpos_merchant','bitpos_order','bitpos_quote','bitpos_checkout'])if(typeof m[k]!=='string'||!m[k])return null;
+ return {eventId:event.id,paymentIntentId:pi.id,merchantId:m.bitpos_merchant,orderId:m.bitpos_order,quoteId:m.bitpos_quote,checkoutId:m.bitpos_checkout,amountMinor:BigInt(pi.amount_received),currency:pi.currency};
+}
