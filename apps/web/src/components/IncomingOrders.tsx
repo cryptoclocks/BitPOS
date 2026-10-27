@@ -66,7 +66,8 @@ export default function IncomingOrders({session,orders,kitchenOnly=false,initial
  const detailRef=useRef<HTMLElement>(null),selectedButton=useRef<HTMLButtonElement|null>(null);
  const groups:{id:Group;label:string}[]=[{id:'all',label:text('ทั้งหมด','All')},{id:'waiting',label:text('รอชำระ','Awaiting payment')},{id:'paid',label:text('ชำระแล้ว','Paid')},{id:'closed',label:text('ปิดแล้ว','Closed')},{id:'attention',label:text('ต้องตรวจสอบ','Needs attention')}];
  const channels:{id:Channel;label:string}[]=[{id:'all',label:text('ทั้งหมด','All')},{id:'counter',label:text('หน้าร้าน','Counter')},{id:'table',label:text('โต๊ะ','Table')},{id:'delivery',label:text('แอพจัดส่ง','App delivery')},{id:'pickup',label:text('รับเอง','App pickup')}];
- const scopedOrders=kitchenOnly?orders.filter(order=>order.fulfillment):orders;
+ // The server reports a RECEIVED fulfillment for every order, so unpaid and expired bills must be excluded here: the kitchen only sees paid orders.
+ const scopedOrders=kitchenOnly?orders.filter(order=>order.fulfillment&&order.status==='PAID'):orders;
  const filtered=scopedOrders.filter(o=>(channel==='all'||orderChannel(o)===channel)&&(category==='all'||group(o)===category)&&(kitchen==='all'||o.fulfillment?.status===kitchen)&&[o.id,o.authority.serving.label,...o.pricing.lines.map(l=>`${l.name} ${l.nameEn}`)].join(' ').toLowerCase().includes(search.trim().toLowerCase()));
  const pages=Math.max(1,Math.ceil(filtered.length/12)),current=Math.min(page,pages-1),visible=filtered.slice(current*12,current*12+12);
  useEffect(()=>setPage(0),[channel,category,kitchen,search]);
