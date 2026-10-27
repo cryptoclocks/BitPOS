@@ -95,6 +95,9 @@
   .shell:has(.promotions-workspace) .workspace-tabs{display:block;border:0;background:transparent}
   .shell:has(.promotions-workspace) .workspace-tabs>div{display:grid;gap:8px}
   .shell:has(.promotions-workspace) .workspace-tabs button{display:flex;width:100%;min-height:48px;padding:12px 14px;text-align:left;border-radius:14px}
+  /* The merchant sidebar already lists these destinations; keep its hidden duplicates hidden and do not repeat the shop name under the sidebar. */
+  .shell[data-merchant-shell]:has(.promotions-workspace) .workspace-tabs .merchant-navigation-extras>button:not(:nth-child(5)){display:none}
+  .shell[data-merchant-shell]:has(.promotions-workspace)>header .brand{display:none}
   .promotions-workspace{max-width:none;margin:0;padding:108px 32px 80px}
   .promotion-heading{margin:0;background:transparent!important;border:0!important;box-shadow:none!important;padding:0!important}
   .promotion-heading h1{font-size:30px;line-height:1.25}
