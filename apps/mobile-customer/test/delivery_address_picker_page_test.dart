@@ -97,13 +97,13 @@ void main() {
         find.text('Could not load more addresses. Try again.'),
         findsOneWidget,
       );
-      expect(find.text('Home'), findsOneWidget);
+      expect(find.text('Home'), findsNWidgets(2)); // saved address label + Home tab
       expect(find.textContaining('No saved delivery addresses'), findsNothing);
       fail = false;
       await tester.tap(find.text('Load more addresses'));
       await tester.pumpAndSettle();
       expect(calls, 2);
-      expect(find.text('Home'), findsOneWidget);
+      expect(find.text('Home'), findsNWidgets(2)); // saved address label + Home tab
       expect(find.text('Office'), findsOneWidget);
       expect(
         find.text('Could not load more addresses. Try again.'),
@@ -155,7 +155,7 @@ void main() {
       expect(edits, 0);
       gate.complete([existing, address(2, label: 'Office')]);
       await tester.pumpAndSettle();
-      expect(find.text('Home'), findsOneWidget);
+      expect(find.text('Home'), findsNWidgets(2)); // saved address label + Home tab
       expect(find.text('Office'), findsOneWidget);
       expect(find.byType(LinearProgressIndicator), findsNothing);
       expect(tester.takeException(), isNull);
@@ -229,7 +229,7 @@ void main() {
     );
     await tester.tap(find.text('Add a new address'));
     await tester.pumpAndSettle();
-    expect(find.text('Home'), findsOneWidget);
+    expect(find.text('Home'), findsNWidgets(2)); // saved address label + Home tab
     expect(find.text('Office'), findsOneWidget);
     expect(find.text('Delivery addresses'), findsOneWidget);
   });
@@ -258,7 +258,7 @@ void main() {
     expect(find.text('Load more addresses'), findsOneWidget);
     await tester.tap(find.text('Load more addresses'));
     await tester.pumpAndSettle();
-    expect(find.text('Home'), findsOneWidget);
+    expect(find.text('Home'), findsNWidgets(2)); // saved address label + Home tab
     expect(find.text('Office'), findsOneWidget);
     expect(find.text('Load more addresses'), findsNothing);
   });

@@ -116,7 +116,7 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.text('Delivery addresses'), findsOneWidget);
-    expect(find.text('Home'), findsOneWidget);
+    expect(find.text('Home'), findsNWidgets(2)); // saved address label + Home tab
     expect(find.text('Office'), findsOneWidget);
     expect(find.text('Add a new address'), findsOneWidget);
     debugPrint('BITPOS_U12_ROOT_ADDRESS_PICKER_VISIBLE');
@@ -134,7 +134,7 @@ void main() {
     await ready(
       () => find.byType(DeliveryAddressPickerPage).evaluate().isEmpty,
     );
-    expect(find.text('Home'), findsOneWidget);
+    expect(find.text('Home'), findsNWidgets(2)); // saved address label + Home tab
     await tester.tap(find.text('Home'));
     await ready(
       () => find.byType(DeliveryAddressPickerPage).evaluate().isNotEmpty,
@@ -273,7 +273,7 @@ void main() {
     await ready(
       () => find.byType(DeliveryAddressPickerPage).evaluate().isEmpty,
     );
-    expect(find.text('Home'), findsOneWidget);
+    expect(find.text('Home'), findsNWidgets(2)); // saved address label + Home tab
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pumpAndSettle();
