@@ -121,15 +121,18 @@ void main() {
           (widget) => widget is RawImage && widget.image != null,
         );
         final deadline = DateTime.now().add(const Duration(seconds: 40));
-        while ((find.text('Estimated 2 min · 0.5 km').evaluate().isEmpty ||
+        while ((find.text('Route travel estimate 2 min · 0.5 km').evaluate().isEmpty ||
                 decoded.evaluate().length < 9) &&
             DateTime.now().isBefore(deadline)) {
           await tester.pump(const Duration(milliseconds: 200));
         }
         await tester.pumpAndSettle();
-        expect(find.text('Estimated 2 min · 0.5 km'), findsOneWidget);
+        expect(find.text('Route travel estimate 2 min · 0.5 km'), findsOneWidget);
         expect(decoded, findsNWidgets(9));
         expect(find.byType(LinearProgressIndicator), findsNothing);
+        // The attribution and fixture notices sit inside the collapsed "Map and location details" section.
+        await tester.tap(find.text('Map and location details'));
+        await tester.pumpAndSettle();
         expect(find.text('Synthetic BitPOS map tile fixture'), findsOneWidget);
         expect(
           find.text('Synthetic grid map; not real streets'),
