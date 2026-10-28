@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { api, errorMessage } from '../lib/api';
 import { formatMoney } from '../lib/money';
-import { salesSummary } from '../lib/sales-summary';
+import { hourlySales, netSales, salesSummary } from '../lib/sales-summary';
+import type { HourRow, RefundRow } from '../lib/sales-summary';
 import type { PrivateOrder } from '../lib/table';
 import type { Product } from '../lib/menu';
 import { channelOf, hourlyBuckets, sumSingleDenomination } from '../lib/pos-overview';
@@ -15,7 +16,7 @@ const localDay = (date = new Date()) => `${date.getFullYear()}-${String(date.get
 // not the full history) and says so. Nothing here is a closed-shift or accounting report.
 interface SalesGroup { currency: string; decimals: number; sourceKind: string; orders: number; totalMinor: string }
 interface ReceiveMove { id: string; productId: string; kind: 'RECEIVE' | 'ADJUST'; delta: number; reason: string; reference: string; createdAt: string }
-interface SalesReport { from: string; to: string; timeZone: string; days: { day: string; groups: SalesGroup[] }[]; excludedOrders: number }
+interface SalesReport { from: string; to: string; timeZone: string; days: { day: string; groups: SalesGroup[] }[]; hours?: HourRow[]; refunds?: RefundRow[]; excludedOrders: number }
 export default function PosReports({ orders, ready, failed, language, token, products = [] }: { orders: PrivateOrder[]; ready: boolean; failed: boolean; language: 'th' | 'en'; token?: string; products?: Product[] }) {
   const text = (th: string, en: string) => language === 'th' ? th : en;
   const [view, setView] = useState<View>('daily');
@@ -55,6 +56,8 @@ export default function PosReports({ orders, ready, failed, language, token, pro
   const raw = salesSummary(server?.days.flatMap(d => d.groups) ?? []);
   const summaryMoney = (amountMinor: bigint) => raw ? formatMoney({ currency: raw.currency, decimals: raw.decimals, amountMinor: amountMinor.toString() } as never) : '';
   const summary = raw && { total: summaryMoney(raw.totalMinor), orders: raw.orders, average: raw.orders > 0 ? summaryMoney(raw.averageMinor) : '—', channels: raw.channels };
+  const net = raw && server ? netSales(raw, server.refunds ?? []) : null;
+  const serverHours = raw && server?.hours ? hourlySales(server.hours, raw.currency, raw.decimals) : null, serverPeak = serverHours ? serverHours.reduce((m, b) => b.totalMinor > m ? b.totalMinor : m, 1n) : 1n;
   const paid = scoped.filter(order => order.status === 'PAID');
   const total = sumSingleDenomination(paid);
   const money = (value: ReturnType<typeof sumSingleDenomination>) => value === null ? '—' : value === 'mixed' ? text('หลายสกุลเงิน', 'Mixed currencies') : formatMoney(value);
@@ -79,7 +82,8 @@ export default function PosReports({ orders, ready, failed, language, token, pro
     : (view === 'daily' || view === 'period') && server ? <section className="reports-card" aria-label={text('ยอดขายจากเซิร์ฟเวอร์', 'Server sales totals')}>
       <p className="reports-sub">{text(`ยอดชำระแล้วจากเซิร์ฟเวอร์ ตลอดช่วงที่เลือก (${server.timeZone}) ก่อนหักคืนเงินและค่าธรรมเนียม ไม่รวมยอดข้ามสกุลเงิน`, `Paid totals from the server for the whole selected range (${server.timeZone}), before refunds and fees. Never added across currencies.`)}</p>
       {server.excludedOrders > 0 && <p className="notice" role="status">{text(`ไม่รวม ${server.excludedOrders} ออเดอร์เดิมที่ไม่มีข้อมูลราคา`, `${server.excludedOrders} older paid orders without price data are not included.`)}</p>}
-      {summary && <><div className="reports-kpis reports-kpis-4"><article><small>{text('ยอดขายที่ชำระแล้ว', 'Paid sales')}</small><strong>{summary.total}</strong></article><article><small>{text('ออเดอร์ที่ชำระแล้ว', 'Paid orders')}</small><strong>{summary.orders}</strong></article><article><small>{text('เฉลี่ยต่อบิล', 'Average per bill')}</small><strong>{summary.average}</strong><span>{text('ปัดลงเป็นหน่วยเล็กสุด', 'Rounded down to the smallest unit')}</span></article><article><small>{text('ช่องทางที่มียอด', 'Active channels')}</small><strong>{summary.channels.length}</strong></article></div>
+      {summary && <><div className="reports-kpis reports-kpis-4"><article><small>{text('ยอดขายที่ชำระแล้ว', 'Paid sales')}</small><strong>{summary.total}</strong></article><article><small>{text('ออเดอร์ที่ชำระแล้ว', 'Paid orders')}</small><strong>{summary.orders}</strong></article><article><small>{text('เฉลี่ยต่อบิล', 'Average per bill')}</small><strong>{summary.average}</strong><span>{text('ปัดลงเป็นหน่วยเล็กสุด', 'Rounded down to the smallest unit')}</span></article><article><small>{text('ช่องทางที่มียอด', 'Active channels')}</small><strong>{summary.channels.length}</strong></article><article className="net-card"><small>{text('ยอดสุทธิหลังคืนเงิน', 'Net after refunds')}</small><strong>{net ? summaryMoney(net.netMinor) : '—'}</strong><span>{net ? text(`หักคืนเงินที่โอนสำเร็จแล้ว ${net.cases} เคส (${summaryMoney(net.refundedMinor)}) ยังไม่หักค่าธรรมเนียม`, `Minus ${net.cases} finalized refund case(s) (${summaryMoney(net.refundedMinor)}). Fees are not deducted.`) : text('คืนเงินหลายสกุลเงิน แสดงยอดสุทธิรวมไม่ได้', 'Refunds in another currency, so no single net figure.')}</span></article></div>
+        {serverHours && <section className="hour-chart" aria-label={text('ยอดขายรายชั่วโมง', 'Sales by hour')}><h3>{text('ยอดขายรายชั่วโมง', 'Sales by hour')}</h3><div className="reports-chart" role="img" aria-label={serverHours.filter(b => b.orders).map(b => `${b.hour}:00 ${summaryMoney(b.totalMinor)}`).join(', ') || text('ไม่มียอด', 'No sales')}>{serverHours.map(b => <div key={b.hour} title={`${String(b.hour).padStart(2, '0')}:00 · ${b.orders} · ${summaryMoney(b.totalMinor)}`}><i style={{ height: `${Number(b.totalMinor * 100n / serverPeak)}%` }} /><small>{String(b.hour).padStart(2, '0')}</small></div>)}</div><small className="reports-sub">{text(`ชั่วโมงตามเวลาร้าน (${server.timeZone})`, `Hours in shop time (${server.timeZone})`)}</small></section>}
         <section className="channel-share" aria-label={text('สัดส่วนยอดขายตามช่องทาง', 'Sales share by channel')}><h3>{text('ช่องทางการขาย', 'Sales channels')}</h3>{summary.channels.map(c => <div className="channel-row" key={c.kind}><span>{sourceLabel(c.kind)}</span><div className="channel-bar" role="img" aria-label={`${sourceLabel(c.kind)} ${c.share}%`}><i style={{ width: `${c.share}%` }} /></div><b>{c.share}%</b></div>)}</section></>}
       {server.days.length ? <table><thead><tr><th>{text('วันที่', 'Date')}</th><th>{text('ช่องทาง', 'Source')}</th><th>{text('ออเดอร์ที่ชำระแล้ว', 'Paid orders')}</th><th>{text('ยอดชำระแล้ว', 'Paid total')}</th></tr></thead><tbody>{server.days.flatMap(day => day.groups.map((g, index) => <tr key={`${day.day}-${g.currency}-${g.decimals}-${g.sourceKind}`}><td>{index === 0 ? day.day : ''}</td><td>{sourceLabel(g.sourceKind)}</td><td>{g.orders}</td><td>{serverMoney(g)}</td></tr>))}</tbody></table> : <p className="notice">{text('ไม่มีออเดอร์ที่ชำระแล้วในช่วงนี้', 'No paid orders in this range.')}</p>}</section>
     : view === 'daily' || view === 'period' ? <section className="reports-card"><div className="reports-kpis"><article><small>{text('ยอดขายที่ชำระแล้ว', 'Paid sales')}</small><strong>{money(total)}</strong></article><article><small>{text('ออเดอร์ที่ชำระแล้ว', 'Paid orders')}</small><strong>{paid.length}</strong></article><article><small>{text('ออเดอร์ทั้งหมด', 'All orders')}</small><strong>{scoped.length}</strong></article></div>

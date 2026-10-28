@@ -7,7 +7,10 @@ const day=z.string().regex(/^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/).refi
 const query=z.object({from:day,to:day}).strict();
 export const maxReportDays=366;
 export interface SalesGroup{currency:string;decimals:number;sourceKind:string;orders:number;totalMinor:string}
-export interface SalesReport{from:string;to:string;timeZone:string;days:{day:string;groups:SalesGroup[]}[];excludedOrders:number;basis:'gross_paid_before_refunds_and_fees'}
+export interface HourGroup{hour:number;currency:string;decimals:number;orders:number;totalMinor:string}
+/** Return cases whose every refund transfer is finalized on chain, valued in the order's catalog currency. */
+export interface RefundGroup{currency:string;decimals:number;cases:number;refundedMinor:string}
+export interface SalesReport{from:string;to:string;timeZone:string;days:{day:string;groups:SalesGroup[]}[];hours:HourGroup[];refunds:RefundGroup[];excludedOrders:number;basis:'gross_paid_before_refunds_and_fees';netBasis:'gross_paid_minus_finalized_refunds_before_fees'}
 /** Owner/manager only. Totals are grouped by currency and decimals and never summed across denominations. */
 export async function salesReport(db:pg.PoolClient,merchant:string,role:string,url:URL):Promise<SalesReport>{
  requireRole(role);
@@ -22,8 +25,14 @@ export async function salesReport(db:pg.PoolClient,merchant:string,role:string,u
   `SELECT to_char((o.paid_at AT TIME ZONE $4)::date,'YYYY-MM-DD') AS day,a.catalog_currency AS currency,a.catalog_decimals AS decimals,a.source_kind,count(*)::int AS orders,sum(a.total_minor)::text AS total_minor
    FROM orders o JOIN order_authority a ON a.merchant_id=o.merchant_id AND a.order_id=o.id WHERE ${window}
    GROUP BY 1,2,3,4 ORDER BY 1 DESC,2,3,4`,[merchant,from,to,timeZone])).rows;
+ const hours=(await db.query<{hour:number;currency:string;decimals:number;orders:number;total_minor:string}>(
+  `SELECT extract(hour FROM (o.paid_at AT TIME ZONE $4))::int AS hour,a.catalog_currency AS currency,a.catalog_decimals AS decimals,count(*)::int AS orders,sum(a.total_minor)::text AS total_minor
+   FROM orders o JOIN order_authority a ON a.merchant_id=o.merchant_id AND a.order_id=o.id WHERE ${window}
+   GROUP BY 1,2,3 ORDER BY 1,2,3`,[merchant,from,to,timeZone])).rows.map(r=>({hour:r.hour,currency:r.currency,decimals:r.decimals,orders:r.orders,totalMinor:r.total_minor}));
+ // Refund tables are closed to the application role; this read-only definer function returns the finalized totals.
+ const refunds=((await db.query<{value:RefundGroup[]}>('SELECT bitpos.sales_report162_refunds($1,$2::date,$3::date,$4) value',[merchant,from,to,timeZone])).rows[0]?.value??[]);
  const excluded=(await db.query<{n:number}>(`SELECT count(*)::int AS n FROM orders o WHERE ${window} AND NOT EXISTS(SELECT 1 FROM order_authority a WHERE a.merchant_id=o.merchant_id AND a.order_id=o.id)`,[merchant,from,to,timeZone])).rows[0].n;
  const days:SalesReport['days']=[];
  for(const r of rows){let entry=days[days.length-1];if(!entry||entry.day!==r.day){entry={day:r.day,groups:[]};days.push(entry);}entry.groups.push({currency:r.currency,decimals:r.decimals,sourceKind:r.source_kind,orders:r.orders,totalMinor:r.total_minor});}
- return {from,to,timeZone,days,excludedOrders:excluded,basis:'gross_paid_before_refunds_and_fees'};
+ return {from,to,timeZone,days,hours,refunds,excludedOrders:excluded,basis:'gross_paid_before_refunds_and_fees',netBasis:'gross_paid_minus_finalized_refunds_before_fees'};
 }

@@ -28,6 +28,11 @@ test('sales report: paid orders only, merchant-local days, one group per denomin
  const total=all.filter(g=>g.currency===all[0].currency&&g.decimals===all[0].decimals).reduce((n,g)=>n+BigInt(g.totalMinor),0n);
  const expected=[a,b,c].reduce((n,o)=>n+BigInt(o.order.pricing.total.amountMinor),0n);
  assert.equal(total,expected,'sum equals the canonical order totals');
+ // 16:30Z and 17:30Z are 23:00 and 00:00 Bangkok, 05:00Z is 12:00 Bangkok: hourly buckets use the shop time zone.
+ assert.equal(report.hours.reduce((n,h)=>n+h.orders,0),3,'every paid order lands in exactly one hour');
+ assert.deepEqual([...new Set(report.hours.map(h=>h.hour))].sort((x,y)=>x-y),[0,12,23]);
+ assert.equal(report.hours.filter(h=>h.currency===all[0].currency&&h.decimals===all[0].decimals).reduce((n,h)=>n+BigInt(h.totalMinor),0n),expected,'hours add up to the day totals');
+ assert.equal(report.netBasis,'gross_paid_minus_finalized_refunds_before_fees');assert.ok(Array.isArray(report.refunds),'refund totals are always present, empty when nothing was returned');
  assert.equal((await call(f.merchant,'owner','from=2026-10-26&to=2026-10-26')).days.length,1);
  assert.equal((await call(f.merchant,'owner','from=2026-11-01&to=2026-11-02')).days.length,0);
  assert.equal((await call(f.other,'owner','from=2026-10-25&to=2026-10-26')).days.length,0,'another merchant sees nothing');
