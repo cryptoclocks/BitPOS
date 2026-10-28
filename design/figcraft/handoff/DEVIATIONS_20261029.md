@@ -23,3 +23,20 @@ U06 home (address line, promo banner, category tiles, rating / ETA / fee on merc
 ETA and fee chips, item photos and descriptions), U10 product option chips (the fixture product has no option groups) and R06 rider
 home content in states other than "online". The app does not invent ratings, delivery times, promotions or photos; the design
 stays as the target for when that data exists.
+
+## Larger differences where the app is kept (design to be redrawn in the FigCraft master, not hand-patched)
+
+These are too structural to patch in the exported SVG. The app is the better behaviour; redraw the frames in the master when it is open.
+
+| Frame | App behaviour kept | Design shows |
+|---|---|---|
+| U20 tracking | "Map unavailable" plus delivery status when no map provider is configured or service access is restricted; no invented ETA or rider rating | live route map, ETA, rider card with rating, chat / details buttons |
+| U22 order detail | adds a collapsible "status and history" section and a longer "Cancel review" label | three short buttons, no history section |
+| U23 activity | merchant tile icon and a "newest orders" sort control | merchant photos |
+| U33 account | superset menu (addresses, settings, ride, group order, order again, and more); no points or name until the account has them | four rows incl. coupons and points, payments |
+| P03 bills | order-centre board with columns (new, in progress, ready, collected) and channel filter | a plain bills list |
+| P07 / P09 / P13 | product details form above the list; inline receive form; stock ledger with receive and adjust only | two-column edit page with photo preview; receive page with supplier, document number and cost; movement list including sales deductions |
+| P20 export | local CSV built from the loaded orders, nothing stored or uploaded | a list of previously generated exports |
+| P24 categories | summary card with rename; categories are derived from products | a categories list with visibility and update time |
+| P25 users | member list by short id with role change for managers and staff; names and invitations stay in the auth service | member names and an add button |
+| P35 devices | richer floor-plan editor with the same facts | plain tables-and-devices list |
