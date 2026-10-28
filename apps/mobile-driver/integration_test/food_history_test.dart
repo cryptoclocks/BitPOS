@@ -178,6 +178,11 @@ void main() {
       );
       await tester.pump();
     }
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('food-private-idle-panel')),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
     await tester.pump();
     expect(
       find.byKey(const ValueKey('food-private-idle-panel')),
@@ -195,6 +200,11 @@ void main() {
       await tester.pump();
     }
     expect(find.text('Availability unconfirmed. Refresh.'), findsNothing);
+    await tester.scrollUntilVisible(
+      find.textContaining('according to server'),
+      -300,
+      scrollable: find.byType(Scrollable).first,
+    );
     expect(find.textContaining('according to server'), findsOneWidget);
     debugPrint('BITPOS_DRIVER_WORK_TAB_VISIBLE');
     await tester.runAsync(

@@ -98,7 +98,8 @@ void main() {
           tester.widget<TextField>(search).enabled == true,
     );
     expect(tester.widget<TextField>(search).controller!.text, isEmpty);
-    expect(find.text(first.branches.first.nameEn), findsOneWidget);
+    // The shared local fixture database holds several branches with the same English name.
+    expect(find.text(first.branches.first.nameEn), findsWidgets);
     tester
         .state<ScrollableState>(find.byType(Scrollable).first)
         .position

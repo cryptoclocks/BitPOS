@@ -90,7 +90,9 @@ void main() {
     debugPrint('BITPOS_U21_ROOT_AVD_VISIBLE');
 
     expect(back.left, closeTo(18, 1));
-    expect(back.top, closeTo(52, 1));
+    // The app bar is 72 dp tall with the 44 dp back button centred (14 dp padding) below the device's top safe area.
+    final inset = tester.view.padding.top / tester.view.devicePixelRatio;
+    expect(back.top, closeTo(inset + 14, 1));
     expect(back.width, closeTo(44, 1));
     expect(back.height, closeTo(44, 1));
     expect(title.left, closeTo(76, 1));

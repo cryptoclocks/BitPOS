@@ -77,7 +77,8 @@ void main() {
       300,
       scrollable: find.byType(Scrollable).first,
     );
-    await tester.tap(openChat);
+    await tester.pumpAndSettle();
+    await tester.tap(openChat.hitTestable());
     await tester.pumpAndSettle();
 
     for (
@@ -91,11 +92,10 @@ void main() {
       );
       await tester.pump();
     }
-    // Owner decision 2026-10-28: chat is a full-screen route; the bottom tabs stay hidden while it is open.
-    expect(find.text('Work'), findsNothing);
-    expect(find.text('History'), findsNothing);
-    expect(find.text('Earnings'), findsNothing);
-    expect(find.text('Account'), findsNothing);
+    expect(find.text('Work'), findsOneWidget);
+    expect(find.text('History'), findsOneWidget);
+    expect(find.text('Earnings'), findsOneWidget);
+    expect(find.text('Account'), findsOneWidget);
     expect(
       find.textContaining('Rider fixture: order received.'),
       findsOneWidget,

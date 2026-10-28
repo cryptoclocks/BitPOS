@@ -30,7 +30,7 @@ void main() {
       find.byKey(ValueKey('customer-order-card.${history_fixture.id(1)}')),
     );
     await tester.pumpAndSettle();
-    final request = find.text('ขอให้ตรวจสอบการยกเลิก');
+    final request = find.text('ตรวจยกเลิก');
     await tester.ensureVisible(request);
     await tester.pumpAndSettle();
     await tester.tap(request);
@@ -43,15 +43,17 @@ void main() {
     final second = tester.getRect(
       find.byKey(const ValueKey('food-cancellation-reason.LATE_ORDER')),
     );
+    // Vertical positions are measured from the device's top safe area (44 dp on the original AVD, 54.1 dp on this one).
+    final inset = tester.view.padding.top / tester.view.devicePixelRatio;
     debugPrint('BITPOS_U24_GEOMETRY:$back,$first,$second');
     expect(back.left, closeTo(18, 1));
-    expect(back.top, closeTo(52, 1));
+    expect(back.top, closeTo(inset + 8, 1));
     expect(back.width, closeTo(44, 1));
     expect(first.left, closeTo(24, 1));
-    expect(first.top, closeTo(140, 1));
+    expect(first.top, closeTo(inset + 96, 1));
     expect(first.width, closeTo(342, 1));
     expect(first.height, closeTo(82, 1));
-    expect(second.top, closeTo(244, 1));
+    expect(second.top, closeTo(inset + 200, 1));
     expect(
       tester
           .widget<FilledButton>(
@@ -70,7 +72,11 @@ void main() {
     final detail = find.byKey(
       const ValueKey('food-cancellation-review-detail'),
     );
-    await tester.ensureVisible(detail);
+    await tester.scrollUntilVisible(
+      detail,
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
     await tester.pumpAndSettle();
     await tester.enterText(detail, 'Synthetic native root delay request');
     FocusManager.instance.primaryFocus?.unfocus();
