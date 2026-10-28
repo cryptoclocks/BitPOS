@@ -49,3 +49,14 @@ These are too structural to patch in the exported SVG. The app is the better beh
 - "Add item" buttons deleted from P10, P12, P13, P20, P24, P25, P37 (the app has none; P21 suppliers keeps its button because the app has "Add supplier").
 - P13 movement list now shows only receive and adjust entries (the ledger does not record sales); P10 rows carry no cost; P12 shows "left / minimum" without a unit and an action column; P24 categories show "from menu items" and no update time.
 - Still superset or structural, not redrawn: U20, U22, U23, U33, P03, P07, P09, P35 (app kept).
+
+## Fourth step (2026-10-29): frames redrawn where the app is more complete
+
+Drawn in the master with `figcraft-cli` (replay: `master-edit-20261029.json`, applied to the master with the owner's OK):
+
+- **P03** now an order-centre board: channel chips and four status columns with sample order cards (the title became "Order center").
+- **P35** now a floor-plan editor: counts, plan / list switch, plan canvas with tables and the counter, and a side panel with the drag note.
+- **U22** now one item plus the "status and history" row (totals recomputed: 95 + 35 - 20 + 20 = 130).
+- **U23** gained the "sort by: latest orders" control; **U33** shows the app's own entries (addresses, account settings, ride, group order) and a scroll hint.
+- The exported SVG / PNG / sha256 of these five were produced with `figcraft-cli export` (outline-based SVG, unlike the older text-based exports).
+- Still different, deliberately: U20 (app shows a "map unavailable" state), P07, P09, P11 (the design has more than the app) and item photos.

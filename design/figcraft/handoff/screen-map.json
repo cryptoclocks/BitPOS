@@ -486,7 +486,7 @@
       "width": 390,
       "height": 844,
       "source": "source/screens/U22-order-detail.svg",
-      "sha256": "7ddf6a3c37da808e967f6e6d89aee7f4330305d4d8b84b6e357dd416a8d36e8a",
+      "sha256": "3a1ee37587af3ff64d47ecd873f904a76301a5177d49c85e9d298d9d04efe777",
       "phase": "food-first",
       "fixture": true
     },
@@ -501,7 +501,7 @@
       "width": 390,
       "height": 844,
       "source": "source/screens/U23-history.svg",
-      "sha256": "336abed7d7a48dc832333cdc6f490026f1ca9a24e3191bb5409b5d0b72136edc",
+      "sha256": "4bc9b992a5d8332b286a2065914a64a930b9a840596a2a88d48392827254dff1",
       "phase": "food-first",
       "fixture": true
     },
@@ -651,7 +651,7 @@
       "width": 390,
       "height": 844,
       "source": "source/screens/U33-profile.svg",
-      "sha256": "346775e8747a1f38bff82d7a7689148ec32b3ff89b2b8041505d067f5b1845c6",
+      "sha256": "8767a8ff23b5bf054737c5089025c4a9ca55e6009603f4d13a15d78bfdd7aac9",
       "phase": "food-first",
       "fixture": true
     },
@@ -1322,7 +1322,7 @@
       "width": 1440,
       "height": 1000,
       "source": "source/screens/P03-bills.svg",
-      "sha256": "62aafe5c33afbb9762beb95af2d3cea586eb4292eec196943fed2e9a0cd7cb06",
+      "sha256": "aa66e34fedd196946c608add61f3846f47f471daed9af00b34d4edc97b391c85",
       "phase": "food-first",
       "fixture": true
     },
@@ -1770,7 +1770,7 @@
       "width": 1440,
       "height": 1000,
       "source": "source/screens/P35-devices.svg",
-      "sha256": "f450a2c3971537c21924aa5b482a5b404375cc776abf4cdd2e792897b63a175a",
+      "sha256": "b4f3ad8d9d662b39fd5720eeb8b91c7f71151377e5ca689a6852972dcda6fd1a",
       "phase": "food-first",
       "fixture": true
     },
