@@ -9,6 +9,7 @@ import {stripeSandboxFromEnv,StripePaymentError} from './stripe';
 import {createMetaRouter,metaProvidersFromEnv} from '../../../../packages/meta-ai/src/router';
 import {formatTapAmount,handOver,listTapOrders,pickupCode,staffConfigFromEnv,staffDemoSignIn,staffFromSession,staffSignIn,staffSignOut,type SignInResult,type StaffDeps,type StaffOrder} from './staff';
 import {serveMcp} from './mcp';
+import {approveDraft,draftOffer,listOffersOverview,rejectDraft,revokePolicy,stopOffer,OfferPolicyError,type DraftView,type OfferPolicyDeps,type PolicyView} from './offer-policy';
 import {handleAgentRequest,type ChatAgentDeps} from './agent';
 import {agentReceipt,reconcileAgentCheckout} from './agent-orders';
 import {MessengerError,messengerConfigFromEnv,parseMessengerWebhook,sendMessenger,verifyMessengerSignature,verifySubscription,type MessengerConfig,type MessengerFetch} from './messenger';
@@ -236,6 +237,7 @@ async function serveStaff(req:http.IncomingMessage,res:http.ServerResponse,deps:
   const done=url.searchParams.get('done');
   const lines=[`<small>${esc(me.role)} · อัปเดตทุก 10 วินาที / refreshes every 10 s · Stripe sandbox, test mode</small>`,
    ...(done&&/^[0-9A-F]{4}$/.test(done)?[`✓ ส่งมอบ #${done} แล้ว / Handed over.`]:[]),...orderLines(await listTapOrders(staff,me)),
+   ...(me.role!=='staff'?['<a href="/meta/staff/offers">โปรโมชัน + Allow All / Promotions →</a>']:[]),
    '<form method="post" action="/meta/staff/logout"><button>ออกจากระบบ / Sign out</button></form>'];
   page(res,200,'ออเดอร์จากการแตะ / Tap orders',lines,{Refresh:'10'});return true;
  }
@@ -257,9 +259,70 @@ async function serveStaff(req:http.IncomingMessage,res:http.ServerResponse,deps:
   if(r==='HANDED_OVER'||r==='ALREADY'){res.writeHead(303,{Location:`/meta/staff?done=${pickupCode(hand[1])}`,'Cache-Control':'no-store'});res.end();return true;}
   page(res,r==='NOT_FOUND'?404:409,'ส่งมอบไม่ได้',[r==='NOT_PAID'?'ออเดอร์นี้ยังไม่ได้จ่าย / This order is not paid.':'ไม่พบออเดอร์ / Order not found.','<a href="/meta/staff">← กลับ / Back</a>']);return true;
  }
+ if(path==='/meta/staff/offers'||path.startsWith('/meta/staff/offers/')||path.startsWith('/meta/staff/policies/'))return serveOffers(req,res,deps,staff,cookie,url,log);
  if(path==='/meta/staff/logout'&&method==='POST'){
   await staffSignOut(staff,cookie);
   res.writeHead(303,{Location:'/meta/staff','Set-Cookie':staffCookie(staff,'',0),'Cache-Control':'no-store'});res.end();return true;
  }
  json(res,404,{error:'RESOURCE_NOT_FOUND'});return true;
+}
+
+const OFFER_ERRORS:Record<OfferPolicyError['code'],string>={ROLE_REQUIRED:'ต้องเป็นเจ้าของหรือผู้จัดการ / Owner or manager only.',OWNER_REQUIRED:'Allow All ตั้งได้เฉพาะเจ้าของ / Only the owner can set Allow All.',
+ NOT_FOUND:'ไม่พบรายการ / Not found.',NOT_OPEN:'รายการนี้ปิดแล้วหรือมีร่างค้างอยู่ / Already decided, expired, or a draft is already open.',NO_CANDIDATES:'ไม่มีสินค้าที่ร่างโปรได้ตอนนี้ / No product can take a new offer now.',INVALID_INPUT:'ข้อมูลไม่ถูกต้อง / Invalid input.'};
+function draftLine(d:DraftView,isOwner:boolean):string{
+ const head=`<strong>${esc(d.emoji)} ${esc(d.name)}</strong> <small>${esc(d.nameEn)}</small> · ลด ${d.discountPercent}% · ${d.durationHours} ชม./h${d.chosenBy==='model'?' <small>· Muse Spark</small>':' <small>· fallback</small>'}<br><small>${esc(d.reasonTh)} — ${esc(d.reasonEn)}</small>`;
+ const at=(iso:string)=>new Date(iso).toLocaleString('en-GB',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit',timeZone:'Asia/Bangkok'});
+ if(d.state==='DRAFT'){
+  const allow=isOwner?`<form method="post" action="/meta/staff/offers/${d.id}/approve"><input type="hidden" name="allow_all" value="1"><select name="scope" style="font:inherit"><option value="product">สินค้านี้ / this product</option>${d.category?`<option value="category">หมวด ${esc(d.category)} / this category</option>`:''}</select> <select name="daily_limit" style="font:inherit">${[1,2,3,5].map(n=>`<option value="${n}"${n===3?' selected':''}>${n}/วัน day</option>`).join('')}</select><br><button>อนุมัติ + Allow All แบบนี้ / Approve + Allow All like this</button></form>`:'';
+  return `${head}<form method="post" action="/meta/staff/offers/${d.id}/approve"><button>อนุมัติครั้งนี้ / Approve once</button></form>${allow}<form method="post" action="/meta/staff/offers/${d.id}/reject"><button>ไม่อนุมัติ / Reject</button></form>`;
+ }
+ if(d.state==='APPLIED')return `${head}<br>${d.approvalKind==='policy'?'🤖 อนุมัติอัตโนมัติด้วย Allow All / Auto-approved by Allow All':'✅ เจ้าของอนุมัติ / Approved by owner'} · ถึง ${at(d.offerExpiresAt!)}<form method="post" action="/meta/staff/offers/${d.id}/stop"><button>หยุดโปรนี้ / Stop this offer</button></form>`;
+ const label:Record<string,string>={REJECTED:'ไม่อนุมัติ / Rejected',EXPIRED:'ร่างหมดเวลา / Draft expired',FAILED:`ใช้ไม่ได้ / Not applied (${esc(d.failure??'')})`,STOPPED:'หยุดแล้ว / Stopped'};
+ return `${head}<br><small>${label[d.state]??esc(d.state)}</small>`;
+}
+function policyLine(p:PolicyView):string{
+ return `🛡️ <strong>Allow All</strong> · ${p.scopeKind==='product'?'สินค้า':'หมวด'} ${esc(p.label)} · ลดไม่เกิน ${p.maxDiscountPercent}% · ไม่เกิน ${p.maxDurationHours} ชม. · ${p.usedToday}/${p.dailyLimit} วันนี้<form method="post" action="/meta/staff/policies/${p.id}/revoke"><button>ยกเลิก Allow All / Revoke</button></form>`;
+}
+
+async function serveOffers(req:http.IncomingMessage,res:http.ServerResponse,deps:MetaRouteDeps,staff:StaffDeps,cookie:string|null,url:URL,log:(m:string)=>void):Promise<true>{
+ const path=url.pathname,method=req.method??'GET';
+ const me=await staffFromSession(staff,cookie);
+ if(!me){res.writeHead(303,{Location:'/meta/staff','Cache-Control':'no-store'});res.end();return true;}
+ if(!deps.offers){page(res,503,'ยังไม่พร้อม',['Promotions are not configured on this server.']);return true;}
+ const od:OfferPolicyDeps={db:deps.identity.db,menu:deps.offers.menu,router:deps.offers.router};
+ const back=(note?:string)=>{res.writeHead(303,{Location:`/meta/staff/offers${note?`?n=${note}`:''}`,'Cache-Control':'no-store'});res.end();return true as const;};
+ try{
+  if(path==='/meta/staff/offers'&&method==='GET'){
+   const {drafts,policies}=await listOffersOverview(od,me);
+   const notes:Record<string,string>={drafted:'ร่างโปรใหม่แล้ว / New draft ready.',auto:'🤖 อยู่ในกรอบ Allow All จึงอนุมัติอัตโนมัติแล้ว / Inside Allow All: approved automatically.',approved:'อนุมัติแล้ว / Approved.',rejected:'ไม่อนุมัติแล้ว / Rejected.',stopped:'หยุดโปรแล้ว / Offer stopped.',revoked:'ยกเลิก Allow All แล้ว / Allow All revoked.'};
+   const n=url.searchParams.get('n');
+   page(res,200,'โปรโมชัน / Promotions',[`<small>${esc(me.role)} · Muse Spark ร่าง เจ้าของอนุมัติ ราคาคิดโดยระบบ / Muse Spark drafts, the owner approves, the server prices</small>`,
+    ...(n&&notes[n]?[`<strong>${notes[n]}</strong>`]:[]),
+    '<form method="post" action="/meta/staff/offers/draft"><button>✨ ให้ Muse Spark ร่างโปร / Draft an offer with Muse Spark</button></form>',
+    ...(policies.length?policies.map(policyLine):['<small>ยังไม่มี Allow All / No Allow All policy yet.</small>']),
+    ...(drafts.length?drafts.map(d=>draftLine(d,me.role==='owner')):['<small>ยังไม่มีร่างโปร / No drafts yet.</small>']),
+    '<a href="/meta/staff">← ออเดอร์ / Orders</a>']);
+   return true;
+  }
+  if(method!=='POST'){json(res,404,{error:'RESOURCE_NOT_FOUND'});return true;}
+  if(path==='/meta/staff/offers/draft'){const r=await draftOffer(od,me);log(`Offer drafted (${r.draft.chosenBy}${r.autoApplied?', auto-approved':''})`);return back(r.autoApplied?'auto':'drafted');}
+  const m=path.match(/^\/meta\/staff\/(offers|policies)\/([0-9a-f-]{36})\/(approve|reject|stop|revoke)$/);
+  if(!m){json(res,404,{error:'RESOURCE_NOT_FOUND'});return true;}
+  const [,kind,id,action]=m;
+  if(kind==='policies'&&action==='revoke'){await revokePolicy(od,me,id);return back('revoked');}
+  if(kind==='offers'&&action==='approve'){
+   const form=await formBody(req);
+   if(!form){page(res,413,'คำขอใหญ่เกินไป',['Request too large.']);return true;}
+   const allow=form.get('allow_all')==='1'?{scope:form.get('scope') as 'product'|'category',dailyLimit:Number(form.get('daily_limit')??3)}:undefined;
+   const d=await approveDraft(od,me,id,allow);
+   if(d.state==='FAILED'){page(res,409,'ใช้โปรไม่ได้',[`ระบบไม่ได้ตั้งโปรนี้ / Not applied: ${esc(d.failure??'')}`,'<a href="/meta/staff/offers">← กลับ / Back</a>']);return true;}
+   return back('approved');
+  }
+  if(kind==='offers'&&action==='reject'){await rejectDraft(od,me,id);return back('rejected');}
+  if(kind==='offers'&&action==='stop'){await stopOffer(od,me,id);return back('stopped');}
+  json(res,404,{error:'RESOURCE_NOT_FOUND'});return true;
+ }catch(e){
+  if(e instanceof OfferPolicyError){page(res,e.code==='ROLE_REQUIRED'||e.code==='OWNER_REQUIRED'?403:e.code==='NOT_FOUND'?404:409,'ทำรายการไม่ได้',[OFFER_ERRORS[e.code],'<a href="/meta/staff/offers">← กลับ / Back</a>']);return true;}
+  log('Offer action failed');page(res,500,'ระบบขัดข้อง',['Something went wrong.','<a href="/meta/staff/offers">← กลับ / Back</a>']);return true;
+ }
 }
