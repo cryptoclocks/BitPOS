@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import type { Device, Table } from '../lib/table';
 import type { PromotionDevice } from '../../../../packages/contracts/src/promotions';
 import MerchantIcon from './MerchantIcon';
+import { floorLayout } from '../lib/floor-layout';
 import '../styles/shop-floor.css';
 
 export type FloorSelection = { kind: 'table'; tableId: string } | { kind: 'device'; deviceId: string } | null;
@@ -43,10 +44,8 @@ export default function ShopFloor(props: Props) {
     } catch { setError(text('Layout storage unavailable. Positions will not be saved.', 'อ่านผังในเบราว์เซอร์ไม่ได้')); }
   }, [key]);
   const activeTables = tables.filter(t => !t.retiredAt), activeDevices = devices.filter(d => !d.revokedAt);
-  // Default slots are three columns wide with a 125 px row pitch below the table rows; extra rows make the plan taller so screens never stack.
-  const tableRows = Math.min(3, Math.ceil(activeTables.length / 3)), deviceTop = 290 + Math.max(0, tableRows - 2) * 88;
-  const canvasHeight = Math.max(440, deviceTop + 70 + (Math.max(1, Math.ceil(activeDevices.length / 3)) - 1) * 125);
-  const nodes: Node[] = [...activeTables.map((t, i) => ({ key: 't:' + t.id, label: t.label, table: t, x: 26 + i % 3 * 27, y: (167 + Math.floor(i / 3) % 3 * 88) / canvasHeight * 100 })), ...activeDevices.map((d, i) => ({ key: 'd:' + d.id, label: d.label, device: d, x: 39 + i % 3 * 23, y: (deviceTop + Math.floor(i / 3) * 125) / canvasHeight * 100 }))].map(n => ({ ...n, ...positions[n.key] }));
+  const layout = floorLayout(activeTables.length, activeDevices.length), canvasHeight = layout.height;
+  const nodes: Node[] = [...activeTables.map((t, i) => ({ key: 't:' + t.id, label: t.label, table: t, ...layout.table(i) })), ...activeDevices.map((d, i) => ({ key: 'd:' + d.id, label: d.label, device: d, ...layout.device(i) }))].map(n => ({ ...n, ...positions[n.key] }));
   const selectedKey = props.mode === 'inspect' ? props.selection?.kind === 'table' ? 't:' + props.selection.tableId : props.selection?.kind === 'device' ? 'd:' + props.selection.deviceId : '' : selected;
   const node = nodes.find(n => n.key === selectedKey);
   function deviceStatus(d: Device) {
