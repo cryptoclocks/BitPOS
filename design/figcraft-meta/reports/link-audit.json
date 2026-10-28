@@ -1,0 +1,15 @@
+{
+  "screens": 82,
+  "links": 596,
+  "missing_destinations": [],
+  "unreachable_from_A00": [],
+  "dead_ends": [],
+  "reachable_only_from_directory": [
+    "A01",
+    "A02",
+    "H01"
+  ],
+  "pass": true,
+  "prototype_links_wired": 596,
+  "frames_in_file": 82
+}

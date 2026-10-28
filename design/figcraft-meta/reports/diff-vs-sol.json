@@ -1,0 +1,570 @@
+{
+ "counts": {
+  "same": 23,
+  "changed": 17,
+  "merged": 31,
+  "removed": 34
+ },
+ "meta_only": [
+  "C05",
+  "C11",
+  "C13",
+  "C14",
+  "C16",
+  "C17",
+  "C08",
+  "C09",
+  "C10",
+  "C12",
+  "C15",
+  "MP08",
+  "MP23",
+  "MPM03",
+  "B01",
+  "B02",
+  "B03",
+  "B04",
+  "B05",
+  "B06",
+  "B07",
+  "B08",
+  "B09",
+  "B10",
+  "T01",
+  "T02",
+  "T03",
+  "T04",
+  "S01",
+  "S02",
+  "S03"
+ ],
+ "unmapped": [],
+ "bad_destinations": [],
+ "map": {
+  "P01": {
+   "kind": "changed",
+   "meta": "MP02",
+   "note": "ยอดขายแยกตามช่องทาง แตะ / แชท / AI / โต๊ะ / หน้าร้าน"
+  },
+  "P02": {
+   "kind": "changed",
+   "meta": "MP03, MP04",
+   "note": "เก็บเงินด้วย QR ของ Stripe บน BitPOS Mini"
+  },
+  "P03": {
+   "kind": "merged",
+   "meta": "MP05",
+   "note": "บิลรวมอยู่ในศูนย์ออเดอร์"
+  },
+  "P04": {
+   "kind": "same",
+   "meta": "MP06",
+   "note": "เพิ่มหลักฐาน Stripe และ Muse Spark"
+  },
+  "P05": {
+   "kind": "removed",
+   "meta": "",
+   "note": "ปิดรอบขายไม่อยู่ในขอบเขตเดโม Meta"
+  },
+  "P06": {
+   "kind": "merged",
+   "meta": "MP10",
+   "note": "เมนูและสต็อกรวมหน้าเดียว"
+  },
+  "P07": {
+   "kind": "same",
+   "meta": "MP11",
+   "note": "ราคาเป็น USD หน่วยย่อยสำหรับ Stripe"
+  },
+  "P08": {
+   "kind": "merged",
+   "meta": "MP10",
+   "note": ""
+  },
+  "P09": {
+   "kind": "removed",
+   "meta": "",
+   "note": "รับเข้าสินค้าไม่อยู่ในขอบเขต"
+  },
+  "P10": {
+   "kind": "removed",
+   "meta": "",
+   "note": "ประวัติรับเข้าไม่อยู่ในขอบเขต"
+  },
+  "P11": {
+   "kind": "removed",
+   "meta": "",
+   "note": "ปรับสต็อกด้วยมือไม่อยู่ในขอบเขต"
+  },
+  "P12": {
+   "kind": "removed",
+   "meta": "",
+   "note": "แจ้งสินค้าใกล้หมดไม่อยู่ในขอบเขต"
+  },
+  "P13": {
+   "kind": "merged",
+   "meta": "MP10",
+   "note": "แสดง meta_stock_movements"
+  },
+  "P14": {
+   "kind": "merged",
+   "meta": "MP18",
+   "note": "รายงานรวมหน้าเดียว"
+  },
+  "P15": {
+   "kind": "merged",
+   "meta": "MP18",
+   "note": ""
+  },
+  "P16": {
+   "kind": "removed",
+   "meta": "",
+   "note": "ไม่มีรับเข้าสินค้า"
+  },
+  "P17": {
+   "kind": "merged",
+   "meta": "MP18",
+   "note": ""
+  },
+  "P18": {
+   "kind": "merged",
+   "meta": "MP18",
+   "note": ""
+  },
+  "P19": {
+   "kind": "merged",
+   "meta": "MP18",
+   "note": "สินค้าขายดี"
+  },
+  "P20": {
+   "kind": "merged",
+   "meta": "MP18",
+   "note": "ปุ่มส่งออก CSV"
+  },
+  "P21": {
+   "kind": "removed",
+   "meta": "",
+   "note": "ไม่มีซัพพลายเออร์"
+  },
+  "P22": {
+   "kind": "changed",
+   "meta": "MP15",
+   "note": "เฉพาะลูกค้าที่ยินยอมใน Messenger ไม่แสดงรหัส Messenger"
+  },
+  "P23": {
+   "kind": "changed",
+   "meta": "MP16",
+   "note": "มีปุ่มลบข้อมูลลูกค้า"
+  },
+  "P24": {
+   "kind": "merged",
+   "meta": "MP11",
+   "note": "หมวดตั้งในหน้าแก้ไขเมนู"
+  },
+  "P25": {
+   "kind": "same",
+   "meta": "MP21",
+   "note": ""
+  },
+  "P26": {
+   "kind": "changed",
+   "meta": "MP17",
+   "note": "หลักฐาน AI + การแตะ + Stripe แทนประวัติการใช้งาน"
+  },
+  "P27": {
+   "kind": "removed",
+   "meta": "",
+   "note": "ไม่มีเครื่องพิมพ์ใบเสร็จ ใบเสร็จส่งใน Messenger"
+  },
+  "P28": {
+   "kind": "changed",
+   "meta": "MP20",
+   "note": "ตั้งค่า Messenger, Stripe, Muse Spark, MCP"
+  },
+  "P29": {
+   "kind": "changed",
+   "meta": "MP05",
+   "note": "แยกช่องทาง และจ่ายแล้วจาก Stripe webhook เท่านั้น"
+  },
+  "P30": {
+   "kind": "same",
+   "meta": "MP22",
+   "note": ""
+  },
+  "P31": {
+   "kind": "merged",
+   "meta": "MP06",
+   "note": ""
+  },
+  "P32": {
+   "kind": "removed",
+   "meta": "",
+   "note": "ไม่มีจัดส่ง/ไรเดอร์ในงาน Meta"
+  },
+  "P33": {
+   "kind": "changed",
+   "meta": "MP13",
+   "note": "Muse Spark ร่าง + เจ้าของอนุมัติ + Allow All"
+  },
+  "P34": {
+   "kind": "changed",
+   "meta": "MP14",
+   "note": "ตรวจร่างจาก AI และตั้งขอบเขต Allow All"
+  },
+  "P35": {
+   "kind": "changed",
+   "meta": "MP09",
+   "note": "สติกเกอร์ NTAG 424 + ลิงก์จอโต๊ะ + เฟิร์มแวร์ Meta"
+  },
+  "P36": {
+   "kind": "removed",
+   "meta": "",
+   "note": "ร้านเดโมมีสาขาเดียว"
+  },
+  "P37": {
+   "kind": "same",
+   "meta": "MP07",
+   "note": "คืนเงินผ่าน Stripe"
+  },
+  "P38": {
+   "kind": "changed",
+   "meta": "MP19",
+   "note": "ยอดจาก Stripe แทนการโอนคริปโต"
+  },
+  "P39": {
+   "kind": "same",
+   "meta": "MP01",
+   "note": "ทางลัดเดโม เจ้าของ/ผู้จัดการ/พนักงาน"
+  },
+  "P40": {
+   "kind": "removed",
+   "meta": "",
+   "note": "ไม่มีไรเดอร์"
+  },
+  "P41": {
+   "kind": "changed",
+   "meta": "MP07",
+   "note": "คืนเต็มจำนวนก่อนส่งมอบเท่านั้น"
+  },
+  "W01": {
+   "kind": "same",
+   "meta": "C18",
+   "note": "เพิ่มทางเลือกแตะ NFC"
+  },
+  "W02": {
+   "kind": "same",
+   "meta": "C19",
+   "note": ""
+  },
+  "W03": {
+   "kind": "same",
+   "meta": "C20",
+   "note": ""
+  },
+  "W04": {
+   "kind": "merged",
+   "meta": "C21",
+   "note": "ตะกร้ารวมกับหน้าตรวจรายการ"
+  },
+  "W05": {
+   "kind": "same",
+   "meta": "C21",
+   "note": ""
+  },
+  "W06": {
+   "kind": "changed",
+   "meta": "C22",
+   "note": "Stripe อย่างเดียว ตัดกระเป๋าคริปโต"
+  },
+  "W07": {
+   "kind": "removed",
+   "meta": "",
+   "note": "คริปโต (Phantom / Solana)"
+  },
+  "W08": {
+   "kind": "removed",
+   "meta": "",
+   "note": "PromptPay ยังไม่เปิดในงานนี้"
+  },
+  "W09": {
+   "kind": "same",
+   "meta": "C07",
+   "note": ""
+  },
+  "W10": {
+   "kind": "merged",
+   "meta": "C07",
+   "note": "ไม่มีขั้นยืนยันบนบล็อกเชน"
+  },
+  "W11": {
+   "kind": "same",
+   "meta": "C06",
+   "note": ""
+  },
+  "W12": {
+   "kind": "same",
+   "meta": "C23",
+   "note": ""
+  },
+  "W13": {
+   "kind": "merged",
+   "meta": "C06, B11",
+   "note": "รหัสรับสินค้าอยู่หน้าจ่ายแล้วและบน Mini"
+  },
+  "W14": {
+   "kind": "same",
+   "meta": "C24",
+   "note": ""
+  },
+  "W15": {
+   "kind": "same",
+   "meta": "C25",
+   "note": "ข้อความจาก Stripe"
+  },
+  "W16": {
+   "kind": "merged",
+   "meta": "C07, C27",
+   "note": ""
+  },
+  "W17": {
+   "kind": "same",
+   "meta": "C26",
+   "note": ""
+  },
+  "W18": {
+   "kind": "merged",
+   "meta": "C27",
+   "note": ""
+  },
+  "W19": {
+   "kind": "same",
+   "meta": "CD02",
+   "note": ""
+  },
+  "W20": {
+   "kind": "removed",
+   "meta": "",
+   "note": "สั่งรวมโต๊ะยังไม่ทำในงาน Meta"
+  },
+  "W21": {
+   "kind": "merged",
+   "meta": "C27",
+   "note": ""
+  },
+  "W22": {
+   "kind": "changed",
+   "meta": "C04",
+   "note": "โปรเฉพาะคนจาก Muse Spark แทนคูปอง"
+  },
+  "S01": {
+   "kind": "removed",
+   "meta": "",
+   "note": "ตะกร้าว่างเป็นสถานะในหน้าเมนู"
+  },
+  "S02": {
+   "kind": "removed",
+   "meta": "",
+   "note": "ไม่มีค้นหาร้าน (ร้านเดียว)"
+  },
+  "S03": {
+   "kind": "merged",
+   "meta": "C27",
+   "note": ""
+  },
+  "S04": {
+   "kind": "removed",
+   "meta": "",
+   "note": "ไม่ใช้ GPS"
+  },
+  "S05": {
+   "kind": "removed",
+   "meta": "",
+   "note": "ไม่ใช้ GPS"
+  },
+  "S06": {
+   "kind": "removed",
+   "meta": "",
+   "note": "ร้านเดโมเปิดตลอด"
+  },
+  "S07": {
+   "kind": "same",
+   "meta": "S05",
+   "note": ""
+  },
+  "S08": {
+   "kind": "merged",
+   "meta": "C07",
+   "note": ""
+  },
+  "S09": {
+   "kind": "same",
+   "meta": "S06",
+   "note": ""
+  },
+  "S10": {
+   "kind": "removed",
+   "meta": "",
+   "note": "ไม่มีไรเดอร์"
+  },
+  "S13": {
+   "kind": "removed",
+   "meta": "",
+   "note": "ยังไม่มีโหมดมืดใน meta-"
+  },
+  "S14": {
+   "kind": "removed",
+   "meta": "",
+   "note": "ไม่มีแอปไรเดอร์"
+  },
+  "E01": {
+   "kind": "removed",
+   "meta": "",
+   "note": "ข้อความสองภาษาอยู่ในหน้าเดียวกันแล้ว"
+  },
+  "E02": {
+   "kind": "removed",
+   "meta": "",
+   "note": "ข้อความสองภาษาอยู่ในหน้าเดียวกันแล้ว"
+  },
+  "S11": {
+   "kind": "same",
+   "meta": "MPM01",
+   "note": ""
+  },
+  "S12": {
+   "kind": "same",
+   "meta": "MPM02",
+   "note": ""
+  },
+  "WD01": {
+   "kind": "changed",
+   "meta": "CD02",
+   "note": "Stripe แทนกระเป๋าเงิน"
+  },
+  "WD02": {
+   "kind": "same",
+   "meta": "CD01",
+   "note": ""
+  },
+  "WD03": {
+   "kind": "removed",
+   "meta": "",
+   "note": "คริปโต"
+  },
+  "WD04": {
+   "kind": "removed",
+   "meta": "",
+   "note": "คริปโต (เลือก USDG/USDC/USDT)"
+  },
+  "WD05": {
+   "kind": "removed",
+   "meta": "",
+   "note": "คริปโต"
+  },
+  "WD06": {
+   "kind": "removed",
+   "meta": "",
+   "note": "คริปโต"
+  },
+  "WD07": {
+   "kind": "removed",
+   "meta": "",
+   "note": "คริปโต"
+  },
+  "WD08": {
+   "kind": "merged",
+   "meta": "C07",
+   "note": ""
+  },
+  "WD09": {
+   "kind": "same",
+   "meta": "CD03",
+   "note": ""
+  },
+  "WD10": {
+   "kind": "merged",
+   "meta": "CD03, C23",
+   "note": ""
+  },
+  "WD11": {
+   "kind": "merged",
+   "meta": "C24",
+   "note": ""
+  },
+  "WD12": {
+   "kind": "merged",
+   "meta": "C27",
+   "note": ""
+  },
+  "WD13": {
+   "kind": "merged",
+   "meta": "C27",
+   "note": ""
+  },
+  "WD14": {
+   "kind": "removed",
+   "meta": "",
+   "note": "ไม่มีบันทึกรายการไว้จ่ายทีหลัง"
+  },
+  "WD15": {
+   "kind": "changed",
+   "meta": "C02",
+   "note": "ความยินยอมผ่าน Messenger"
+  },
+  "WD16": {
+   "kind": "merged",
+   "meta": "C06",
+   "note": ""
+  },
+  "WD17": {
+   "kind": "removed",
+   "meta": "",
+   "note": "PromptPay ยังไม่เปิด"
+  },
+  "WD18": {
+   "kind": "merged",
+   "meta": "C26",
+   "note": ""
+  },
+  "WD19": {
+   "kind": "removed",
+   "meta": "",
+   "note": "สถานะโหลดทั่วไป"
+  },
+  "WD20": {
+   "kind": "merged",
+   "meta": "S04",
+   "note": ""
+  },
+  "WD21": {
+   "kind": "removed",
+   "meta": "",
+   "note": "x402 / USDC (คริปโต)"
+  },
+  "WD22": {
+   "kind": "changed",
+   "meta": "C01, C03",
+   "note": "ตัวตนจากการแตะ NFC + Messenger"
+  },
+  "WD23": {
+   "kind": "merged",
+   "meta": "C20",
+   "note": ""
+  },
+  "WD24": {
+   "kind": "merged",
+   "meta": "CD01",
+   "note": ""
+  },
+  "WD25": {
+   "kind": "removed",
+   "meta": "",
+   "note": "สั่งรวมโต๊ะยังไม่ทำ"
+  },
+  "WD26": {
+   "kind": "merged",
+   "meta": "CD03",
+   "note": ""
+  }
+ }
+}

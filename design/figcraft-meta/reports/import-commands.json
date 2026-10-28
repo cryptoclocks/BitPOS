@@ -1,0 +1,730 @@
+[
+ {
+  "command": "file.new",
+  "params": {
+   "name": "BitPOS × Muse UI"
+  }
+ },
+ {
+  "command": "page.rename",
+  "params": {
+   "name": "00 · เริ่มที่นี่"
+  }
+ },
+ {
+  "command": "file.import",
+  "params": {
+   "path": "/Users/cryptoclock/Desktop/BitPOS-Meta-2026/design/figcraft-meta/source/screens/A00-start.svg",
+   "x": 0,
+   "y": 0
+  }
+ },
+ {
+  "command": "file.import",
+  "params": {
+   "path": "/Users/cryptoclock/Desktop/BitPOS-Meta-2026/design/figcraft-meta/source/screens/A01-link-audit.svg",
+   "x": 1720,
+   "y": 0
+  }
+ },
+ {
+  "command": "file.import",
+  "params": {
+   "path": "/Users/cryptoclock/Desktop/BitPOS-Meta-2026/design/figcraft-meta/source/screens/A02-diff-vs-sol.svg",
+   "x": 0,
+   "y": 1340
+  }
+ },
+ {
+  "command": "page.add",
+  "params": {
+   "name": "01 · พื้นฐานการออกแบบ"
+  }
+ },
+ {
+  "command": "file.import",
+  "params": {
+   "path": "/Users/cryptoclock/Desktop/BitPOS-Meta-2026/design/figcraft-meta/source/screens/D01-foundations.svg",
+   "x": 0,
+   "y": 0
+  }
+ },
+ {
+  "command": "file.import",
+  "params": {
+   "path": "/Users/cryptoclock/Desktop/BitPOS-Meta-2026/design/figcraft-meta/source/screens/D02-components.svg",
+   "x": 1720,
+   "y": 0
+  }
+ },
+ {
+  "command": "page.add",
+  "params": {
+   "name": "10 · meta-pay · ลูกค้า (มือถือ)"
+  }
+ },
+ {
+  "command": "file.import",
+  "params": {
+   "path": "/Users/cryptoclock/Desktop/BitPOS-Meta-2026/design/figcraft-meta/source/screens/C01-tap-first.svg",
+   "x": 0,
+   "y": 0
+  }
+ },
+ {
+  "command": "file.import",
+  "params": {
+   "path": "/Users/cryptoclock/Desktop/BitPOS-Meta-2026/design/figcraft-meta/source/screens/C03-connected.svg",
+   "x": 510,
+   "y": 0
+  }
+ },
+ {
+  "command": "file.import",
+  "params": {
+   "path": "/Users/cryptoclock/Desktop/BitPOS-Meta-2026/design/figcraft-meta/source/screens/C04-known-offer.svg",
+   "x": 1020,
+   "y": 0
+  }
+ },
+ {
+  "command": "file.import",
+  "params": {
+   "path": "/Users/cryptoclock/Desktop/BitPOS-Meta-2026/design/figcraft-meta/source/screens/C05-stripe-checkout.svg",
+   "x": 1530,
+   "y": 0
+  }
+ },
+ {
+  "command": "file.import",
+  "params": {
+   "path": "/Users/cryptoclock/Desktop/BitPOS-Meta-2026/design/figcraft-meta/source/screens/C06-paid.svg",
+   "x": 2040,
+   "y": 0
+  }
+ },
+ {
+  "command": "file.import",
+  "params": {
+   "path": "/Users/cryptoclock/Desktop/BitPOS-Meta-2026/design/figcraft-meta/source/screens/C07-pending.svg",
+   "x": 2550,
+   "y": 0
+  }
+ },
+ {
+  "command": "file.import",
+  "params": {
+   "path": "/Users/cryptoclock/Desktop/BitPOS-Meta-2026/design/figcraft-meta/source/screens/C11-voice-order.svg",
+   "x": 0,
+   "y": 984
+  }
+ },
+ {
+  "command": "file.import",
+  "params": {
+   "path": "/Users/cryptoclock/Desktop/BitPOS-Meta-2026/design/figcraft-meta/source/screens/C13-table-reserved.svg",
+   "x": 510,
+   "y": 984
+  }
+ },
+ {
+  "command": "file.import",
+  "params": {
+   "path": "/Users/cryptoclock/Desktop/BitPOS-Meta-2026/design/figcraft-meta/source/screens/C14-checked-in.svg",
+   "x": 1020,
+   "y": 984
+  }
+ },
+ {
+  "command": "file.import",
+  "params": {
+   "path": "/Users/cryptoclock/Desktop/BitPOS-Meta-2026/design/figcraft-meta/source/screens/C16-forget-me.svg",
+   "x": 1530,
+   "y": 984
+  }
+ },
+ {
+  "command": "file.import",
+  "params": {
+   "path": "/Users/cryptoclock/Desktop/BitPOS-Meta-2026/design/figcraft-meta/source/screens/C17-tap-error.svg",
+   "x": 2040,
+   "y": 984
+  }
+ },
+ {
+  "command": "file.import",
+  "params": {
+   "path": "/Users/cryptoclock/Desktop/BitPOS-Meta-2026/design/figcraft-meta/source/screens/C18-table-entry.svg",
+   "x": 2550,
+   "y": 984
+  }
+ },
+ {
+  "command": "file.import",
+  "params": {
+   "path": "/Users/cryptoclock/Desktop/BitPOS-Meta-2026/design/figcraft-meta/source/screens/C19-table-menu.svg",
+   "x": 0,
+   "y": 1968
+  }
+ },
+ {
+  "command": "file.import",
+  "params": {
+   "path": "/Users/cryptoclock/Desktop/BitPOS-Meta-2026/design/figcraft-meta/source/screens/C20-product.svg",
+   "x": 510,
+   "y": 1968
+  }
+ },
+ {
+  "command": "file.import",
+  "params": {
+   "path": "/Users/cryptoclock/Desktop/BitPOS-Meta-2026/design/figcraft-meta/source/screens/C21-cart-review.svg",
+   "x": 1020,
+   "y": 1968
+  }
+ },
+ {
+  "command": "file.import",
+  "params": {
+   "path": "/Users/cryptoclock/Desktop/BitPOS-Meta-2026/design/figcraft-meta/source/screens/C22-pay-method.svg",
+   "x": 1530,
+   "y": 1968
+  }
+ },
+ {
+  "command": "file.import",
+  "params": {
+   "path": "/Users/cryptoclock/Desktop/BitPOS-Meta-2026/design/figcraft-meta/source/screens/C23-receipt.svg",
+   "x": 2040,
+   "y": 1968
+  }
+ },
+ {
+  "command": "file.import",
+  "params": {
+   "path": "/Users/cryptoclock/Desktop/BitPOS-Meta-2026/design/figcraft-meta/source/screens/C24-expired.svg",
+   "x": 2550,
+   "y": 1968
+  }
+ },
+ {
+  "command": "file.import",
+  "params": {
+   "path": "/Users/cryptoclock/Desktop/BitPOS-Meta-2026/design/figcraft-meta/source/screens/C25-failed.svg",
+   "x": 0,
+   "y": 2952
+  }
+ },
+ {
+  "command": "file.import",
+  "params": {
+   "path": "/Users/cryptoclock/Desktop/BitPOS-Meta-2026/design/figcraft-meta/source/screens/C26-refund.svg",
+   "x": 510,
+   "y": 2952
+  }
+ },
+ {
+  "command": "file.import",
+  "params": {
+   "path": "/Users/cryptoclock/Desktop/BitPOS-Meta-2026/design/figcraft-meta/source/screens/C27-help-offline.svg",
+   "x": 1020,
+   "y": 2952
+  }
+ },
+ {
+  "command": "page.add",
+  "params": {
+   "name": "11 · Messenger (มือถือ)"
+  }
+ },
+ {
+  "command": "file.import",
+  "params": {
+   "path": "/Users/cryptoclock/Desktop/BitPOS-Meta-2026/design/figcraft-meta/source/screens/C02-consent.svg",
+   "x": 0,
+   "y": 0
+  }
+ },
+ {
+  "command": "file.import",
+  "params": {
+   "path": "/Users/cryptoclock/Desktop/BitPOS-Meta-2026/design/figcraft-meta/source/screens/C08-chat-order.svg",
+   "x": 510,
+   "y": 0
+  }
+ },
+ {
+  "command": "file.import",
+  "params": {
+   "path": "/Users/cryptoclock/Desktop/BitPOS-Meta-2026/design/figcraft-meta/source/screens/C09-chat-menu.svg",
+   "x": 1020,
+   "y": 0
+  }
+ },
+ {
+  "command": "file.import",
+  "params": {
+   "path": "/Users/cryptoclock/Desktop/BitPOS-Meta-2026/design/figcraft-meta/source/screens/C10-chat-receipt.svg",
+   "x": 1530,
+   "y": 0
+  }
+ },
+ {
+  "command": "file.import",
+  "params": {
+   "path": "/Users/cryptoclock/Desktop/BitPOS-Meta-2026/design/figcraft-meta/source/screens/C12-chat-booking.svg",
+   "x": 2040,
+   "y": 0
+  }
+ },
+ {
+  "command": "file.import",
+  "params": {
+   "path": "/Users/cryptoclock/Desktop/BitPOS-Meta-2026/design/figcraft-meta/source/screens/C15-my-orders.svg",
+   "x": 2550,
+   "y": 0
+  }
+ },
+ {
+  "command": "page.add",
+  "params": {
+   "name": "12 · meta-pay · เดสก์ท็อป"
+  }
+ },
+ {
+  "command": "file.import",
+  "params": {
+   "path": "/Users/cryptoclock/Desktop/BitPOS-Meta-2026/design/figcraft-meta/source/screens/CD01-desk-menu.svg",
+   "x": 0,
+   "y": 0
+  }
+ },
+ {
+  "command": "file.import",
+  "params": {
+   "path": "/Users/cryptoclock/Desktop/BitPOS-Meta-2026/design/figcraft-meta/source/screens/CD02-desk-checkout.svg",
+   "x": 1560,
+   "y": 0
+  }
+ },
+ {
+  "command": "file.import",
+  "params": {
+   "path": "/Users/cryptoclock/Desktop/BitPOS-Meta-2026/design/figcraft-meta/source/screens/CD03-desk-paid.svg",
+   "x": 0,
+   "y": 1140
+  }
+ },
+ {
+  "command": "page.add",
+  "params": {
+   "name": "20 · meta-pos · ร้าน (เดสก์ท็อป)"
+  }
+ },
+ {
+  "command": "file.import",
+  "params": {
+   "path": "/Users/cryptoclock/Desktop/BitPOS-Meta-2026/design/figcraft-meta/source/screens/MP01-login.svg",
+   "x": 0,
+   "y": 0
+  }
+ },
+ {
+  "command": "file.import",
+  "params": {
+   "path": "/Users/cryptoclock/Desktop/BitPOS-Meta-2026/design/figcraft-meta/source/screens/MP02-overview.svg",
+   "x": 1560,
+   "y": 0
+  }
+ },
+ {
+  "command": "file.import",
+  "params": {
+   "path": "/Users/cryptoclock/Desktop/BitPOS-Meta-2026/design/figcraft-meta/source/screens/MP03-counter-sale.svg",
+   "x": 0,
+   "y": 1140
+  }
+ },
+ {
+  "command": "file.import",
+  "params": {
+   "path": "/Users/cryptoclock/Desktop/BitPOS-Meta-2026/design/figcraft-meta/source/screens/MP04-counter-checkout.svg",
+   "x": 1560,
+   "y": 1140
+  }
+ },
+ {
+  "command": "file.import",
+  "params": {
+   "path": "/Users/cryptoclock/Desktop/BitPOS-Meta-2026/design/figcraft-meta/source/screens/MP05-orders.svg",
+   "x": 0,
+   "y": 2280
+  }
+ },
+ {
+  "command": "file.import",
+  "params": {
+   "path": "/Users/cryptoclock/Desktop/BitPOS-Meta-2026/design/figcraft-meta/source/screens/MP06-order-detail.svg",
+   "x": 1560,
+   "y": 2280
+  }
+ },
+ {
+  "command": "file.import",
+  "params": {
+   "path": "/Users/cryptoclock/Desktop/BitPOS-Meta-2026/design/figcraft-meta/source/screens/MP07-refund.svg",
+   "x": 0,
+   "y": 3420
+  }
+ },
+ {
+  "command": "file.import",
+  "params": {
+   "path": "/Users/cryptoclock/Desktop/BitPOS-Meta-2026/design/figcraft-meta/source/screens/MP08-bookings.svg",
+   "x": 1560,
+   "y": 3420
+  }
+ },
+ {
+  "command": "file.import",
+  "params": {
+   "path": "/Users/cryptoclock/Desktop/BitPOS-Meta-2026/design/figcraft-meta/source/screens/MP09-tables-devices.svg",
+   "x": 0,
+   "y": 4560
+  }
+ },
+ {
+  "command": "file.import",
+  "params": {
+   "path": "/Users/cryptoclock/Desktop/BitPOS-Meta-2026/design/figcraft-meta/source/screens/MP10-menu-stock.svg",
+   "x": 1560,
+   "y": 4560
+  }
+ },
+ {
+  "command": "file.import",
+  "params": {
+   "path": "/Users/cryptoclock/Desktop/BitPOS-Meta-2026/design/figcraft-meta/source/screens/MP11-product-edit.svg",
+   "x": 0,
+   "y": 5700
+  }
+ },
+ {
+  "command": "file.import",
+  "params": {
+   "path": "/Users/cryptoclock/Desktop/BitPOS-Meta-2026/design/figcraft-meta/source/screens/MP13-promotions.svg",
+   "x": 1560,
+   "y": 5700
+  }
+ },
+ {
+  "command": "file.import",
+  "params": {
+   "path": "/Users/cryptoclock/Desktop/BitPOS-Meta-2026/design/figcraft-meta/source/screens/MP14-draft-review.svg",
+   "x": 0,
+   "y": 6840
+  }
+ },
+ {
+  "command": "file.import",
+  "params": {
+   "path": "/Users/cryptoclock/Desktop/BitPOS-Meta-2026/design/figcraft-meta/source/screens/MP15-customers.svg",
+   "x": 1560,
+   "y": 6840
+  }
+ },
+ {
+  "command": "file.import",
+  "params": {
+   "path": "/Users/cryptoclock/Desktop/BitPOS-Meta-2026/design/figcraft-meta/source/screens/MP16-customer-detail.svg",
+   "x": 0,
+   "y": 7980
+  }
+ },
+ {
+  "command": "file.import",
+  "params": {
+   "path": "/Users/cryptoclock/Desktop/BitPOS-Meta-2026/design/figcraft-meta/source/screens/MP17-evidence.svg",
+   "x": 1560,
+   "y": 7980
+  }
+ },
+ {
+  "command": "file.import",
+  "params": {
+   "path": "/Users/cryptoclock/Desktop/BitPOS-Meta-2026/design/figcraft-meta/source/screens/MP18-reports.svg",
+   "x": 0,
+   "y": 9120
+  }
+ },
+ {
+  "command": "file.import",
+  "params": {
+   "path": "/Users/cryptoclock/Desktop/BitPOS-Meta-2026/design/figcraft-meta/source/screens/MP19-stripe-payouts.svg",
+   "x": 1560,
+   "y": 9120
+  }
+ },
+ {
+  "command": "file.import",
+  "params": {
+   "path": "/Users/cryptoclock/Desktop/BitPOS-Meta-2026/design/figcraft-meta/source/screens/MP20-settings.svg",
+   "x": 0,
+   "y": 10260
+  }
+ },
+ {
+  "command": "file.import",
+  "params": {
+   "path": "/Users/cryptoclock/Desktop/BitPOS-Meta-2026/design/figcraft-meta/source/screens/MP21-users.svg",
+   "x": 1560,
+   "y": 10260
+  }
+ },
+ {
+  "command": "file.import",
+  "params": {
+   "path": "/Users/cryptoclock/Desktop/BitPOS-Meta-2026/design/figcraft-meta/source/screens/MP22-kitchen-queue.svg",
+   "x": 0,
+   "y": 11400
+  }
+ },
+ {
+  "command": "file.import",
+  "params": {
+   "path": "/Users/cryptoclock/Desktop/BitPOS-Meta-2026/design/figcraft-meta/source/screens/MP23-mcp-connector.svg",
+   "x": 1560,
+   "y": 11400
+  }
+ },
+ {
+  "command": "page.add",
+  "params": {
+   "name": "21 · meta-pos · มือถือ"
+  }
+ },
+ {
+  "command": "file.import",
+  "params": {
+   "path": "/Users/cryptoclock/Desktop/BitPOS-Meta-2026/design/figcraft-meta/source/screens/MPM01-m-orders.svg",
+   "x": 0,
+   "y": 0
+  }
+ },
+ {
+  "command": "file.import",
+  "params": {
+   "path": "/Users/cryptoclock/Desktop/BitPOS-Meta-2026/design/figcraft-meta/source/screens/MPM02-m-order-detail.svg",
+   "x": 510,
+   "y": 0
+  }
+ },
+ {
+  "command": "file.import",
+  "params": {
+   "path": "/Users/cryptoclock/Desktop/BitPOS-Meta-2026/design/figcraft-meta/source/screens/MPM03-m-bookings.svg",
+   "x": 1020,
+   "y": 0
+  }
+ },
+ {
+  "command": "page.add",
+  "params": {
+   "name": "30 · BitPOS Mini (480×320)"
+  }
+ },
+ {
+  "command": "file.import",
+  "params": {
+   "path": "/Users/cryptoclock/Desktop/BitPOS-Meta-2026/design/figcraft-meta/source/screens/B01-mini-idle.svg",
+   "x": 0,
+   "y": 0
+  }
+ },
+ {
+  "command": "file.import",
+  "params": {
+   "path": "/Users/cryptoclock/Desktop/BitPOS-Meta-2026/design/figcraft-meta/source/screens/B02-mini-tap-new.svg",
+   "x": 600,
+   "y": 0
+  }
+ },
+ {
+  "command": "file.import",
+  "params": {
+   "path": "/Users/cryptoclock/Desktop/BitPOS-Meta-2026/design/figcraft-meta/source/screens/B03-mini-welcome.svg",
+   "x": 1200,
+   "y": 0
+  }
+ },
+ {
+  "command": "file.import",
+  "params": {
+   "path": "/Users/cryptoclock/Desktop/BitPOS-Meta-2026/design/figcraft-meta/source/screens/B04-mini-stripe-qr.svg",
+   "x": 1800,
+   "y": 0
+  }
+ },
+ {
+  "command": "file.import",
+  "params": {
+   "path": "/Users/cryptoclock/Desktop/BitPOS-Meta-2026/design/figcraft-meta/source/screens/B05-mini-waiting.svg",
+   "x": 2400,
+   "y": 0
+  }
+ },
+ {
+  "command": "file.import",
+  "params": {
+   "path": "/Users/cryptoclock/Desktop/BitPOS-Meta-2026/design/figcraft-meta/source/screens/B06-mini-paid.svg",
+   "x": 3000,
+   "y": 0
+  }
+ },
+ {
+  "command": "file.import",
+  "params": {
+   "path": "/Users/cryptoclock/Desktop/BitPOS-Meta-2026/design/figcraft-meta/source/screens/B07-mini-reserved.svg",
+   "x": 0,
+   "y": 460
+  }
+ },
+ {
+  "command": "file.import",
+  "params": {
+   "path": "/Users/cryptoclock/Desktop/BitPOS-Meta-2026/design/figcraft-meta/source/screens/B08-mini-upcoming.svg",
+   "x": 600,
+   "y": 460
+  }
+ },
+ {
+  "command": "file.import",
+  "params": {
+   "path": "/Users/cryptoclock/Desktop/BitPOS-Meta-2026/design/figcraft-meta/source/screens/B09-mini-seated.svg",
+   "x": 1200,
+   "y": 460
+  }
+ },
+ {
+  "command": "file.import",
+  "params": {
+   "path": "/Users/cryptoclock/Desktop/BitPOS-Meta-2026/design/figcraft-meta/source/screens/B10-mini-offline.svg",
+   "x": 1800,
+   "y": 460
+  }
+ },
+ {
+  "command": "file.import",
+  "params": {
+   "path": "/Users/cryptoclock/Desktop/BitPOS-Meta-2026/design/figcraft-meta/source/screens/B11-mini-ready.svg",
+   "x": 2400,
+   "y": 460
+  }
+ },
+ {
+  "command": "page.add",
+  "params": {
+   "name": "31 · จอโต๊ะ (แท็บเล็ต)"
+  }
+ },
+ {
+  "command": "file.import",
+  "params": {
+   "path": "/Users/cryptoclock/Desktop/BitPOS-Meta-2026/design/figcraft-meta/source/screens/T01-tscreen-free.svg",
+   "x": 0,
+   "y": 0
+  }
+ },
+ {
+  "command": "file.import",
+  "params": {
+   "path": "/Users/cryptoclock/Desktop/BitPOS-Meta-2026/design/figcraft-meta/source/screens/T02-tscreen-upcoming.svg",
+   "x": 1144,
+   "y": 0
+  }
+ },
+ {
+  "command": "file.import",
+  "params": {
+   "path": "/Users/cryptoclock/Desktop/BitPOS-Meta-2026/design/figcraft-meta/source/screens/T03-tscreen-checkin.svg",
+   "x": 2288,
+   "y": 0
+  }
+ },
+ {
+  "command": "file.import",
+  "params": {
+   "path": "/Users/cryptoclock/Desktop/BitPOS-Meta-2026/design/figcraft-meta/source/screens/T04-tscreen-seated.svg",
+   "x": 3432,
+   "y": 0
+  }
+ },
+ {
+  "command": "page.add",
+  "params": {
+   "name": "40 · สถานะพิเศษ"
+  }
+ },
+ {
+  "command": "file.import",
+  "params": {
+   "path": "/Users/cryptoclock/Desktop/BitPOS-Meta-2026/design/figcraft-meta/source/screens/S01-model-fallback.svg",
+   "x": 0,
+   "y": 0
+  }
+ },
+ {
+  "command": "file.import",
+  "params": {
+   "path": "/Users/cryptoclock/Desktop/BitPOS-Meta-2026/design/figcraft-meta/source/screens/S02-rate-limited.svg",
+   "x": 510,
+   "y": 0
+  }
+ },
+ {
+  "command": "file.import",
+  "params": {
+   "path": "/Users/cryptoclock/Desktop/BitPOS-Meta-2026/design/figcraft-meta/source/screens/S03-not-connected.svg",
+   "x": 1020,
+   "y": 0
+  }
+ },
+ {
+  "command": "file.import",
+  "params": {
+   "path": "/Users/cryptoclock/Desktop/BitPOS-Meta-2026/design/figcraft-meta/source/screens/S04-same-origin.svg",
+   "x": 1530,
+   "y": 0
+  }
+ },
+ {
+  "command": "file.import",
+  "params": {
+   "path": "/Users/cryptoclock/Desktop/BitPOS-Meta-2026/design/figcraft-meta/source/screens/S05-price-changed.svg",
+   "x": 2040,
+   "y": 0
+  }
+ },
+ {
+  "command": "file.import",
+  "params": {
+   "path": "/Users/cryptoclock/Desktop/BitPOS-Meta-2026/design/figcraft-meta/source/screens/S06-sold-out.svg",
+   "x": 2550,
+   "y": 0
+  }
+ },
+ {
+  "command": "page.add",
+  "params": {
+   "name": "50 · ส่งต่อทีมพัฒนา"
+  }
+ },
+ {
+  "command": "file.import",
+  "params": {
+   "path": "/Users/cryptoclock/Desktop/BitPOS-Meta-2026/design/figcraft-meta/source/screens/H01-routes.svg",
+   "x": 0,
+   "y": 0
+  }
+ }
+]
