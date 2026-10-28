@@ -3529,3 +3529,8 @@ Method: the real debug apps (`flutter build apk --debug` with `BITPOS_FIXTURE` a
 ### Spelling "ออร์เดอร์" → "ออเดอร์" (2026-10-29)
 - 33 files under `apps/`, `packages/mobile_shared` and `tools/` (177 occurrences) now use the standard spelling the FigCraft frames use. Web unit tests (81), customer (305), driver (245) and mobile_shared (178) Flutter tests pass; `flutter analyze` info/warnings are unchanged by this edit. The web part reaches OCI with the next web deploy.
 - A "customer unreachable" incident category was not added: it needs a new migration that redefines the incident-report function and CHECK constraint plus regenerated contracts, and R21 now matches the app's seven real categories, so it is out of demo scope.
+
+### Deploy #10 on OCI: spelling (web only, 2026-10-29)
+- Commit `ed661ca` web part: 9 files under `apps/web/src/components` (dry-run showed only these differed); no migration. Only `web` recreated (`bitpos-runtime:current` = a329f13bca64); api, worker, customer, merchant, tunnel and `bitpos-meta-meta-1` untouched.
+- Rollback: previous image tagged `bitpos-runtime:rollback-20261029h` (8107119d573d); replaced files in `/home/ubuntu/bitpos-runtime.rollback10-20261029/components`.
+- Verified: `https://pos.cashlessthailand.com/` 200, `/api/returns` without session 401, host `127.0.0.1:4321/platform` 200. Disk 88% (25 GB free).
