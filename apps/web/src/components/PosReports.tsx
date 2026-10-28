@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { api, errorMessage } from '../lib/api';
 import { formatMoney } from '../lib/money';
+import { salesSummary } from '../lib/sales-summary';
 import type { PrivateOrder } from '../lib/table';
 import type { Product } from '../lib/menu';
 import { channelOf, hourlyBuckets, sumSingleDenomination } from '../lib/pos-overview';
@@ -50,6 +51,10 @@ export default function PosReports({ orders, ready, failed, language, token, pro
   const serverView = !!server && (view === 'daily' || view === 'period');
   const sourceLabel = (kind: string) => ({ register: text('จุดขาย', 'Register'), device: text('POSClock', 'POSClock'), online: text('แอป', 'App'), legacy_counter: text('เดิม', 'Legacy') } as Record<string, string>)[kind] ?? kind;
   const serverMoney = (g: SalesGroup) => formatMoney({ currency: g.currency, decimals: g.decimals, amountMinor: g.totalMinor } as never);
+  // KPI cards and channel shares come from the same server rows; see lib/sales-summary.ts for the single-currency rule.
+  const raw = salesSummary(server?.days.flatMap(d => d.groups) ?? []);
+  const summaryMoney = (amountMinor: bigint) => raw ? formatMoney({ currency: raw.currency, decimals: raw.decimals, amountMinor: amountMinor.toString() } as never) : '';
+  const summary = raw && { total: summaryMoney(raw.totalMinor), orders: raw.orders, average: raw.orders > 0 ? summaryMoney(raw.averageMinor) : '—', channels: raw.channels };
   const paid = scoped.filter(order => order.status === 'PAID');
   const total = sumSingleDenomination(paid);
   const money = (value: ReturnType<typeof sumSingleDenomination>) => value === null ? '—' : value === 'mixed' ? text('หลายสกุลเงิน', 'Mixed currencies') : formatMoney(value);
@@ -74,6 +79,8 @@ export default function PosReports({ orders, ready, failed, language, token, pro
     : (view === 'daily' || view === 'period') && server ? <section className="reports-card" aria-label={text('ยอดขายจากเซิร์ฟเวอร์', 'Server sales totals')}>
       <p className="reports-sub">{text(`ยอดชำระแล้วจากเซิร์ฟเวอร์ ตลอดช่วงที่เลือก (${server.timeZone}) ก่อนหักคืนเงินและค่าธรรมเนียม ไม่รวมยอดข้ามสกุลเงิน`, `Paid totals from the server for the whole selected range (${server.timeZone}), before refunds and fees. Never added across currencies.`)}</p>
       {server.excludedOrders > 0 && <p className="notice" role="status">{text(`ไม่รวม ${server.excludedOrders} ออเดอร์เดิมที่ไม่มีข้อมูลราคา`, `${server.excludedOrders} older paid orders without price data are not included.`)}</p>}
+      {summary && <><div className="reports-kpis reports-kpis-4"><article><small>{text('ยอดขายที่ชำระแล้ว', 'Paid sales')}</small><strong>{summary.total}</strong></article><article><small>{text('ออเดอร์ที่ชำระแล้ว', 'Paid orders')}</small><strong>{summary.orders}</strong></article><article><small>{text('เฉลี่ยต่อบิล', 'Average per bill')}</small><strong>{summary.average}</strong><span>{text('ปัดลงเป็นหน่วยเล็กสุด', 'Rounded down to the smallest unit')}</span></article><article><small>{text('ช่องทางที่มียอด', 'Active channels')}</small><strong>{summary.channels.length}</strong></article></div>
+        <section className="channel-share" aria-label={text('สัดส่วนยอดขายตามช่องทาง', 'Sales share by channel')}><h3>{text('ช่องทางการขาย', 'Sales channels')}</h3>{summary.channels.map(c => <div className="channel-row" key={c.kind}><span>{sourceLabel(c.kind)}</span><div className="channel-bar" role="img" aria-label={`${sourceLabel(c.kind)} ${c.share}%`}><i style={{ width: `${c.share}%` }} /></div><b>{c.share}%</b></div>)}</section></>}
       {server.days.length ? <table><thead><tr><th>{text('วันที่', 'Date')}</th><th>{text('ช่องทาง', 'Source')}</th><th>{text('ออเดอร์ที่ชำระแล้ว', 'Paid orders')}</th><th>{text('ยอดชำระแล้ว', 'Paid total')}</th></tr></thead><tbody>{server.days.flatMap(day => day.groups.map((g, index) => <tr key={`${day.day}-${g.currency}-${g.decimals}-${g.sourceKind}`}><td>{index === 0 ? day.day : ''}</td><td>{sourceLabel(g.sourceKind)}</td><td>{g.orders}</td><td>{serverMoney(g)}</td></tr>))}</tbody></table> : <p className="notice">{text('ไม่มีออเดอร์ที่ชำระแล้วในช่วงนี้', 'No paid orders in this range.')}</p>}</section>
     : view === 'daily' || view === 'period' ? <section className="reports-card"><div className="reports-kpis"><article><small>{text('ยอดขายที่ชำระแล้ว', 'Paid sales')}</small><strong>{money(total)}</strong></article><article><small>{text('ออเดอร์ที่ชำระแล้ว', 'Paid orders')}</small><strong>{paid.length}</strong></article><article><small>{text('ออเดอร์ทั้งหมด', 'All orders')}</small><strong>{scoped.length}</strong></article></div>
       {dailyTotals(scoped).length ? <table><thead><tr><th>{text('วันที่', 'Date')}</th><th>{text('ออเดอร์', 'Orders')}</th><th>{text('ชำระแล้ว', 'Paid')}</th><th>{text('ยอดชำระแล้ว', 'Paid total')}</th></tr></thead><tbody>{dailyTotals(scoped).map(day => <tr key={day.day}><td>{day.day}</td><td>{day.orders}</td><td>{day.paid}</td><td>{money(day.total)}</td></tr>)}</tbody></table> : <p className="notice">{text('ไม่มีออเดอร์ในช่วงนี้', 'No orders in this range.')}</p>}</section>

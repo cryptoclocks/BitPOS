@@ -38,7 +38,10 @@ export default function Payment({ accessToken, terminal = false }: { accessToken
   const [customerAuthBusy,setCustomerAuthBusy]=useState(false);
   const [customerContext,setCustomerContext]=useState<PayCustomerContext>();
   const [done,setDone]=useState(false);
-  const [language, setLanguage] = useState<'en' | 'th'>('en');
+  // Thai is the default (the FigCraft Pay screens are Thai); a customer's explicit choice is remembered on this device.
+  const [language, setLanguageState] = useState<'en' | 'th'>('th');
+  const setLanguage = (next: 'en' | 'th') => { setLanguageState(next); try { localStorage.setItem('bitpos.pay.language', next); } catch { /* storage unavailable: keep the choice for this visit only */ } };
+  useEffect(() => { try { if (localStorage.getItem('bitpos.pay.language') === 'en') setLanguageState('en'); } catch { /* default stays Thai */ } }, []);
   const [summaryOpen, setSummaryOpen] = useState(false);
   const text = (th: string, en: string) => language === 'th' ? th : en;
   useEffect(() => {
