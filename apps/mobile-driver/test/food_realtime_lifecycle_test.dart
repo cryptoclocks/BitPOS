@@ -44,7 +44,7 @@ class ConflictedWithdrawalApi extends LiveWorkApi {
   submitted.add(command);read=Completer<FoodDriverWork>();throw MobileApiException(code,409);
  }
 }
-Future<void> mount(WidgetTester tester,LiveWorkApi api,{void Function(BuildContext,int)? onChatNavigation}) async {tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);await tester.pumpWidget(MaterialApp(home:FoodWorkPage(api:api,thai:false,onChatNavigation:onChatNavigation)));await tester.pumpAndSettle();}
+Future<void> mount(WidgetTester tester,LiveWorkApi api) async {tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);await tester.pumpWidget(MaterialApp(home:FoodWorkPage(api:api,thai:false)));await tester.pumpAndSettle();}
 Future<void> custody(WidgetTester tester) async {final button=find.byKey(const ValueKey('food-custody-PICKUP'));await tester.scrollUntilVisible(button,300);await tester.ensureVisible(button);await tester.pump();await tester.tap(button);await tester.pump(const Duration(milliseconds:300));expect(find.byType(AlertDialog),findsOneWidget);await tester.enterText(find.byType(TextField),'private-fixture-custody-secret-123456');}
 void main(){
  late GeolocatorPlatform previous;late ActiveNative native;

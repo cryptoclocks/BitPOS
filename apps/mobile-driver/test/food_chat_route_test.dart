@@ -19,15 +19,16 @@ Future<void> openChat(WidgetTester tester) async {
  await tester.tap(button.hitTestable());await tester.pumpAndSettle();
 }
 void main(){
- testWidgets('rider chat bottom navigation forwards History and lets the parent replace the private chat route',(tester)async{
+ testWidgets('rider chat is a full page without the bottom tabs and its back control returns to work',(tester)async{
   final previous=GeolocatorPlatform.instance,native=fixture.ActiveNative();GeolocatorPlatform.instance=native;
   addTearDown((){native.close();GeolocatorPlatform.instance=previous;});
-  final api=ChatWorkApi();addTearDown(api.close);var selected=-1;
-  await fixture.mount(tester,api,onChatNavigation:(context,index){selected=index;Navigator.of(context).pop();});
+  final api=ChatWorkApi();addTearDown(api.close);
+  await fixture.mount(tester,api);
   await openChat(tester);
-  expect(find.byType(FoodChatPageView),findsOneWidget);expect(find.text('History'),findsOneWidget);
-  await tester.tap(find.text('History'));await tester.pumpAndSettle();
-  expect(selected,1);expect(find.byType(FoodChatPageView),findsNothing);expect(tester.takeException(),isNull);
+  expect(find.byType(FoodChatPageView),findsOneWidget);
+  for(final tab in const ['Work','History','Earnings','Account']){expect(find.text(tab),findsNothing);}
+  await tester.tap(find.descendant(of:find.byType(AppBar),matching:find.byType(OutlinedButton)));await tester.pumpAndSettle();
+  expect(find.byType(FoodChatPageView),findsNothing);expect(find.text('Chat with customer'),findsWidgets);expect(tester.takeException(),isNull);
  });
  testWidgets('new assigned duty closes old rider chat route and plaintext',(tester)async{
   final previous=GeolocatorPlatform.instance,native=fixture.ActiveNative();GeolocatorPlatform.instance=native;

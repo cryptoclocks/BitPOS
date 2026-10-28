@@ -24,7 +24,6 @@ import 'presentation/driver_presentation.dart';
 import 'package:mobile_shared/owned_route.dart';
 import 'package:mobile_shared/food_navigation_map.dart';
 
-import 'presentation/driver_navigation.dart';
 import 'food_idle_location_controller.dart';
 import 'food_idle_discovery_panel.dart';
 import 'earnings_page.dart';
@@ -36,13 +35,11 @@ class FoodWorkPage extends StatefulWidget {
     required this.thai,
     this.availability,
     this.dailySummary,
-    this.onChatNavigation,
     this.onTravelModeChanged,
   });
   final Widget? availability, dailySummary;
   final MobileApi api;
   final bool thai;
-  final void Function(BuildContext, int)? onChatNavigation;
   final ValueChanged<bool>? onTravelModeChanged;
   @override
   State<FoodWorkPage> createState() => _FoodWorkPageState();
@@ -165,22 +162,6 @@ class _FoodWorkPageState extends State<FoodWorkPage>
         assignmentId: a.id,
         thai: widget.thai,
         rider: true,
-        bottomNavigationBar: SafeArea(
-          top: false,
-          child: DriverNavigation(
-            thai: widget.thai,
-            selectedIndex: 0,
-            compact: true,
-            onSelected: (index) {
-              final select = widget.onChatNavigation;
-              if (select != null) {
-                select(chatContext, index);
-              } else {
-                Navigator.of(chatContext).maybePop();
-              }
-            },
-          ),
-        ),
       ),
     );
     _chatRoute = route;

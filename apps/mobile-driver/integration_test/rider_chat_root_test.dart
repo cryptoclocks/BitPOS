@@ -92,10 +92,11 @@ void main() {
       );
       await tester.pump();
     }
-    expect(find.text('Work'), findsOneWidget);
-    expect(find.text('History'), findsOneWidget);
-    expect(find.text('Earnings'), findsOneWidget);
-    expect(find.text('Account'), findsOneWidget);
+    // Owner decision 2026-10-28: the rider chat is a full page without the bottom tabs.
+    expect(find.text('Work'), findsNothing);
+    expect(find.text('History'), findsNothing);
+    expect(find.text('Earnings'), findsNothing);
+    expect(find.text('Account'), findsNothing);
     expect(
       find.textContaining('Rider fixture: order received.'),
       findsOneWidget,
@@ -131,7 +132,10 @@ void main() {
     expect(outbound.top, closeTo(354, 1));
     expect(outbound.height, closeTo(77, 1));
     expect(composer.left, closeTo(24, 1));
-    expect(composer.top, closeTo(651, 1));
+    // Without the bottom tabs the composer sits 55 dp above the bottom safe area (it sat at 651 dp above the tabs before).
+    final viewHeight = tester.view.physicalSize.height / tester.view.devicePixelRatio;
+    final bottomInset = tester.view.padding.bottom / tester.view.devicePixelRatio;
+    expect(composer.top, closeTo(viewHeight - bottomInset - 55 - 52, 1));
     expect(composer.width, closeTo(282, 1));
     expect(composer.height, closeTo(52, 1));
     debugPrint(

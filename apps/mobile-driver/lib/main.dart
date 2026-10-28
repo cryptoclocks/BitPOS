@@ -140,15 +140,6 @@ class _DriverSessionPageState extends State<DriverSessionPage>
                 builder: (_) => FoodWorkPage(
                   api: api,
                   thai: _thai,
-                  onChatNavigation: (chatContext, index) {
-                    final navigator = Navigator.of(chatContext);
-                    if (index == 0) {
-                      navigator.pop();
-                      return;
-                    }
-                    navigator.popUntil((route) => route.isFirst);
-                    if (index != 3) unawaited(_openDestination(index));
-                  },
                 ),
               ),
             );
@@ -469,17 +460,6 @@ class _DriverSessionPageState extends State<DriverSessionPage>
                   ),
                   rating: DriverRatingSummary(api: api, thai: _thai),
                 ),
-                onChatNavigation: (chatContext, index) {
-                  final navigator = Navigator.of(chatContext);
-                  if (index == current) {
-                    navigator.pop();
-                    return;
-                  }
-                  navigator.popUntil(
-                    (route) => route.settings.name == 'driver-destination',
-                  );
-                  navigator.pop(index);
-                },
               )
             : current == 1
             ? DriverFoodHistoryPage(api: api, thai: _thai)

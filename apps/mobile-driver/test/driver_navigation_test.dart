@@ -208,7 +208,7 @@ void main() {
     },
   );
   testWidgets(
-    'actual rider root replaces work chat with History when rider selects History',
+    'actual rider root opens work chat as a full page without the bottom tabs and returns to work',
     (tester) async {
       tester.view.physicalSize = const Size(390, 844);
       tester.view.devicePixelRatio = 1;
@@ -243,11 +243,17 @@ void main() {
       await tester.tap(chat.hitTestable());
       await tester.pumpAndSettle();
       expect(find.text('Root chat route fixture'), findsOneWidget);
-      await tester.tap(find.text('History'));
+      // Owner decision 2026-10-28: the rider chat hides the bottom tabs.
+      expect(find.byType(NavigationBar), findsNothing);
+      await tester.tap(
+        find.descendant(
+          of: find.byType(AppBar),
+          matching: find.byType(OutlinedButton),
+        ),
+      );
       await tester.pumpAndSettle();
       expect(find.text('Root chat route fixture'), findsNothing);
-      expect(find.text('No closed deliveries yet.'), findsOneWidget);
-      expect(find.byType(DriverDestination), findsOneWidget);
+      expect(find.byType(FoodWorkPage), findsOneWidget);
       expect(tester.takeException(), isNull);
     },
   );
