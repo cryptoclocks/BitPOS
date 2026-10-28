@@ -3504,3 +3504,6 @@ Method: the real debug apps (`flutter build apk --debug` with `BITPOS_FIXTURE` a
 
 ### Frames added for screens that had none (2026-10-29, owner: "draw only the ones that do not exist")
 - 15 frames added to the FigCraft master (replaced with the OK given earlier; the original stays as `before-20261029`), exported and registered in `screen-map.json` (now 215 entries): platform operator PL01–PL10 (a new "platform" surface; the design had no frames for the operator web screens), customer U44 sessions, U45 order again, U46 merchant reviews, rider R33 payout account and R34 compensation. Details and the generator scripts: `design/figcraft/handoff/DEVIATIONS_20261029.md`, `design/figcraft/handoff/generators/`. These are list-style frames with the app's wording; an owner design pass can enrich them.
+
+### Platform operator frames upgraded to full designs (2026-10-29)
+- PL01–PL10 redrawn as full layouts (master, exported SVG/PNG, sha256) plus new PL11 staff sign-in; details in `design/figcraft/handoff/DEVIATIONS_20261029.md`, generators in `design/figcraft/handoff/generators/`. Checked by rendering PL01, PL03, PL05, PL07, PL11. The web operator screens themselves were not changed.

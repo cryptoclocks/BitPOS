@@ -72,3 +72,9 @@ Added to the master (and exported to `source/screens/`, `previews/current-native
 - **Rider app:** R33 payout account (beneficiary), R34 food compensation requests.
 - Layout is a clone of the existing list frames with the app's wording, not a new visual language; the platform sidebar lists the ten tools. Replace with richer layouts when the operator screens get their own design pass.
 - Not added because they already have a frame: account data copy (inside U34 privacy), support cases (U30 help), coupon and checkout screens, ride screens.
+
+## Sixth step (2026-10-29): platform operator frames upgraded to full designs
+
+PL01 to PL10 are no longer list clones. Each is laid out for what the operator does, with the app's own labels and rules, and a footer that states the screen's safety rule:
+PL01 hub (eight tool cards, one not connected), PL02 dispatch (store and branch selectors, shipment table, job controls, auto-search policy), PL03 driver verification (queue and application detail with evidence reference, validity, approve / reject), PL04 incidents (queue and incident detail with acknowledge / allow-to-continue and the "not a handover, refund or payment" warning), PL05 support (queue, thread, reply, close), PL06 reviews (status tabs, review text, decision reason, publish / not publish), PL07 driver earnings (three money cards, ledger facts, payout draft controls, "accounting receipt, not a transfer confirmation"), PL08 cancellation reviews (queue, purpose-before-reading, audited private detail, "review result, not a refund"), PL09 rides (fare form, announced fares, "no payments, earnings, refunds or penalties from this page"), PL10 refund reconciliation (cases, extra-inflow check, "adds an obligation, does not transfer money"); new PL11 staff sign-in (phone, OTP, separate from shop accounts).
+Master, exported SVG/PNG, `screen-map.json` (sha256, PL11 added) and `generators/` were updated. Sample rows and ids are illustrative.
