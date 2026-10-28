@@ -171,7 +171,7 @@
       "width": 390,
       "height": 844,
       "source": "source/screens/U01-welcome.svg",
-      "sha256": "2e5be58ccbbc7e5401ff4c358af7ee2b349d02ffd22435afdab0143e2338e528",
+      "sha256": "8cd93daf0c98b408b429c848596342f13a51ef89a8f995073df71051b1b601d1",
       "phase": "food-first",
       "fixture": true
     },
@@ -186,7 +186,7 @@
       "width": 390,
       "height": 844,
       "source": "source/screens/U02-login.svg",
-      "sha256": "882795cbefb8a2d9332b405054072fea891ea38d34c0a41e2d7b099922aed53f",
+      "sha256": "4a696d91b8adc722e66f3e7d94321a3f2d0ca79605cf9ee1611accae113205cf",
       "phase": "food-first",
       "fixture": true
     },
@@ -201,7 +201,7 @@
       "width": 390,
       "height": 844,
       "source": "source/screens/U03-otp.svg",
-      "sha256": "128c6c90f8373f73e6f74022faf506fcd821bad6091754b01a5b854f1c0359c8",
+      "sha256": "8475bc45f5ef771738c600d1b983f034d4b41d51e7f33c3073a719428037d0a3",
       "phase": "food-first",
       "fixture": true
     },
@@ -216,7 +216,7 @@
       "width": 390,
       "height": 844,
       "source": "source/screens/U04-location.svg",
-      "sha256": "7dd5ebc746ef6a440c68c6ae3f303ae41420aa8e2f729a6fda9da694fa80699d",
+      "sha256": "980f464853d299d21a38ff4eb6002e2a87d5c4603021c8abd4561e63ae867baf",
       "phase": "food-first",
       "fixture": true
     },
