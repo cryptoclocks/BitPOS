@@ -18,7 +18,8 @@
   - Evidence: `meta-hackathon/evidence/2026-10-28-oci-meta.md`.
 - Live tap on OCI worked at 12:38 ICT: tap → Messenger referral → consent ACCEPTED → bound tap session → magic-link session, all through `pay.cashlessthailand.com/meta/`.
 - 12:46–12:59 ICT: the owner approved Latte −20%; Latte was repriced to USD 5.00 so the offer price (USD 4.00) clears Stripe's minimum. Muse Spark picked the offer on a tap, and Stripe Checkout was paid with test card 4242 → webhook → order PAID (400 usd), one event row, stock 194 → 193. Fixed along the way: menu minor units (USD 4 decimals) are converted exactly to Stripe cents, and pages use a same-origin referrer policy so form POSTs carry an Origin. Meta tests 40/40.
-- Next: NTAG424 sticker provisioning tool; staff POS view of tap orders; Muse Connector (MCP); Allow All UI; demo video.
+- Staff view live at `pay.cashlessthailand.com/meta/staff`: POS-account sign-in (role re-read per request), last 24 h of tap orders, a one-time "handed over" action, and a pickup code shown to the customer. Migration 305 was applied on OCI after a backup. Meta tests 43/43. The POS web and `pos.` host were left untouched because the Solana-hackathon stream is deploying there. Evidence: `meta-hackathon/evidence/2026-10-28-staff-view.md`.
+- Next: NTAG424 sticker provisioning tool; Muse Connector (MCP); Allow All UI; demo video.
 - Superseded (kept for history): Messenger (needs the owner signed in to Facebook to create a Page and Meta app), paying a hosted Checkout by hand, a real Messenger app/page and webhook delivery, NTAG424 sticker configuration, Muse connector review, routing `/meta/*` to the API in the tunnel. Next: live Muse Spark call, sticker provisioning tool, Stripe checkout on the tap page.
 
 ## Direct implementation update — Customer U21 delivered page and FigCraft spacing — 21 October 2026

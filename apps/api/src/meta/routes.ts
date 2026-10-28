@@ -7,10 +7,12 @@ import {invocationSink} from './evidence';
 import {applyStripeWebhook,reconcileTapOrder,startTapCheckout,type StripeDeps} from './tap-checkout';
 import {stripeSandboxFromEnv,StripePaymentError} from './stripe';
 import {createMetaRouter,metaProvidersFromEnv} from '../../../../packages/meta-ai/src/router';
+import {formatTapAmount,handOver,listTapOrders,pickupCode,staffConfigFromEnv,staffDemoSignIn,staffFromSession,staffSignIn,staffSignOut,type SignInResult,type StaffDeps,type StaffOrder} from './staff';
 import {MessengerError,messengerConfigFromEnv,parseMessengerWebhook,sendMessenger,verifyMessengerSignature,verifySubscription,type MessengerConfig,type MessengerFetch} from './messenger';
 
-export interface MetaRouteDeps {identity:IdentityDeps;messenger:MessengerConfig|null;offers:OfferDeps|null;stripe?:StripeDeps|null;fetch?:MessengerFetch;log?:(msg:string)=>void}
-export const COOKIE='bitpos_meta';
+export interface MetaRouteDeps {identity:IdentityDeps;messenger:MessengerConfig|null;offers:OfferDeps|null;stripe?:StripeDeps|null;staff?:StaffDeps|null;fetch?:MessengerFetch;log?:(msg:string)=>void}
+export const COOKIE='bitpos_meta',STAFF_COOKIE='bitpos_meta_staff';
+const STAFF_SESSION_SECONDS=8*3600,MAX_FORM=4096;
 const MAX_WEBHOOK=65536;
 
 export function metaRouteDepsFromEnv(env:Record<string,string|undefined>,db:IdentityDeps['db'],menu?:OfferDeps['menu']):MetaRouteDeps|null{
@@ -24,7 +26,9 @@ export function metaRouteDepsFromEnv(env:Record<string,string|undefined>,db:Iden
  const offers=menu?{menu,router:providers.length?createMetaRouter({providers,record:invocationSink(db)}):null}:null;
  // Payments stay off unless Stripe test keys are configured (live keys are refused).
  let stripe:StripeDeps|null=null;try{stripe={config:stripeSandboxFromEnv(env)};}catch{stripe=null;}
- return {identity:{db,masterKey:Buffer.from(master,'hex'),publicOrigin:u.origin},messenger,offers,stripe};
+ // The staff page needs the shop's Supabase Auth; without it /meta/staff answers 503.
+ let staff:StaffDeps|null=null;try{const c=staffConfigFromEnv(env,u.origin);staff=c?{db,config:c}:null;}catch{staff=null;}
+ return {identity:{db,masterKey:Buffer.from(master,'hex'),publicOrigin:u.origin},messenger,offers,stripe,staff};
 }
 
 const esc=(s:string)=>s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]!));
@@ -131,7 +135,7 @@ export async function serveMeta(req:http.IncomingMessage,res:http.ServerResponse
   if(!deps.stripe){page(res,503,'ยังรับชำระไม่ได้',['Payments are not configured.']);return true;}
   let o;try{o=await reconcileTapOrder(deps.identity,deps.stripe,cookieValue(req.headers.cookie),url.searchParams.get('o')??'');}catch{o=undefined;}
   if(o===null){page(res,404,'ไม่พบรายการ',['Order not found for this browser.']);return true;}
-  if(o?.status==='PAID'){page(res,200,'จ่ายแล้ว ✓',['ร้านได้รับออเดอร์แล้ว รับที่เคาน์เตอร์ได้เลย','Paid — pick it up at the counter.','<small>Stripe sandbox · test mode · no real money</small>']);return true;}
+  if(o?.status==='PAID'){page(res,200,'จ่ายแล้ว ✓',['ร้านได้รับออเดอร์แล้ว รับที่เคาน์เตอร์ได้เลย','Paid — pick it up at the counter.',`รหัสรับสินค้า / Pickup code: <strong>${esc(pickupCode(url.searchParams.get('o')??''))}</strong>`,'<small>Stripe sandbox · test mode · no real money</small>']);return true;}
   page(res,202,'กำลังตรวจสอบการชำระเงิน',['ยังไม่ได้รับการยืนยันจาก Stripe ลองรีเฟรชอีกครั้ง','Waiting for Stripe to confirm. Refresh in a moment.']);return true;
  }
  if(path==='/meta/stripe/webhook'&&method==='POST'){
@@ -149,6 +153,81 @@ export async function serveMeta(req:http.IncomingMessage,res:http.ServerResponse
   const ok=await revokeFromSession(deps.identity,cookieValue(req.headers.cookie));
   page(res,ok?200:401,ok?'ลบการเชื่อมต่อแล้ว':'ไม่พบการเชื่อมต่อ',[ok?'ร้านจะไม่จำคุณอีก / The shop no longer remembers you.':'Nothing to forget.'],{'Set-Cookie':sessionCookie(deps,'',0)});
   return true;
+ }
+ if(path==='/meta/staff'||path.startsWith('/meta/staff/'))return serveStaff(req,res,deps,url,log);
+ json(res,404,{error:'RESOURCE_NOT_FOUND'});return true;
+}
+
+// Sign-in attempts per client address (behind the tunnel, Cloudflare's client IP header) per 10 minutes.
+const attempts=new Map<string,{start:number;n:number}>();
+function allowAttempt(req:http.IncomingMessage,now=Date.now()):boolean{
+ const remote=req.socket.remoteAddress??'';
+ const viaTunnel=['127.0.0.1','::1','::ffff:127.0.0.1'].includes(remote)&&typeof req.headers['cf-connecting-ip']==='string';
+ const key=viaTunnel?String(req.headers['cf-connecting-ip']):remote;
+ const a=attempts.get(key);
+ if(!a||now-a.start>600_000){if(attempts.size>10_000)attempts.clear();attempts.set(key,{start:now,n:1});return true;}
+ return ++a.n<=10;
+}
+function staffCookie(deps:StaffDeps,value:string,maxAge:number){
+ return `${STAFF_COOKIE}=${value}; Path=/meta/staff; HttpOnly; SameSite=Strict; Max-Age=${maxAge}${deps.config.origin.startsWith('https:')?'; Secure':''}`;
+}
+function signInForm(deps:StaffDeps,message?:string):string[]{
+ const demo=deps.config.demoLoginFile?['<form method="post" action="/meta/staff/login"><small>Demo quick sign-in (devnet demo accounts):</small><br>'+
+  ['owner','manager','staff'].map(r=>`<button name="role" value="${r}">${r[0].toUpperCase()+r.slice(1)}</button>`).join(' ')+'</form>']:[];
+ return [...(message?[`<strong>${esc(message)}</strong>`]:[]),'ใช้บัญชีเดียวกับ POS / Sign in with your POS account.',
+  '<form method="post" action="/meta/staff/login"><input name="email" type="email" autocomplete="username" placeholder="Email" required style="font:inherit;width:100%;margin:4px 0;padding:8px"><input name="password" type="password" autocomplete="current-password" placeholder="Password" required style="font:inherit;width:100%;margin:4px 0;padding:8px"><button>เข้าสู่ระบบ / Sign in</button></form>',...demo];
+}
+function orderLines(orders:StaffOrder[]):string[]{
+ if(!orders.length)return ['ยังไม่มีออเดอร์จากการแตะใน 24 ชั่วโมง / No tap orders in the last 24 hours.'];
+ const time=(iso:string)=>new Date(iso).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Bangkok'});
+ return orders.map(o=>{
+  const what=`<strong>#${esc(o.code)}</strong> ${esc(o.emoji)} ${esc(o.name)} <small>${esc(o.nameEn)}</small> · ${esc(formatTapAmount(o.amountMinor,o.currency))}`;
+  if(o.status==='PAID'&&o.handedOverAt)return `${what}<br><small>ส่งมอบแล้ว / Handed over ${time(o.handedOverAt)}</small>`;
+  if(o.status==='PAID')return `${what}<br>✅ จ่ายแล้ว / Paid ${time(o.paidAt!)} <small>(${o.paidSource==='webhook'?'Stripe webhook':'Stripe lookup'})</small>${o.stockShort?'<br>⚠️ สต็อกในระบบไม่พอ ตรวจของจริง / Stock was short in the system':''}<form method="post" action="/meta/staff/orders/${o.id}/handover"><button>ส่งมอบแล้ว / Handed over</button></form>`;
+  if(o.status==='CREATED')return `${what}<br><small>⏳ รอชำระเงิน / Waiting for payment · ${time(o.createdAt)}</small>`;
+  return `${what}<br><small>หมดเวลาชำระ / Checkout expired · ${time(o.createdAt)}</small>`;
+ });
+}
+async function formBody(req:http.IncomingMessage):Promise<URLSearchParams|null>{
+ const raw=await rawBody(req,MAX_FORM);
+ return raw?new URLSearchParams(raw.toString('utf8')):null;
+}
+
+async function serveStaff(req:http.IncomingMessage,res:http.ServerResponse,deps:MetaRouteDeps,url:URL,log:(m:string)=>void):Promise<true>{
+ const staff=deps.staff,path=url.pathname,method=req.method??'GET';
+ if(!staff){page(res,503,'หน้าพนักงานยังไม่พร้อม',['Staff sign-in is not configured on this server.']);return true;}
+ const cookie=cookieValue(req.headers.cookie,STAFF_COOKIE);
+ if(method==='POST'&&req.headers.origin!==staff.config.origin){page(res,403,'ไม่อนุญาต',['Same-origin request required.']);return true;}
+ if(path==='/meta/staff'&&method==='GET'){
+  const me=await staffFromSession(staff,cookie);
+  if(!me){page(res,200,'พนักงาน · ออเดอร์จากการแตะ',signInForm(staff));return true;}
+  const done=url.searchParams.get('done');
+  const lines=[`<small>${esc(me.role)} · อัปเดตทุก 10 วินาที / refreshes every 10 s · Stripe sandbox, test mode</small>`,
+   ...(done&&/^[0-9A-F]{4}$/.test(done)?[`✓ ส่งมอบ #${done} แล้ว / Handed over.`]:[]),...orderLines(await listTapOrders(staff,me)),
+   '<form method="post" action="/meta/staff/logout"><button>ออกจากระบบ / Sign out</button></form>'];
+  page(res,200,'ออเดอร์จากการแตะ / Tap orders',lines,{Refresh:'10'});return true;
+ }
+ if(path==='/meta/staff/login'&&method==='POST'){
+  if(!allowAttempt(req)){page(res,429,'ลองใหม่ภายหลัง',['Too many sign-in attempts. Try again in a few minutes.']);return true;}
+  const form=await formBody(req);
+  if(!form){page(res,413,'คำขอใหญ่เกินไป',['Request too large.']);return true;}
+  const role=form.get('role');
+  const r:SignInResult=role?await staffDemoSignIn(staff,role):await staffSignIn(staff,form.get('email')??'',form.get('password')??'');
+  if(r.kind==='ok'){log(`Staff signed in (${r.role})`);res.writeHead(303,{Location:'/meta/staff','Set-Cookie':staffCookie(staff,r.token,STAFF_SESSION_SECONDS),'Cache-Control':'no-store'});res.end();return true;}
+  const why={AUTH:'อีเมลหรือรหัสผ่านไม่ถูกต้อง / Wrong email or password.',ROLE:'บัญชีนี้ไม่มีสิทธิ์พนักงานของร้าน / This account has no staff role in a shop.',UNAVAILABLE:'ระบบเข้าสู่ระบบไม่พร้อม / Sign-in is unavailable.'}[r.reason];
+  page(res,r.reason==='UNAVAILABLE'?503:r.reason==='ROLE'?403:401,'พนักงาน · ออเดอร์จากการแตะ',signInForm(staff,why));return true;
+ }
+ const hand=path.match(/^\/meta\/staff\/orders\/([0-9a-f-]{36})\/handover$/);
+ if(hand&&method==='POST'){
+  const me=await staffFromSession(staff,cookie);
+  if(!me){res.writeHead(303,{Location:'/meta/staff','Cache-Control':'no-store'});res.end();return true;}
+  const r=await handOver(staff,me,hand[1]);
+  if(r==='HANDED_OVER'||r==='ALREADY'){res.writeHead(303,{Location:`/meta/staff?done=${pickupCode(hand[1])}`,'Cache-Control':'no-store'});res.end();return true;}
+  page(res,r==='NOT_FOUND'?404:409,'ส่งมอบไม่ได้',[r==='NOT_PAID'?'ออเดอร์นี้ยังไม่ได้จ่าย / This order is not paid.':'ไม่พบออเดอร์ / Order not found.','<a href="/meta/staff">← กลับ / Back</a>']);return true;
+ }
+ if(path==='/meta/staff/logout'&&method==='POST'){
+  await staffSignOut(staff,cookie);
+  res.writeHead(303,{Location:'/meta/staff','Set-Cookie':staffCookie(staff,'',0),'Cache-Control':'no-store'});res.end();return true;
  }
  json(res,404,{error:'RESOURCE_NOT_FOUND'});return true;
 }
