@@ -3,6 +3,7 @@ import { formatMoney } from '../lib/money';
 import type { Product } from '../lib/menu';
 import { catalogStatus, categorySummary, filterCatalog } from '../lib/catalog-view';
 import StockManager from './StockManager';
+import SuppliersManager from './SuppliersManager';
 import { CategoryRename, ProductDetailsForm } from './CatalogEditor';
 import '../styles/catalog-list.css';
 
@@ -11,7 +12,7 @@ import '../styles/catalog-list.css';
 // only actions are the existing offer editor and the Settings pricing page.
 export default function CatalogList({ products, language, canEdit, menuReady, onEditOffer, onOpenPricing, editor, stockToken, onChanged }: { products: Product[]; language: 'th' | 'en'; canEdit: boolean; menuReady: boolean; onEditOffer: (id: string) => void; onOpenPricing?: () => void; editor?: React.ReactNode; stockToken?: string; onChanged?: () => void }) {
   const text = (th: string, en: string) => language === 'th' ? th : en;
-  const [query, setQuery] = useState(''); const [category, setCategory] = useState(''); const [view, setView] = useState<'catalog' | 'stock'>('catalog'); const [detailsId, setDetailsId] = useState(''); const [creating, setCreating] = useState(false);
+  const [query, setQuery] = useState(''); const [category, setCategory] = useState(''); const [view, setView] = useState<'catalog' | 'stock' | 'suppliers'>('catalog'); const [detailsId, setDetailsId] = useState(''); const [creating, setCreating] = useState(false);
   const detailsProduct = products.find(p => p.id === detailsId);
   const categories = categorySummary(products);
   const rows = filterCatalog(products, query, category);
@@ -21,8 +22,8 @@ export default function CatalogList({ products, language, canEdit, menuReady, on
     {editor}
     {stockToken && creating && <ProductDetailsForm key="new" token={stockToken} language={language} onSaved={() => onChanged?.()} onClose={() => setCreating(false)} />}
     {stockToken && detailsProduct && <ProductDetailsForm key={detailsProduct.id} product={detailsProduct} token={stockToken} language={language} onSaved={() => onChanged?.()} onClose={() => setDetailsId('')} />}
-    <div className="catalog-views" role="group" aria-label={text('มุมมอง', 'View')}><button type="button" aria-pressed={view === 'catalog'} onClick={() => setView('catalog')}>{text('สินค้า', 'Catalog')}</button><button type="button" aria-pressed={view === 'stock'} onClick={() => setView('stock')}>{text('สต็อก', 'Stock')}</button></div>
-    {view === 'stock' && stockToken ? <section className="catalog-stock"><StockManager products={products} token={stockToken} language={language} /></section> : view === 'stock' ? <section className="catalog-stock" aria-label={text('สต็อกปัจจุบัน', 'Current stock')}>
+    <div className="catalog-views" role="group" aria-label={text('มุมมอง', 'View')}><button type="button" aria-pressed={view === 'catalog'} onClick={() => setView('catalog')}>{text('สินค้า', 'Catalog')}</button><button type="button" aria-pressed={view === 'stock'} onClick={() => setView('stock')}>{text('สต็อก', 'Stock')}</button>{stockToken && <button type="button" aria-pressed={view === 'suppliers'} onClick={() => setView('suppliers')}>{text('ซัพพลายเออร์', 'Suppliers')}</button>}</div>
+    {view === 'suppliers' && stockToken ? <section className="catalog-stock"><SuppliersManager token={stockToken} language={language} /></section> : view === 'stock' && stockToken ? <section className="catalog-stock"><StockManager products={products} token={stockToken} language={language} /></section> : view === 'stock' ? <section className="catalog-stock" aria-label={text('สต็อกปัจจุบัน', 'Current stock')}>
       <p className="catalog-sub">{text('จำนวนพร้อมขายตามที่เซิร์ฟเวอร์รายงานในเมนู ไม่ใช่บัญชีสต็อก', 'Available quantity as the server reports it in the menu. This is not a stock ledger.')}</p>
       <table className="catalog-table"><thead><tr><th>{text('สินค้า', 'Product')}</th><th>{text('หมวด', 'Category')}</th><th>{text('พร้อมขาย', 'Available')}</th></tr></thead><tbody>{[...products].sort((a, b) => a.available - b.available).map(product => <tr key={product.id}><td><strong>{language === 'th' ? product.name : product.nameEn}</strong></td><td>{product.category || '—'}</td><td data-status={product.available > 0 ? 'on_sale' : 'sold_out'}>{product.available > 0 ? product.available : text('หมด', 'Sold out')}</td></tr>)}</tbody></table>
       <div className="catalog-unavailable" role="note"><h2>{text('ยังไม่เปิดใช้งาน', 'Not available yet')}</h2><p className="catalog-sub">{text('รายการเหล่านี้ยังไม่มี หรือใช้ได้เฉพาะบทบาทที่มีสิทธิ์', 'These do not exist yet, or are limited to roles that can manage stock.')}</p><ul>{[text('แจ้งเตือนสต็อกต่ำ', 'Low-stock alerts'), text('ซัพพลายเออร์', 'Suppliers'), text('รับเข้า/ปรับสต็อก (เฉพาะเจ้าของและผู้จัดการ)', 'Receive/adjust stock (owner and manager only)')].map(name => <li key={name}>{name}</li>)}</ul></div>

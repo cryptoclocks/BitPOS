@@ -24,3 +24,4 @@
 
 .stock-views{display:flex;gap:8px;margin:10px 0}.stock-views button{min-height:36px;padding:0 16px;border-radius:99px;border:0;background:#eadff7;color:var(--bp-primary);font-weight:600}.stock-views button[aria-pressed=true]{background:var(--bp-primary);color:#fff}
 .stock-views button.secondary[aria-pressed=true]{background:var(--bp-primary);color:#fff}
+.supplier-tools{display:flex;flex-wrap:wrap;gap:10px;margin:12px 0}.supplier-tools input{flex:1 1 260px;min-height:44px;border:1px solid var(--bp-line);border-radius:14px;padding:0 14px;font:inherit}.stock-views small{margin-left:auto;color:var(--bp-muted);align-self:center}

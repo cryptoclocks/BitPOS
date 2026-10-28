@@ -52,6 +52,7 @@ import {assertOrderRepeatLimit,collectionSettings} from './coffee-order-constrai
 import {openingHoursSettings} from './opening-hours';
 import {salesReport} from './reports';
 import {merchantReturns} from './merchant-returns';
+import {suppliersRequest} from './suppliers';
 import {inventoryRequest} from './inventory';
 import {activityHistory} from './activity';
 import {archiveProduct,createProduct,editProduct,renameCategory,unarchiveProduct} from './catalog-edit';
@@ -239,6 +240,7 @@ export async function handle(req:http.IncomingMessage){
  if(path==='/api/activity'&&method==='GET')return activityHistory(db,merchant,session.current_role,url);
  if(path==='/api/reports/sales'&&method==='GET')return salesReport(db,merchant,session.current_role,url);
  if(path==='/api/returns'&&method==='GET')return merchantReturns(db,merchant,session.current_role,url);
+ if(path==='/api/suppliers'||/^\/api\/suppliers\/[0-9a-f-]{36}$/.test(path))return suppliersRequest(db,merchant,session.user_id,session.current_role,url,method??'GET',input);
  if(path==='/api/settings/hours'&&(method==='GET'||method==='PUT'))return openingHoursSettings(db,merchant,session.user_id,session.current_role,method,input);
  if(path==='/api/settings/collection'&&(method==='GET'||method==='PUT'))return collectionSettings(db,merchant,session.user_id,session.current_role,method,input);
  if(path.startsWith('/api/promotions')){const result=await promotionsRequest(db,merchant,session.user_id,session.current_role,path,method??'',input);if(result!==undefined)return result;}
