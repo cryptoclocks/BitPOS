@@ -291,7 +291,7 @@ void main() {
         tester.widget<NavigationBar>(find.byType(NavigationBar)).selectedIndex,
         1,
       );
-      await tester.tap(find.text('Orders'));
+      await tester.tap(find.text('Activity'));
       expect(selected, 1);
       await tester.tap(find.byTooltip('4 / 5'));
       await tester.enterText(find.byType(TextField), 'Delivered review');

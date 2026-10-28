@@ -491,7 +491,7 @@ void main() {
       debugPrint(
         'BITPOS_U29_ROOT_GEOMETRY:${backButton.toString()},${chatTitle.toString()},${header.toString()},${composer.toString()},${composerField.toString()},${send.toString()},${navigationRect.toString()}',
       );
-      await tester.tap(find.text('Orders'));
+      await tester.tap(find.text('Activity'));
       await tester.pumpAndSettle();
       expect(
         find.textContaining('Rider fixture: order received.'),

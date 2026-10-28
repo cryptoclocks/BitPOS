@@ -48,8 +48,8 @@ void main() {
       await tester.tap(finder.first);
       await tester.pump(const Duration(milliseconds: 350));
     }
-    await ready(find.text('Order'));
-    await tap(find.text('Orders'));
+    await ready(find.text('Home'));
+    await tap(find.text('Activity'));
     await ready(find.byType(OrderHistorySheet));
     await tap(find.byKey(ValueKey('customer-order-card.$orderId')));
     await ready(find.text('Order details'));

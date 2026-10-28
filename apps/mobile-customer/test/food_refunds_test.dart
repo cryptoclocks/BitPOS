@@ -236,12 +236,12 @@ void main() {
       expect(find.textContaining('Order #00000000'), findsOneWidget);
       expect(find.text('View order status'), findsOneWidget);
       expect(find.text('Contact support'), findsOneWidget);
-      expect(find.text('Orders'), findsOneWidget);
+      expect(find.text('Activity'), findsOneWidget);
       expect(find.text('Favourites'), findsOneWidget);
       expect(find.text('Account'), findsOneWidget);
       await tester.tap(find.text('View order status'));
       await tester.tap(find.text('Contact support'));
-      await tester.tap(find.text('Orders'));
+      await tester.tap(find.text('Activity'));
       expect(orderOpened, isTrue);
       expect(supportOpened, isTrue);
       expect(selectedDestination, 1);

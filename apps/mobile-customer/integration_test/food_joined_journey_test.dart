@@ -102,7 +102,7 @@ void main() {
         home: CustomerSessionPage(api: api, pushNative: PushNative()),
       ),
     );
-    await wait(find.text('Order'));
+    await wait(find.text('Home'));
     if (stage == 'CREATE') {
       final before = await tester.runAsync(api.foodOrders);
       expect(
@@ -169,7 +169,7 @@ void main() {
       await export({'orderId': order.id});
     } else {
       expect(expectedOrder, isNotEmpty);
-      await tap(find.text('Orders'));
+      await tap(find.text('Activity'));
       await wait(find.byType(OrderHistorySheet));
       await tap(find.byKey(ValueKey('customer-order-card.$expectedOrder')));
       await wait(find.text('Order details'));

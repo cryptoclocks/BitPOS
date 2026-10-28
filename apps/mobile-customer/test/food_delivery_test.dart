@@ -520,8 +520,8 @@ void main() {
       await tester.tap(chat);
       await tester.pumpAndSettle();
       expect(find.byType(FoodChatPageView), findsOneWidget);
-      expect(find.text('Orders'), findsOneWidget);
-      await tester.tap(find.text('Orders'));
+      expect(find.text('Activity'), findsOneWidget);
+      await tester.tap(find.text('Activity'));
       await tester.pumpAndSettle();
       expect(selected, 1);
       expect(find.byType(FoodChatPageView), findsNothing);
@@ -554,7 +554,7 @@ void main() {
         tester.widget<NavigationBar>(find.byType(NavigationBar)).selectedIndex,
         1,
       );
-      await tester.tap(find.text('Orders'));
+      await tester.tap(find.text('Activity'));
       expect(tab, 1);
       await tester.ensureVisible(find.text('View receipt'));
       await tester.tap(find.text('View receipt'));

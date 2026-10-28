@@ -76,7 +76,7 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.byType(NavigationBar), findsOneWidget);
-    await tester.tap(find.text('ออร์เดอร์'));
+    await tester.tap(find.text('กิจกรรม'));
     await tester.pumpAndSettle();
     final orderKey = ValueKey('customer-order-card.${history_fixture.id(1)}');
     expect(find.byKey(orderKey), findsOneWidget);

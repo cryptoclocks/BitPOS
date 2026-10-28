@@ -54,20 +54,23 @@ class CustomerNavigation extends StatelessWidget {
         labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
         destinations: [
           NavigationDestination(
-            icon: const Icon(Icons.restaurant_menu_outlined),
-            label: thai ? 'สั่งอาหาร' : 'Order',
+            icon: const Icon(Icons.home_outlined),
+            selectedIcon: const Icon(Icons.home),
+            label: thai ? 'หน้าแรก' : 'Home',
           ),
           NavigationDestination(
             icon: const Icon(Icons.receipt_long_outlined),
-            label: thai ? 'ออร์เดอร์' : 'Orders',
+            selectedIcon: const Icon(Icons.receipt_long),
+            label: thai ? 'กิจกรรม' : 'Activity',
           ),
           NavigationDestination(
             icon: const Icon(Icons.favorite_border),
             selectedIcon: const Icon(Icons.favorite),
-            label: thai ? 'ร้านโปรด' : 'Favourites',
+            label: thai ? 'รายการโปรด' : 'Favourites',
           ),
           NavigationDestination(
             icon: const Icon(Icons.account_circle_outlined),
+            selectedIcon: const Icon(Icons.account_circle),
             label: thai ? 'บัญชี' : 'Account',
           ),
         ],

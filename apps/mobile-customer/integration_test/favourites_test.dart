@@ -58,8 +58,8 @@ void main() {
       expect(finder, findsWidgets);
     }
 
-    await ready(find.text('ร้านโปรด'));
-    await tester.tap(find.text('ร้านโปรด').last);
+    await ready(find.text('รายการโปรด'));
+    await tester.tap(find.text('รายการโปรด').last);
     await ready(find.byType(FavouritesSheet));
     await ready(find.text('ร้านโปรดทดสอบ AVD'));
     await tester.pumpAndSettle();

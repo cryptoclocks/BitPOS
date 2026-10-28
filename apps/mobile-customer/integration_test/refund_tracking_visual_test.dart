@@ -110,8 +110,8 @@ void main() {
     expect(find.text('ติดตามการคืนเงิน'), findsWidgets);
     expect(find.text('ดูสถานะออเดอร์'), findsOneWidget);
     expect(find.text('ติดต่อช่วยเหลือ'), findsOneWidget);
-    expect(find.text('ออร์เดอร์'), findsOneWidget);
-    expect(find.text('ออร์เดอร์'), findsOneWidget);
+    expect(find.text('กิจกรรม'), findsOneWidget);
+    expect(find.text('กิจกรรม'), findsOneWidget);
     debugPrint('BITPOS_U25_REFUND_PAGE_VISIBLE');
     await tester.runAsync(
       () => Future<void>.delayed(const Duration(seconds: 2)),
@@ -119,7 +119,7 @@ void main() {
     await tester.ensureVisible(find.text('ดูสถานะออเดอร์'));
     await tester.tap(find.text('ดูสถานะออเดอร์'));
     await tester.tap(find.text('ติดต่อช่วยเหลือ'));
-    await tester.tap(find.text('ออร์เดอร์'));
+    await tester.tap(find.text('กิจกรรม'));
     expect(viewOrder, isTrue);
     expect(contactSupport, isTrue);
     expect(selectedTab, 1);

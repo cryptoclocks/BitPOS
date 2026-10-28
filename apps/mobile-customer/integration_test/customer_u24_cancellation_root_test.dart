@@ -24,7 +24,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.text('ออร์เดอร์'));
+    await tester.tap(find.text('กิจกรรม'));
     await tester.pumpAndSettle();
     await tester.tap(
       find.byKey(ValueKey('customer-order-card.${history_fixture.id(1)}')),

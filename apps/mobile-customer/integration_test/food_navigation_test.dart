@@ -115,7 +115,7 @@ void main() {
               .selectedIndex,
           1,
         );
-        await tester.tap(find.text('Orders'));
+        await tester.tap(find.text('Activity'));
         expect(selectedNavigation, 1);
         final decoded = find.byWidgetPredicate(
           (widget) => widget is RawImage && widget.image != null,

@@ -69,8 +69,8 @@ void main() {
         expect(finder, findsWidgets);
       }
 
-      await ready(find.text('Order'));
-      await tester.tap(find.text('Orders'));
+      await ready(find.text('Home'));
+      await tester.tap(find.text('Activity'));
       await ready(find.byType(OrderHistorySheet));
       final card = find.byKey(ValueKey('customer-order-card.$orderId'));
       await ready(card);
