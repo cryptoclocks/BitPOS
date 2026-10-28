@@ -73,6 +73,8 @@ export async function createQuote(deps:AgentDeps,merchantId:string,channel:'mcp'
 }
 
 type OrderRow={id:string;quote_id:string;status:OrderStatus;product_id:string;quantity:number;currency:Currency;amount_minor:string;stripe_payment_intent_id:string|null;decline_code:string|null;confirmed_at:Date|null;handed_over_at:Date|null;cancelled_at:Date|null;stock_short:boolean};
+/** Every Meta change to the shared products.stock is recorded with its order (migration 310); runs inside the shop's transaction. */
+export const STOCK_MOVE="INSERT INTO meta_stock_movements(merchant_id,product_id,delta,reason,order_kind,order_id) VALUES(current_setting('bitpos.merchant')::uuid,$1,$2,$3,$4,$5)";
 const ORDER_COLS='id,quote_id,status,product_id,quantity,currency,amount_minor::text,stripe_payment_intent_id,decline_code,confirmed_at,handed_over_at,cancelled_at,stock_short';
 const view=(o:OrderRow):OrderView=>({orderId:o.id,quoteId:o.quote_id,status:o.status,productId:o.product_id,quantity:o.quantity,currency:o.currency,amountMinor:o.amount_minor,
  total:formatTapAmount(o.amount_minor,o.currency),pickupCode:code(o.id),paymentIntentId:o.stripe_payment_intent_id,declineCode:o.decline_code,
@@ -85,6 +87,7 @@ async function confirm(db:pg.PoolClient,orderId:string,f:{paymentIntentId:string
  if(o.status!=='PENDING'&&o.status!=='FAILED')return 'ALREADY';
  if(BigInt(o.amount_minor)!==f.amountMinor||o.currency!==f.currency||(o.stripe_payment_intent_id&&o.stripe_payment_intent_id!==f.paymentIntentId))return 'MISMATCH';
  const stock=(await db.query('UPDATE products SET stock=stock-$2 WHERE id=$1 AND stock-reserved>=$2',[o.product_id,o.quantity])).rowCount===1;
+ if(stock)await db.query(STOCK_MOVE,[o.product_id,-o.quantity,'agent_confirmed','agent',orderId]);
  await db.query("UPDATE meta_agent_orders SET status='CONFIRMED',stripe_payment_intent_id=$2,decline_code=NULL,confirmed_at=clock_timestamp(),confirmed_source=$3,stock_short=$4 WHERE id=$1",[orderId,f.paymentIntentId,f.source,!stock]);
  return 'CONFIRMED';
 }
@@ -163,7 +166,10 @@ export async function cancelOrder(deps:AgentDeps,merchantId:string,orderIdIn:unk
  return deps.db.tenant(merchantId,async db=>{
   const cur=(await db.query<{status:OrderStatus;stock_short:boolean;product_id:string;quantity:number}>('SELECT status,stock_short,product_id,quantity FROM meta_agent_orders WHERE id=$1 FOR UPDATE',[orderId])).rows[0];
   if(cur.status==='REFUNDING'){
-   if(!cur.stock_short)await db.query('UPDATE products SET stock=stock+$2 WHERE id=$1',[cur.product_id,cur.quantity]);
+   if(!cur.stock_short){
+    await db.query('UPDATE products SET stock=stock+$2 WHERE id=$1',[cur.product_id,cur.quantity]);
+    await db.query(STOCK_MOVE,[cur.product_id,cur.quantity,'agent_refunded','agent',orderId]);
+   }
    await db.query("UPDATE meta_agent_orders SET status='CANCELLED',stripe_refund_id=$2,cancelled_at=clock_timestamp() WHERE id=$1",[orderId,refund.id]);
   }
   return view((await db.query<OrderRow>(`SELECT ${ORDER_COLS} FROM meta_agent_orders WHERE id=$1`,[orderId])).rows[0]);

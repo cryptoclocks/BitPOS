@@ -5,7 +5,7 @@
 // and the stock decrement happens in that same transaction, once.
 import type pg from 'pg';
 import {approvedOffers} from './offer-select';
-import {agentOrderMerchant,applyAgentWebhook} from './agent-orders';
+import {STOCK_MOVE,agentOrderMerchant,applyAgentWebhook} from './agent-orders';
 import {customerFromSession,type IdentityDeps,type OfferDeps} from './identity';
 import {STRIPE_MINIMUM,toStripeMinor,createCheckoutSession,paymentFactFromEvent,retrieveCheckoutSession,verifyStripeWebhook,StripePaymentError,type StripeFetch,type StripeSandboxConfig} from './stripe';
 
@@ -59,6 +59,7 @@ async function markPaid(db:pg.PoolClient,f:{orderId:string;paymentIntentId:strin
  if(o.status==='PAID')return 'ALREADY_PAID';
  if(BigInt(o.amount_minor)!==f.amountMinor||o.currency!==f.currency)return 'MISMATCH';
  const stock=(await db.query('UPDATE products SET stock=stock-1 WHERE id=$1 AND stock-reserved>=1',[o.product_id])).rowCount===1;
+ if(stock)await db.query(STOCK_MOVE,[o.product_id,-1,'tap_paid','tap',f.orderId]);
  await db.query("UPDATE meta_tap_orders SET status='PAID',paid_at=clock_timestamp(),paid_source=$2,stripe_payment_intent_id=$3,stock_short=$4 WHERE id=$1",[f.orderId,f.source,f.paymentIntentId,!stock]);
  return 'PAID';
 }

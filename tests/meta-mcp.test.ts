@@ -38,6 +38,7 @@ const stripeFetch=async(u:string,init:RequestInit)=>{
 const rpc=(name:string,args:Record<string,unknown>={},merchant=A)=>handleRpc(deps,merchant,{jsonrpc:'2.0',id:1,method:'tools/call',params:{name,arguments:args}}) as Promise<any>;
 const out=(r:any)=>r.result.structuredContent;
 const stockOf=async(id:string)=>Number((await admin.query('SELECT stock FROM products WHERE id=$1',[id])).rows[0].stock);
+const movesOf=async(orderId:string)=>(await admin.query<{delta:number;reason:string}>('SELECT delta,reason FROM meta_stock_movements WHERE order_id=$1 ORDER BY created_at',[orderId])).rows.map(r=>`${r.reason}:${r.delta}`);
 
 before(async()=>{
  if(skip)return;
@@ -89,6 +90,7 @@ test('checkout: canonical amount, one charge per quote, stock once; decline; unk
  assert.equal(calls.length,1);assert.equal(calls[0].body.get('amount'),'400');assert.equal(calls[0].body.get('currency'),'usd');
  assert.equal(calls[0].key,`bitpos-meta-spt-${paid.orderId}`);assert.equal(calls[0].body.get('metadata[bitpos_quote]'),q.quoteId);
  assert.equal(await stockOf(latte),before-1);
+ assert.deepEqual(await movesOf(paid.orderId),['agent_confirmed:-1'],'stock change recorded with its order');
  const again=out(await rpc('complete_checkout',{quote_id:q.quoteId,shared_payment_token:'spt_test_other'}));
  assert.deepEqual([again.orderId,again.status,calls.length],[paid.orderId,'CONFIRMED',1],'retry never charges twice');
  assert.equal(await stockOf(latte),before-1);
@@ -115,6 +117,11 @@ test('checkout: canonical amount, one charge per quote, stock once; decline; unk
  assert.equal(await applyStripeWebhook(identity,deps.stripe!,raw,sig),'DUPLICATE_EVENT');
  assert.equal(out(await rpc('order_status',{order_id:orderId.id})).status,'CONFIRMED');
  assert.equal(await stockOf(latte),before-2);
+ assert.deepEqual(await movesOf(orderId.id),['agent_confirmed:-1'],'duplicate webhook records nothing twice');
+ // The platform feed lists these as Meta MCP orders, under the shop's own row-level security.
+ const feed=await db.tenant(A,c=>c.query<{platform:string;channel:string;order_id:string}>('SELECT platform,channel,order_id FROM bitpos.meta_order_feed()'));
+ assert.ok(feed.rows.some(r=>r.order_id===paid.orderId&&r.platform==='meta'&&r.channel==='mcp'));
+ assert.ok(!(await db.tenant(B,c=>c.query('SELECT 1 FROM bitpos.meta_order_feed() WHERE order_id=$1',[paid.orderId]))).rowCount,'other shop sees nothing');
  // A forged amount on a validly signed event never confirms another quote's order.
  const q4=out(await rpc('get_quote',{product_id:latte}));
  await admin.query("INSERT INTO meta_agent_orders(merchant_id,quote_id,product_id,quantity,currency,amount_minor) SELECT merchant_id,id,product_id,quantity,currency,amount_minor FROM meta_quotes WHERE id=$1",[q4.quoteId]);
@@ -138,6 +145,7 @@ test('cancel: full refund and stock back before hand-over; not after; idempotent
  assert.equal(await stockOf(latte),s+1);
  assert.equal(out(await rpc('cancel_order',{order_id:paid.orderId})).status,'CANCELLED');
  assert.equal(await stockOf(latte),s+1,'second cancel changes nothing');
+ assert.deepEqual(await movesOf(paid.orderId),['agent_confirmed:-1','agent_refunded:1']);
  // Staff hand-over closes the cancellation window.
  const q2=out(await rpc('get_quote',{product_id:latte}));
  const p2=out(await rpc('complete_checkout',{quote_id:q2.quoteId,shared_payment_token:'spt_test_d'}));

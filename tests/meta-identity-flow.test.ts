@@ -242,6 +242,7 @@ test('pay for the tapped offer: re-quoted checkout, PAID only from signed webhoo
  const view=await reconcileTapOrder(deps,stripe,session!.sessionToken,orderId);
  assert.deepEqual([view?.status,view?.amountMinor,view?.currency,view?.stockShort],['PAID','5000','thb',false]);
  assert.equal(await stockOf(),2);
+ assert.deepEqual((await admin.query('SELECT delta,reason,order_kind FROM meta_stock_movements WHERE order_id=$1',[orderId])).rows,[{delta:-1,reason:'tap_paid',order_kind:'tap'}],'one recorded stock change');
  assert.equal((await startTapCheckout(deps,offers,stripe,session!.sessionToken)).kind,'paid','a paid tap cannot be paid again');
  await outboxOf(webhook({message:{mid:`stop-pay-${run}`,text:'STOP'}},72));
 });
@@ -266,6 +267,7 @@ test('payment confirmed by Stripe lookup when no webhook arrives',{skip},async()
  const view=await reconcileTapOrder(deps,stripe,session!.sessionToken,(start as any).orderId);
  // The physical stock was already 0: the payment stands, and staff see a stock shortage flag.
  assert.deepEqual([view?.status,view?.stockShort],['PAID',true]);
+ assert.equal((await admin.query('SELECT 1 FROM meta_stock_movements WHERE order_id=$1',[(start as any).orderId])).rowCount,0,'no stock taken, nothing recorded');
  assert.equal((await admin.query<{paid_source:string}>('SELECT paid_source FROM meta_tap_orders WHERE id=$1',[(start as any).orderId])).rows[0].paid_source,'lookup');
  await outboxOf(webhook({message:{mid:`stop-lookup-${run}`,text:'STOP'}},82));
 });
