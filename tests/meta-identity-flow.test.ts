@@ -137,6 +137,10 @@ test('HTTP: tap redirects to m.me, webhook rejects bad signatures and sends repl
   assert.equal((sent[0] as any).recipient.id,PSID);
   const revoke=await fetch(`${base}/meta/me/revoke`,{method:'POST',headers:{origin:'https://evil.example'}});
   assert.equal(revoke.status,403);
+  // Pages must not use no-referrer: browsers then send `Origin: null` on our own form POSTs (checkout, revoke).
+  const pageRes=await fetch(`${base}/meta/offer-page`);
+  assert.equal(pageRes.headers.get('referrer-policy'),'same-origin');
+  assert.equal((await fetch(`${base}/meta/me/revoke`,{method:'POST',headers:{origin:'null'}})).status,403,'an opaque origin is still refused');
  }finally{server.close();}
 });
 
