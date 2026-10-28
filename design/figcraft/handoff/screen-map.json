@@ -396,7 +396,7 @@
       "width": 390,
       "height": 844,
       "source": "source/screens/U16-payment-method.svg",
-      "sha256": "5e2fa99815b6ea41df248d60b67bcbdb4c277f2bb571ad397b4e0fed0d6c7596",
+      "sha256": "a2ad7f0b7f007c9fc8431491311e1f78e6afa28ab06474907a88c6e636609091",
       "phase": "food-first",
       "fixture": true
     },
@@ -516,7 +516,7 @@
       "width": 390,
       "height": 844,
       "source": "source/screens/U24-cancel.svg",
-      "sha256": "4e96e154a6ffde024eb172dc3614524a38c5d6cff721ea29482a2f6331180328",
+      "sha256": "de1e082931f39a53d24e57e7a88f1027e7dd925caabb5ee70a65352a1874b94f",
       "phase": "food-first",
       "fixture": true
     },
@@ -531,7 +531,7 @@
       "width": 390,
       "height": 844,
       "source": "source/screens/U25-refund.svg",
-      "sha256": "01ca0fd9376c9242fa20e1fc0b30d6163e8265e34a3eddddaa0a524268c8a8cf",
+      "sha256": "eb19066354cf11d605bc441ecdccfa589738e1aa0fd5eac25c2975566aeeab53",
       "phase": "food-first",
       "fixture": true
     },
@@ -546,7 +546,7 @@
       "width": 390,
       "height": 844,
       "source": "source/screens/U26-coupons.svg",
-      "sha256": "f52a603264422ca38ed998b109b3585d6731d3e4ecafe46637c4c220dfa22dba",
+      "sha256": "e0b5d1b144618a9c1acc5fcd2a4cc5df1c19ff719fece1d128c5e0972075f00d",
       "phase": "food-first",
       "fixture": true
     },
@@ -561,7 +561,7 @@
       "width": 390,
       "height": 844,
       "source": "source/screens/U27-rewards.svg",
-      "sha256": "1e83878f7a54c11312ad4ad4ea7d5f2df2cf55c9c98c51296502edb02027e84d",
+      "sha256": "84ac89bf04433d7c8239f6639e709bd11e1c23e93484539ba3ec0db5abd3ee35",
       "phase": "food-first",
       "fixture": true
     },
@@ -621,7 +621,7 @@
       "width": 390,
       "height": 844,
       "source": "source/screens/U31-review.svg",
-      "sha256": "fcb3745e8e165b4852d3f84d0a9525fa2d24352bbfa1087e02baad8ecf453908",
+      "sha256": "366e6841ca17b61c18aaff7493ef8d3a84b99c3fa3ba5f0cc8e68208ab7f44df",
       "phase": "food-first",
       "fixture": true
     },
@@ -741,7 +741,7 @@
       "width": 390,
       "height": 844,
       "source": "source/screens/U39-ride-home.svg",
-      "sha256": "4fb95aad84ed085e72d3b1f56ba5a43cb6f2188e5ef9c04ca6e1602e1d4a1669",
+      "sha256": "a0204fb50a5e3e561e455cf04ab24cb231023d7ecd8ee76a8329c60e6fbb414f",
       "phase": "later",
       "fixture": true
     },
@@ -756,7 +756,7 @@
       "width": 390,
       "height": 844,
       "source": "source/screens/U40-ride-quote.svg",
-      "sha256": "153bb42d9ff4a1f2d7c5ed79f6d42505d249a75365f5c80fe2cb0017e86c81ab",
+      "sha256": "8f0e45d8f45ea15cda10c36fe1e59bc77765787d27b6d8e9de72519f86c938a2",
       "phase": "later",
       "fixture": true
     },
@@ -771,7 +771,7 @@
       "width": 390,
       "height": 844,
       "source": "source/screens/U41-ride-matching.svg",
-      "sha256": "37d0dbea326db2274cb853b358407118e9bce445ba1e565964fccaa96ed8fae3",
+      "sha256": "48fe0e1a4e82e55f88e9851081f65d97680bdb446175dee9fc88990c99bdeb56",
       "phase": "later",
       "fixture": true
     },
@@ -786,7 +786,7 @@
       "width": 390,
       "height": 844,
       "source": "source/screens/U42-ride-trip.svg",
-      "sha256": "d71ac7629a917beafb525141cf5851d2aebcca5cb65f40db9bd5e30f627e15f6",
+      "sha256": "63f1fbbb638b1a89f24bb9228baa212328b5fc628da7478882cc92b8b4cb9ac4",
       "phase": "later",
       "fixture": true
     },
@@ -801,7 +801,7 @@
       "width": 390,
       "height": 844,
       "source": "source/screens/U43-ride-receipt.svg",
-      "sha256": "0f6ef6dc3357908b19bfe64ee5695c533a9c1ee1322840c7d9df6f6e94f591aa",
+      "sha256": "bcd1a7962adadaf3f05a462b83ec232db2fd92cb0ba6f1df07e47aa9e8707c3f",
       "phase": "later",
       "fixture": true
     },
@@ -1041,7 +1041,7 @@
       "width": 390,
       "height": 844,
       "source": "source/screens/R16-earnings.svg",
-      "sha256": "1ab9dc9f24ef815ddafdcee8275fe45882f5673c4f9d8011c242a2a2891305f0",
+      "sha256": "62942b99b9a55faa02eb10ad67fc5b817286bbd3ea52b039a2cba18711dd15d8",
       "phase": "food-first",
       "fixture": true
     },
@@ -1056,7 +1056,7 @@
       "width": 390,
       "height": 844,
       "source": "source/screens/R17-payout.svg",
-      "sha256": "5dc3572874182c1539e1acbd763443c7486cce349fbc7f350c10e213ea146c1d",
+      "sha256": "55571ab3e31c99b94f89bff01089220f6377b8297a8f878f375ce3d929a6588c",
       "phase": "food-first",
       "fixture": true
     },
@@ -1071,7 +1071,7 @@
       "width": 390,
       "height": 844,
       "source": "source/screens/R18-statement.svg",
-      "sha256": "e0385b72f6b5b0e49aa2c537096e411fa760cb33973828452c32b9879d41bb26",
+      "sha256": "f16197d8b9b7fc74efb96764bc000bcf375584a6ade37d410ed74c1b5e61e42e",
       "phase": "food-first",
       "fixture": true
     },
@@ -1220,7 +1220,7 @@
       "width": 390,
       "height": 844,
       "source": "source/screens/R27-ride-offer.svg",
-      "sha256": "4d0db4e9eb596e0db2ae63129aa4444cb5d848dbc3b8a15b622cd81de0a68ab8",
+      "sha256": "fd790e4a89f269451bccaaa9cb9d56c482cb796f367b8478c7105dc837a75403",
       "phase": "later",
       "fixture": true
     },
@@ -1235,7 +1235,7 @@
       "width": 390,
       "height": 844,
       "source": "source/screens/R28-ride-arrived.svg",
-      "sha256": "9b309404454d77d9e851a60578e45e2b4263a7fa912b869f0080a4b972751281",
+      "sha256": "62271d3362bb4c1c2081be32f86b2462883a5e1f5e06b2728a4c7f7856c980e3",
       "phase": "later",
       "fixture": true
     },
@@ -1250,7 +1250,7 @@
       "width": 390,
       "height": 844,
       "source": "source/screens/R29-ride-pin.svg",
-      "sha256": "64eacac66c7e29e78c68fb622bdb2221d33a730f6e7452f2b8eed23c402f272b",
+      "sha256": "28490744b0ed7e13cb14276cef3bed163c1dadd457f7e7a5799c4db5e5eb64eb",
       "phase": "later",
       "fixture": true
     },
@@ -1265,7 +1265,7 @@
       "width": 390,
       "height": 844,
       "source": "source/screens/R30-ride-active.svg",
-      "sha256": "65ad279de4feef298122682fc44f1a71b15e0c8b11559e9a2f87362be4b6dfa6",
+      "sha256": "7c63b067860c3b141804b8941bb4076061e18b2498a8711be35d3e25fc715f5e",
       "phase": "later",
       "fixture": true
     },
@@ -1280,7 +1280,7 @@
       "width": 390,
       "height": 844,
       "source": "source/screens/R31-ride-finished.svg",
-      "sha256": "8cd27983416e1ba0c3725bb2c72781b13cb73251a22dc447963a08c0623070ce",
+      "sha256": "806fe70e093307b6f1a2dbfe8960a7f9e801709f2ec15d0c582fb00bbba8bfec",
       "phase": "later",
       "fixture": true
     },
@@ -1854,7 +1854,7 @@
       "width": 1440,
       "height": 1000,
       "source": "source/screens/P41-partial-refund.svg",
-      "sha256": "9a3165de11aee788c4b5180e327f7765cba964adc10a05e4b82ebd601d0e3d45",
+      "sha256": "ee61f85691c7ff31b6e229e76d9b5ea1155fcb8b7f0deacf6af97c2529b8e2a9",
       "phase": "food-first",
       "fixture": true
     },
@@ -1896,7 +1896,7 @@
       "width": 390,
       "height": 844,
       "source": "source/screens/W03-product.svg",
-      "sha256": "cdaeba426588b77ebd4d2b094bebae2af94dde3e437883e81d26568c027df543",
+      "sha256": "6b9d8d485fc1215bf4b555e96cc1beef7abc905e74d5f3e2864dc6ba6a601022",
       "phase": "food-first",
       "fixture": true
     },
@@ -1938,7 +1938,7 @@
       "width": 390,
       "height": 844,
       "source": "source/screens/W06-methods.svg",
-      "sha256": "1f46b3412515e3456e0f42acb9272ddf61c5d599365ac3d25dd9a369d95007cd",
+      "sha256": "4ccaa034882b994b6be8a5a291f93310727566e74504c15b618e39426b71d317",
       "phase": "food-first",
       "fixture": true
     },
@@ -2036,7 +2036,7 @@
       "width": 390,
       "height": 844,
       "source": "source/screens/W13-pickup.svg",
-      "sha256": "f89ba0acae751b5e7588eca5527afd1bfcb1fe06f088cf71555132d4b6f935e3",
+      "sha256": "394f56af09a6eea1b17d97fa89bb0d0c5eb1032df2c457e4cf864da31c6c087e",
       "phase": "food-first",
       "fixture": true
     },
@@ -2148,7 +2148,7 @@
       "width": 390,
       "height": 844,
       "source": "source/screens/W21-help.svg",
-      "sha256": "0de9b705bbd2c5ea2bab476de0b5f63a89fd7ac749cc345e4d0cdde2b6a0ecc8",
+      "sha256": "2958055296afce4397fda67e7ab35044455abd4fadbc1244cc7d83f18259784c",
       "phase": "food-first",
       "fixture": true
     },
@@ -2162,7 +2162,7 @@
       "width": 390,
       "height": 844,
       "source": "source/screens/W22-coupon.svg",
-      "sha256": "d11ea5e4a185af528a2c47dbf163c7d74f91f065df717e5476ab38a2161e8aa2",
+      "sha256": "50e328e47fef59f6a9aec90f27598f70ab613998b22396fb69c2bc2411274a3a",
       "phase": "food-first",
       "fixture": true
     },
@@ -2644,7 +2644,7 @@
       "width": 1440,
       "height": 1000,
       "source": "source/screens/WD16-pickup.svg",
-      "sha256": "533749eed6c7711675e7507749e01909e97614cb2b1203f2a060f5b860a32bbd",
+      "sha256": "7363d7b76792f17eee1ef974770238d68f75eb2bd39da60445cd0bf6034dc6c0",
       "phase": "food-first",
       "fixture": true
     },
@@ -2756,7 +2756,7 @@
       "width": 1440,
       "height": 1000,
       "source": "source/screens/WD23-options.svg",
-      "sha256": "929f520bbb1d15b6e866b30f37b514307d00d6950d4ccdd74def9cd3f4a5e5a1",
+      "sha256": "6b1cdc2fc7f21edb7fbb0a4c8413eef6a7ef205b5f35e65af277c5d2da424cc4",
       "phase": "food-first",
       "fixture": true
     },

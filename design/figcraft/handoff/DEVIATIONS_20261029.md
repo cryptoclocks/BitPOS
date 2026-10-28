@@ -83,3 +83,12 @@ Master, exported SVG/PNG, `screen-map.json` (sha256, PL11 added) and `generators
 - App changed to match the design: one shared left menu (`PlatformSidebar`, `lib/platform-nav.ts`) on all nine operator pages (the three older pages had no menu, five others each had their own different list); the hub is a table (tool / purpose-or-need / status / entry) with the sidebar. Role checks and every server call are unchanged.
 - FigCraft changed to match the app: the menu has nine entries (the design's tenth "กระทบยอดคืนเงิน" is removed from PL01–PL10 because reconciliation is a panel inside the incidents page, not a page); PL01's "เปิดล่าสุด" column became "ทางเข้า" (the app keeps no last-opened data); PL10's subtitle says it is a panel in the incidents page. Generator: `generators/gen_pl_nav9.py`.
 - Static comparison of the remaining mobile, POS and Pay frames against the source by three read-only reviewers: reports in `comparison-20261029/` (customer, rider, pos-pay). Nothing there was ticked in the checklist; the findings are a work list (most frames need a FigCraft redraw because the app is the honest side).
+
+### Step 8 – frames made honest about what the app has (2026-10-29, demo scope)
+Owner direction: demo-ready, not production. Text/overlay patches rather than full redraws (the original card text is outlined vectors, so new text is laid over a cover):
+- U16 and W06 payment methods: PromptPay and card are "ยังไม่เปิดใช้งาน", only the Solana wallet is enabled, footnote "หน้านี้ไม่ยืนยันการชำระเงิน".
+- U24 cancel: safety note and button "ส่งคำขอตรวจสอบ — ไม่ใช่ยกเลิกทันที". U25: "มีการบันทึกภาระคืนเงินไว้แล้ว / ยังไม่มีหลักฐานยืนยันการโอนคืน".
+- U26 coupons: sample-page wording ("ตัวอย่างหน้าจอ · ยังไม่เชื่อมระบบจริง", conditions come from the server, two sample rows). U27 rewards: live points wording, redeem not enabled. U31 review: app wording (completed meal, optional rider rating).
+- Yellow ribbon "ภาพแนวคิด · ยังไม่มีในแอป" on frames of unbuilt features: U39–U43, R27–R31, W03, W13, W21, W22, WD16, WD23, P41; "ตัวเลขตัวอย่าง · ไม่ใช่ข้อมูลจริง" on R16–R18.
+- Owner questions decided by the assistant for the demo: guest option picker (W03/WD23) and P41 partial refund stay planned (ribbon), the English default of TableMenu/PayMenu is kept (browser tests rely on it).
+- Still open from the reports: P16/P19 bodies are copies of P14, U07/U08 search/filters, U32/U34 toggles, U36 group order, U44–U46 chips, R11/R13 PIN boxes, R20/R21/R25/R26 hubs, S11/S12 default 15 minutes. Generator: `generators/gen_honest.py`.
