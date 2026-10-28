@@ -17,6 +17,7 @@ import {createMobilePushWorker} from './mobile-push';
 import {createFoodSearchWorker} from './food-search';
 import {readFoodNavigationConfig} from '../../api/src/food-navigation-provider';
 import {createDriverSettlementRuntime} from './driver-settlement-runtime';
+import {createFoodRefundRuntime} from './food-refund-runtime';
 // Shared SQL test seam for the HTTP-submit/worker lock discipline. No RPC here.
 export async function lockReconciliationAttempt(db:pg.PoolClient,orderId:string,attemptId:string):Promise<AttemptRow|null>{
  const order=(await db.query('SELECT id FROM orders WHERE id=$1 FOR UPDATE SKIP LOCKED',[orderId])).rows[0];if(!order)return null;
@@ -93,12 +94,15 @@ export async function runWorker(signal:AbortSignal,fixture?:PromotionJobFixture)
  let push:ReturnType<typeof createMobilePushWorker>=null;
  let settlement:ReturnType<typeof createDriverSettlementRuntime>|null=null;
  let settlementStatus='';
+ let refund:ReturnType<typeof createFoodRefundRuntime>|null=null;
+ let refundStatus='';
  try{
   if(process.env.BITPOS_FOOD_SEARCH_DATABASE_URL!==undefined)search=createFoodSearchWorker(process.env.BITPOS_FOOD_SEARCH_DATABASE_URL,readFoodNavigationConfig(process.env));
   if(!search)console.error('Automatic food search unavailable: configure dedicated BITPOS_FOOD_SEARCH_DATABASE_URL before enabling the service');
   push=createMobilePushWorker(process.env.BITPOS_MOBILE_PUSH_DATABASE_URL);
   if(!push)console.error('Mobile phone notifications unavailable: configure dedicated BITPOS_MOBILE_PUSH_DATABASE_URL; no provider delivery asserted');
   try{settlement=createDriverSettlementRuntime();}catch{console.error('Driver settlement configuration unavailable; no payout signing or sending enabled');}
+  try{refund=createFoodRefundRuntime();}catch{console.error('Food refund configuration unavailable; no refund signing or sending enabled');}
   await runWorkerLanes([
   {tick,unavailable:'Reconciliation unavailable; durable state retained'},
   {tick:tickRidePrivacy,unavailable:'Ride privacy maintenance unavailable; expired location/text remain hidden by TTL reads'},
@@ -110,8 +114,9 @@ export async function runWorker(signal:AbortSignal,fixture?:PromotionJobFixture)
   ...(dispatch?[{tick:dispatch.tick,unavailable:'Private food discovery maintenance unavailable'}]:[]),
   ...(search?[{tick:()=>search!.tick(signal),unavailable:'Automatic food ranking unavailable; durable search retained'}]:[]),
   ...(push?[{tick:push.tick,unavailable:'Mobile notification transport unavailable; durable opaque deliveries retained'}]:[]),
+  ...(refund?[{tick:async()=>{const result=await refund!.worker.tick(signal),status=result.status+':'+Object.keys(result.outcomes).sort().join(',');if(status!==refundStatus){refundStatus=status;if(result.status!=='AVAILABLE')console.error('Food refund: '+result.status+'; no transfer inferred; outcomes='+Object.keys(result.outcomes).sort().join(','));}},unavailable:'Food refund unavailable; durable reservations retained'}]:[]),
   ...(settlement?[{tick:async()=>{const result=await settlement!.worker.tick(signal),status=result.status+':'+Object.keys(result.reasons).sort().join(',');if(status!==settlementStatus){settlementStatus=status;if(result.status!=='AVAILABLE')console.error('Driver settlement: '+result.status+'; no transfer inferred; reasons='+Object.keys(result.reasons).sort().join(','));}},unavailable:'Driver settlement unavailable; durable reserves retained'}]:[]),
- ],signal);}finally{await Promise.all([search?.close(),dispatch?.close(),push?.close(),settlement?.close()]);}
+ ],signal);}finally{await Promise.all([search?.close(),dispatch?.close(),push?.close(),settlement?.close(),refund?.close()]);}
 }
 async function run(){
  const stop=new AbortController(),shutdown=()=>stop.abort();
