@@ -60,3 +60,15 @@ Drawn in the master with `figcraft-cli` (replay: `master-edit-20261029.json`, ap
 - **U23** gained the "sort by: latest orders" control; **U33** shows the app's own entries (addresses, account settings, ride, group order) and a scroll hint.
 - The exported SVG / PNG / sha256 of these five were produced with `figcraft-cli export` (outline-based SVG, unlike the older text-based exports).
 - Still different, deliberately: U20 (app shows a "map unavailable" state), P07, P09, P11 (the design has more than the app) and item photos.
+
+## Fifth step (2026-10-29): frames added for app screens that had no FigCraft frame
+
+Owner: "leave the frames that exist; draw only the ones that do not exist". Existing frames were not touched in this step (the five redraws above were done earlier, before this instruction).
+
+Added to the master (and exported to `source/screens/`, `previews/current-native/` and registered in `screen-map.json`; `generators/` holds the scripts that cloned the template frames):
+
+- **Platform operator (new surface "platform", 1440x1000, page "35 - Platform Operations"):** PL01 hub, PL02 dispatch and riders, PL03 driver verification, PL04 incidents and help, PL05 customer support, PL06 review moderation, PL07 driver earnings and payout rounds, PL08 delivery cancellation reviews, PL09 passenger rides and fares, PL10 refund reconciliation. The web app has these operator screens (`PlatformHub`, `PlatformFoodDispatch`, `PlatformDrivers`, `PlatformFoodIncidents`, `PlatformSupport`, `PlatformReviews`, `PlatformDriverEarnings`, `PlatformFoodCancellationReviews`, `PlatformRides`, `RefundReconciliationPanel`); the design had none. Drawn as list frames with the app's own titles and columns; sample rows are marked as samples.
+- **Customer app:** U44 signed-in devices (sessions), U45 order again, U46 merchant reviews.
+- **Rider app:** R33 payout account (beneficiary), R34 food compensation requests.
+- Layout is a clone of the existing list frames with the app's wording, not a new visual language; the platform sidebar lists the ten tools. Replace with richer layouts when the operator screens get their own design pass.
+- Not added because they already have a frame: account data copy (inside U34 privacy), support cases (U30 help), coupon and checkout screens, ride screens.
