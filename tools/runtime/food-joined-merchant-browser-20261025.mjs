@@ -90,7 +90,7 @@ try{
  await page.locator('.preparation-estimate').filter({hasText:'Estimated preparation'}).waitFor();
   await page.getByRole('button',{name:'Switch to Thai',exact:true}).click();
   await page.setViewportSize({width:390,height:844});
-  await page.getByText('รับออร์เดอร์แล้ว',{exact:true}).first().waitFor(); // the status now shows in several places
+  await page.getByText('รับออเดอร์แล้ว',{exact:true}).first().waitFor(); // the status now shows in several places
   assert.equal(await noOverflow(page),true,'Thai mobile accepted order must not overflow');
   await capture(page,'mobile-th-accepted');
   const persisted=await sqlOne(`SELECT f.acceptance_status,f.acceptance_version,f.preparation_minutes,f.preparation_recorded_at IS NOT NULL AS preparation_recorded,o.status AS payment_status,coalesce(k.status,'RECEIVED') AS kitchen FROM bitpos.online_food_orders f JOIN bitpos.orders o ON(o.merchant_id,o.id)=(f.merchant_id,f.order_id) LEFT JOIN bitpos.order_fulfillment k ON(k.merchant_id,k.order_id)=(f.merchant_id,f.order_id) WHERE f.merchant_id=$1 AND f.order_id=$2`,[state.merchant,state.orderId]);

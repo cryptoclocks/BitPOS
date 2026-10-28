@@ -40,7 +40,7 @@ class _SupportPageState extends State<SupportPage>{
   final locked=busy||pending!=null;
   return Scaffold(appBar:AppBar(title:Text(t('ศูนย์ช่วยเหลือ','Help centre'))),body:ListView(padding:const EdgeInsets.all(24),children:[
    Text(t('ติดตามคำร้องของคุณและโหลดข้อความล่าสุดได้ที่นี่','Track your requests and refresh for the latest messages.')),
-   if(widget.order!=null)Padding(padding:const EdgeInsets.only(top:12),child:Text('${t('เกี่ยวกับออร์เดอร์','Regarding order')} #${widget.order!.orderId.substring(0,8)}')),
+   if(widget.order!=null)Padding(padding:const EdgeInsets.only(top:12),child:Text('${t('เกี่ยวกับออเดอร์','Regarding order')} #${widget.order!.orderId.substring(0,8)}')),
    const SizedBox(height:16),if(busy)const LinearProgressIndicator(),if(error!=null)Text(error!,style:TextStyle(color:Theme.of(context).colorScheme.error)),
    if(pending!=null)Card(child:Padding(padding:const EdgeInsets.all(16),child:Column(children:[Text(t('มีคำขอที่บันทึกไว้ กรุณากู้คืนก่อนส่งข้อความใหม่','A saved request needs recovery before sending another.')),FilledButton(onPressed:busy?null:()=>run(()=>submit(pending!)),child:Text(t('กู้คืนคำขอเดิม','Recover saved request')))]))),
    if(selected!=null)TextButton.icon(onPressed:busy?null:()=>setState((){selected=null;messages=null;message.clear();}),icon:const Icon(Icons.arrow_back),label:Text(t('คำร้องทั้งหมด','All requests'))),

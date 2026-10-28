@@ -213,7 +213,7 @@ class _FoodDeliveryPanelState extends State<FoodDeliveryPanel>
   bool get _current => mounted && _foreground && (widget.owner?.value ?? true);
   String t(String th, String en) => widget.thai ? th : en;
   String _stateLabel(String state) => switch (state) {
-    'WAITING_MERCHANT' => t('รอร้านรับออร์เดอร์', 'Waiting for merchant'),
+    'WAITING_MERCHANT' => t('รอร้านรับออเดอร์', 'Waiting for merchant'),
     'WAITING_PAYMENT' => t('รอการชำระเงิน', 'Waiting for payment'),
     'READY_FOR_DISPATCH' => t('พร้อมส่งต่อให้ไรเดอร์', 'Ready for dispatch'),
     'OFFERING' => t('กำลังเสนองานให้ไรเดอร์', 'Offering to drivers'),
@@ -291,11 +291,11 @@ class _FoodDeliveryPanelState extends State<FoodDeliveryPanel>
           Text(
             attention
                 ? t(
-                    'เจ้าหน้าที่กำลังตรวจสอบขั้นตอนถัดไป ออร์เดอร์ยังไม่ถูกยกเลิกหรือคืนเงิน',
+                    'เจ้าหน้าที่กำลังตรวจสอบขั้นตอนถัดไป ออเดอร์ยังไม่ถูกยกเลิกหรือคืนเงิน',
                     'Staff will review the next step. Your order is not automatically cancelled or refunded.',
                   )
                 : t(
-                    'ร้านรับออร์เดอร์แล้ว เรากำลังค้นหาไรเดอร์ให้คุณ',
+                    'ร้านรับออเดอร์แล้ว เรากำลังค้นหาไรเดอร์ให้คุณ',
                     'The store has your order. We are finding a driver for you.',
                   ),
             textAlign: TextAlign.center,
@@ -330,7 +330,7 @@ class _FoodDeliveryPanelState extends State<FoodDeliveryPanel>
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        '${t('ออร์เดอร์', 'Order')} #${widget.orderId.substring(0, 8)}',
+                        '${t('ออเดอร์', 'Order')} #${widget.orderId.substring(0, 8)}',
                         style: Theme.of(context).textTheme.titleSmall,
                       ),
                       const SizedBox(height: 3),
@@ -352,7 +352,7 @@ class _FoodDeliveryPanelState extends State<FoodDeliveryPanel>
           const SizedBox(height: 26),
           FilledButton(
             onPressed: () => Navigator.of(context).maybePop(),
-            child: Text(t('ดูสถานะออร์เดอร์', 'View order status')),
+            child: Text(t('ดูสถานะออเดอร์', 'View order status')),
           ),
           const SizedBox(height: 10),
           OutlinedButton(
@@ -380,7 +380,7 @@ class _FoodDeliveryPanelState extends State<FoodDeliveryPanel>
       'Automatic matching route provider unavailable; staff assistance is needed.',
     ),
     'NO_CANDIDATE' => t(
-      'ยังไม่พบไรเดอร์ที่เข้าเกณฑ์ ไม่ได้หมายความว่าออร์เดอร์ถูกยกเลิก',
+      'ยังไม่พบไรเดอร์ที่เข้าเกณฑ์ ไม่ได้หมายความว่าออเดอร์ถูกยกเลิก',
       'No eligible driver was found. This does not cancel the order.',
     ),
     'DEADLINE' => t(
@@ -901,7 +901,7 @@ class _FoodDeliveryPanelState extends State<FoodDeliveryPanel>
                   const SizedBox(height: 8),
                   Text(
                     t(
-                      'งานจัดส่งปิดแล้ว ยังไม่ใช่หลักฐานคืนเงิน กรุณาตรวจสถานะคืนเงินในรายละเอียดออร์เดอร์ หรือติดต่อฝ่ายช่วยเหลือ',
+                      'งานจัดส่งปิดแล้ว ยังไม่ใช่หลักฐานคืนเงิน กรุณาตรวจสถานะคืนเงินในรายละเอียดออเดอร์ หรือติดต่อฝ่ายช่วยเหลือ',
                       'Delivery is closed. This does not confirm a refund. Check refund status in order details or contact support.',
                     ),
                   ),
@@ -1004,7 +1004,7 @@ class _FoodDeliveryPanelState extends State<FoodDeliveryPanel>
                   ),
                   Text(
                     t(
-                      'ผู้รับงานแทนต้องตอบรับแยกต่างหาก ไม่ได้ยกเลิกออร์เดอร์หรือคืนเงิน',
+                      'ผู้รับงานแทนต้องตอบรับแยกต่างหาก ไม่ได้ยกเลิกออเดอร์หรือคืนเงิน',
                       'A replacement must accept separately. This does not cancel the order or refund payment.',
                     ),
                   ),
@@ -1145,7 +1145,7 @@ class _FoodDeliveryPanelState extends State<FoodDeliveryPanel>
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        Text('${t('ออร์เดอร์', 'Order')}: ${widget.orderId}'),
+                        Text('${t('ออเดอร์', 'Order')}: ${widget.orderId}'),
                         if (_loadedAt != null)
                           Text(
                             '${t('โหลดสถานะล่าสุด', 'Snapshot loaded')}: ${_loadedAt!.toLocal()}',

@@ -295,7 +295,7 @@ class _DriverEarningsPageState extends State<DriverEarningsPage>
             children: [
               Align(alignment: Alignment.centerLeft, child: SelectableText('${t('งานส่ง', 'Delivery')}: ${item.assignmentId}')),
               const SizedBox(height: 8),
-              Align(alignment: Alignment.centerLeft, child: SelectableText('${t('ออร์เดอร์', 'Order')}: ${item.orderId}')),
+              Align(alignment: Alignment.centerLeft, child: SelectableText('${t('ออเดอร์', 'Order')}: ${item.orderId}')),
             ],
           ),
         ),

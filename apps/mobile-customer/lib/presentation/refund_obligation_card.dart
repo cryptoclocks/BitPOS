@@ -16,11 +16,11 @@ class RefundObligationCard extends StatelessWidget {
     String t(String th, String en) => thai ? th : en;
     final cause = switch (refund.cause) {
       'ONLINE_ACCEPTANCE_REJECTED' => t(
-        'ร้านปฏิเสธออร์เดอร์',
+        'ร้านปฏิเสธออเดอร์',
         'Merchant declined the order',
       ),
       'ONLINE_ACCEPTANCE_TIMED_OUT' => t(
-        'ร้านไม่รับออร์เดอร์ภายในกำหนด',
+        'ร้านไม่รับออเดอร์ภายในกำหนด',
         'Merchant acceptance timed out',
       ),
       _ => t('คำขอคืนเงินที่บันทึกไว้', 'Recorded refund request'),

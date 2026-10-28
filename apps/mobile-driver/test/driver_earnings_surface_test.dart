@@ -76,10 +76,10 @@ void main(){
   await tester.pumpWidget(MaterialApp(home:Builder(builder:(context)=>MediaQuery(data:MediaQuery.of(context).copyWith(textScaler:const TextScaler.linear(1.5)),child:DriverEarningsPage(api:api,thai:true)))));await tester.pumpAndSettle();
   final details=find.text('รายละเอียดรายการรายได้');
   await tester.scrollUntilVisible(details,200,scrollable:find.byType(Scrollable).first);await tester.ensureVisible(details);await tester.pumpAndSettle();
-  expect(find.text('ออร์เดอร์: $first'),findsNothing);
+  expect(find.text('ออเดอร์: $first'),findsNothing);
   await tester.tap(details);await tester.pumpAndSettle();
-  await tester.scrollUntilVisible(find.text('ออร์เดอร์: $first'),150,scrollable:find.byType(Scrollable).first);
-  expect(find.text('ออร์เดอร์: $first'),findsOneWidget);
+  await tester.scrollUntilVisible(find.text('ออเดอร์: $first'),150,scrollable:find.byType(Scrollable).first);
+  expect(find.text('ออเดอร์: $first'),findsOneWidget);
   expect(find.text('งานส่ง: $first'),findsOneWidget);
   expect(tester.takeException(),isNull);
  });
@@ -96,7 +96,7 @@ void main(){
   testWidgets('page replacement does not relabel old states as a newer snapshot thai=$thai',(tester)async{
    final api=EarningsApi();await mount(tester,api,thai:thai);final oldLabel=thai?'ผ่านเกณฑ์การจ่าย — ไม่ใช่เงินโอนแล้ว':'Eligible — not transferred';expect(find.text(oldLabel),findsOneWidget);
    api.current=page(id:second,state:'SETTLED',next:null,at:'2026-10-19T02:00:00.000Z');await tester.ensureVisible(find.text(thai?'หน้าถัดไป':'Next page'));await tester.tap(find.text(thai?'หน้าถัดไป':'Next page'));await tester.pumpAndSettle();
-   expect(find.text(oldLabel),findsNothing);expect(find.text('${thai?'ออร์เดอร์':'Order'}: $first'),findsNothing);await tester.tap(find.text(thai?'รายละเอียดรายการรายได้':'Earning reference details'));await tester.pumpAndSettle();expect(find.text('${thai?'ออร์เดอร์':'Order'}: $second'),findsOneWidget);
+   expect(find.text(oldLabel),findsNothing);expect(find.text('${thai?'ออเดอร์':'Order'}: $first'),findsNothing);await tester.tap(find.text(thai?'รายละเอียดรายการรายได้':'Earning reference details'));await tester.pumpAndSettle();expect(find.text('${thai?'ออเดอร์':'Order'}: $second'),findsOneWidget);
    expect(find.text(thai?'ยืนยันการจ่ายขั้นสุดท้ายแล้ว':'Finalized verified settlement'),findsOneWidget);expect(find.textContaining(thai?'ทีละหน้า':'One observed page at a time'),findsOneWidget);
   });
   for(final entry in <String,(String,String)>{'PROVIDER_UNAVAILABLE':('ผู้ให้บริการยังไม่พร้อม','Provider unavailable'),'VERIFIED_FUNDING_REQUIRED':('ต้องมีเงินทุนที่ตรวจสอบแล้ว','Verified funding required'),'FUNDING_RECONCILIATION_REQUIRED':('ต้องตรวจสอบกระทบยอดเงินทุน','Funding reconciliation required'),'SOURCE_RECONCILIATION_REQUIRED':('ต้องตรวจสอบผลจ่ายเดิมที่ขัดแย้ง','Source reconciliation required')}.entries){

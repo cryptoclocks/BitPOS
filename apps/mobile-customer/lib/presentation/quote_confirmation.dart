@@ -123,8 +123,8 @@ class _QuoteConfirmationState extends State<QuoteConfirmation>
           children: [
             Text(
               widget.delivery
-                  ? t('ยืนยันออร์เดอร์จัดส่ง', 'Confirm delivery order')
-                  : t('ยืนยันออร์เดอร์รับที่ร้าน', 'Confirm pickup order'),
+                  ? t('ยืนยันออเดอร์จัดส่ง', 'Confirm delivery order')
+                  : t('ยืนยันออเดอร์รับที่ร้าน', 'Confirm pickup order'),
             ),
             if (widget.total != null)
               Text(

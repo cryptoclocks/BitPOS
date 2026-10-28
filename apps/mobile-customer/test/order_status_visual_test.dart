@@ -179,7 +179,7 @@ void main() {
           'summary': rect,
         });
         if (phase == 'PREPARING' && thai) {
-          final detail = find.text('ดูรายละเอียดออร์เดอร์');
+          final detail = find.text('ดูรายละเอียดออเดอร์');
           await tester.ensureVisible(detail);
           await tester.tap(detail);
           await tester.pumpAndSettle();
@@ -188,13 +188,13 @@ void main() {
             find.byKey(const ValueKey('order-detail-cancel-review')),
             findsOneWidget,
           );
-          expect(find.textContaining('กำหนดรับออร์เดอร์'), findsNothing);
+          expect(find.textContaining('กำหนดรับออเดอร์'), findsNothing);
           await _capture(tester, boundary, 'U22-TH', {});
           await tester.tap(
             find.byKey(const ValueKey('order-detail-status-history')),
           );
           await tester.pumpAndSettle();
-          expect(find.textContaining('กำหนดรับออร์เดอร์'), findsOneWidget);
+          expect(find.textContaining('กำหนดรับออเดอร์'), findsOneWidget);
         }
       });
     }
@@ -214,7 +214,7 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(
-        find.textContaining('ร้านไม่ดำเนินการออร์เดอร์นี้'),
+        find.textContaining('ร้านไม่ดำเนินการออเดอร์นี้'),
         findsOneWidget,
       );
       expect(

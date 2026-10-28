@@ -83,7 +83,7 @@ void main() {
     await tester.tap(find.byKey(orderKey));
     await tester.pumpAndSettle();
 
-    final back = tester.getRect(find.byTooltip('กลับไปออร์เดอร์'));
+    final back = tester.getRect(find.byTooltip('กลับไปออเดอร์'));
     final lines = tester.getRect(find.byType(ConfiguredFoodLines));
     final destination = tester.getRect(
       find.byKey(const ValueKey('customer-order-detail-destination')),
@@ -104,7 +104,7 @@ void main() {
     expect(find.text('ค่าอาหาร'), findsOneWidget);
     expect(find.text('Synthetic destination'), findsOneWidget);
     expect(find.text('ติดตามการจัดส่ง'), findsOneWidget);
-    expect(find.text('รายละเอียดออร์เดอร์'), findsOneWidget);
+    expect(find.text('รายละเอียดออเดอร์'), findsOneWidget);
     expect(find.text('BitPOS'), findsNothing);
     expect(
       find.byKey(const ValueKey('customer-order-detail-track-action')),
@@ -119,7 +119,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Fixture recipient · +66900000001'), findsOneWidget);
     expect(find.text('ข้อมูลทดสอบ · ตำแหน่งและค่าจัดส่งจำลอง'), findsOneWidget);
-    await tester.tap(find.byTooltip('กลับไปออร์เดอร์'));
+    await tester.tap(find.byTooltip('กลับไปออเดอร์'));
     await tester.pumpAndSettle();
     expect(find.byKey(orderKey), findsOneWidget);
     expect(tester.takeException(), isNull);

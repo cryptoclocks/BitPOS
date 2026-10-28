@@ -45,7 +45,7 @@ export default function OrderBill({ order, language = 'en', publicView = false, 
       <p>{text('ที่อยู่และค่าธรรมเนียมยืนยันตั้งแต่ขอราคา การแก้สมุดที่อยู่ภายหลังไม่เปลี่ยนบิลนี้','Destination and fees were frozen with the quote. Later address-book edits do not change this bill.')}</p>
     </details>}
     <details className="bill-details"><summary>{text('รายละเอียดธุรกรรม','Payment details')}</summary>
-      <p className="mono">{text('ออร์เดอร์','Order')}: {order.id}</p>
+      <p className="mono">{text('ออเดอร์','Order')}: {order.id}</p>
       {!publicView && <FrozenRouting authority={order.authority} language={language} />}
       <SettlementTrust settlement={order.settlement} language={language} />
     </details>

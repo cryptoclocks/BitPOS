@@ -71,7 +71,7 @@ void main() {
       );
       tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
       await tester.pump();
-      await tester.tap(find.text('ยืนยันออร์เดอร์จัดส่ง'));
+      await tester.tap(find.text('ยืนยันออเดอร์จัดส่ง'));
       expect(calls, 1);
       await tester.pumpWidget(const MaterialApp());
     },

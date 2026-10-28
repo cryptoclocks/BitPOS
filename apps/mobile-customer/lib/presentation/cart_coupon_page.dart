@@ -33,7 +33,7 @@ class CartCouponPage extends StatelessWidget {
                   const SizedBox(height: 12),
                   Text(
                     t(
-                      'ระบบยังไม่เปิดให้เลือกและใช้คูปองกับออร์เดอร์นี้ ยอดในตะกร้ายังไม่เปลี่ยนแปลง',
+                      'ระบบยังไม่เปิดให้เลือกและใช้คูปองกับออเดอร์นี้ ยอดในตะกร้ายังไม่เปลี่ยนแปลง',
                       'Coupon selection and redemption are not enabled for this order. Your cart total has not changed.',
                     ),
                     textAlign: TextAlign.center,

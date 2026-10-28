@@ -3525,3 +3525,7 @@ Method: the real debug apps (`flutter build apk --debug` with `BITPOS_FIXTURE` a
 
 ### Remaining frame redraws done (2026-10-29)
 - 18 more frames redrawn to match the app (P16, P19, U07, U08, U32, U34, U36, U44–U46, R11, R13, R20, R21, R25, R26, S11, S12); master (both copies), SVG/PNG and sha256 updated; details in DEVIATIONS step 9. Rendered and checked U07, U36, U44, R11, R21, S12, P19. Not redrawn: smaller MINOR rows in the three reports (e.g. fixture ids "#BP1024" vs UUID prefixes, ETA text), which stay as labelled fixtures.
+
+### Spelling "ออร์เดอร์" → "ออเดอร์" (2026-10-29)
+- 33 files under `apps/`, `packages/mobile_shared` and `tools/` (177 occurrences) now use the standard spelling the FigCraft frames use. Web unit tests (81), customer (305), driver (245) and mobile_shared (178) Flutter tests pass; `flutter analyze` info/warnings are unchanged by this edit. The web part reaches OCI with the next web deploy.
+- A "customer unreachable" incident category was not added: it needs a new migration that redefines the incident-report function and CHECK constraint plus regenerated contracts, and R21 now matches the app's seven real categories, so it is out of demo scope.

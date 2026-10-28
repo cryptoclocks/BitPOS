@@ -151,7 +151,7 @@ try{
    // Font loading changes toolbar/lane heights; measure the same settled layout we capture.
    await page.evaluate(async()=>{await document.fonts.ready;await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));});
    assert.equal(await page.locator('.order-lane').count(),4);
-   if(kitchenStates){assert.deepEqual(await page.locator('.order-lane').evaluateAll(lanes=>lanes.map(lane=>({label:lane.getAttribute('aria-label'),orders:lane.querySelectorAll('.order-row').length}))),scenario.language==='th'?[{label:'รับออร์เดอร์แล้ว',orders:1},{label:'กำลังทำ',orders:1},{label:'พร้อมรับ',orders:1},{label:'รับสินค้าแล้ว',orders:1}]:[{label:'Received',orders:1},{label:'Preparing',orders:1},{label:'Ready for pickup',orders:1},{label:'Collected',orders:1}]);assert.equal(await page.getByText(scenario.language==='th'?'ส่งถึงลูกค้าแล้ว':'Delivered to customer',{exact:true}).count(),0);}
+   if(kitchenStates){assert.deepEqual(await page.locator('.order-lane').evaluateAll(lanes=>lanes.map(lane=>({label:lane.getAttribute('aria-label'),orders:lane.querySelectorAll('.order-row').length}))),scenario.language==='th'?[{label:'รับออเดอร์แล้ว',orders:1},{label:'กำลังทำ',orders:1},{label:'พร้อมรับ',orders:1},{label:'รับสินค้าแล้ว',orders:1}]:[{label:'Received',orders:1},{label:'Preparing',orders:1},{label:'Ready for pickup',orders:1},{label:'Collected',orders:1}]);assert.equal(await page.getByText(scenario.language==='th'?'ส่งถึงลูกค้าแล้ว':'Delivered to customer',{exact:true}).count(),0);}
    const boardGeometry=await page.evaluate(()=>({
     viewport:innerWidth,overflow:document.documentElement.scrollWidth>innerWidth,
     toolbar:(()=>{const e=document.querySelector('.order-toolbar'),r=e.getBoundingClientRect(),s=getComputedStyle(e);return{x:r.x,y:r.y,width:r.width,height:r.height,marginBottom:s.marginBottom,rowGap:s.rowGap};})(),
@@ -197,7 +197,7 @@ try{
     assert.equal(await page.getByRole('searchbox').isVisible(),true);
    }else await page.getByRole('button',{name:scenario.language==='th'?'ตัวกรองและค้นหา':'Filters & search',exact:true}).click();
    await page.getByRole('searchbox').fill('fixture-no-such-order-000');
-   await page.getByRole('heading',{name:scenario.language==='th'?'ไม่พบออร์เดอร์':'No matching orders',exact:true}).waitFor();
+   await page.getByRole('heading',{name:scenario.language==='th'?'ไม่พบออเดอร์':'No matching orders',exact:true}).waitFor();
    await page.locator('.orders-empty').getByRole('button',{name:scenario.language==='th'?'ล้างตัวกรอง':'Clear filters',exact:true}).click();
    await page.locator('.order-row').first().waitFor();
    assert.deepEqual(commandRequests,[]);
@@ -209,7 +209,7 @@ try{
     assert.equal(await page.locator('.incoming-detail ul.bill').count(),1);
     await page.getByRole('button',{name:scenario.language==='th'?'ปิดรายละเอียด':'Close order details',exact:true}).click();
     if(scenario.width<=600)await page.getByRole('button',{name:scenario.language==='th'?'เมนูและบัญชีร้าน':'Workspace navigation and account',exact:true}).click();
-    await page.getByRole('button',{name:scenario.language==='th'?'ศูนย์ออร์เดอร์':'Order center',exact:true}).click();
+    await page.getByRole('button',{name:scenario.language==='th'?'ศูนย์ออเดอร์':'Order center',exact:true}).click();
     await page.waitForFunction(()=>document.querySelectorAll('.order-row').length===4);
     receipt.checks.push({scenario,kitchenScopeUsesFourFulfillmentRows:true,oneCanonicalDetailController:true,returnToFullOrderCenterRestoresAllKitchenRows:true});
    }
@@ -221,14 +221,14 @@ try{
    const listRefresh=page.locator(scenario.width<=600?'.order-mobile-refresh':'.incoming-heading>button');
    listReadLoading=true;
    await listRefresh.click();
-   await board.getByRole('status').filter({hasText:scenario.language==='th'?'กำลังรีเฟรชออร์เดอร์':'Refreshing orders'}).waitFor();
+   await board.getByRole('status').filter({hasText:scenario.language==='th'?'กำลังรีเฟรชออเดอร์':'Refreshing orders'}).waitFor();
    assert.equal(await board.getAttribute('aria-busy'),'true');
    listReadLoading=false;listReadEmpty=true;releaseListRead();
-   await page.getByRole('heading',{name:scenario.language==='th'?'ยังไม่มีออร์เดอร์':'No orders yet',exact:true}).waitFor();
+   await page.getByRole('heading',{name:scenario.language==='th'?'ยังไม่มีออเดอร์':'No orders yet',exact:true}).waitFor();
    for(const failure of [503,403,401]){
     listReadFailure=failure;
     await listRefresh.click();
-    const guidance=failure===401||failure===403?(scenario.language==='th'?'ไม่มีสิทธิ์ดูออร์เดอร์ ใช้บัญชีร้านค้าที่ได้รับอนุญาต':'Permission denied. Use an authorized merchant account.'):(scenario.language==='th'?'รีเฟรชออร์เดอร์ไม่สำเร็จ รายการเดิมยังแสดงอยู่ ลองอีกครั้งได้':'Could not refresh orders. The existing list remains visible; try again.');
+    const guidance=failure===401||failure===403?(scenario.language==='th'?'ไม่มีสิทธิ์ดูออเดอร์ ใช้บัญชีร้านค้าที่ได้รับอนุญาต':'Permission denied. Use an authorized merchant account.'):(scenario.language==='th'?'รีเฟรชออเดอร์ไม่สำเร็จ รายการเดิมยังแสดงอยู่ ลองอีกครั้งได้':'Could not refresh orders. The existing list remains visible; try again.');
     await board.getByText(guidance,{exact:true}).waitFor();
     assert.equal(await board.getAttribute('aria-busy'),'false');
     listReadFailure=0;listReadEmpty=false;
@@ -240,7 +240,7 @@ try{
   await page.locator('.order-row').click();
   if(detailRecoveryStates){
    const board=page.locator('.incoming-browser');
-   await board.getByRole('status').filter({hasText:scenario.language==='th'?'กำลังโหลดออร์เดอร์':'Loading orders'}).waitFor();
+   await board.getByRole('status').filter({hasText:scenario.language==='th'?'กำลังโหลดออเดอร์':'Loading orders'}).waitFor();
    assert.equal(await board.getAttribute('aria-busy'),'true');
    selectedReadLoading=false;releaseSelectedRead();
   }
@@ -251,8 +251,8 @@ try{
    const handoff=page.locator('.fulfillment-detail>aside');
    await handoff.getByRole('button',{name:scenario.language==='th'?'ออกรหัสรับอาหาร':'Issue pickup proof',exact:true}).click();
    const detail=page.locator('.incoming-detail');
-   const refresh=detail.getByRole('button',{name:scenario.language==='th'?'รีเฟรชรายละเอียดออร์เดอร์':'Refresh order details',exact:true});
-   await detail.getByText(scenario.language==='th'?'รีเฟรชรายละเอียดออร์เดอร์ไม่สำเร็จ ออร์เดอร์ยังเปิดอยู่ ลองอีกครั้งได้':'Could not refresh order details. This order remains open; try again.',{exact:true}).waitFor();
+   const refresh=detail.getByRole('button',{name:scenario.language==='th'?'รีเฟรชรายละเอียดออเดอร์':'Refresh order details',exact:true});
+   await detail.getByText(scenario.language==='th'?'รีเฟรชรายละเอียดออเดอร์ไม่สำเร็จ ออเดอร์ยังเปิดอยู่ ลองอีกครั้งได้':'Could not refresh order details. This order remains open; try again.',{exact:true}).waitFor();
    assert.equal(commandRequests.length,1);
    assert.deepEqual(await page.evaluate(()=>window.__bitposUnhandled),[]);
    postCommandRefreshFailure=false;
@@ -264,12 +264,12 @@ try{
   }
   if(detailRecoveryStates){
    const detail=page.locator('.incoming-detail');
-   const refresh=detail.getByRole('button',{name:scenario.language==='th'?'รีเฟรชรายละเอียดออร์เดอร์':'Refresh order details',exact:true});
+   const refresh=detail.getByRole('button',{name:scenario.language==='th'?'รีเฟรชรายละเอียดออเดอร์':'Refresh order details',exact:true});
    await refresh.waitFor();
    for(const failure of [503,403,401]){
     selectedReadFailure=failure;
     await refresh.click();
-    const guidance=failure===401||failure===403?(scenario.language==='th'?'ไม่มีสิทธิ์ดูรายละเอียดออร์เดอร์นี้ ใช้บัญชีร้านค้าที่ได้รับอนุญาต':'Permission denied. Use an authorized merchant account.'):(scenario.language==='th'?'รีเฟรชรายละเอียดออร์เดอร์ไม่สำเร็จ ออร์เดอร์ยังเปิดอยู่ ลองอีกครั้งได้':'Could not refresh order details. This order remains open; try again.');
+    const guidance=failure===401||failure===403?(scenario.language==='th'?'ไม่มีสิทธิ์ดูรายละเอียดออเดอร์นี้ ใช้บัญชีร้านค้าที่ได้รับอนุญาต':'Permission denied. Use an authorized merchant account.'):(scenario.language==='th'?'รีเฟรชรายละเอียดออเดอร์ไม่สำเร็จ ออเดอร์ยังเปิดอยู่ ลองอีกครั้งได้':'Could not refresh order details. This order remains open; try again.');
     await detail.getByText(guidance,{exact:true}).waitFor();
     assert.equal(await detail.isVisible(),true);
     assert.equal(await detail.locator('.incoming-detail-read').getAttribute('aria-busy'),'false');
@@ -284,7 +284,7 @@ try{
    }
    selectedRefreshLoading=true;
    await refresh.click();
-   await detail.getByRole('status').filter({hasText:scenario.language==='th'?'กำลังรีเฟรชรายละเอียดออร์เดอร์':'Refreshing order details'}).waitFor();
+   await detail.getByRole('status').filter({hasText:scenario.language==='th'?'กำลังรีเฟรชรายละเอียดออเดอร์':'Refreshing order details'}).waitFor();
    await page.getByRole('button',{name:scenario.language==='th'?'ปิดรายละเอียด':'Close order details',exact:true}).click();
    await detail.waitFor({state:'detached'});
    selectedRefreshLoading=false;releaseSelectedRefresh();
@@ -302,7 +302,7 @@ try{
   }
   if(detailReadStates){
    const detail=page.locator('.incoming-detail');
-   const refresh=detail.getByRole('button',{name:scenario.language==='th'?'รีเฟรชรายละเอียดออร์เดอร์':'Refresh order details',exact:true});
+   const refresh=detail.getByRole('button',{name:scenario.language==='th'?'รีเฟรชรายละเอียดออเดอร์':'Refresh order details',exact:true});
    await refresh.waitFor();
    readFailureActive=true;
    await refresh.click();
@@ -354,7 +354,7 @@ try{
    assert.deepEqual(retained,[commandRequests[0].body]);
    receipt.checks.push({scenario,exactCommandRetainedAcrossRemountAndReadFailure:true,abortedRetries:2,retainedSameIdempotencyKey:true,noCommandReachedNetwork:true});
   }
-  if(scenario.state==='PENDING')await page.getByRole('button',{name:scenario.language==='th'?'รับออร์เดอร์':'Accept order',exact:true}).waitFor();
+  if(scenario.state==='PENDING')await page.getByRole('button',{name:scenario.language==='th'?'รับออเดอร์':'Accept order',exact:true}).waitFor();
   else if(stageStates){
    const handoff=page.locator('.fulfillment-detail>aside');
    await handoff.locator(':scope>p').filter({hasText:stageLabels[scenario.state][scenario.language==='th'?0:1]}).waitFor();
@@ -441,7 +441,7 @@ try{
   receipt.captures.push(capture);receipt.checks.push({...scenario,geometry,focusOrder,businessCommandsReachedNetwork:0,abortedCommandAttempts:commandRequests.length});
   if(scenario.state==='PENDING'){
    const minutes=page.getByRole('spinbutton',{name:scenario.language==='th'?'เวลาเตรียมโดยประมาณ (นาที)':'Estimated preparation (minutes)'});
-   const accept=page.getByRole('button',{name:scenario.language==='th'?'รับออร์เดอร์':'Accept order',exact:true});
+   const accept=page.getByRole('button',{name:scenario.language==='th'?'รับออเดอร์':'Accept order',exact:true});
    assert.equal(await minutes.inputValue(),'');assert.equal(await accept.isDisabled(),true);
    await minutes.fill('1.5');assert.equal(await accept.isDisabled(),true);
    await minutes.fill('37');assert.equal(await accept.isEnabled(),true);

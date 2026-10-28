@@ -419,10 +419,10 @@ class _FoodPageState extends State<FoodPage> with WidgetsBindingObserver {
       active: order != null,
       title: phase?.title(widget.thai),
       backLabel: canReturnToStatus
-          ? t('กลับไปสถานะออร์เดอร์', 'Back to order status')
-          : t('กลับไปออร์เดอร์', 'Back to orders'),
+          ? t('กลับไปสถานะออเดอร์', 'Back to order status')
+          : t('กลับไปออเดอร์', 'Back to orders'),
       actionLabel: pending
-          ? t('ดูสถานะออร์เดอร์', 'Check order status')
+          ? t('ดูสถานะออเดอร์', 'Check order status')
           : canTrack
           ? summary
                 ? t('ติดตามไรเดอร์', 'Track rider')
@@ -433,7 +433,7 @@ class _FoodPageState extends State<FoodPage> with WidgetsBindingObserver {
       secondaryLabel: pending
           ? t('ติดต่อช่วยเหลือ', 'Contact support')
           : summary
-          ? t('ดูรายละเอียดออร์เดอร์', 'View order details')
+          ? t('ดูรายละเอียดออเดอร์', 'View order details')
           : null,
       onSecondary: pending
           ? () => unawaited(_run(_support))
@@ -1164,7 +1164,7 @@ class _FoodPageState extends State<FoodPage> with WidgetsBindingObserver {
         SnackBar(
           content: Text(
             t(
-              'ออร์เดอร์อยู่ในสถานะที่ขอทบทวนการยกเลิกไม่ได้',
+              'ออเดอร์อยู่ในสถานะที่ขอทบทวนการยกเลิกไม่ได้',
               'This order state is not eligible for a cancellation review request.',
             ),
           ),
@@ -1215,7 +1215,7 @@ class _FoodPageState extends State<FoodPage> with WidgetsBindingObserver {
         api: widget.api,
         owner: widget.owner,
         thai: widget.thai,
-        initialSubject: t('ช่วยเหลือเกี่ยวกับออร์เดอร์', 'Order enquiry'),
+        initialSubject: t('ช่วยเหลือเกี่ยวกับออเดอร์', 'Order enquiry'),
         order: MobileSupportOrder(
           merchantId: order.merchantId,
           orderId: order.id,
@@ -1415,14 +1415,14 @@ class _FoodPageState extends State<FoodPage> with WidgetsBindingObserver {
             : () => unawaited(_choosePaymentMethod()),
         child: Text(
           t(
-            'เลือกวิธีชำระออร์เดอร์เดิม',
+            'เลือกวิธีชำระออเดอร์เดิม',
             'Choose payment method for this order',
           ),
         ),
       ),
       Text(
         t(
-          'กลับจากหน้าชำระแล้วระบบตรวจสอบสถานะออร์เดอร์เดิม ไม่สร้างการชำระใหม่จากผล callback',
+          'กลับจากหน้าชำระแล้วระบบตรวจสอบสถานะออเดอร์เดิม ไม่สร้างการชำระใหม่จากผล callback',
           'On return, the app checks the original order. A callback never creates or confirms a payment.',
         ),
       ),
@@ -1479,7 +1479,7 @@ class _FoodPageState extends State<FoodPage> with WidgetsBindingObserver {
         )
         .toList();
     final history = IconButton(
-      tooltip: t('ออร์เดอร์ของฉัน', 'My orders'),
+      tooltip: t('ออเดอร์ของฉัน', 'My orders'),
       onPressed: _busy ? null : () => _run(_history),
       icon: const Icon(Icons.receipt_long),
     );
@@ -1525,7 +1525,7 @@ class _FoodPageState extends State<FoodPage> with WidgetsBindingObserver {
                     : q != null
                     ? _cartReview
                           ? t('ตะกร้าของคุณ', 'Your cart')
-                          : t('ตรวจสอบออร์เดอร์', 'Review order')
+                          : t('ตรวจสอบออเดอร์', 'Review order')
                     : menu != null
                     ? merchantBranchLabel(
                         thai: widget.thai,
@@ -1603,12 +1603,12 @@ class _FoodPageState extends State<FoodPage> with WidgetsBindingObserver {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       Text(
-                        t('คำขอออร์เดอร์ที่บันทึกไว้', 'Saved order request'),
+                        t('คำขอออเดอร์ที่บันทึกไว้', 'Saved order request'),
                         style: Theme.of(context).textTheme.titleMedium,
                       ),
                       Text(
                         t(
-                          'หากยังไม่ทราบผล ห้ามสร้างออร์เดอร์ใหม่ ลองคำขอเดิมด้วยเลขเดิม',
+                          'หากยังไม่ทราบผล ห้ามสร้างออเดอร์ใหม่ ลองคำขอเดิมด้วยเลขเดิม',
                           'When outcome is unknown, do not create another order. Retry the same saved request.',
                         ),
                       ),
@@ -1630,7 +1630,7 @@ class _FoodPageState extends State<FoodPage> with WidgetsBindingObserver {
                 onPressed: _busy ? null : () => _run(_restoreActiveOrder),
                 child: Text(
                   t(
-                    'กู้คืนสถานะออร์เดอร์เดิม',
+                    'กู้คืนสถานะออเดอร์เดิม',
                     'Recover original order status',
                   ),
                 ),
@@ -1671,7 +1671,7 @@ class _FoodPageState extends State<FoodPage> with WidgetsBindingObserver {
                                 ? null
                                 : () => _setOrderDetails(true),
                             child: Text(
-                              t('ดูรายละเอียดออร์เดอร์', 'View order details'),
+                              t('ดูรายละเอียดออเดอร์', 'View order details'),
                             ),
                           ),
                         ],
@@ -1690,7 +1690,7 @@ class _FoodPageState extends State<FoodPage> with WidgetsBindingObserver {
                             onPressed: _busy ? null : () => _run(_support),
                             child: Text(
                               t(
-                                'ขอความช่วยเหลือออร์เดอร์นี้',
+                                'ขอความช่วยเหลือออเดอร์นี้',
                                 'Get help with this order',
                               ),
                             ),
@@ -1699,7 +1699,7 @@ class _FoodPageState extends State<FoodPage> with WidgetsBindingObserver {
                       ] else ...[
                         if (!widget.rootOwnsHeader) ...[
                           Text(
-                            t('รายละเอียดออร์เดอร์', 'Order details'),
+                            t('รายละเอียดออเดอร์', 'Order details'),
                             style: Theme.of(context).textTheme.titleLarge,
                           ),
                           Text('#${o.id.substring(0, 8)}'),
@@ -1756,7 +1756,7 @@ class _FoodPageState extends State<FoodPage> with WidgetsBindingObserver {
                         ] else ...[
                           Text(
                             t(
-                              'ไม่มีรายละเอียดแยกค่าใช้จ่ายในข้อมูลออร์เดอร์เดิม',
+                              'ไม่มีรายละเอียดแยกค่าใช้จ่ายในข้อมูลออเดอร์เดิม',
                               'This order snapshot does not contain a fee breakdown.',
                             ),
                           ),
@@ -1816,7 +1816,7 @@ class _FoodPageState extends State<FoodPage> with WidgetsBindingObserver {
                         ].contains(o.acceptanceStatus))
                           _orderNotice(
                             t(
-                              'ร้านไม่ดำเนินการออร์เดอร์นี้ ตรวจสอบรายการชำระเดิมก่อนดำเนินการต่อ',
+                              'ร้านไม่ดำเนินการออเดอร์นี้ ตรวจสอบรายการชำระเดิมก่อนดำเนินการต่อ',
                               'The merchant will not prepare this order. Check the original payment before taking another step.',
                             ),
                           ),
@@ -1846,7 +1846,7 @@ class _FoodPageState extends State<FoodPage> with WidgetsBindingObserver {
                               '${t('การชำระ', 'Payment')}: ${foodStateLabel(o.status, widget.thai)}',
                             ),
                             Text(
-                              '${t('ร้านรับออร์เดอร์', 'Merchant acceptance')}: ${foodStateLabel(o.acceptanceStatus, widget.thai)}',
+                              '${t('ร้านรับออเดอร์', 'Merchant acceptance')}: ${foodStateLabel(o.acceptanceStatus, widget.thai)}',
                             ),
                             if (o.preparation case final estimate?)
                               Text(
@@ -1856,7 +1856,7 @@ class _FoodPageState extends State<FoodPage> with WidgetsBindingObserver {
                               '${t('ครัว / จุดรับ', 'Kitchen / pickup')}: ${foodStateLabel(o.fulfillmentStatus, widget.thai)}',
                             ),
                             Text(
-                              '${t('กำหนดรับออร์เดอร์', 'Acceptance deadline')}: ${DateTime.parse(o.acceptanceDeadline).toLocal()}',
+                              '${t('กำหนดรับออเดอร์', 'Acceptance deadline')}: ${DateTime.parse(o.acceptanceDeadline).toLocal()}',
                             ),
                             if (o.acceptanceReason != null)
                               Text(
@@ -1961,7 +1961,7 @@ class _FoodPageState extends State<FoodPage> with WidgetsBindingObserver {
                               icon: const Icon(Icons.support_agent),
                               label: Text(
                                 t(
-                                  'ขอความช่วยเหลือออร์เดอร์นี้',
+                                  'ขอความช่วยเหลือออเดอร์นี้',
                                   'Get help with this order',
                                 ),
                               ),
@@ -2222,7 +2222,7 @@ class _FoodPageState extends State<FoodPage> with WidgetsBindingObserver {
               if (!menu.branch.pickupEnabled && !menu.branch.deliveryEnabled)
                 Text(
                   t(
-                    'ร้านนี้ยังไม่เปิดรับออร์เดอร์',
+                    'ร้านนี้ยังไม่เปิดรับออเดอร์',
                     'Ordering unavailable at this branch',
                   ),
                 ),
@@ -2521,9 +2521,9 @@ class _FoodPageState extends State<FoodPage> with WidgetsBindingObserver {
 
 enum _FoodOrderPhase {
   paymentPending('กำลังตรวจสอบการชำระเงิน', 'Checking payment'),
-  accepted('ร้านรับออร์เดอร์แล้ว', 'Order accepted'),
+  accepted('ร้านรับออเดอร์แล้ว', 'Order accepted'),
   preparing('กำลังเตรียมมื้อของคุณ', 'Preparing your meal'),
-  detail('รายละเอียดออร์เดอร์', 'Order details');
+  detail('รายละเอียดออเดอร์', 'Order details');
 
   const _FoodOrderPhase(this.thaiTitle, this.englishTitle);
   final String thaiTitle, englishTitle;
@@ -2570,7 +2570,7 @@ class _FoodOrderPhasePanel extends StatelessWidget {
             'The merchant has started preparing your order. We will show new server status here.',
           )
         : t(
-            'ร้านยืนยันออร์เดอร์แล้ว',
+            'ร้านยืนยันออเดอร์แล้ว',
             'The merchant has confirmed your order.',
           );
     return Semantics(
@@ -2610,7 +2610,7 @@ class _FoodOrderPhasePanel extends StatelessWidget {
               const SizedBox(height: 20),
               FilledButton(
                 onPressed: onRefresh,
-                child: Text(t('ดูสถานะออร์เดอร์', 'Check order status')),
+                child: Text(t('ดูสถานะออเดอร์', 'Check order status')),
               ),
               const SizedBox(height: 12),
               OutlinedButton(
@@ -2632,7 +2632,7 @@ class _FoodOrderPhasePanel extends StatelessWidget {
                   borderRadius: BorderRadius.circular(15),
                 ),
                 child: Text(
-                  '${t('ออร์เดอร์', 'Order')} #${order.id.substring(0, 8)}',
+                  '${t('ออเดอร์', 'Order')} #${order.id.substring(0, 8)}',
                   style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
@@ -2664,7 +2664,7 @@ class _FoodOrderPhasePanel extends StatelessWidget {
             const SizedBox(height: 44),
             _PhaseStep(
               active: true,
-              title: t('ร้านรับออร์เดอร์แล้ว', 'Order accepted'),
+              title: t('ร้านรับออเดอร์แล้ว', 'Order accepted'),
               detail: t(
                 'ยืนยันรายการโดยร้านแล้ว',
                 'The merchant confirmed the order.',
@@ -2756,7 +2756,7 @@ class _OrderIdentityCard extends StatelessWidget {
           ),
         ),
         title: Text(
-          '${thai ? 'ออร์เดอร์' : 'Order'} #${order.id.substring(0, 8)}',
+          '${thai ? 'ออเดอร์' : 'Order'} #${order.id.substring(0, 8)}',
         ),
         subtitle: Text(
           formatMinorUnits(

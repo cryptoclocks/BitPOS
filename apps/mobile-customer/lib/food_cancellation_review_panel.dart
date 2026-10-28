@@ -164,7 +164,7 @@ class _FoodCancellationReviewPanelState
   String _reasonLabel(String value) => switch (value) {
     'NO_DRIVER' => t('หาไรเดอร์ไม่ได้', 'No driver found'),
     'LATE_ORDER' => t('ใช้เวลานานกว่าที่คาด', 'Taking longer than expected'),
-    'WRONG_ORDER' => t('ออร์เดอร์ไม่ถูกต้อง', 'Wrong order details'),
+    'WRONG_ORDER' => t('ออเดอร์ไม่ถูกต้อง', 'Wrong order details'),
     'CHANGE_OF_PLANS' => t('เปลี่ยนแผนการสั่ง', 'Change of plans'),
     _ => t('อื่น ๆ', 'Other'),
   };
@@ -221,7 +221,7 @@ class _FoodCancellationReviewPanelState
               liveRegion: true,
               child: Text(
                 t(
-                  'บันทึกคำขอแล้ว ออร์เดอร์ยังไม่ถูกยกเลิกและยังไม่ได้คืนเงิน',
+                  'บันทึกคำขอแล้ว ออเดอร์ยังไม่ถูกยกเลิกและยังไม่ได้คืนเงิน',
                   'Request recorded. The order is not cancelled and no refund has been executed.',
                 ),
                 key: const ValueKey('food-cancellation-review-recorded'),
@@ -240,7 +240,7 @@ class _FoodCancellationReviewPanelState
             ),
           if (pending != null) ...[
             Text(
-              '${t('คำขอเดิมยังไม่ทราบผลสำหรับออร์เดอร์', 'Saved unresolved review request for order')} ${pending.orderId}',
+              '${t('คำขอเดิมยังไม่ทราบผลสำหรับออเดอร์', 'Saved unresolved review request for order')} ${pending.orderId}',
             ),
             if (pending.orderId == widget.orderId)
               FilledButton(
@@ -255,7 +255,7 @@ class _FoodCancellationReviewPanelState
             else
               Text(
                 t(
-                  'กลับไปออร์เดอร์เดิมเพื่อกู้คืนคำขอ ห้ามสร้างคำขอใหม่แทน',
+                  'กลับไปออเดอร์เดิมเพื่อกู้คืนคำขอ ห้ามสร้างคำขอใหม่แทน',
                   'Return to that order to recover its request; do not replace it with a new command.',
                 ),
               ),
@@ -390,7 +390,7 @@ class _FoodCancellationReviewPanelState
                 padding: const EdgeInsets.only(bottom: 8),
                 child: Text(
                   t(
-                    'ส่งคำขอให้เจ้าหน้าที่ตรวจสอบเท่านั้น ยังไม่ยกเลิกออร์เดอร์ คืนเงิน คืนสต็อก หรือปล่อยงานไรเดอร์',
+                    'ส่งคำขอให้เจ้าหน้าที่ตรวจสอบเท่านั้น ยังไม่ยกเลิกออเดอร์ คืนเงิน คืนสต็อก หรือปล่อยงานไรเดอร์',
                     'This asks staff to review. It does not cancel the order, issue a refund, return stock, or release a rider.',
                   ),
                   style: const TextStyle(
@@ -402,7 +402,7 @@ class _FoodCancellationReviewPanelState
               ),
             Semantics(
               label: t(
-                'ส่งคำขอให้เจ้าหน้าที่ตรวจสอบเท่านั้น ยังไม่ยกเลิกออร์เดอร์ คืนเงิน คืนสต็อก หรือปล่อยงานไรเดอร์',
+                'ส่งคำขอให้เจ้าหน้าที่ตรวจสอบเท่านั้น ยังไม่ยกเลิกออเดอร์ คืนเงิน คืนสต็อก หรือปล่อยงานไรเดอร์',
                 'Submit a staff review request only. This does not cancel the order, refund payment, return stock, or release a rider.',
               ),
               child: FilledButton(
@@ -464,7 +464,7 @@ class _FoodCancellationReviewPanelState
                       Text(review.customerExplanation),
                       Text(
                         t(
-                          'ผลตรวจสอบไม่ใช่หลักฐานการคืนเงินหรือยกเลิกออร์เดอร์',
+                          'ผลตรวจสอบไม่ใช่หลักฐานการคืนเงินหรือยกเลิกออเดอร์',
                           'Review outcome is not evidence of a refund or order cancellation.',
                         ),
                       ),

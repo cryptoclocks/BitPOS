@@ -692,7 +692,7 @@ class _CustomerSessionPageState extends State<CustomerSessionPage> {
                   )
                 : _foodNavigation.orderReviewActive
                 ? _foodHeader(
-                    text('ตรวจสอบออร์เดอร์', 'Review order'),
+                    text('ตรวจสอบออเดอร์', 'Review order'),
                     text('กลับไปตะกร้า', 'Back to cart'),
                     _foodNavigation.canReturnToCart
                         ? _foodNavigation.returnToCart
@@ -708,7 +708,7 @@ class _CustomerSessionPageState extends State<CustomerSessionPage> {
                       offset: Offset.zero,
                       child: Text(
                         _foodNavigation.orderDetailTitle ??
-                            text('รายละเอียดออร์เดอร์', 'Order details'),
+                            text('รายละเอียดออเดอร์', 'Order details'),
                         style: const TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.w600,
@@ -720,7 +720,7 @@ class _CustomerSessionPageState extends State<CustomerSessionPage> {
                       child: IconButton.filledTonal(
                         tooltip:
                             _foodNavigation.orderDetailBackLabel ??
-                            text('กลับไปออร์เดอร์', 'Back to orders'),
+                            text('กลับไปออเดอร์', 'Back to orders'),
                         onPressed: _busy
                             ? null
                             : _foodNavigation.leaveOrderDetail,

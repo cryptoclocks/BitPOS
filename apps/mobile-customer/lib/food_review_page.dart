@@ -250,7 +250,7 @@ class _FoodReviewPageState extends State<FoodReviewPage> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    '${t('ออร์เดอร์', 'Order')} #${widget.orderId.substring(0, 8)}${widget.orderTotal == null ? '' : ' · ${formatMinorUnits(widget.orderTotal!.amountMinor, widget.orderTotal!.decimals, widget.orderTotal!.currency)}'}',
+                    '${t('ออเดอร์', 'Order')} #${widget.orderId.substring(0, 8)}${widget.orderTotal == null ? '' : ' · ${formatMinorUnits(widget.orderTotal!.amountMinor, widget.orderTotal!.decimals, widget.orderTotal!.currency)}'}',
                     textAlign: TextAlign.center,
                   ),
                   if (review != null) ...[

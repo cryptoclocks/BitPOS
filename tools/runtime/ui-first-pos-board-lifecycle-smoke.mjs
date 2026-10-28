@@ -40,15 +40,15 @@ try{
    const refresh=page.locator(scenario.width<=600?'.order-mobile-refresh':'.incoming-heading>button');
    await board.waitFor();
    assert.equal(await page.locator('.orders-empty').count(),0,'Pending first snapshot must not claim no orders');
-   await board.getByRole('status').filter({hasText:scenario.language==='th'?'กำลังโหลดออร์เดอร์':'Loading orders'}).waitFor();
+   await board.getByRole('status').filter({hasText:scenario.language==='th'?'กำลังโหลดออเดอร์':'Loading orders'}).waitFor();
    assert.equal(await board.getAttribute('aria-busy'),'true');
    phase='empty';release();
-   await page.getByRole('heading',{name:scenario.language==='th'?'ยังไม่มีออร์เดอร์':'No orders yet',exact:true}).waitFor();
+   await page.getByRole('heading',{name:scenario.language==='th'?'ยังไม่มีออเดอร์':'No orders yet',exact:true}).waitFor();
    assert.equal(await board.getAttribute('aria-busy'),'false');
    for(const failure of ['denied','error']){
     phase=failure;
     await refresh.click();
-    const guidance=failure==='denied'?(scenario.language==='th'?'ไม่มีสิทธิ์ดำเนินการ ใช้บัญชีร้านค้าที่ได้รับอนุญาต':'Permission denied. Use an authorized merchant account.'):(scenario.language==='th'?'ข้อมูลออร์เดอร์ไม่เป็นปัจจุบัน รีเฟรชเพื่อลองใหม่':'Order data may be stale. Refresh to try again.');
+    const guidance=failure==='denied'?(scenario.language==='th'?'ไม่มีสิทธิ์ดำเนินการ ใช้บัญชีร้านค้าที่ได้รับอนุญาต':'Permission denied. Use an authorized merchant account.'):(scenario.language==='th'?'ข้อมูลออเดอร์ไม่เป็นปัจจุบัน รีเฟรชเพื่อลองใหม่':'Order data may be stale. Refresh to try again.');
     await board.getByText(guidance,{exact:true}).waitFor();
     assert.equal(await page.locator('.orders-empty').count(),0,'Denied/failed reads must not claim an empty snapshot');
     assert.equal(await refresh.isEnabled(),true,'Failed read must not leave refresh busy');
@@ -56,7 +56,7 @@ try{
     const capture=`ui-first-pos-board-lifecycle-${tag}-${failure}-${scenario.language}-${scenario.width}-20261023.png`;
     await page.screenshot({path:evidence+capture});receipt.captures.push(capture);
     phase='empty';await refresh.click();
-    await page.getByRole('heading',{name:scenario.language==='th'?'ยังไม่มีออร์เดอร์':'No orders yet',exact:true}).waitFor();
+    await page.getByRole('heading',{name:scenario.language==='th'?'ยังไม่มีออเดอร์':'No orders yet',exact:true}).waitFor();
     assert.equal(await board.locator('.error').count(),0);
    }
    assert.deepEqual(commands,[]);

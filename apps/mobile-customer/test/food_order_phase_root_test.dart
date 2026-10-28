@@ -72,7 +72,7 @@ void registerOrderPhaseRootTests({
           await tester.pumpAndSettle();
           final title = phase == 'PREPARING'
               ? (thai ? 'กำลังเตรียมมื้อของคุณ' : 'Preparing your meal')
-              : (thai ? 'ร้านรับออร์เดอร์แล้ว' : 'Order accepted');
+              : (thai ? 'ร้านรับออเดอร์แล้ว' : 'Order accepted');
           expect(
             find.descendant(
               of: find.byType(AppBar),
@@ -83,7 +83,7 @@ void registerOrderPhaseRootTests({
           expect(find.byType(ConfiguredFoodLines), findsNothing);
           final pill = find
               .ancestor(
-                of: find.text('${thai ? 'ออร์เดอร์' : 'Order'} #00000000'),
+                of: find.text('${thai ? 'ออเดอร์' : 'Order'} #00000000'),
                 matching: find.byType(Container),
               )
               .first;
@@ -92,7 +92,7 @@ void registerOrderPhaseRootTests({
           expect(pillRect.height, closeTo(30, 1));
           await capture?.call(tester, '$phase-${thai ? 'th' : 'en'}-summary');
           final details = find.text(
-            thai ? 'ดูรายละเอียดออร์เดอร์' : 'View order details',
+            thai ? 'ดูรายละเอียดออเดอร์' : 'View order details',
           );
           await tester.ensureVisible(details);
           await tester.tap(details);
@@ -102,7 +102,7 @@ void registerOrderPhaseRootTests({
             find.descendant(
               of: find.byType(AppBar),
               matching: find.text(
-                thai ? 'รายละเอียดออร์เดอร์' : 'Order details',
+                thai ? 'รายละเอียดออเดอร์' : 'Order details',
               ),
             ),
             findsOneWidget,
@@ -110,7 +110,7 @@ void registerOrderPhaseRootTests({
           await capture?.call(tester, '$phase-${thai ? 'th' : 'en'}-detail');
           await tester.tap(
             find.byTooltip(
-              thai ? 'กลับไปสถานะออร์เดอร์' : 'Back to order status',
+              thai ? 'กลับไปสถานะออเดอร์' : 'Back to order status',
             ),
           );
           await tester.pumpAndSettle();
@@ -150,14 +150,14 @@ void registerOrderPhaseRootTests({
       expect(find.byType(ConfiguredFoodLines), findsNothing);
       await capture?.call(tester, 'CONFIRMING-th-summary');
       api.phase = 'RECEIVED';
-      final refresh = find.text('ดูสถานะออร์เดอร์');
+      final refresh = find.text('ดูสถานะออเดอร์');
       await tester.ensureVisible(refresh);
       await tester.tap(refresh);
       await tester.pumpAndSettle();
       expect(
         find.descendant(
           of: find.byType(AppBar),
-          matching: find.text('ร้านรับออร์เดอร์แล้ว'),
+          matching: find.text('ร้านรับออเดอร์แล้ว'),
         ),
         findsOneWidget,
       );

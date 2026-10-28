@@ -364,7 +364,7 @@ class CouponsPreviewPage extends StatelessWidget {
       onNavigationSelected: onNavigationSelected,
       cta: t('ใช้คูปอง', 'Apply coupon'),
       ctaReason: t(
-        'ยังใช้คูปองกับออร์เดอร์ไม่ได้ ยอดในตะกร้าไม่เปลี่ยน',
+        'ยังใช้คูปองกับออเดอร์ไม่ได้ ยอดในตะกร้าไม่เปลี่ยน',
         'Coupons cannot be applied yet. Your cart total will not change.',
       ),
       children: [
@@ -558,9 +558,9 @@ class MultiMerchantPreviewPage extends StatelessWidget {
       thai: thai,
       title: t('เลือกอร่อยจากหลายร้าน', 'Order from several merchants'),
       onNavigationSelected: onNavigationSelected,
-      cta: t('ตรวจสอบออร์เดอร์แยกตามร้าน', 'Review orders per merchant'),
+      cta: t('ตรวจสอบออเดอร์แยกตามร้าน', 'Review orders per merchant'),
       ctaReason: t(
-        'ยังไม่เปิดชำระหลายร้านรวมกัน แต่ละร้านต้องมีออร์เดอร์ของตัวเอง',
+        'ยังไม่เปิดชำระหลายร้านรวมกัน แต่ละร้านต้องมีออเดอร์ของตัวเอง',
         'Combined multi-merchant checkout is not open. Each merchant needs its own order.',
       ),
       children: [
@@ -591,7 +591,7 @@ class MultiMerchantPreviewPage extends StatelessWidget {
         const SizedBox(height: 8),
         Text(
           t(
-            'แต่ละร้านมีออร์เดอร์ ค่าจัดส่ง และสถานะคืนเงินของตัวเอง',
+            'แต่ละร้านมีออเดอร์ ค่าจัดส่ง และสถานะคืนเงินของตัวเอง',
             'Each merchant has its own order, delivery fee and refund status.',
           ),
           style: const TextStyle(fontSize: 14, color: _muted),

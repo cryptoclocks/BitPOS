@@ -44,7 +44,7 @@ class _PaymentMethodPageState extends State<PaymentMethodPage> {
       if (mounted) {
         setState(
           () => _error = t(
-            'เปิดหน้าชำระเดิมไม่ได้ ลองอีกครั้งหรือตรวจสถานะออร์เดอร์',
+            'เปิดหน้าชำระเดิมไม่ได้ ลองอีกครั้งหรือตรวจสถานะออเดอร์',
             'Could not open the original checkout. Retry or check order status.',
           ),
         );
@@ -132,7 +132,7 @@ class _PaymentMethodPageState extends State<PaymentMethodPage> {
       appBar: AppBar(
         title: Text(t('เลือกวิธีชำระเงิน', 'Choose payment method')),
         leading: IconButton(
-          tooltip: t('กลับไปออร์เดอร์', 'Back to order'),
+          tooltip: t('กลับไปออเดอร์', 'Back to order'),
           icon: const Icon(Icons.chevron_left),
           onPressed: _opening ? null : () => Navigator.of(context).maybePop(),
         ),
@@ -168,7 +168,7 @@ class _PaymentMethodPageState extends State<PaymentMethodPage> {
                 name: t('กระเป๋า Solana', 'Solana wallet'),
                 description: widget.checkoutAvailable
                     ? t(
-                        'เปิดการชำระของออร์เดอร์เดิม',
+                        'เปิดการชำระของออเดอร์เดิม',
                         'Open this order’s checkout',
                       )
                     : t('หน้าชำระยังไม่พร้อมใช้งาน', 'Checkout is unavailable'),

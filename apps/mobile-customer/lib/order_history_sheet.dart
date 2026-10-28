@@ -236,9 +236,9 @@ class _OrderHistorySheetState extends State<OrderHistorySheet> {
                   padding: const EdgeInsets.symmetric(vertical: 24),
                   child: Text(
                     _orders.isEmpty
-                        ? t('ยังไม่มีออร์เดอร์', 'No orders yet')
+                        ? t('ยังไม่มีออเดอร์', 'No orders yet')
                         : t(
-                            'ไม่มีออร์เดอร์ที่กำลังดำเนินการ',
+                            'ไม่มีออเดอร์ที่กำลังดำเนินการ',
                             'No orders in progress',
                           ),
                   ),
@@ -287,11 +287,11 @@ class _OrderHistorySheetState extends State<OrderHistorySheet> {
                   if (_nextCursor != null)
                     OutlinedButton(
                       onPressed: _loading ? null : () => _load(_nextCursor),
-                      child: Text(t('ออร์เดอร์เก่ากว่านี้', 'Older orders')),
+                      child: Text(t('ออเดอร์เก่ากว่านี้', 'Older orders')),
                     ),
                   TextButton(
                     onPressed: _loading ? null : () => _load(null),
-                    child: Text(t('ออร์เดอร์ล่าสุด', 'Newest orders')),
+                    child: Text(t('ออเดอร์ล่าสุด', 'Newest orders')),
                   ),
                 ],
               ),
