@@ -112,6 +112,14 @@ void main() {
       await tester.pump();
       await tap(find.widgetWithText(FilledButton, 'Arrived at store'));
       }
+      // After arrival the rider screen first shows the job details; custody needs "Continue navigation".
+      for (var n = 0; n < 30 && find.byType(DriverFoodCustodyCard).evaluate().isEmpty; n++) {
+        await tester.pump(const Duration(milliseconds: 100));
+        await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 100)));
+      }
+      if (find.byType(DriverFoodCustodyCard).evaluate().isEmpty) {
+        await tap(find.byKey(const ValueKey('food-assigned-continue-navigation')));
+      }
       await wait(() => find.byType(DriverFoodCustodyCard).evaluate().isNotEmpty);
       final work = await tester.runAsync(api.foodDriverWork);
       final assignment = work!.assignment as FoodDriverAssignment;
@@ -139,6 +147,14 @@ void main() {
           tester.state<ScrollableState>(workScroll).position.jumpTo(0);
           await tester.pump();
           await tap(find.widgetWithText(FilledButton, 'Arrived at destination'));
+        }
+        // After arrival the rider screen first shows the job details; custody needs "Continue navigation".
+        for (var n = 0; n < 30 && find.byType(DriverFoodCustodyCard).evaluate().isEmpty; n++) {
+          await tester.pump(const Duration(milliseconds: 100));
+          await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 100)));
+        }
+        if (find.byType(DriverFoodCustodyCard).evaluate().isEmpty) {
+          await tap(find.byKey(const ValueKey('food-assigned-continue-navigation')));
         }
         await wait(() => find.byType(DriverFoodCustodyCard).evaluate().isNotEmpty);
         final current = (await tester.runAsync(api.foodDriverWork))!.assignment as FoodDriverAssignment;

@@ -210,6 +210,11 @@ void main() {
         // The delivered state is now the completed-order screen (review prompt,
         // receipt, root navigation), not the live FoodDeliveryPage with a back arrow.
         await wait(find.text('Delivered to you'));
+        // The live delivery page hands over to the completed-order screen after a short transition.
+        for (var n = 0; n < 150 && find.byType(FoodDeliveryPage).evaluate().isNotEmpty; n++) {
+          await tester.pump(const Duration(milliseconds: 100));
+          await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 100)));
+        }
         expect(find.byType(FoodDeliveryPage), findsNothing);
         expect(find.byType(SelectableText), findsNothing, reason: 'No private capability after delivery');
         final delivered = await tester.runAsync(
