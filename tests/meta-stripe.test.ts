@@ -90,3 +90,13 @@ test('Checkout Session: canonical amount, metadata on session and PaymentIntent,
  assert.equal(unpaid.paid,false);
  await assert.rejects(retrieveCheckoutSession(config,'cs_live_x',reply(200,session())),code('INVALID_AMOUNT'));
 });
+
+test('menu minor units convert exactly to Stripe hundredths or are refused',async()=>{
+ const {toStripeMinor}=await import('../apps/api/src/meta/tap-checkout');
+ assert.equal(toStripeMinor('800',4),8n,'USD 0.0800 is 8 cents, not 800');
+ assert.equal(toStripeMinor('5000',4),50n);
+ assert.equal(toStripeMinor('5200',2),5200n);
+ assert.equal(toStripeMinor('52',0),5200n);
+ assert.equal(toStripeMinor('805',4),null,'a fraction of a cent is never rounded');
+ assert.equal(toStripeMinor('1',-1),null);
+});

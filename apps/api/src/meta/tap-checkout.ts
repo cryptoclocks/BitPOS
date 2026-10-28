@@ -11,9 +11,23 @@ import {createCheckoutSession,paymentFactFromEvent,retrieveCheckoutSession,verif
 export interface StripeDeps {config:StripeSandboxConfig;fetch?:StripeFetch}
 export type CheckoutStart=
  {kind:'redirect';url:string;orderId:string}|{kind:'paid';orderId:string}|
- {kind:'unavailable';reason:'NO_SESSION'|'NO_TAP'|'NO_OFFER'|'OFFER_ENDED'|'CURRENCY'|'OUT_OF_STOCK'};
+ {kind:'unavailable';reason:'NO_SESSION'|'NO_TAP'|'NO_OFFER'|'OFFER_ENDED'|'CURRENCY'|'OUT_OF_STOCK'|'BELOW_MINIMUM'};
 
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+// Stripe amounts for THB and USD are in hundredths; menus may keep more decimals (e.g. USD with 4).
+// meta_tap_orders.amount_minor is stored in these Stripe units so webhook and lookup facts compare exactly.
+const STRIPE_DECIMALS=2;
+// Stripe's minimum charge per currency, in Stripe units (USD $0.50, THB ฿10).
+const STRIPE_MINIMUM:Record<'thb'|'usd',bigint>={usd:50n,thb:1000n};
+
+/** Menu minor units → Stripe minor units, or null when the price cannot be expressed exactly. */
+export function toStripeMinor(amountMinor:string|bigint,decimals:number):bigint|null{
+ if(!Number.isInteger(decimals)||decimals<0||decimals>18)return null;
+ const v=BigInt(amountMinor);
+ if(decimals<=STRIPE_DECIMALS)return v*10n**BigInt(STRIPE_DECIMALS-decimals);
+ const f=10n**BigInt(decimals-STRIPE_DECIMALS);
+ return v%f===0n?v/f:null;
+}
 
 export async function startTapCheckout(deps:IdentityDeps,offers:OfferDeps,stripe:StripeDeps,sessionToken:string|null|undefined):Promise<CheckoutStart>{
  const me=await customerFromSession(deps,sessionToken);
@@ -32,10 +46,13 @@ export async function startTapCheckout(deps:IdentityDeps,offers:OfferDeps,stripe
   if(!offer)return {kind:'unavailable',reason:'OFFER_ENDED'} as const;
   const currency=offer.unitPrice.currency.toLowerCase();
   if(currency!=='thb'&&currency!=='usd')return {kind:'unavailable',reason:'CURRENCY'} as const;
+  const amount=toStripeMinor(offer.unitPrice.amountMinor,offer.unitPrice.decimals);
+  if(amount===null)return {kind:'unavailable',reason:'CURRENCY'} as const;
+  if(amount<STRIPE_MINIMUM[currency])return {kind:'unavailable',reason:'BELOW_MINIMUM'} as const;
   if(offer.available<1)return {kind:'unavailable',reason:'OUT_OF_STOCK'} as const;
   const row=(await db.query<{id:string}>("WITH n AS (SELECT clock_timestamp() AS t) INSERT INTO meta_tap_orders(merchant_id,link_id,tap_session_id,offer_id,product_id,currency,amount_minor,created_at,expires_at) SELECT $1,$2,$3,$4,$5,$6,$7,t,t+interval '40 minutes' FROM n RETURNING id",
-   [me.merchantId,me.linkId,tapSessionId,offer.offerId,offer.productId,currency,offer.unitPrice.amountMinor])).rows[0];
-  return {kind:'create',orderId:row.id,amountMinor:BigInt(offer.unitPrice.amountMinor),currency:currency as 'thb'|'usd',productName:`${offer.emoji} ${offer.name} / ${offer.nameEn}`} as const;
+   [me.merchantId,me.linkId,tapSessionId,offer.offerId,offer.productId,currency,amount.toString()])).rows[0];
+  return {kind:'create',orderId:row.id,amountMinor:amount,currency:currency as 'thb'|'usd',productName:`${offer.emoji} ${offer.name} / ${offer.nameEn}`} as const;
  });
  if(prep.kind!=='create')return prep;
  const session=await createCheckoutSession(stripe.config,{orderId:prep.orderId,merchantId:me.merchantId,productName:prep.productName,amountMinor:prep.amountMinor,currency:prep.currency,

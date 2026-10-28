@@ -120,7 +120,7 @@ export async function serveMeta(req:http.IncomingMessage,res:http.ServerResponse
    const r=await startTapCheckout(deps.identity,deps.offers,deps.stripe,cookieValue(req.headers.cookie));
    if(r.kind==='redirect'){res.writeHead(303,{Location:r.url,'Cache-Control':'no-store','Referrer-Policy':'no-referrer'});res.end();return true;}
    if(r.kind==='paid'){res.writeHead(303,{Location:`/meta/paid?o=${r.orderId}`,'Cache-Control':'no-store'});res.end();return true;}
-   const why:Record<typeof r.reason,string>={NO_SESSION:'แตะมือถือที่เครื่องก่อน / Tap the device first.',NO_TAP:'แตะมือถือที่เครื่องอีกครั้ง / Tap the device again.',NO_OFFER:'ยังไม่มีโปรสำหรับการแตะนี้ / No offer for this tap.',OFFER_ENDED:'โปรนี้หมดแล้ว / This offer has ended.',CURRENCY:'สกุลเงินนี้จ่ายผ่าน Stripe ไม่ได้ / Currency not supported.',OUT_OF_STOCK:'สินค้าหมด / Sold out.'};
+   const why:Record<typeof r.reason,string>={NO_SESSION:'แตะมือถือที่เครื่องก่อน / Tap the device first.',NO_TAP:'แตะมือถือที่เครื่องอีกครั้ง / Tap the device again.',NO_OFFER:'ยังไม่มีโปรสำหรับการแตะนี้ / No offer for this tap.',OFFER_ENDED:'โปรนี้หมดแล้ว / This offer has ended.',CURRENCY:'สกุลเงินนี้จ่ายผ่าน Stripe ไม่ได้ / Currency not supported.',OUT_OF_STOCK:'สินค้าหมด / Sold out.',BELOW_MINIMUM:'ยอดต่ำกว่าขั้นต่ำของ Stripe ให้ชำระที่เคาน์เตอร์ / Below the Stripe minimum charge; please pay at the counter.'};
    page(res,409,'จ่ายไม่ได้ตอนนี้',[esc(why[r.reason])]);return true;
   }catch(e){log(`Checkout failed: ${e instanceof StripePaymentError?e.code:'UNKNOWN'}`);page(res,502,'ระบบชำระเงินขัดข้อง',['ลองใหม่อีกครั้ง / Please try again.']);return true;}
  }
