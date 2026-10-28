@@ -72,7 +72,11 @@ void main() {
     );
     await tester.pumpAndSettle();
     final openChat = find.text('Chat with customer');
-    await tester.ensureVisible(openChat);
+    await tester.scrollUntilVisible(
+      openChat,
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
     await tester.tap(openChat);
     await tester.pumpAndSettle();
 
