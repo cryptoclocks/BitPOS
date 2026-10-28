@@ -21,6 +21,8 @@ class ObservedApi extends MobileApi {
   return state;
  });
 }
+// English labels of the shipment states this fixture can reach (mirrors FoodDeliveryPanel._stateLabel).
+String shipmentLabel(String state)=>const {'ASSIGNED':'Driver accepted','ACCEPTED':'Driver accepted','AT_PICKUP':'Driver at the merchant','PICKED_UP':'Food picked up','AT_DROPOFF':'Driver at drop-off','DELIVERED':'Delivered'}[state]??state;
 void main(){
  final binding=IntegrationTestWidgetsFlutterBinding.ensureInitialized();
  testWidgets('actual API restart clears tracking then recovers same persisted shipment',(tester) async {
@@ -33,16 +35,16 @@ void main(){
    await tester.pumpWidget(MaterialApp(theme:BitPosTheme.light(),home:FoodDeliveryPage(api:api,orderId:orderId,thai:false,onAuthenticationRequired:()=>throw StateError('Unexpected fixture auth loss'))));
    Future<void> until(bool Function() ready) async {final deadline=DateTime.now().add(const Duration(seconds:40));while(!ready()&&DateTime.now().isBefore(deadline)){await tester.pump(const Duration(milliseconds:200));}expect(ready(),true);}
    await until(()=>api.first.isCompleted);await tester.pumpAndSettle();final before=await api.first.future;
-   expect(find.text('Shipment: ${before.work.state}'),findsOneWidget);
+   expect(find.text('Shipment: ${shipmentLabel(before.work.state)}'),findsOneWidget);
    // Host runner observes this non-secret marker and restarts only its own API.
    debugPrint('BITPOS_REALTIME_RESTART_READY');
    await until(()=>api.disconnected);await tester.pumpAndSettle();
-   expect(find.text('Shipment: ${before.work.state}'),findsNothing);
+   expect(find.text('Shipment: ${shipmentLabel(before.work.state)}'),findsNothing);
    expect(find.text('No current confirmed snapshot'),findsOneWidget);
    debugPrint('BITPOS_REALTIME_UI_CLEARED');
    await until(()=>api.recovered.isCompleted);await tester.pumpAndSettle();final after=await api.recovered.future;
    expect(api.disconnected,true);expect(after.work.shipmentId,before.work.shipmentId);expect(after.work.state,before.work.state);
-   expect(find.text('Shipment: ${after.work.state}'),findsOneWidget);
+   expect(find.text('Shipment: ${shipmentLabel(after.work.state)}'),findsOneWidget);
    final receipt={'status':'PASS_BOUNDED_AVD_REAL_API_RESTART','fixture':true,'orderId':orderId,'shipmentId':after.work.shipmentId,'state':after.work.state,'liveSnapshots':api.snapshots,'transportDisconnectedObserved':api.disconnected,'uiSnapshotCleared':true,'isolatedStorageNamespace':true,'physicalTesting':'deferred_by_user_2026-10-16','limits':['Terminal assignment-free shipment; active location/proof removal covered separately','No actual map/provider/GPS or physical evidence','Fixture authentication only; no SMS/payment/payout','Not complete platform or full fidelity acceptance']};
    binding.reportData=receipt;
    await File('${Directory.systemTemp.path}/bitpos-realtime069.json').writeAsString(jsonEncode(receipt),flush:true);

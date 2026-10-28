@@ -98,6 +98,16 @@ void main() {
             ),
           ),
         );
+        for (
+          var i = 0;
+          i < 200 && find.text('Food on the way').evaluate().isEmpty;
+          i++
+        ) {
+          await tester.runAsync(
+            () => Future<void>.delayed(const Duration(milliseconds: 100)),
+          );
+          await tester.pump();
+        }
         expect(find.text('Food on the way'), findsOneWidget);
         expect(
           tester
