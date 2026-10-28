@@ -33,12 +33,17 @@ export type MessengerEvent=
  {kind:'consent';pageId:string;psid:string;timestamp:number;requestId:string;accept:boolean}|
  {kind:'revoke';pageId:string;psid:string;timestamp:number}|
  {kind:'text';pageId:string;psid:string;timestamp:number;text:string}|
- {kind:'agent_pay';pageId:string;psid:string;timestamp:number;quoteId:string};
+ {kind:'agent_pay';pageId:string;psid:string;timestamp:number;quoteId:string}|
+ {kind:'agent_add';pageId:string;psid:string;timestamp:number;productId:string}|
+ {kind:'menu';pageId:string;psid:string;timestamp:number}|
+ {kind:'my_orders';pageId:string;psid:string;timestamp:number};
 
 export interface ParsedEvent {event:MessengerEvent;key:Buffer}
 
 const STOP=new Set(['stop','ลบข้อมูล','ยกเลิก','เลิกติดตาม']);
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+// Product ids come from the inherited catalog and are not always version-4 UUIDs.
+const ANY_UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
 /** Turns a `page` webhook body into the BitPOS events it carries; anything else is ignored. */
 export function parseMessengerWebhook(body:unknown):ParsedEvent[]{
@@ -58,6 +63,9 @@ export function parseMessengerWebhook(body:unknown):ParsedEvent[]{
    else if(payload==='BITPOS_REVOKE'||typeof m.message?.text==='string'&&STOP.has(m.message.text.trim().toLowerCase()))event={...base,kind:'revoke'};
    else if(typeof ref==='string'&&REF.test(ref))event={...base,kind:'referral',ref};
    else if(payload?.startsWith('BITPOS_AGENT_PAY:')&&UUID.test(payload.slice(17)))event={...base,kind:'agent_pay',quoteId:payload.slice(17)};
+   else if(payload?.startsWith('BITPOS_AGENT_ADD:')&&ANY_UUID.test(payload.slice(17)))event={...base,kind:'agent_add',productId:payload.slice(17)};
+   else if(payload==='BITPOS_MENU')event={...base,kind:'menu'};
+   else if(payload==='BITPOS_MY_ORDERS')event={...base,kind:'my_orders'};
    else if(!payload&&m.message?.is_echo!==true&&typeof m.message?.text==='string'&&m.message.text.trim())event={...base,kind:'text',text:m.message.text.trim().slice(0,300)};
    if(!event)continue;
    const mid=typeof m.message?.mid==='string'?m.message.mid:'';
@@ -68,18 +76,40 @@ export function parseMessengerWebhook(body:unknown):ParsedEvent[]{
  return out;
 }
 
+export type MessengerButton={type:'postback';title:string;payload:string}|{type:'web_url';title:string;url:string};
+/** A card in a horizontal carousel (generic template): Messenger allows 10 cards, titles and subtitles of 80 characters, 3 buttons. */
+export interface Card {title:string;subtitle?:string;imageUrl?:string;buttons:MessengerButton[]}
+/** Messenger's receipt template; amounts are decimal numbers in the order's currency, rendered by Messenger. */
+export interface Receipt {recipientName:string;orderNumber:string;currency:string;paymentMethod:string;timestamp:number;
+ elements:{title:string;subtitle?:string;quantity:number;price:number;currency:string;imageUrl?:string}[];total:number}
 export type Outgoing=
  {kind:'text';psid:string;text:string}|
- {kind:'buttons';psid:string;text:string;buttons:({type:'postback';title:string;payload:string}|{type:'web_url';title:string;url:string})[]};
+ {kind:'buttons';psid:string;text:string;buttons:MessengerButton[]}|
+ {kind:'cards';psid:string;cards:Card[]}|
+ {kind:'receipt';psid:string;receipt:Receipt;fallbackText:string};
+
+const cut=(s:string,n:number)=>s.length<=n?s:s.slice(0,n-1)+'…';
+function messagePayload(m:Outgoing):unknown{
+ if(m.kind==='text')return {text:m.text};
+ if(m.kind==='buttons')return {attachment:{type:'template',payload:{template_type:'button',text:cut(m.text,640),buttons:m.buttons.slice(0,3)}}};
+ if(m.kind==='cards')return {attachment:{type:'template',payload:{template_type:'generic',image_aspect_ratio:'square',elements:m.cards.slice(0,10).map(c=>({title:cut(c.title,80),
+  ...(c.subtitle?{subtitle:cut(c.subtitle,80)}:{}),...(c.imageUrl?{image_url:c.imageUrl}:{}),buttons:c.buttons.slice(0,3)}))}}};
+ const r=m.receipt;
+ return {attachment:{type:'template',payload:{template_type:'receipt',recipient_name:cut(r.recipientName,80),order_number:r.orderNumber,currency:r.currency,payment_method:r.paymentMethod,timestamp:String(r.timestamp),
+  elements:r.elements.map(e=>({title:cut(e.title,80),...(e.subtitle?{subtitle:cut(e.subtitle,80)}:{}),quantity:e.quantity,price:e.price,currency:e.currency,...(e.imageUrl?{image_url:e.imageUrl}:{})})),
+  summary:{total_cost:r.total}}}};
+}
 
 export async function sendMessenger(config:MessengerConfig,message:Outgoing,fetchImpl:MessengerFetch=fetch):Promise<void>{
  if(!ID.test(message.psid))throw new MessengerError('PAYLOAD_INVALID');
- const payload=message.kind==='text'?{text:message.text}:{attachment:{type:'template',payload:{template_type:'button',text:message.text,buttons:message.buttons}}};
+ const payload=messagePayload(message);
  let res:Response;
  try{res=await fetchImpl(`${config.graphBase??'https://graph.facebook.com'}/${config.graphVersion}/me/messages`,{method:'POST',redirect:'error',signal:AbortSignal.timeout(config.timeoutMs??10000),
   headers:{Authorization:`Bearer ${config.pageToken}`,'Content-Type':'application/json'},
   body:JSON.stringify({recipient:{id:message.psid},messaging_type:'RESPONSE',message:payload})});}
  catch{throw new MessengerError('SEND_FAILED');}
+ // A receipt Messenger will not render still reaches the customer as plain text.
+ if(!res.ok&&message.kind==='receipt')return sendMessenger(config,{kind:'text',psid:message.psid,text:message.fallbackText},fetchImpl);
  if(!res.ok)throw new MessengerError('SEND_FAILED');
 }
 

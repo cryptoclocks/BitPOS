@@ -9,7 +9,7 @@ import type {AddressInfo} from 'node:net';
 import pg from 'pg';
 import type {MetaDb,OfferDeps,IdentityDeps} from '../apps/api/src/meta/identity';
 import {handleMessengerEvents} from '../apps/api/src/meta/identity';
-import {parseMessengerWebhook} from '../apps/api/src/meta/messenger';
+import {parseMessengerWebhook,sendMessenger} from '../apps/api/src/meta/messenger';
 import type {EffectiveMenu} from '../apps/api/src/offers';
 import {decideStep,handleAgentRequest,matchItem,type ChatAgentDeps} from '../apps/api/src/meta/agent';
 import {agentReceipt,listMenu,reconcileAgentCheckout} from '../apps/api/src/meta/agent-orders';
@@ -97,9 +97,10 @@ test('step choice: model picks from the enum; unsafe replies replaced; failures 
 test('chat order: server-priced quote → Pay → one Checkout → signed webhook → receipt once; stock once',{skip},async()=>{
  routerCalls=0;
  modelReply={action:'quote',productId:latte,quantity:1,replyTh:'ได้เลยค่ะ',replyEn:'Sure'};
- const [quoteMsg]=await handleAgentRequest(deps,{merchantId:A,linkId,psid:PSID,kind:'text',text:'one latte'}) as any[];
- assert.equal(quoteMsg.kind,'buttons');assert.match(quoteMsg.text,/\$4\.00/);assert.match(quoteMsg.text,/Muse Spark/);
- const quoteId=quoteMsg.buttons[0].payload.split(':')[1];
+ const [replyMsg,quoteMsg]=await handleAgentRequest(deps,{merchantId:A,linkId,psid:PSID,kind:'text',text:'one latte'}) as any[];
+ assert.match(replyMsg.text,/Muse Spark/);
+ assert.equal(quoteMsg.kind,'cards');assert.match(quoteMsg.cards[0].title,/\$4\.00/);
+ const quoteId=quoteMsg.cards[0].buttons[0].payload.split(':')[1];
  const q=(await admin.query('SELECT channel,link_id,amount_minor::text FROM meta_quotes WHERE id=$1',[quoteId])).rows[0];
  assert.deepEqual([q.channel,q.link_id,q.amount_minor],['messenger',linkId,'400']);
  // A chat quote cannot be paid through the connector's SPT path.
@@ -136,8 +137,8 @@ test('chat order: server-priced quote → Pay → one Checkout → signed webhoo
 
 test('return page: Stripe lookup confirms once; a redirect alone proves nothing',{skip},async()=>{
  modelReply={action:'quote',productId:latte,quantity:1,replyTh:'ได้เลยค่ะ',replyEn:'Sure'};
- const [quoteMsg]=await handleAgentRequest({...deps,router:null},{merchantId:A,linkId:otherLink,psid:OTHER,kind:'text',text:'Latte'}) as any[];
- const quoteId=quoteMsg.buttons[0].payload.split(':')[1];
+ const [,quoteMsg]=await handleAgentRequest({...deps,router:null},{merchantId:A,linkId:otherLink,psid:OTHER,kind:'text',text:'Latte'}) as any[];
+ const quoteId=quoteMsg.cards[0].buttons[0].payload.split(':')[1];
  await handleAgentRequest(deps,{merchantId:A,linkId:otherLink,psid:OTHER,kind:'agent_pay',quoteId});
  const order=(await admin.query<{id:string}>('SELECT id FROM meta_agent_orders WHERE quote_id=$1',[quoteId])).rows[0].id;
  paidPi=null;
@@ -176,4 +177,30 @@ test('web order page: signed-in customers only, nonce CSP for browser speech, sa
   const other=await post('/meta/order/pay',{quote:'11111111-2222-4333-8444-555555555555'});
   assert.equal(other.status,409,'an unknown or foreign quote cannot be paid');
  }finally{server.close();}
+});
+
+test('menu cards, one-tap order and My orders: no model call; receipt template with a text fallback',{skip},async()=>{
+ const calls0=routerCalls;
+ const ev=msg(PSID,{postback:{payload:'BITPOS_MENU'}},50)[0].event;assert.equal(ev.kind,'menu');
+ assert.equal(msg(PSID,{postback:{payload:`BITPOS_AGENT_ADD:${latte}`}},51)[0].event.kind,'agent_add');
+ assert.equal(msg(PSID,{postback:{payload:'BITPOS_MY_ORDERS'}},52)[0].event.kind,'my_orders');
+ const [intro,cards]=await handleAgentRequest(deps,{merchantId:A,linkId,psid:PSID,kind:'menu'}) as any[];
+ assert.equal(intro.kind,'text');assert.equal(cards.kind,'cards');
+ const card=cards.cards.find((c:any)=>c.buttons[0].payload===`BITPOS_AGENT_ADD:${latte}`);
+ assert.match(card.title,/\$4\.00/);assert.match(card.subtitle,/−20%/);
+ const [quote]=await handleAgentRequest(deps,{merchantId:A,linkId,psid:PSID,kind:'agent_add',productId:latte}) as any[];
+ assert.equal(quote.kind,'cards');assert.match(quote.cards[0].buttons[0].payload,/^BITPOS_AGENT_PAY:/);
+ const [mine]=await handleAgentRequest(deps,{merchantId:A,linkId,psid:PSID,kind:'my_orders'}) as any[];
+ assert.match(mine.text,/#[0-9A-F]{4}/);
+ assert.equal(routerCalls,calls0,'menu, one-tap order and My orders never call the model');
+ // Receipt: Messenger receipt template; if Messenger refuses it, the same facts go out as text.
+ const order=(await admin.query<{id:string}>("SELECT id FROM meta_agent_orders WHERE link_id=$1 AND status='CONFIRMED' ORDER BY created_at DESC LIMIT 1",[linkId])).rows[0].id;
+ const r=(await agentReceipt(db,A,order,'https://pay.example.test'))!;
+ assert.deepEqual([r.receipt.currency,r.receipt.total,r.receipt.elements[0].quantity],['USD',4,1]);
+ const sent:any[]=[];let refuse=true;
+ const cfg={appSecret:'s',verifyToken:'v',pageToken:'p',graphVersion:'v24.0'};
+ await sendMessenger(cfg,{kind:'receipt',psid:PSID,receipt:r.receipt,fallbackText:r.text},async(_u,init)=>{const b=JSON.parse(String(init.body));sent.push(b);const ok=!(refuse&&b.message.attachment);return new Response('{}',{status:ok?200:400});});
+ assert.equal(sent[0].message.attachment.payload.template_type,'receipt');
+ assert.equal(sent[0].message.attachment.payload.summary.total_cost,4);
+ assert.match(sent[1].message.text,/จ่ายแล้ว/,'fallback text after a refused template');
 });

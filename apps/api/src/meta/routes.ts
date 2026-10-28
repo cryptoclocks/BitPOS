@@ -153,7 +153,7 @@ export async function serveMeta(req:http.IncomingMessage,res:http.ServerResponse
   if(!deps.stripe){json(res,503,{error:'NOT_CONFIGURED'});return true;}
   const raw=await rawBody(req,MAX_WEBHOOK);
   if(!raw){json(res,413,{error:'REQUEST_TOO_LARGE'});return true;}
-  const receipt=async(merchantId:string,orderId:string)=>{const r=await agentReceipt(deps.identity.db,merchantId,orderId);if(r&&deps.messenger)await sendMessenger(deps.messenger,{kind:'text',psid:r.psid,text:r.text},deps.fetch).catch(()=>log('Receipt send failed'));};
+  const receipt=async(merchantId:string,orderId:string)=>{const r=await agentReceipt(deps.identity.db,merchantId,orderId,deps.identity.publicOrigin);if(r&&deps.messenger)await sendMessenger(deps.messenger,{kind:'receipt',psid:r.psid,receipt:r.receipt,fallbackText:r.text},deps.fetch).catch(()=>log('Receipt send failed'));};
   try{json(res,200,{result:await applyStripeWebhook(deps.identity,deps.stripe,raw.toString('utf8'),req.headers['stripe-signature'] as string|undefined,undefined,receipt)});}
   catch(e){json(res,e instanceof StripePaymentError?400:500,{error:e instanceof StripePaymentError?e.code:'INTERNAL'});}
   return true;
@@ -171,7 +171,7 @@ export async function serveMeta(req:http.IncomingMessage,res:http.ServerResponse
   if(!chat){page(res,503,'ยังรับชำระไม่ได้',['Payments are not configured.']);return true;}
   let o;try{o=await reconcileAgentCheckout(chat,url.searchParams.get('o'));}catch{o=undefined;}
   if(o===null){page(res,404,'ไม่พบรายการ',['Order not found.']);return true;}
-  if(o?.confirmedNow&&deps.messenger){const r=await agentReceipt(deps.identity.db,o.merchantId,o.orderId);if(r)await sendMessenger(deps.messenger,{kind:'text',psid:r.psid,text:r.text},deps.fetch).catch(()=>log('Receipt send failed'));}
+  if(o?.confirmedNow&&deps.messenger){const r=await agentReceipt(deps.identity.db,o.merchantId,o.orderId,deps.identity.publicOrigin);if(r)await sendMessenger(deps.messenger,{kind:'receipt',psid:r.psid,receipt:r.receipt,fallbackText:r.text},deps.fetch).catch(()=>log('Receipt send failed'));}
   if(o?.status==='CONFIRMED'){page(res,200,'จ่ายแล้ว ✓',['ร้านได้รับออเดอร์แล้ว รับที่เคาน์เตอร์ได้เลย','Paid — pick it up at the counter.',`รหัสรับสินค้า / Pickup code: <strong>${esc(o.pickupCode)}</strong>`,'กลับไปที่ Messenger ได้เลย / You can go back to Messenger.','<small>Stripe sandbox · test mode · no real money</small>']);return true;}
   page(res,202,'กำลังตรวจสอบการชำระเงิน',['ยังไม่ได้รับการยืนยันจาก Stripe ลองรีเฟรชอีกครั้ง','Waiting for Stripe to confirm. Refresh in a moment.']);return true;
  }

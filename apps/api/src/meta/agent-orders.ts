@@ -13,7 +13,7 @@ import {STRIPE_MINIMUM,chargeSharedPaymentToken,createCheckoutSession,refundPaym
 
 export interface AgentDeps {db:MetaDb;offers:OfferDeps;stripe:{config:StripeSandboxConfig;fetch?:StripeFetch}|null}
 export type Currency='thb'|'usd';
-export interface MenuItem {productId:string;name:string;nameEn:string;emoji:string;category:string|null;available:number;
+export interface MenuItem {productId:string;name:string;nameEn:string;emoji:string;category:string|null;available:number;imageUrl:string|null;
  price:{amountMinor:string;currency:Currency;display:string};basePrice:{amountMinor:string;display:string};
  offer:{offerId:string;discountPercent:number;expiresAt:string}|null;payable:boolean}
 export interface QuoteView {quoteId:string;productId:string;name:string;nameEn:string;quantity:number;currency:Currency;
@@ -42,7 +42,7 @@ export async function listMenu(deps:AgentDeps,merchantId:string):Promise<MenuIte
    const unit=toStripeMinor(p.unitPrice.amountMinor,p.unitPrice.decimals),base=toStripeMinor(p.basePrice.amountMinor,p.basePrice.decimals);
    if(unit===null||base===null)continue;
    const o=offers.get(p.id);
-   items.push({productId:p.id,name:p.name,nameEn:p.nameEn,emoji:p.emoji,category:typeof p.category==='string'?p.category:null,available:p.available,
+   items.push({productId:p.id,name:p.name,nameEn:p.nameEn,emoji:p.emoji,category:typeof p.category==='string'?p.category:null,available:p.available,imageUrl:typeof p.imageUrl==='string'?p.imageUrl:null,
     price:{amountMinor:unit.toString(),currency,display:formatTapAmount(unit.toString(),currency)},basePrice:{amountMinor:base.toString(),display:formatTapAmount(base.toString(),currency)},
     offer:o?{offerId:o.offerId,discountPercent:o.discountPercent,expiresAt:o.expiresAt}:null,payable:p.available>0&&unit>=STRIPE_MINIMUM[currency]});
   }
@@ -235,14 +235,26 @@ export async function reconcileAgentCheckout(deps:AgentDeps,orderIdIn:unknown):P
  });
 }
 
-/** Who to tell when a chat order is paid (consented Messenger customers only). */
-export async function agentReceipt(db:MetaDb,merchantId:string,orderId:string):Promise<{psid:string;text:string}|null>{
+/** Who to tell when a chat order is paid (consented Messenger customers only), as a Messenger receipt. */
+export async function agentReceipt(db:MetaDb,merchantId:string,orderId:string,publicOrigin?:string):Promise<{psid:string;text:string;receipt:import('./messenger').Receipt}|null>{
  return db.tenant(merchantId,async c=>{
-  const r=(await c.query<{psid:string;status:string;amount_minor:string;currency:string;quantity:number;name:string;name_en:string;emoji:string}>(
-   `SELECT l.psid,o.status,o.amount_minor::text,o.currency,o.quantity,coalesce(p.name,'') AS name,coalesce(p.name_en,'') AS name_en,coalesce(p.emoji,'') AS emoji FROM meta_agent_orders o
+  const r=(await c.query<{psid:string;status:string;amount_minor:string;currency:string;quantity:number;name:string;name_en:string;emoji:string;image_url:string|null;confirmed_at:Date|null}>(
+   `SELECT l.psid,o.status,o.amount_minor::text,o.currency,o.quantity,coalesce(p.name,'') AS name,coalesce(p.name_en,'') AS name_en,coalesce(p.emoji,'') AS emoji,p.image_url,o.confirmed_at FROM meta_agent_orders o
     JOIN meta_customer_links l ON l.merchant_id=o.merchant_id AND l.id=o.link_id AND l.revoked_at IS NULL
     LEFT JOIN products p ON p.merchant_id=o.merchant_id AND p.id=o.product_id WHERE o.id=$1`,[orderId])).rows[0];
   if(!r||r.status!=='CONFIRMED')return null;
-  return {psid:r.psid,text:`จ่ายแล้ว ✓ ${r.emoji} ${r.name} ×${r.quantity} · ${formatTapAmount(r.amount_minor,r.currency)}\nรหัสรับสินค้า #${code(orderId)} รับที่เคาน์เตอร์ได้เลยค่ะ\nPaid — pickup code #${code(orderId)}. Stripe sandbox, test mode.`};
+  const total=Number(BigInt(r.amount_minor))/100,unit=total/r.quantity;
+  const image=r.image_url?.startsWith('/images/')&&publicOrigin?publicOrigin+r.image_url:r.image_url?.startsWith('https://')?r.image_url:undefined;
+  const text=`จ่ายแล้ว ✓ ${r.emoji} ${r.name} ×${r.quantity} · ${formatTapAmount(r.amount_minor,r.currency)}\nรหัสรับสินค้า #${code(orderId)} รับที่เคาน์เตอร์ได้เลยค่ะ\nPaid — pickup code #${code(orderId)}. Stripe sandbox, test mode.`;
+  return {psid:r.psid,text,receipt:{recipientName:`รหัสรับ #${code(orderId)} / Pickup #${code(orderId)}`,orderNumber:code(orderId),currency:r.currency.toUpperCase(),paymentMethod:'Stripe sandbox (test mode)',
+   timestamp:Math.floor((r.confirmed_at??new Date()).getTime()/1000),elements:[{title:`${r.emoji} ${r.name} / ${r.name_en}`,subtitle:'รับที่เคาน์เตอร์ / Pick up at the counter',quantity:r.quantity,price:Math.round(unit*100)/100,currency:r.currency.toUpperCase(),imageUrl:image}],total}};
  });
+}
+
+/** A customer's own recent chat orders (pickup code, item, total, status) for "My orders". */
+export async function listCustomerOrders(deps:AgentDeps,merchantId:string,linkId:string):Promise<{code:string;line:string;status:OrderStatus;handedOver:boolean}[]>{
+ return deps.db.tenant(merchantId,async db=>(await db.query<{id:string;status:OrderStatus;amount_minor:string;currency:Currency;quantity:number;handed_over_at:Date|null;name:string;emoji:string}>(
+  `SELECT o.id,o.status,o.amount_minor::text,o.currency,o.quantity,o.handed_over_at,coalesce(p.name,'') AS name,coalesce(p.emoji,'') AS emoji FROM meta_agent_orders o
+   LEFT JOIN products p ON p.merchant_id=o.merchant_id AND p.id=o.product_id WHERE o.link_id=$1 AND o.created_at>clock_timestamp()-interval '7 days' ORDER BY o.created_at DESC LIMIT 5`,[linkId])).rows
+  .map(r=>({code:code(r.id),status:r.status,handedOver:r.handed_over_at!==null,line:`${r.emoji} ${r.name} ×${r.quantity} · ${formatTapAmount(r.amount_minor,r.currency)}`})));
 }

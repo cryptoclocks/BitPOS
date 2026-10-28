@@ -8,9 +8,9 @@
 import {z} from 'zod';
 import type {MetaRouter} from '../../../../packages/meta-ai/src/router';
 import {MetaRouterError} from '../../../../packages/meta-ai/src/types';
-import {AgentOrderError,createQuote,listMenu,startAgentCheckout,type AgentDeps,type MenuItem} from './agent-orders';
+import {AgentOrderError,createQuote,listCustomerOrders,listMenu,startAgentCheckout,type AgentDeps,type MenuItem,type QuoteView} from './agent-orders';
 import type {AgentRequest} from './identity';
-import type {Outgoing} from './messenger';
+import type {Card,Outgoing} from './messenger';
 
 export interface ChatAgentDeps extends AgentDeps {router:MetaRouter|null;publicOrigin:string;modelCallsPerHour?:number}
 export type AgentStep={action:'quote';productId:string;quantity:number;replyTh:string;replyEn:string;chosenBy:'model'|'fallback'}|
@@ -70,7 +70,7 @@ const ERRORS:Partial<Record<AgentOrderError['code'],string>>={OUT_OF_STOCK:'ข�
  NOT_FOUND:'ไม่พบรายการนี้ค่ะ / Order not found.',PAYMENTS_UNAVAILABLE:'ร้านยังไม่เปิดจ่ายผ่านแชทค่ะ / Chat payments are not available.'};
 const errorText=(e:unknown)=>e instanceof AgentOrderError?ERRORS[e.code]??'ระบบขัดข้อง ลองใหม่อีกครั้งค่ะ / Something went wrong, please try again.':null;
 
-export type ChatPlan={kind:'quote';reply:string;by:string;quoteId:string;line:string;total:string}|{kind:'menu';reply:string;by:string;lines:string[]}|{kind:'help';reply:string;by:string}|{kind:'error';text:string};
+export type ChatPlan={kind:'quote';reply:string;by:string;quoteId:string;line:string;total:string;quote:QuoteView;item:MenuItem}|{kind:'menu';reply:string;by:string;lines:string[];items:MenuItem[]}|{kind:'help';reply:string;by:string}|{kind:'error';text:string};
 
 /** One customer message → one step (Muse Spark or the free matcher) → a server-priced quote or the menu. */
 export async function planChatOrder(deps:ChatAgentDeps,merchantId:string,linkId:string,text:string):Promise<ChatPlan>{
@@ -83,12 +83,30 @@ export async function planChatOrder(deps:ChatAgentDeps,merchantId:string,linkId:
   if(step.action==='quote'){
    const q=await createQuote(deps,merchantId,'messenger',step.productId,step.quantity,linkId);
    const item=items.find(i=>i.productId===q.productId)!;
-   return {kind:'quote',reply,by,quoteId:q.quoteId,total:q.total,line:`${item.emoji} ${q.name} / ${q.nameEn} ×${q.quantity} = ${q.total}${item.offer?` (โปร −${item.offer.discountPercent}%)`:''}`};
+   return {kind:'quote',reply,by,quoteId:q.quoteId,total:q.total,quote:q,item,line:`${item.emoji} ${q.name} / ${q.nameEn} ×${q.quantity} = ${q.total}${item.offer?` (โปร −${item.offer.discountPercent}%)`:''}`};
   }
-  if(step.action==='menu')return {kind:'menu',reply,by,lines:items.slice(0,8).map(i=>`${i.emoji} ${i.name} / ${i.nameEn} ${i.price.display}${i.offer?` (−${i.offer.discountPercent}%)`:''}`)};
+  if(step.action==='menu')return {kind:'menu',reply,by,items,lines:items.slice(0,8).map(i=>`${i.emoji} ${i.name} / ${i.nameEn} ${i.price.display}${i.offer?` (−${i.offer.discountPercent}%)`:''}`)};
   return {kind:'help',reply,by};
  }catch(e){const t=errorText(e);if(t)return {kind:'error',text:t};throw e;}
 }
+
+/** Absolute image for a Messenger card: the shop's own /images/ path on the public origin, or an https URL. */
+function imageFor(deps:ChatAgentDeps,i:MenuItem):string|undefined{
+ if(i.imageUrl?.startsWith('/images/'))return deps.publicOrigin+i.imageUrl;
+ return i.imageUrl?.startsWith('https://')?i.imageUrl:undefined;
+}
+/** The menu as a swipeable card carousel; "Order" quotes the item directly, with no model call. */
+export function menuCards(deps:ChatAgentDeps,psid:string,items:MenuItem[]):Outgoing{
+ return {kind:'cards',psid,cards:items.slice(0,10).map(i=>({title:`${i.emoji} ${i.name} · ${i.price.display}`,
+  subtitle:`${i.nameEn}${i.offer?` · โปร −${i.offer.discountPercent}% (ปกติ ${i.basePrice.display})`:''}`,imageUrl:imageFor(deps,i),
+  buttons:[{type:'postback',title:'สั่ง / Order',payload:`BITPOS_AGENT_ADD:${i.productId}`}]}))};
+}
+function quoteCard(deps:ChatAgentDeps,psid:string,q:QuoteView,item:MenuItem,by:string):Outgoing{
+ const card:Card={title:`${item.emoji} ${q.name} ×${q.quantity} = ${q.total}`,subtitle:`${item.offer?`โปร −${item.offer.discountPercent}% · `:''}${LABEL}${by?` · ${by}`:''}`,imageUrl:imageFor(deps,item),
+  buttons:[{type:'postback',title:`จ่าย ${q.total}`.slice(0,20),payload:`BITPOS_AGENT_PAY:${q.quoteId}`},{type:'postback',title:'ดูเมนู / Menu',payload:'BITPOS_MENU'}]};
+ return {kind:'cards',psid,cards:[card]};
+}
+const STATUS:Record<string,string>={PENDING:'⏳ รอชำระ / waiting',CONFIRMED:'✅ จ่ายแล้ว / paid',FAILED:'✖️ จ่ายไม่สำเร็จ / failed',REFUNDING:'↩️ กำลังคืนเงิน / refunding',CANCELLED:'↩️ ยกเลิก / cancelled'};
 
 /** Handles one chat request after the webhook transaction committed; returns the replies to send. */
 export async function handleAgentRequest(deps:ChatAgentDeps,req:AgentRequest):Promise<Outgoing[]>{
@@ -100,11 +118,25 @@ export async function handleAgentRequest(deps:ChatAgentDeps,req:AgentRequest):Pr
    if(r.kind==='ended')return [{kind:'text',psid,text:'รายการนี้ปิดแล้ว พิมพ์สั่งใหม่ได้เลยค่ะ / This order is closed; order again.'}];
    return [{kind:'buttons',psid,text:`ยอด ${r.total} · จ่ายบนหน้า Stripe Checkout\nTotal ${r.total} · pay on Stripe Checkout.\n${LABEL}`,buttons:[{type:'web_url',title:'จ่าย / Pay',url:r.url}]}];
   }
+  if(req.kind==='my_orders'){
+   const orders=await listCustomerOrders(deps,merchantId,linkId);
+   if(!orders.length)return [{kind:'text',psid,text:'ยังไม่มีออเดอร์ใน 7 วันค่ะ / No orders in the last 7 days.'}];
+   return [{kind:'text',psid,text:['ออเดอร์ของคุณ / Your orders',...orders.map(o=>`#${o.code} ${o.line} · ${o.handedOver?'🤝 รับแล้ว / picked up':STATUS[o.status]}`)].join('\n')}];
+  }
+  if(req.kind==='menu'||req.kind==='agent_add'){
+   const items=(await listMenu(deps,merchantId)).filter(i=>i.payable);
+   if(!items.length)return [{kind:'text',psid,text:'ตอนนี้ยังไม่มีเมนูที่สั่งผ่านแชทได้ค่ะ / Nothing can be ordered by chat right now.'}];
+   if(req.kind==='menu')return [{kind:'text',psid,text:'เมนูวันนี้ เลื่อนดูแล้วกด "สั่ง" ได้เลยค่ะ\nToday’s menu: swipe and tap Order.'},menuCards(deps,psid,items)];
+   const item=items.find(i=>i.productId===req.productId);
+   if(!item)return [{kind:'text',psid,text:'เมนูนี้สั่งผ่านแชทไม่ได้ตอนนี้ค่ะ / This item cannot be ordered by chat now.'}];
+   const q=await createQuote(deps,merchantId,'messenger',item.productId,1,linkId);
+   return [quoteCard(deps,psid,q,item,'')];
+  }
   const plan=await planChatOrder(deps,merchantId,linkId,req.text);
   const by=plan.kind!=='error'&&plan.by?` · ${plan.by}`:'';
-  if(plan.kind==='quote')return [{kind:'buttons',psid,text:`${plan.reply}\n\n${plan.line}\n${LABEL}${by}`,buttons:[{type:'postback',title:`จ่าย ${plan.total}`.slice(0,20),payload:`BITPOS_AGENT_PAY:${plan.quoteId}`}]}];
-  if(plan.kind==='menu')return [{kind:'text',psid,text:`${plan.reply}\n\n${plan.lines.join('\n')}${by}`.slice(0,1900)}];
-  if(plan.kind==='help')return [{kind:'text',psid,text:`${plan.reply}${by}`}];
+  if(plan.kind==='quote')return [{kind:'text',psid,text:`${plan.reply}${by}`},quoteCard(deps,psid,plan.quote,plan.item,plan.by)];
+  if(plan.kind==='menu')return [{kind:'text',psid,text:`${plan.reply}${by}`},menuCards(deps,psid,plan.items)];
+  if(plan.kind==='help')return [{kind:'buttons',psid,text:`${plan.reply}${by}`,buttons:[{type:'postback',title:'ดูเมนู / Menu',payload:'BITPOS_MENU'},{type:'postback',title:'ออเดอร์ของฉัน',payload:'BITPOS_MY_ORDERS'}]}];
   return [{kind:'text',psid,text:plan.text}];
  }catch(e){
   const t=errorText(e);if(t)return [{kind:'text',psid,text:t}];
