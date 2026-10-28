@@ -10,11 +10,16 @@ import type {MetaRouter} from '../../../../packages/meta-ai/src/router';
 import {MetaRouterError} from '../../../../packages/meta-ai/src/types';
 import {AgentOrderError,createQuote,listCustomerOrders,listMenu,startAgentCheckout,type AgentDeps,type MenuItem,type QuoteView} from './agent-orders';
 import type {AgentRequest} from './identity';
+import {cancelReservation,customerReservations,openBookingRequest,parseBooking,requestBooking,resetBookingRequest,bangkokToday,TZ,CHECKIN_MINUTES,type BookingFields,type BookingResult,type ReservationView} from './reservations';
 import type {Card,Outgoing} from './messenger';
 
 export interface ChatAgentDeps extends AgentDeps {router:MetaRouter|null;publicOrigin:string;modelCallsPerHour?:number}
-export type AgentStep={action:'quote';productId:string;quantity:number;replyTh:string;replyEn:string;chosenBy:'model'|'fallback'}|
- {action:'menu'|'help';replyTh:string;replyEn:string;chosenBy:'model'|'fallback'};
+type By={chosenBy:'model'|'fallback';invocationId?:string|null};
+export type AgentStep=({action:'quote';productId:string;quantity:number;replyTh:string;replyEn:string}|
+ {action:'book';booking:BookingFields;replyTh:string;replyEn:string}|
+ {action:'menu'|'help';replyTh:string;replyEn:string})&By;
+/** What the agent knows besides the message: today in Bangkok and a booking the customer is part-way through. */
+export interface StepContext {today:string;pendingBooking:BookingFields|null}
 
 const NO_DIGITS=/[0-9๐-๙]/,FORBIDDEN=/https?:|www\.|[฿$%€£]/i;
 const LABEL='Stripe sandbox · test mode · no real money';
@@ -25,6 +30,7 @@ const SYSTEM=`You take orders for a small cafe in Facebook Messenger.
 Read the customer's message and choose exactly one action:
 - "quote": the customer clearly wants one item from the list; set productId to that item and quantity (1-10, default 1).
 - "menu": the customer asks what is available, or the item is unclear or not in the list.
+- "book": the customer wants to reserve a table, or answers a question about a booking in progress (pendingBooking). Fill bookingDate as YYYY-MM-DD (use today's date for "today"), bookingTime as HH:MM in 24-hour time (for example Thai "1 ทุ่ม" is 19:00, "บ่าย 2" is 14:00), and partySize; use "" or 0 for anything the customer did not say. Do not guess a time.
 - "help": anything else (greetings, questions you cannot answer).
 Use only productIds from the list; never invent items. Write a short friendly reply in Thai (replyTh) and English (replyEn), each under 120 characters.
 Never write numbers, prices, quantities, currency symbols or links in the replies; the shop adds the order details and the price itself.`;
@@ -39,29 +45,35 @@ function allowModelCall(linkId:string,perHour:number,now=Date.now()):boolean{
 }
 
 /** No-cost matcher: a menu name inside the message, and the first number 1–10 as the quantity. */
-export function matchItem(text:string,items:MenuItem[]):AgentStep{
+export function matchItem(text:string,items:MenuItem[],ctx?:StepContext):AgentStep{
  const t=text.toLowerCase();
+ if(ctx){
+  const b=parseBooking(text,ctx.today);
+  if(b.intent||ctx.pendingBooking&&(b.fields.date||b.fields.time||b.fields.partySize))return {action:'book',booking:b.fields,replyTh:'รับทราบค่ะ',replyEn:'Got it.',chosenBy:'fallback'};
+ }
  const hits=items.filter(i=>[i.nameEn,i.name].some(n=>n&&t.includes(n.toLowerCase()))).sort((a,b)=>Math.max(b.nameEn.length,b.name.length)-Math.max(a.nameEn.length,a.name.length));
  const qty=Number(t.match(/\b([1-9]|10)\b/)?.[1]??1);
  if(hits.length)return {action:'quote',productId:hits[0].productId,quantity:qty,replyTh:DEFAULT.quote[0],replyEn:DEFAULT.quote[1],chosenBy:'fallback'};
  return {action:'menu',replyTh:DEFAULT.menu[0],replyEn:DEFAULT.menu[1],chosenBy:'fallback'};
 }
 
-export async function decideStep(router:MetaRouter|null,merchantId:string,text:string,items:MenuItem[],deadlineMs=8000):Promise<AgentStep>{
- if(!router||!items.length)return matchItem(text,items);
+export async function decideStep(router:MetaRouter|null,merchantId:string,text:string,items:MenuItem[],ctx?:StepContext,deadlineMs=8000):Promise<AgentStep>{
+ if(!router||!items.length)return matchItem(text,items,ctx);
  const ids=['none',...items.map(i=>i.productId)] as [string,...string[]];
- const schema=z.object({action:z.enum(['quote','menu','help']),productId:z.enum(ids),quantity:z.number().int().min(1).max(10),replyTh:z.string().trim().min(1).max(200),replyEn:z.string().trim().min(1).max(200)}).strict();
- const jsonSchema={type:'object',additionalProperties:false,required:['action','productId','quantity','replyTh','replyEn'],properties:{action:{type:'string',enum:['quote','menu','help']},productId:{type:'string',enum:ids},quantity:{type:'integer',minimum:1,maximum:10},replyTh:{type:'string',maxLength:200},replyEn:{type:'string',maxLength:200}}};
+ const schema=z.object({action:z.enum(['quote','menu','book','help']),productId:z.enum(ids),quantity:z.number().int().min(1).max(10),bookingDate:z.string().max(10),bookingTime:z.string().max(5),partySize:z.number().int().min(0).max(12),replyTh:z.string().trim().min(1).max(200),replyEn:z.string().trim().min(1).max(200)}).strict();
+ const jsonSchema={type:'object',additionalProperties:false,required:['action','productId','quantity','bookingDate','bookingTime','partySize','replyTh','replyEn'],properties:{action:{type:'string',enum:['quote','menu','book','help']},bookingDate:{type:'string',maxLength:10},bookingTime:{type:'string',maxLength:5},partySize:{type:'integer',minimum:0,maximum:12},productId:{type:'string',enum:ids},quantity:{type:'integer',minimum:1,maximum:10},replyTh:{type:'string',maxLength:200},replyEn:{type:'string',maxLength:200}}};
  const list=items.map(i=>({productId:i.productId,item:i.nameEn,itemTh:i.name,category:i.category,onOffer:!!i.offer}));
  try{
-  const r=await router.invoke({task:'agent_order',merchantId,messages:[{role:'system',content:SYSTEM},{role:'user',content:JSON.stringify({customerMessage:text,menu:list})}],
+  const r=await router.invoke({task:'agent_order',merchantId,messages:[{role:'system',content:SYSTEM},{role:'user',content:JSON.stringify({customerMessage:text,today:ctx?.today??null,timeZone:TZ,pendingBooking:ctx?.pendingBooking??null,menu:list})}],
    output:{name:'order_step',schema,jsonSchema},maxOutputTokens:2000,reasoningEffort:'minimal',deadlineMs});
   const v=r.value;
   const safe=!NO_DIGITS.test(v.replyTh)&&!NO_DIGITS.test(v.replyEn)&&!FORBIDDEN.test(v.replyTh)&&!FORBIDDEN.test(v.replyEn);
   const [th,en]=safe?[v.replyTh,v.replyEn]:v.action==='quote'?DEFAULT.quote:v.action==='menu'?DEFAULT.menu:DEFAULT.help;
-  if(v.action==='quote'&&v.productId!=='none')return {action:'quote',productId:v.productId,quantity:v.quantity,replyTh:th,replyEn:en,chosenBy:'model'};
-  return {action:v.action==='help'?'help':'menu',replyTh:v.action==='quote'?DEFAULT.menu[0]:th,replyEn:v.action==='quote'?DEFAULT.menu[1]:en,chosenBy:'model'};
- }catch(e){if(e instanceof MetaRouterError)return matchItem(text,items);throw e;}
+  const by={chosenBy:'model' as const,invocationId:r.invocation.id};
+  if(v.action==='book')return {action:'book',booking:{date:v.bookingDate||null,time:v.bookingTime||null,partySize:v.partySize||null},replyTh:safe?v.replyTh:'รับทราบค่ะ',replyEn:safe?v.replyEn:'Got it.',...by};
+  if(v.action==='quote'&&v.productId!=='none')return {action:'quote',productId:v.productId,quantity:v.quantity,replyTh:th,replyEn:en,...by};
+  return {action:v.action==='help'?'help':'menu',replyTh:v.action==='quote'?DEFAULT.menu[0]:th,replyEn:v.action==='quote'?DEFAULT.menu[1]:en,...by};
+ }catch(e){if(e instanceof MetaRouterError)return matchItem(text,items,ctx);throw e;}
 }
 
 const ERRORS:Partial<Record<AgentOrderError['code'],string>>={OUT_OF_STOCK:'ขออภัย สินค้าไม่พอค่ะ / Sorry, not enough stock.',
@@ -70,14 +82,15 @@ const ERRORS:Partial<Record<AgentOrderError['code'],string>>={OUT_OF_STOCK:'ข�
  NOT_FOUND:'ไม่พบรายการนี้ค่ะ / Order not found.',PAYMENTS_UNAVAILABLE:'ร้านยังไม่เปิดจ่ายผ่านแชทค่ะ / Chat payments are not available.'};
 const errorText=(e:unknown)=>e instanceof AgentOrderError?ERRORS[e.code]??'ระบบขัดข้อง ลองใหม่อีกครั้งค่ะ / Something went wrong, please try again.':null;
 
-export type ChatPlan={kind:'quote';reply:string;by:string;quoteId:string;line:string;total:string;quote:QuoteView;item:MenuItem}|{kind:'menu';reply:string;by:string;lines:string[];items:MenuItem[]}|{kind:'help';reply:string;by:string}|{kind:'error';text:string};
+export type ChatPlan={kind:'quote';reply:string;by:string;quoteId:string;line:string;total:string;quote:QuoteView;item:MenuItem}|{kind:'menu';reply:string;by:string;lines:string[];items:MenuItem[]}|{kind:'help';reply:string;by:string}|{kind:'book';reply:string;by:string;result:BookingResult}|{kind:'error';text:string};
 
 /** One customer message → one step (Muse Spark or the free matcher) → a server-priced quote or the menu. */
 export async function planChatOrder(deps:ChatAgentDeps,merchantId:string,linkId:string,text:string):Promise<ChatPlan>{
  try{
   const items=(await listMenu(deps,merchantId)).filter(i=>i.payable);
   if(!items.length)return {kind:'error',text:'ตอนนี้ยังไม่มีเมนูที่สั่งผ่านแชทได้ค่ะ / Nothing can be ordered by chat right now.'};
-  const step=await decideStep(deps.router&&allowModelCall(linkId,deps.modelCallsPerHour??10)?deps.router:null,merchantId,text,items);
+  const ctx:StepContext={today:await bangkokToday(deps.db,merchantId),pendingBooking:await openBookingRequest(deps.db,merchantId,linkId)};
+  const step=await decideStep(deps.router&&allowModelCall(linkId,deps.modelCallsPerHour??10)?deps.router:null,merchantId,text,items,ctx);
   const by=step.chosenBy==='model'?'Muse Spark':'';
   const reply=`${step.replyTh}\n${step.replyEn}`;
   if(step.action==='quote'){
@@ -85,6 +98,7 @@ export async function planChatOrder(deps:ChatAgentDeps,merchantId:string,linkId:
    const item=items.find(i=>i.productId===q.productId)!;
    return {kind:'quote',reply,by,quoteId:q.quoteId,total:q.total,quote:q,item,line:`${item.emoji} ${q.name} / ${q.nameEn} ×${q.quantity} = ${q.total}${item.offer?` (โปร −${item.offer.discountPercent}%)`:''}`};
   }
+  if(step.action==='book')return {kind:'book',reply,by,result:await requestBooking(deps.db,merchantId,linkId,step.booking,{chosenBy:step.chosenBy,invocationId:step.invocationId??null})};
   if(step.action==='menu')return {kind:'menu',reply,by,items,lines:items.slice(0,8).map(i=>`${i.emoji} ${i.name} / ${i.nameEn} ${i.price.display}${i.offer?` (−${i.offer.discountPercent}%)`:''}`)};
   return {kind:'help',reply,by};
  }catch(e){const t=errorText(e);if(t)return {kind:'error',text:t};throw e;}
@@ -108,6 +122,34 @@ function quoteCard(deps:ChatAgentDeps,psid:string,q:QuoteView,item:MenuItem,by:s
 }
 const STATUS:Record<string,string>={PENDING:'⏳ รอชำระ / waiting',CONFIRMED:'✅ จ่ายแล้ว / paid',FAILED:'✖️ จ่ายไม่สำเร็จ / failed',REFUNDING:'↩️ กำลังคืนเงิน / refunding',CANCELLED:'↩️ ยกเลิก / cancelled'};
 
+const bkk=(iso:string,o:Intl.DateTimeFormatOptions)=>new Intl.DateTimeFormat('en-GB',{...o,timeZone:TZ}).format(new Date(iso));
+const when=(iso:string)=>`${bkk(iso,{weekday:'short',day:'numeric',month:'short'})} ${bkk(iso,{hour:'2-digit',minute:'2-digit'})}`;
+const hhmm=(iso:string)=>bkk(iso,{hour:'2-digit',minute:'2-digit'});
+const addDay=(d:string,n:number)=>new Date(Date.parse(d+'T00:00:00Z')+n*86_400_000).toISOString().slice(0,10);
+/** Booking outcome → Messenger messages (also rendered as text on the web order page). */
+export function bookingMessages(psid:string,r:BookingResult,reply=''):Outgoing[]{
+ if(r.kind==='booked'){
+  const v=r.reservation;
+  return [{kind:'text',psid,text:`${reply?reply+'\n':''}จองโต๊ะให้แล้วค่ะ ✅ มาแตะมือถือที่สติกเกอร์บนโต๊ะ ${hhmm(v.checkInFrom)}–${hhmm(v.checkInUntil)} ถ้าไม่มาแตะในเวลา โต๊ะจะถูกปล่อยให้ลูกค้าคนอื่นค่ะ\nBooked. Tap your phone on the table's sticker between ${hhmm(v.checkInFrom)} and ${hhmm(v.checkInUntil)}, or the table is released.`},
+   {kind:'cards',psid,cards:[{title:`🗓️ โต๊ะ ${v.tableLabel} · ${when(v.startsAt)} · ${v.partySize} คน`,subtitle:`#${v.code} · เช็กอิน ${hhmm(v.checkInFrom)}–${hhmm(v.checkInUntil)} · tap to check in`,
+    buttons:[{type:'postback',title:'ยกเลิกการจอง / Cancel',payload:`BITPOS_BOOK_CANCEL:${v.id}`},{type:'postback',title:'ดูเมนู / Menu',payload:'BITPOS_MENU'}]}]}];
+ }
+ if(r.kind==='ask'){
+  if(r.missing.includes('date'))return [{kind:'buttons',psid,text:`${reply?reply+'\n':''}จองโต๊ะได้เลยค่ะ อยากมาวันไหน เวลากี่โมง กี่ท่านคะ (เช่น "พรุ่งนี้ 1 ทุ่ม 2 คน")\nWhich day and time, and for how many? (e.g. "tomorrow 19:00, 2 people")`,
+   buttons:[{type:'postback',title:'วันนี้ / Today',payload:`BITPOS_BOOK_SET:date:${r.today}`},{type:'postback',title:'พรุ่งนี้ / Tomorrow',payload:`BITPOS_BOOK_SET:date:${addDay(r.today,1)}`}]}];
+  return [{kind:'buttons',psid,text:`${reply?reply+'\n':''}วันที่ ${r.fields.date} ค่ะ มากี่โมงดีคะ (พิมพ์เวลาได้เลย เช่น 18:30)\nWhat time? (type it, e.g. 18:30)`,
+   buttons:['12:00','18:00','19:00'].map(t=>({type:'postback' as const,title:t,payload:`BITPOS_BOOK_SET:time:${t}`}))}];
+ }
+ if(r.kind==='full'){
+  if(!r.alternatives.length)return [{kind:'text',psid,text:'ขออภัยค่ะ ช่วงนั้นโต๊ะเต็ม ลองเวลาอื่นได้เลยค่ะ\nSorry, fully booked around then. Try another time.'}];
+  return [{kind:'buttons',psid,text:'ช่วงนั้นโต๊ะเต็มค่ะ ว่างเวลาเหล่านี้ / Fully booked then; free at:',
+   buttons:r.alternatives.slice(0,3).map(t=>({type:'postback' as const,title:t,payload:`BITPOS_BOOK_SET:at:${r.fields.date}T${t}`}))}];
+ }
+ const why={PAST:'เวลานี้ผ่านไปแล้วค่ะ บอกเวลาใหม่ได้เลย / That time has passed; tell me another.',TOO_FAR:'จองล่วงหน้าได้ไม่เกิน 14 วันค่ะ / Bookings are up to 14 days ahead.',NO_TABLES:'ร้านยังไม่เปิดจองโต๊ะค่ะ / This shop has no bookable tables yet.'}[r.reason];
+ return [{kind:'text',psid,text:why}];
+}
+const RES_STATUS:Record<ReservationView['status'],string>={HELD:'🗓️ จองไว้ / booked',CHECKED_IN:'✅ เช็กอินแล้ว / checked in',NO_SHOW:'⌛ หลุดคิว / lapsed',CANCELLED:'↩️ ยกเลิก / cancelled'};
+
 /** Handles one chat request after the webhook transaction committed; returns the replies to send. */
 export async function handleAgentRequest(deps:ChatAgentDeps,req:AgentRequest):Promise<Outgoing[]>{
  const {merchantId,linkId,psid}=req;
@@ -119,9 +161,17 @@ export async function handleAgentRequest(deps:ChatAgentDeps,req:AgentRequest):Pr
    return [{kind:'buttons',psid,text:`ยอด ${r.total} · จ่ายบนหน้า Stripe Checkout\nTotal ${r.total} · pay on Stripe Checkout.\n${LABEL}`,buttons:[{type:'web_url',title:'จ่าย / Pay',url:r.url}]}];
   }
   if(req.kind==='my_orders'){
-   const orders=await listCustomerOrders(deps,merchantId,linkId);
-   if(!orders.length)return [{kind:'text',psid,text:'ยังไม่มีออเดอร์ใน 7 วันค่ะ / No orders in the last 7 days.'}];
-   return [{kind:'text',psid,text:['ออเดอร์ของคุณ / Your orders',...orders.map(o=>`#${o.code} ${o.line} · ${o.handedOver?'🤝 รับแล้ว / picked up':STATUS[o.status]}`)].join('\n')}];
+   const orders=await listCustomerOrders(deps,merchantId,linkId),bookings=await customerReservations(deps.db,merchantId,linkId);
+   if(!orders.length&&!bookings.length)return [{kind:'text',psid,text:'ยังไม่มีออเดอร์หรือการจองค่ะ / No orders or bookings yet.'}];
+   const lines=[...(orders.length?['ออเดอร์ของคุณ / Your orders',...orders.map(o=>`#${o.code} ${o.line} · ${o.handedOver?'🤝 รับแล้ว / picked up':STATUS[o.status]}`)]:[]),
+    ...(bookings.length?['การจองของคุณ / Your bookings',...bookings.map(b=>`#${b.code} โต๊ะ ${b.tableLabel} · ${when(b.startsAt)} · ${b.partySize} คน · ${RES_STATUS[b.status]}`)]:[])];
+   return [{kind:'text',psid,text:lines.join('\n')}];
+  }
+  if(req.kind==='book_start')return (await resetBookingRequest(deps.db,merchantId,linkId),bookingMessages(psid,await requestBooking(deps.db,merchantId,linkId,{date:null,time:null,partySize:null},{chosenBy:'fallback',invocationId:null})));
+  if(req.kind==='book_set')return bookingMessages(psid,await requestBooking(deps.db,merchantId,linkId,{date:req.date,time:req.time,partySize:null},{chosenBy:'fallback',invocationId:null}));
+  if(req.kind==='book_cancel'){
+   const r=await cancelReservation(deps.db,merchantId,req.reservationId,{linkId});
+   return [{kind:'text',psid,text:r?`ยกเลิกการจอง #${r.code} แล้วค่ะ / Booking #${r.code} cancelled.`:'การจองนี้ยกเลิกไม่ได้แล้วค่ะ (เช็กอินแล้ว หมดเวลา หรือยกเลิกไปแล้ว) / This booking can no longer be cancelled.'}];
   }
   if(req.kind==='menu'||req.kind==='agent_add'){
    const items=(await listMenu(deps,merchantId)).filter(i=>i.payable);
@@ -136,8 +186,10 @@ export async function handleAgentRequest(deps:ChatAgentDeps,req:AgentRequest):Pr
   const by=plan.kind!=='error'&&plan.by?` · ${plan.by}`:'';
   if(plan.kind==='quote')return [{kind:'text',psid,text:`${plan.reply}${by}`},quoteCard(deps,psid,plan.quote,plan.item,plan.by)];
   if(plan.kind==='menu')return [{kind:'text',psid,text:`${plan.reply}${by}`},menuCards(deps,psid,plan.items)];
+  if(plan.kind==='book')return bookingMessages(psid,plan.result,`${plan.reply}${by}`);
   if(plan.kind==='help')return [{kind:'buttons',psid,text:`${plan.reply}${by}`,buttons:[{type:'postback',title:'ดูเมนู / Menu',payload:'BITPOS_MENU'},{type:'postback',title:'ออเดอร์ของฉัน',payload:'BITPOS_MY_ORDERS'}]}];
-  return [{kind:'text',psid,text:plan.text}];
+  if(plan.kind==='error')return [{kind:'text',psid,text:plan.text}];
+  return [];
  }catch(e){
   const t=errorText(e);if(t)return [{kind:'text',psid,text:t}];
   throw e;

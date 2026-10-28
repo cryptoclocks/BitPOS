@@ -36,7 +36,10 @@ export type MessengerEvent=
  {kind:'agent_pay';pageId:string;psid:string;timestamp:number;quoteId:string}|
  {kind:'agent_add';pageId:string;psid:string;timestamp:number;productId:string}|
  {kind:'menu';pageId:string;psid:string;timestamp:number}|
- {kind:'my_orders';pageId:string;psid:string;timestamp:number};
+ {kind:'my_orders';pageId:string;psid:string;timestamp:number}|
+ {kind:'book_start';pageId:string;psid:string;timestamp:number}|
+ {kind:'book_set';pageId:string;psid:string;timestamp:number;date:string|null;time:string|null}|
+ {kind:'book_cancel';pageId:string;psid:string;timestamp:number;reservationId:string};
 
 export interface ParsedEvent {event:MessengerEvent;key:Buffer}
 
@@ -66,6 +69,12 @@ export function parseMessengerWebhook(body:unknown):ParsedEvent[]{
    else if(payload?.startsWith('BITPOS_AGENT_ADD:')&&ANY_UUID.test(payload.slice(17)))event={...base,kind:'agent_add',productId:payload.slice(17)};
    else if(payload==='BITPOS_MENU')event={...base,kind:'menu'};
    else if(payload==='BITPOS_MY_ORDERS')event={...base,kind:'my_orders'};
+   else if(payload==='BITPOS_BOOK')event={...base,kind:'book_start'};
+   else if(payload?.startsWith('BITPOS_BOOK_CANCEL:')&&ANY_UUID.test(payload.slice(19)))event={...base,kind:'book_cancel',reservationId:payload.slice(19)};
+   else if(payload?.startsWith('BITPOS_BOOK_SET:')){
+    const m=payload.slice(16).match(/^(?:date:(\d{4}-\d{2}-\d{2})|time:(\d{2}:\d{2})|at:(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2}))$/);
+    if(m)event={...base,kind:'book_set',date:m[1]??m[3]??null,time:m[2]??m[4]??null};
+   }
    else if(!payload&&m.message?.is_echo!==true&&typeof m.message?.text==='string'&&m.message.text.trim())event={...base,kind:'text',text:m.message.text.trim().slice(0,300)};
    if(!event)continue;
    const mid=typeof m.message?.mid==='string'?m.message.mid:'';
@@ -83,7 +92,8 @@ export interface Card {title:string;subtitle?:string;imageUrl?:string;buttons:Me
 export interface Receipt {recipientName:string;orderNumber:string;currency:string;paymentMethod:string;timestamp:number;
  elements:{title:string;subtitle?:string;quantity:number;price:number;currency:string;imageUrl?:string}[];total:number}
 export type Outgoing=
- {kind:'text';psid:string;text:string}|
+ /** eventUpdate: a booking notice that may arrive after the 24-hour window (CONFIRMED_EVENT_UPDATE tag). */
+ {kind:'text';psid:string;text:string;eventUpdate?:boolean}|
  {kind:'buttons';psid:string;text:string;buttons:MessengerButton[]}|
  {kind:'cards';psid:string;cards:Card[]}|
  {kind:'receipt';psid:string;receipt:Receipt;fallbackText:string};
@@ -106,7 +116,7 @@ export async function sendMessenger(config:MessengerConfig,message:Outgoing,fetc
  let res:Response;
  try{res=await fetchImpl(`${config.graphBase??'https://graph.facebook.com'}/${config.graphVersion}/me/messages`,{method:'POST',redirect:'error',signal:AbortSignal.timeout(config.timeoutMs??10000),
   headers:{Authorization:`Bearer ${config.pageToken}`,'Content-Type':'application/json'},
-  body:JSON.stringify({recipient:{id:message.psid},messaging_type:'RESPONSE',message:payload})});}
+  body:JSON.stringify({recipient:{id:message.psid},...(message.kind==='text'&&message.eventUpdate?{messaging_type:'MESSAGE_TAG',tag:'CONFIRMED_EVENT_UPDATE'}:{messaging_type:'RESPONSE'}),message:payload})});}
  catch{throw new MessengerError('SEND_FAILED');}
  // A receipt Messenger will not render still reaches the customer as plain text.
  if(!res.ok&&message.kind==='receipt')return sendMessenger(config,{kind:'text',psid:message.psid,text:message.fallbackText},fetchImpl);

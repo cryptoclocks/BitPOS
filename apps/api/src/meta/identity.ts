@@ -8,6 +8,7 @@ import {deriveTagKeys,verifySun,SunError} from '../../../../packages/meta-ai/src
 import {REF,type Outgoing,type ParsedEvent} from './messenger';
 import type {EffectiveMenu} from '../offers';
 import type {MetaRouter} from '../../../../packages/meta-ai/src/router';
+import {checkIn,holdForDevice,type TableHold} from './reservations';
 import {approvedOffers,formatMoney,selectOffer} from './offer-select';
 import type {Money} from '../../../../packages/contracts/src/index';
 
@@ -25,7 +26,9 @@ export const CONSENT_VERSION='bitpos-meta-offers-v1';
 
 export type TapOutcome=
  {kind:'invalid'}|{kind:'replayed'}|{kind:'no_page';merchantId:string}|
- {kind:'known';merchantId:string;tapSessionId:string;deviceId:string;linkId:string}|
+ {kind:'known';merchantId:string;tapSessionId:string;deviceId:string;linkId:string;checkedIn?:{tableLabel:string;startsAt:string;justNow:boolean}}|
+ /** The table is held by someone else's booking: no session is bound; the booker can still identify via Messenger. */
+ {kind:'reserved';merchantId:string;tableLabel:string;checkInUntil:string;status:'HELD'|'CHECKED_IN';url:string|null}|
  {kind:'messenger';merchantId:string;tapSessionId:string;url:string};
 
 export async function handleTap(deps:IdentityDeps,tagId:string,e:string|null,m:string|null,cookieToken?:string|null):Promise<TapOutcome>{
@@ -34,22 +37,33 @@ export async function handleTap(deps:IdentityDeps,tagId:string,e:string|null,m:s
  const tap=(await deps.db.query<{merchant_id:string;device_id:string;session_id:string}>('SELECT merchant_id,device_id,session_id FROM bitpos.meta_record_tap($1,$2,$3,$4)',[tagId,sun.uid,sun.counter,sha(token())])).rows[0];
  if(!tap)return {kind:'replayed'};
  const merchantId=tap.merchant_id,tapSessionId=tap.session_id;
+ const reserved=(h:TableHold,url:string|null)=>({kind:'reserved',merchantId,tableLabel:h.tableLabel,checkInUntil:h.checkInUntil.toISOString(),status:h.status,url} as const);
  if(cookieToken&&TOKEN.test(cookieToken)){
   const owner=(await deps.db.query<{m:string|null}>('SELECT bitpos.meta_session_merchant($1) AS m',[sha(cookieToken)])).rows[0]?.m;
   if(owner===merchantId){
-   const linkId=await deps.db.tenant(merchantId,async db=>{
+   const r=await deps.db.tenant(merchantId,async db=>{
     const link=await activeLinkForSession(db,cookieToken);if(!link)return null;
-    return (await db.query("UPDATE meta_tap_sessions SET link_id=$2,bound_at=clock_timestamp(),claimed_at=clock_timestamp() WHERE id=$1 AND link_id IS NULL AND claimed_at IS NULL AND expires_at>clock_timestamp()",[tapSessionId,link])).rowCount===1?link:null;
+    // A table held by another customer's booking refuses this tap; the booker checks in with it.
+    const hold=await holdForDevice(db,tap.device_id);
+    if(hold&&hold.linkId!==link)return {blocked:hold};
+    if(!(await db.query("UPDATE meta_tap_sessions SET link_id=$2,bound_at=clock_timestamp(),claimed_at=clock_timestamp() WHERE id=$1 AND link_id IS NULL AND claimed_at IS NULL AND expires_at>clock_timestamp()",[tapSessionId,link])).rowCount)return null;
+    const justNow=hold?await checkIn(db,hold,tapSessionId):false;
+    return {link,checkedIn:hold?{tableLabel:hold.tableLabel,startsAt:hold.startsAt.toISOString(),justNow}:undefined};
    });
-   if(linkId)return {kind:'known',merchantId,tapSessionId,deviceId:tap.device_id,linkId};
+   if(r&&'blocked' in r&&r.blocked)return reserved(r.blocked,null);
+   if(r)return {kind:'known',merchantId,tapSessionId,deviceId:tap.device_id,linkId:r.link,...(r.checkedIn?{checkedIn:r.checkedIn}:{})};
   }
  }
  return deps.db.tenant(merchantId,async db=>{
   const page=(await db.query<{page_username:string}>('SELECT page_username FROM meta_messenger_pages WHERE retired_at IS NULL')).rows[0];
-  if(!page)return {kind:'no_page',merchantId} as const;
+  const hold=await holdForDevice(db,tap.device_id);
+  if(!page)return hold?reserved(hold,null):{kind:'no_page',merchantId} as const;
   const ref=randomBytes(24).toString('base64url');
   await db.query("WITH n AS (SELECT clock_timestamp() AS t) INSERT INTO meta_messenger_refs(merchant_id,tap_session_id,ref_sha256,created_at,expires_at) SELECT $1,$2,$3,t,t+interval '10 minutes' FROM n",[merchantId,tapSessionId,sha(ref)]);
-  return {kind:'messenger',merchantId,tapSessionId,url:`https://m.me/${page.page_username}?ref=${ref}`} as const;
+  const url=`https://m.me/${page.page_username}?ref=${ref}`;
+  // Unknown phone at a held table: refused here; the booker can prove who they are in Messenger.
+  if(hold)return reserved(hold,url);
+  return {kind:'messenger',merchantId,tapSessionId,url} as const;
  });
 }
 
@@ -57,6 +71,10 @@ async function activeLinkForSession(db:pg.PoolClient,cookieToken:string):Promise
  return (await db.query<{link_id:string}>('SELECT s.link_id FROM meta_customer_sessions s JOIN meta_customer_links l ON l.merchant_id=s.merchant_id AND l.id=s.link_id WHERE s.token_sha256=$1 AND s.revoked_at IS NULL AND s.expires_at>clock_timestamp() AND l.revoked_at IS NULL',[sha(cookieToken)])).rows[0]?.link_id??null;
 }
 
+async function tableHoldForTap(db:pg.PoolClient,tapSessionId:string):Promise<TableHold|null>{
+ const d=(await db.query<{device_id:string}>('SELECT device_id FROM meta_tap_sessions WHERE id=$1',[tapSessionId])).rows[0];
+ return d?holdForDevice(db,d.device_id):null;
+}
 async function bindTap(db:pg.PoolClient,tapSessionId:string|null,linkId:string):Promise<boolean>{
  if(!tapSessionId)return false;
  return (await db.query("UPDATE meta_tap_sessions SET link_id=$2,bound_at=clock_timestamp() WHERE id=$1 AND link_id IS NULL AND created_at>clock_timestamp()-interval '15 minutes'",[tapSessionId,linkId])).rowCount===1;
@@ -75,6 +93,8 @@ const T={
  declined:'รับทราบค่ะ ร้านจะไม่จำข้อมูลของคุณ\nOK, the shop will not remember you.',
  expired:'ลิงก์หมดอายุแล้ว กรุณาแตะที่เครื่องอีกครั้ง\nThis link expired. Please tap again.',
  revoked:'ลบการเชื่อมต่อกับร้านแล้วค่ะ\nYou are disconnected from this shop.',
+ tableHeld:(h:TableHold)=>`โต๊ะ ${h.tableLabel} มีคนจองไว้ค่ะ ใช้โต๊ะอื่นได้เลย\nTable ${h.tableLabel} is reserved; please use another table.`,
+ checkedIn:(h:TableHold)=>`เช็กอินโต๊ะ ${h.tableLabel} แล้วค่ะ ยินดีต้อนรับ 🙏\nChecked in at table ${h.tableLabel}. Welcome!`,
  notLinked:'สั่งผ่านแชทได้หลังเชื่อมต่อกับร้าน แตะมือถือที่เครื่องในร้านเพื่อเริ่มค่ะ\nTo order by chat, connect first: tap your phone on the device in the shop.',
 };
 const openButton=(url:string)=>({type:'web_url' as const,title:'เปิดหน้าร้าน / Open',url});
@@ -82,7 +102,7 @@ const openButton=(url:string)=>({type:'web_url' as const,title:'เปิดห�
 /** A customer just became known at a tap: the caller picks and sends an offer after commit. */
 export interface OfferRequest {merchantId:string;linkId:string;tapSessionId:string;psid:string}
 /** A consented customer wrote to the shop or pressed Pay: handled by the ordering agent after commit. */
-export type AgentRequest={merchantId:string;linkId:string;psid:string}&({kind:'text';text:string}|{kind:'agent_pay';quoteId:string}|{kind:'agent_add';productId:string}|{kind:'menu'}|{kind:'my_orders'});
+export type AgentRequest={merchantId:string;linkId:string;psid:string}&({kind:'text';text:string}|{kind:'agent_pay';quoteId:string}|{kind:'agent_add';productId:string}|{kind:'menu'}|{kind:'my_orders'}|{kind:'book_start'}|{kind:'book_set';date:string|null;time:string|null}|{kind:'book_cancel';reservationId:string});
 
 /** Applies verified webhook events. Returns messages and offer requests to handle after the transactions commit. */
 export async function handleMessengerEvents(deps:IdentityDeps,events:ParsedEvent[]):Promise<{outbox:Outgoing[];offers:OfferRequest[];agent:AgentRequest[]}>{
@@ -98,12 +118,13 @@ export async function handleMessengerEvents(deps:IdentityDeps,events:ParsedEvent
     if(links.length)await db.query('UPDATE meta_customer_sessions SET revoked_at=clock_timestamp() WHERE link_id=ANY($1::uuid[]) AND revoked_at IS NULL',[links.map(l=>l.id)]);
     return {kind:'text',psid,text:T.revoked} as Outgoing;
    }
-   if(event.kind==='text'||event.kind==='agent_pay'||event.kind==='agent_add'||event.kind==='menu'||event.kind==='my_orders'){
+   if(event.kind==='text'||event.kind==='agent_pay'||event.kind==='agent_add'||event.kind==='menu'||event.kind==='my_orders'||event.kind==='book_start'||event.kind==='book_set'||event.kind==='book_cancel'){
     // Only a customer who consented in Messenger can order by chat; nobody else's text reaches a model.
     const link=(await db.query<{id:string}>('SELECT id FROM meta_customer_links WHERE page_id=$1 AND psid=$2 AND revoked_at IS NULL',[pageId,psid])).rows[0];
     if(!link)return {kind:'text',psid,text:T.notLinked} as Outgoing;
     const who={merchantId,linkId:link.id,psid};
-    agent.push(event.kind==='text'?{...who,kind:'text',text:event.text}:event.kind==='agent_pay'?{...who,kind:'agent_pay',quoteId:event.quoteId}:event.kind==='agent_add'?{...who,kind:'agent_add',productId:event.productId}:event.kind==='menu'?{...who,kind:'menu'}:{...who,kind:'my_orders'});
+    agent.push(event.kind==='text'?{...who,kind:'text',text:event.text}:event.kind==='agent_pay'?{...who,kind:'agent_pay',quoteId:event.quoteId}:event.kind==='agent_add'?{...who,kind:'agent_add',productId:event.productId}:event.kind==='menu'?{...who,kind:'menu'}:event.kind==='my_orders'?{...who,kind:'my_orders'}:event.kind==='book_start'?{...who,kind:'book_start'}
+     :event.kind==='book_set'?{...who,kind:'book_set',date:event.date,time:event.time}:{...who,kind:'book_cancel',reservationId:event.reservationId});
     return null;
    }
    if(event.kind==='referral'){
@@ -111,7 +132,13 @@ export async function handleMessengerEvents(deps:IdentityDeps,events:ParsedEvent
     const tap=(await db.query<{tap_session_id:string}>('UPDATE meta_messenger_refs SET consumed_at=clock_timestamp(),consumed_psid=$2 WHERE ref_sha256=$1 AND consumed_at IS NULL AND expires_at>clock_timestamp() RETURNING tap_session_id',[sha(event.ref),psid])).rows[0];
     if(!tap)return {kind:'text',psid,text:T.expired} as Outgoing;
     const link=(await db.query<{id:string}>('SELECT id FROM meta_customer_links WHERE page_id=$1 AND psid=$2 AND revoked_at IS NULL',[pageId,psid])).rows[0];
-    if(link){if(await bindTap(db,tap.tap_session_id,link.id))offers.push({merchantId,linkId:link.id,tapSessionId:tap.tap_session_id,psid});return {kind:'buttons',psid,text:T.back,buttons:[openButton(await magicLink(deps,db,merchantId,link.id,tap.tap_session_id))]} as Outgoing;}
+    if(link){
+     const held=await tableHoldForTap(db,tap.tap_session_id);
+     if(held&&held.linkId!==link.id)return {kind:'text',psid,text:T.tableHeld(held)} as Outgoing;
+     if(await bindTap(db,tap.tap_session_id,link.id)){
+      if(held&&await checkIn(db,held,tap.tap_session_id))return {kind:'text',psid,text:T.checkedIn(held)} as Outgoing;
+      offers.push({merchantId,linkId:link.id,tapSessionId:tap.tap_session_id,psid});
+     }return {kind:'buttons',psid,text:T.back,buttons:[openButton(await magicLink(deps,db,merchantId,link.id,tap.tap_session_id))]} as Outgoing;}
     const request=(await db.query<{id:string}>("WITH n AS (SELECT clock_timestamp() AS t) INSERT INTO meta_consent_requests(merchant_id,page_id,psid,tap_session_id,created_at,expires_at) SELECT $1,$2,$3,$4,t,t+interval '15 minutes' FROM n RETURNING id",[merchantId,pageId,psid,tap.tap_session_id])).rows[0];
     return {kind:'buttons',psid,text:T.consent,buttons:[{type:'postback',title:'ยินยอม / Allow',payload:`BITPOS_CONSENT_ACCEPT:${request.id}`},{type:'postback',title:'ไม่ / No',payload:`BITPOS_CONSENT_DECLINE:${request.id}`}]} as Outgoing;
    }
@@ -120,7 +147,8 @@ export async function handleMessengerEvents(deps:IdentityDeps,events:ParsedEvent
    if(!event.accept)return {kind:'text',psid,text:T.declined} as Outgoing;
    await db.query('INSERT INTO meta_customer_links(merchant_id,page_id,psid,consent_version) VALUES($1,$2,$3,$4) ON CONFLICT (page_id,psid) WHERE revoked_at IS NULL DO NOTHING',[merchantId,pageId,psid,CONSENT_VERSION]);
    const link=(await db.query<{id:string}>('SELECT id FROM meta_customer_links WHERE page_id=$1 AND psid=$2 AND revoked_at IS NULL',[pageId,psid])).rows[0];
-   if(await bindTap(db,decided.tap_session_id,link.id))offers.push({merchantId,linkId:link.id,tapSessionId:decided.tap_session_id!,psid});
+   const held=decided.tap_session_id?await tableHoldForTap(db,decided.tap_session_id):null;
+   if(!(held&&held.linkId!==link.id)&&await bindTap(db,decided.tap_session_id,link.id))offers.push({merchantId,linkId:link.id,tapSessionId:decided.tap_session_id!,psid});
    return {kind:'buttons',psid,text:T.welcome,buttons:[openButton(await magicLink(deps,db,merchantId,link.id,decided.tap_session_id))]} as Outgoing;
   });
   if(reply)out.push(reply);

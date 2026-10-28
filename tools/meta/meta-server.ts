@@ -21,7 +21,7 @@ if(!dbUrl||!/^postgres(ql)?:\/\/[^@]*@(127\.0\.0\.1|localhost)(:\d+)?\//.test(db
 Object.assign(process.env,{DATABASE_URL:dbUrl,ADMIN_DATABASE_URL:dbUrl,AUTH_URL:'http://127.0.0.1:9',AUTH_ANON_KEY:'unused',APP_SECRET:randomBytes(32).toString('hex'),
  PUBLIC_URL:env.META_PUBLIC_URL,SOLANA_RPC:'https://api.devnet.solana.com',DEVNET_PRIVATE_DIR:'/nonexistent'});
 const {effectiveCatalog}=await import('../../apps/api/src/catalog');
-const {serveMeta,metaRouteDepsFromEnv}=await import('../../apps/api/src/meta/routes');
+const {serveMeta,metaRouteDepsFromEnv,startReservationSweeper}=await import('../../apps/api/src/meta/routes');
 
 const pool=new pg.Pool({connectionString:dbUrl,max:5,options:'-c search_path=bitpos,public'});
 pool.on('connect',c=>{c.query('SET ROLE bitpos_app');});
@@ -32,6 +32,7 @@ const db:MetaDb={
 const deps=metaRouteDepsFromEnv(env,db,effectiveCatalog);
 if(!deps)throw Error('META_TAP_MASTER_KEY and META_PUBLIC_URL are required');
 deps.log=msg=>console.log(new Date().toISOString(),msg);
+startReservationSweeper(deps);
 const port=Number(env.META_PORT??3101);
 
 http.createServer(async(req,res)=>{

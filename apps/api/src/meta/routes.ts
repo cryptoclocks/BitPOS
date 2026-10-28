@@ -9,8 +9,9 @@ import {stripeSandboxFromEnv,StripePaymentError} from './stripe';
 import {createMetaRouter,metaProvidersFromEnv} from '../../../../packages/meta-ai/src/router';
 import {formatTapAmount,handOver,listTapOrders,pickupCode,staffConfigFromEnv,staffDemoSignIn,staffFromSession,staffSignIn,staffSignOut,type SignInResult,type StaffDeps,type StaffOrder} from './staff';
 import {serveMcp} from './mcp';
+import {cancelReservation,staffReservations,sweepLapsed} from './reservations';
 import {approveDraft,draftOffer,listOffersOverview,rejectDraft,revokePolicy,stopOffer,OfferPolicyError,type DraftView,type OfferPolicyDeps,type PolicyView} from './offer-policy';
-import {handleAgentRequest,planChatOrder,type ChatAgentDeps} from './agent';
+import {bookingMessages,handleAgentRequest,planChatOrder,type ChatAgentDeps} from './agent';
 import {randomBytes} from 'node:crypto';
 import {AgentOrderError,agentReceipt,reconcileAgentCheckout,startAgentCheckout} from './agent-orders';
 import {MessengerError,messengerConfigFromEnv,parseMessengerWebhook,sendMessenger,verifyMessengerSignature,verifySubscription,type MessengerConfig,type MessengerFetch} from './messenger';
@@ -80,6 +81,13 @@ export async function serveMeta(req:http.IncomingMessage,res:http.ServerResponse
  if(tap&&method==='GET'){
   const r=await handleTap(deps.identity,tap[1],url.searchParams.get('e'),url.searchParams.get('m'),cookieValue(req.headers.cookie));
   if(r.kind==='messenger'){res.writeHead(303,{Location:r.url,'Cache-Control':'no-store','Referrer-Policy':'no-referrer'});res.end();return true;}
+  if(r.kind==='reserved'){
+   const mins=Math.max(0,Math.ceil((Date.parse(r.checkInUntil)-Date.now())/60_000));
+   const until=new Date(r.checkInUntil).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Bangkok'});
+   page(res,409,`โต๊ะ ${r.tableLabel} จองไว้แล้ว`,r.status==='HELD'?[`โต๊ะนี้มีคนจองไว้ ถ้าผู้จองไม่มาเช็กอินภายใน <strong>${mins} นาที</strong> (ถึง ${until}) โต๊ะจะว่าง`,`Reserved. If the booker has not checked in by ${until} (${mins} min), the table is released.`,
+    ...(r.url?[`<a href="${esc(r.url)}">ฉันเป็นผู้จอง / I booked this table →</a>`]:[])]:['โต๊ะนี้มีลูกค้าที่จองไว้นั่งอยู่ ใช้โต๊ะอื่นได้เลยค่ะ','This table is in use by a booking; please use another.'],{Refresh:'30'});return true;
+  }
+  if(r.kind==='known'&&r.checkedIn){page(res,200,`เช็กอินโต๊ะ ${r.checkedIn.tableLabel} แล้ว ✓`,['ยินดีต้อนรับค่ะ โต๊ะนี้เป็นของคุณ','Checked in — welcome, this table is yours.',...offerCard(await offerOrNull(deps,r.merchantId,r.linkId,r.tapSessionId),!!deps.stripe),ORDER_LINK]);return true;}
   if(r.kind==='known'){page(res,200,'สวัสดีค่ะ 👋',['ร้านจำคุณได้แล้ว','Welcome back — the shop knows it is you.',...offerCard(await offerOrNull(deps,r.merchantId,r.linkId,r.tapSessionId),!!deps.stripe),ORDER_LINK]);return true;}
   if(r.kind==='replayed'){page(res,409,'กรุณาแตะใหม่อีกครั้ง',['ลิงก์นี้ใช้ไปแล้ว ให้แตะมือถือที่เครื่องอีกครั้ง','This tap link was already used. Tap the device again.']);return true;}
   if(r.kind==='no_page'){page(res,503,'ร้านยังไม่ได้เชื่อม Messenger',['The shop has not connected a Messenger page yet.']);return true;}
@@ -239,6 +247,7 @@ async function serveStaff(req:http.IncomingMessage,res:http.ServerResponse,deps:
   const done=url.searchParams.get('done');
   const lines=[`<small>${esc(me.role)} · อัปเดตทุก 10 วินาที / refreshes every 10 s · Stripe sandbox, test mode</small>`,
    ...(done&&/^[0-9A-F]{4}$/.test(done)?[`✓ ส่งมอบ #${done} แล้ว / Handed over.`]:[]),...orderLines(await listTapOrders(staff,me)),
+   ...reservationLines(await staffReservations(deps.identity.db,me.merchantId)),
    ...(me.role!=='staff'?['<a href="/meta/staff/offers">โปรโมชัน + Allow All / Promotions →</a> · <a href="/meta/staff/ledger">หลักฐาน AI + การจ่าย / Evidence ledger →</a>']:[]),
    '<form method="post" action="/meta/staff/logout"><button>ออกจากระบบ / Sign out</button></form>'];
   page(res,200,'ออเดอร์จากการแตะ / Tap orders',lines,{Refresh:'10'});return true;
@@ -263,6 +272,13 @@ async function serveStaff(req:http.IncomingMessage,res:http.ServerResponse,deps:
  }
  if(path==='/meta/staff/offers'||path.startsWith('/meta/staff/offers/')||path.startsWith('/meta/staff/policies/'))return serveOffers(req,res,deps,staff,cookie,url,log);
  if(path==='/meta/staff/ledger'&&method==='GET')return serveLedger(res,deps,staff,cookie);
+ const resCancel=path.match(/^\/meta\/staff\/reservations\/([0-9a-f-]{36})\/cancel$/);
+ if(resCancel&&method==='POST'){
+  const me=await staffFromSession(staff,cookie);
+  if(!me){res.writeHead(303,{Location:'/meta/staff','Cache-Control':'no-store'});res.end();return true;}
+  await cancelReservation(deps.identity.db,me.merchantId,resCancel[1],{staff:true});
+  res.writeHead(303,{Location:'/meta/staff','Cache-Control':'no-store'});res.end();return true;
+ }
  if(path==='/meta/staff/logout'&&method==='POST'){
   await staffSignOut(staff,cookie);
   res.writeHead(303,{Location:'/meta/staff','Set-Cookie':staffCookie(staff,'',0),'Cache-Control':'no-store'});res.end();return true;
@@ -361,6 +377,7 @@ async function serveWebOrder(req:http.IncomingMessage,res:http.ServerResponse,de
    if(plan.kind==='quote'){show(200,[`<small>คุณ / You: ${esc(text)}</small>`,esc(plan.reply).replace(/\n/g,'<br>')+by,`<strong>${esc(plan.line)}</strong>`,`<form method="post" action="/meta/order/pay"><input type="hidden" name="quote" value="${esc(plan.quoteId)}"><button>จ่าย ${esc(plan.total)} / Pay (Stripe test mode)</button></form>`]);return true;}
    if(plan.kind==='menu'){show(200,[`<small>คุณ / You: ${esc(text)}</small>`,esc(plan.reply).replace(/\n/g,'<br>')+by,...plan.lines.map(esc)]);return true;}
    if(plan.kind==='help'){show(200,[`<small>คุณ / You: ${esc(text)}</small>`,esc(plan.reply).replace(/\n/g,'<br>')+by]);return true;}
+   if(plan.kind==='book'){show(200,[`<small>คุณ / You: ${esc(text)}</small>`,...bookingMessages('0',plan.result,plan.reply).map(m=>m.kind==='text'||m.kind==='buttons'?esc(m.text).replace(/\n/g,'<br>'):m.kind==='cards'?`<strong>${esc(m.cards[0].title)}</strong><br><small>${esc(m.cards[0].subtitle??'')}</small>`:'')]);return true;}
    show(409,[esc(plan.text)]);return true;
   }
   if(url.pathname==='/meta/order/pay'&&method==='POST'){
@@ -398,4 +415,24 @@ async function serveLedger(res:http.ServerResponse,deps:MetaRouteDeps,staff:Staf
   ...section('🛡️ Promotion decisions',data.decisions.map(r=>`<small>${t(r.decided_at)} · ${esc(r.name_en)} −${r.discount_percent}% · ${esc(r.state)} · ${r.approval_kind==='policy'?'Allow All':r.approval_kind==='owner'?'owner':'—'} · drafted by ${r.chosen_by==='model'?'Muse Spark':'fallback'}</small>`)),
   '<a href="/meta/staff">← ออเดอร์ / Orders</a>']);
  return true;
+}
+
+function reservationLines(rows:Awaited<ReturnType<typeof staffReservations>>):string[]{
+ if(!rows.length)return [];
+ const t=(iso:string)=>new Date(iso).toLocaleString('en-GB',{weekday:'short',hour:'2-digit',minute:'2-digit',timeZone:'Asia/Bangkok'});
+ const label:Record<string,string>={HELD:'🗓️ รอเช็กอิน / awaiting check-in',CHECKED_IN:'✅ เช็กอินแล้ว / checked in',NO_SHOW:'⌛ หลุดคิว / no-show',CANCELLED:'↩️ ยกเลิก / cancelled'};
+ return ['<strong>🗓️ การจองโต๊ะ / Table bookings</strong>',...rows.map(r=>`<strong>#${esc(r.code)}</strong> โต๊ะ ${esc(r.tableLabel)} · ${t(r.startsAt)} · ${r.partySize} คน · ${label[r.status]??esc(r.status)}${r.status==='HELD'&&r.minutesToDeadline!==null?` · หมดเวลาเช็กอินใน ${Math.max(0,r.minutesToDeadline)} นาที`:''}${r.status==='HELD'?`<form method="post" action="/meta/staff/reservations/${r.id}/cancel"><button>ยกเลิกการจอง / Cancel booking</button></form>`:''}`)];
+}
+
+/** Every minute: bookings past their check-in window lapse (NO_SHOW) and the customer is told in Messenger. */
+export function startReservationSweeper(deps:MetaRouteDeps,intervalMs=60_000):NodeJS.Timeout{
+ const tick=async()=>{
+  try{
+   for(const n of await sweepLapsed(deps.identity.db)){
+    deps.log?.('Booking lapsed');
+    if(deps.messenger)await sendMessenger(deps.messenger,{kind:'text',psid:n.psid,text:n.text,eventUpdate:true},deps.fetch).catch(()=>deps.log?.('Lapse notice failed'));
+   }
+  }catch{deps.log?.('Booking sweep failed');}
+ };
+ const timer=setInterval(tick,intervalMs);timer.unref();return timer;
 }
