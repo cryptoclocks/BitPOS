@@ -1,6 +1,7 @@
 // Meta hackathon work (2026-10-26..11-04).
 // A /meta-only HTTP server for exposing the tap, Messenger and Stripe webhook routes through a temporary
-// tunnel without publishing the rest of the BitPOS API. Every non-/meta path is 404.
+// tunnel without publishing the rest of the BitPOS API. Besides /meta/*, it serves the meta-pay shop at the host root
+// (META_DEMO_MERCHANT); every other path is 404.
 // Usage: npx tsx tools/meta/meta-server.ts <env-file>
 // The env file (outside the repo) needs META_DB_URL (a disposable/test database, never the actual-use stack),
 // META_TAP_MASTER_KEY, META_PUBLIC_URL and optionally the Messenger and Stripe test variables.
@@ -22,6 +23,7 @@ Object.assign(process.env,{DATABASE_URL:dbUrl,ADMIN_DATABASE_URL:dbUrl,AUTH_URL:
  PUBLIC_URL:env.META_PUBLIC_URL,SOLANA_RPC:'https://api.devnet.solana.com',DEVNET_PRIVATE_DIR:'/nonexistent'});
 const {effectiveCatalog}=await import('../../apps/api/src/catalog');
 const {serveMeta,metaRouteDepsFromEnv,startReservationSweeper}=await import('../../apps/api/src/meta/routes');
+const {serveShop}=await import('../../apps/api/src/meta/shop');
 
 const pool=new pg.Pool({connectionString:dbUrl,max:5,options:'-c search_path=bitpos,public'});
 pool.on('connect',c=>{c.query('SET ROLE bitpos_app');});
@@ -37,7 +39,7 @@ const port=Number(env.META_PORT??3101);
 
 http.createServer(async(req,res)=>{
  const started=Date.now();
- try{if(!(await serveMeta(req,res,deps))){res.writeHead(404,{'Content-Type':'text/plain'});res.end('not found');}}
+ try{if(!(await serveShop(req,res,deps))&&!(await serveMeta(req,res,deps))){res.writeHead(404,{'Content-Type':'text/plain'});res.end('not found');}}
  catch{if(!res.headersSent){res.writeHead(500,{'Content-Type':'text/plain'});res.end('error');}}
  // Path only: query strings can carry one-time tokens.
  console.log(new Date().toISOString(),req.method,(req.url??'').split('?')[0],res.statusCode,`${Date.now()-started}ms`);

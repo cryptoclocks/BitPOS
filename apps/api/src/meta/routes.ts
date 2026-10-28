@@ -7,18 +7,24 @@ import {invocationSink} from './evidence';
 import {applyStripeWebhook,reconcileTapOrder,startTapCheckout,type StripeDeps} from './tap-checkout';
 import {stripeSandboxFromEnv,StripePaymentError} from './stripe';
 import {createMetaRouter,metaProvidersFromEnv} from '../../../../packages/meta-ai/src/router';
-import {formatTapAmount,handOver,listTapOrders,pickupCode,staffConfigFromEnv,staffDemoSignIn,staffFromSession,staffSignIn,staffSignOut,type SignInResult,type StaffDeps,type StaffOrder} from './staff';
+import {formatTapAmount,handOver,listTapOrders,pickupCode,staffConfigFromEnv,staffDemoSignIn,staffFromSession,staffSignIn,staffSignOut,type SignInResult,type StaffDeps,type StaffOrder,type StaffView} from './staff';
 import {serveMcp} from './mcp';
 import {cancelReservation,screenTags,staffReservations,sweepLapsed,tableScreen} from './reservations';
 import {screenHtml,screenKey,screenKeyValid} from './screen';
 import {approveDraft,draftOffer,listOffersOverview,rejectDraft,revokePolicy,stopOffer,OfferPolicyError,type DraftView,type OfferPolicyDeps,type PolicyView} from './offer-policy';
 import {bookingMessages,handleAgentRequest,planChatOrder,type ChatAgentDeps} from './agent';
 import {randomBytes} from 'node:crypto';
+import {AsyncLocalStorage} from 'node:async_hooks';
+import {customerHtml,staffHtml} from './ui';
+import {servePos} from './pos';
+import {handOverCart} from './cart';
 import {readFile} from 'node:fs/promises';
 import {AgentOrderError,agentReceipt,reconcileAgentCheckout,startAgentCheckout} from './agent-orders';
 import {MessengerError,messengerConfigFromEnv,parseMessengerWebhook,sendMessenger,verifyMessengerSignature,verifySubscription,type MessengerConfig,type MessengerFetch} from './messenger';
 
-export interface MetaRouteDeps {identity:IdentityDeps;messenger:MessengerConfig|null;offers:OfferDeps|null;stripe?:StripeDeps|null;staff?:StaffDeps|null;fetch?:MessengerFetch;log?:(msg:string)=>void}
+export interface MetaRouteDeps {identity:IdentityDeps;messenger:MessengerConfig|null;offers:OfferDeps|null;stripe?:StripeDeps|null;staff?:StaffDeps|null;fetch?:MessengerFetch;log?:(msg:string)=>void;
+ /** The Meta demo shop served at the meta-pay root (META_DEMO_MERCHANT). */
+ demoMerchant?:string|null}
 export const COOKIE='bitpos_meta',STAFF_COOKIE='bitpos_meta_staff';
 const STAFF_SESSION_SECONDS=8*3600,MAX_FORM=4096;
 const MAX_WEBHOOK=65536;
@@ -38,13 +44,20 @@ export function metaRouteDepsFromEnv(env:Record<string,string|undefined>,db:Iden
  let stripe:StripeDeps|null=null;try{stripe={config:stripeSandboxFromEnv(env)};}catch{stripe=null;}
  // The staff page needs the shop's Supabase Auth; without it /meta/staff answers 503.
  let staff:StaffDeps|null=null;try{const c=staffConfigFromEnv(env,u.origin);staff=c?{db,config:c}:null;}catch{staff=null;}
- return {identity:{db,masterKey:Buffer.from(master,'hex'),publicOrigin:u.origin},messenger,offers,stripe,staff};
+ const demo=env.META_DEMO_MERCHANT;const demoMerchant=demo&&/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(demo)?demo:null;
+ return {identity:{db,masterKey:Buffer.from(master,'hex'),publicOrigin:u.origin},messenger,offers,stripe,staff,demoMerchant};
 }
 
 const esc=(s:string)=>s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]!));
-function page(res:http.ServerResponse,status:number,title:string,lines:string[],extraHeaders:Record<string,string|string[]>={}){
- const html=`<!doctype html><html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)}</title><style>body{font:17px/1.5 system-ui,sans-serif;margin:0;padding:32px 20px;background:#f7f5ff;color:#1d1440}main{max-width:420px;margin:auto;background:#fff;border-radius:16px;padding:24px;box-shadow:0 2px 12px #0001}h1{font-size:22px;color:#5b34d6;margin:0 0 12px}p{margin:8px 0}button{font:inherit;padding:10px 16px;border-radius:10px;border:1px solid #c9bdf5;background:#fff;color:#5b34d6}</style></head><body><main><h1>${esc(title)}</h1>${lines.map(l=>`<p>${l}</p>`).join('')}</main></body></html>`;
- res.writeHead(status,{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store','Content-Security-Policy':"default-src 'none'; style-src 'unsafe-inline'; form-action 'self' https://checkout.stripe.com",
+/** Set while a staff request runs, so the shared page() helper renders the meta-pos shell (or its sign-in page). */
+interface StaffContext {active:string;me:StaffView|null;shop:string}
+const STAFF_CTX=new AsyncLocalStorage<StaffContext>();
+function page(res:http.ServerResponse,status:number,title:string,lines:string[],extraHeaders:Record<string,string|string[]>={},nav?:[string,string][]){
+ const body=`<div class="card">${lines.map(l=>`<div style="margin:8px 0">${l}</div>`).join('')}</div>`,ctx=STAFF_CTX.getStore();
+ const html=ctx?.me?staffHtml({title,active:ctx.active,role:ctx.me.role,shop:ctx.shop},body)
+  :ctx?customerHtml({title,nav:nav??[['เข้าสู่ระบบพนักงาน / Staff sign-in','/meta/staff']]},`<h1>${esc(title)}</h1>${body}`)
+  :customerHtml({title,nav:nav??[['หน้าร้าน / Shop','/'],['ช่วยเหลือ / Help','/help']]},`<h1>${esc(title)}</h1>${body}`);
+ res.writeHead(status,{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store','Content-Security-Policy':"default-src 'none'; style-src 'unsafe-inline'; img-src 'self' https:; form-action 'self' https://checkout.stripe.com",
   // same-origin, not no-referrer: with no-referrer browsers send `Origin: null` on our own form POSTs,
   // which the same-origin checks below reject. Cross-origin navigations still carry no referrer.
   'Referrer-Policy':'same-origin','X-Content-Type-Options':'nosniff',...extraHeaders});
@@ -214,7 +227,7 @@ export async function serveMeta(req:http.IncomingMessage,res:http.ServerResponse
   page(res,202,'กำลังตรวจสอบการชำระเงิน',['ยังไม่ได้รับการยืนยันจาก Stripe ลองรีเฟรชอีกครั้ง','Waiting for Stripe to confirm. Refresh in a moment.']);return true;
  }
  if(path==='/meta/order'||path==='/meta/order/pay')return serveWebOrder(req,res,deps,url,log);
- if(path==='/meta/staff'||path.startsWith('/meta/staff/'))return serveStaff(req,res,deps,url,log);
+ if(path==='/meta/staff'||path.startsWith('/meta/staff/'))return STAFF_CTX.run({active:path.replace(/^(\/meta\/staff\/[a-z]+).*$/,'$1'),me:null,shop:''},()=>serveStaff(req,res,deps,url,log));
  const mcp=path.match(/^\/meta\/mcp\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[89ab][0-9a-f]{3}-[0-9a-f]{12})$/);
  if(mcp){
   if(!deps.offers){json(res,503,{error:'NOT_CONFIGURED'});return true;}
@@ -266,14 +279,21 @@ async function formBody(req:http.IncomingMessage):Promise<URLSearchParams|null>{
  return raw?new URLSearchParams(raw.toString('utf8')):null;
 }
 
+/** The signed-in staff member (role re-read every request); also fills the page shell's context. */
+async function whoami(staff:StaffDeps,cookie:string|null):Promise<StaffView|null>{
+ const me=await staffFromSession(staff,cookie),ctx=STAFF_CTX.getStore();
+ if(me&&ctx){ctx.me=me;ctx.shop=(await staff.db.tenant(me.merchantId,c=>c.query<{name:string}>('SELECT name FROM merchants WHERE id=$1',[me.merchantId]))).rows[0]?.name??'';}
+ return me;
+}
 async function serveStaff(req:http.IncomingMessage,res:http.ServerResponse,deps:MetaRouteDeps,url:URL,log:(m:string)=>void):Promise<true>{
  const staff=deps.staff,path=url.pathname,method=req.method??'GET';
  if(!staff){page(res,503,'หน้าพนักงานยังไม่พร้อม',['Staff sign-in is not configured on this server.']);return true;}
  const cookie=cookieValue(req.headers.cookie,STAFF_COOKIE);
  if(method==='POST'&&req.headers.origin!==staff.config.origin){page(res,403,'ไม่อนุญาต',['Same-origin request required.']);return true;}
  if(path==='/meta/staff'&&method==='GET'){
-  const me=await staffFromSession(staff,cookie);
+  const me=await whoami(staff,cookie);
   if(!me){page(res,200,'พนักงาน · ออเดอร์จากการแตะ',signInForm(staff));return true;}
+  if(await servePos(req,res,deps,staff,async()=>me,url,log))return true;
   const done=url.searchParams.get('done');
   const lines=[`<small>${esc(me.role)} · อัปเดตทุก 10 วินาที / refreshes every 10 s · Stripe sandbox, test mode</small>`,
    ...(done&&/^[0-9A-F]{4}$/.test(done)?[`✓ ส่งมอบ #${done} แล้ว / Handed over.`]:[]),...orderLines(await listTapOrders(staff,me)),
@@ -295,9 +315,10 @@ async function serveStaff(req:http.IncomingMessage,res:http.ServerResponse,deps:
  }
  const hand=path.match(/^\/meta\/staff\/orders\/([0-9a-f-]{36})\/handover$/);
  if(hand&&method==='POST'){
-  const me=await staffFromSession(staff,cookie);
+  const me=await whoami(staff,cookie);
   if(!me){res.writeHead(303,{Location:'/meta/staff','Cache-Control':'no-store'});res.end();return true;}
-  const r=await handOver(staff,me,hand[1]);
+  let r=await handOver(staff,me,hand[1]);
+  if(r==='NOT_FOUND')r=await handOverCart(deps.identity.db,me.merchantId,me.userId,hand[1]);
   if(r==='HANDED_OVER'||r==='ALREADY'){res.writeHead(303,{Location:`/meta/staff?done=${pickupCode(hand[1])}`,'Cache-Control':'no-store'});res.end();return true;}
   page(res,r==='NOT_FOUND'?404:409,'ส่งมอบไม่ได้',[r==='NOT_PAID'?'ออเดอร์นี้ยังไม่ได้จ่าย / This order is not paid.':'ไม่พบออเดอร์ / Order not found.','<a href="/meta/staff">← กลับ / Back</a>']);return true;
  }
@@ -305,11 +326,12 @@ async function serveStaff(req:http.IncomingMessage,res:http.ServerResponse,deps:
  if(path==='/meta/staff/ledger'&&method==='GET')return serveLedger(res,deps,staff,cookie);
  const resCancel=path.match(/^\/meta\/staff\/reservations\/([0-9a-f-]{36})\/cancel$/);
  if(resCancel&&method==='POST'){
-  const me=await staffFromSession(staff,cookie);
+  const me=await whoami(staff,cookie);
   if(!me){res.writeHead(303,{Location:'/meta/staff','Cache-Control':'no-store'});res.end();return true;}
   await cancelReservation(deps.identity.db,me.merchantId,resCancel[1],{staff:true});
   res.writeHead(303,{Location:'/meta/staff','Cache-Control':'no-store'});res.end();return true;
  }
+ if(await servePos(req,res,deps,staff,()=>whoami(staff,cookie),url,log))return true;
  if(path==='/meta/staff/logout'&&method==='POST'){
   await staffSignOut(staff,cookie);
   res.writeHead(303,{Location:'/meta/staff','Set-Cookie':staffCookie(staff,'',0),'Cache-Control':'no-store'});res.end();return true;
@@ -336,7 +358,7 @@ function policyLine(p:PolicyView):string{
 
 async function serveOffers(req:http.IncomingMessage,res:http.ServerResponse,deps:MetaRouteDeps,staff:StaffDeps,cookie:string|null,url:URL,log:(m:string)=>void):Promise<true>{
  const path=url.pathname,method=req.method??'GET';
- const me=await staffFromSession(staff,cookie);
+ const me=await whoami(staff,cookie);
  if(!me){res.writeHead(303,{Location:'/meta/staff','Cache-Control':'no-store'});res.end();return true;}
  if(!deps.offers){page(res,503,'ยังไม่พร้อม',['Promotions are not configured on this server.']);return true;}
  const od:OfferPolicyDeps={db:deps.identity.db,menu:deps.offers.menu,router:deps.offers.router};
@@ -429,7 +451,7 @@ async function serveWebOrder(req:http.IncomingMessage,res:http.ServerResponse,de
 /** Owner/manager evidence ledger: every model call, tap, payment event and promotion decision of the last day.
  * No customer identity (PSID) and no message text is shown or stored. */
 async function serveLedger(res:http.ServerResponse,deps:MetaRouteDeps,staff:StaffDeps,cookie:string|null):Promise<true>{
- const me=await staffFromSession(staff,cookie);
+ const me=await whoami(staff,cookie);
  if(!me){res.writeHead(303,{Location:'/meta/staff','Cache-Control':'no-store'});res.end();return true;}
  if(me.role==='staff'){page(res,403,'ทำรายการไม่ได้',[OFFER_ERRORS.ROLE_REQUIRED,'<a href="/meta/staff">← กลับ / Back</a>']);return true;}
  const t=(d:Date)=>d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit',timeZone:'Asia/Bangkok'});

@@ -19,8 +19,9 @@ services:
     volumes:
       - /home/ubuntu/bitpos-meta/src:/app/meta-src:ro
       - /home/ubuntu/bitpos-private/meta/meta.env:/run/meta/meta.env:ro
-      # Demo staff accounts for the staff page's quick sign-in (read-only; the file is shared with the POS demo).
-      - /home/ubuntu/bitpos-private/demo-login.json:/run/meta/demo-login.json:ro
+      # Demo staff accounts of the Meta demo shop (Muse Café) for the staff page's quick sign-in (read-only, private;
+      # created by tools/meta/create-demo-staff.sh). The POS demo's own accounts are not used by Meta.
+      - /home/ubuntu/bitpos-private/meta/demo-login-meta.json:/run/meta/demo-login.json:ro
     mem_limit: 256m
     logging:
       driver: json-file

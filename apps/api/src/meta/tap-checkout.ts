@@ -6,6 +6,7 @@
 import type pg from 'pg';
 import {approvedOffers} from './offer-select';
 import {STOCK_MOVE,agentOrderMerchant,applyAgentWebhook} from './agent-orders';
+import {applyCartWebhook,cartOrderMerchant} from './cart';
 import {customerFromSession,type IdentityDeps,type OfferDeps} from './identity';
 import {STRIPE_MINIMUM,toStripeMinor,createCheckoutSession,paymentFactFromEvent,retrieveCheckoutSession,verifyStripeWebhook,StripePaymentError,type StripeFetch,type StripeSandboxConfig} from './stripe';
 
@@ -76,6 +77,14 @@ export async function applyStripeWebhook(deps:IdentityDeps,stripe:StripeDeps,raw
  if(!fact||fact.orderId!==fact.checkoutId)return 'IGNORED';
  const merchant=await orderMerchant(deps,fact.orderId);
  if(!merchant){
+  // A meta-pay / meta-pos cart order (migration 313).
+  const cartMerchant=await cartOrderMerchant(deps.db,fact.orderId);
+  if(cartMerchant){
+   if(cartMerchant!==fact.merchantId)return 'UNKNOWN_ORDER';
+   const r=await applyCartWebhook(deps.db,cartMerchant,fact);
+   if(r==='PAID'&&onAgentConfirmed)await onAgentConfirmed(cartMerchant,fact.orderId).catch(()=>{});
+   return r;
+  }
   // Not a tap order: an agent (MCP / Messenger) order paid with a Shared Payment Token.
   const agentMerchant=await agentOrderMerchant(deps.db,fact.orderId);
   if(!agentMerchant||agentMerchant!==fact.merchantId)return 'UNKNOWN_ORDER';
