@@ -116,7 +116,7 @@
   .promotions-workspace[data-presentation=library] .promotion-library-tabs button{min-height:30px;height:30px}
   .promotions-workspace[data-presentation=library] .promotion-create{min-height:52px;height:52px;margin-top:20px}
   .promotions-workspace[data-presentation=library] .promotion-library-item{min-height:64px}
-  .promotions-workspace[data-presentation=review] .promotion-review-heading{position:relative;height:0;min-height:0;margin:0;overflow:visible;z-index:1}
+  .promotions-workspace[data-presentation=review] .promotion-review-heading{position:relative;height:0;min-height:0;margin:0 0 56px;overflow:visible;z-index:1}
   .promotions-workspace[data-presentation=review] .promotion-review-heading>div{position:absolute;opacity:0;pointer-events:none}
   .promotions-workspace[data-presentation=review] .promotion-review-heading>button{position:absolute;top:-8px;left:0}
 }
