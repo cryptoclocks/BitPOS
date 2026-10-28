@@ -155,6 +155,35 @@ export async function holdForDevice(c:pg.PoolClient,deviceId:string):Promise<Tab
  return r?{reservationId:r.id,linkId:r.link_id,tableLabel:r.label,status:r.status,startsAt:r.starts_at,checkInUntil:new Date(r.starts_at.getTime()+CHECKIN_MINUTES*60_000)}:null;
 }
 
+/** What the screen at a table shows: no personal data, only the table's booking state and its deadlines. */
+export interface TableScreen {tableLabel:string;state:'free'|'upcoming'|'check_in'|'seated';partySize:number|null;startsAt:string|null;
+ checkInFrom:string|null;checkInUntil:string|null;seatedUntil:string|null;now:string}
+/** The table of a device: the booking holding it now, else the next booking within 3 hours. Times come from the database clock. */
+export async function tableScreen(db:MetaDb,merchantId:string,deviceId:string):Promise<TableScreen|null>{
+ return db.tenant(merchantId,async c=>{
+  const t=(await c.query<{label:string;now:Date}>(`SELECT coalesce(t.label,'') AS label,clock_timestamp() AS now FROM devices d LEFT JOIN merchant_tables t ON t.merchant_id=d.merchant_id AND t.id=d.table_id WHERE d.id=$1 AND d.table_id IS NOT NULL`,[deviceId])).rows[0];
+  if(!t)return null;
+  const r=(await c.query<{status:'HELD'|'CHECKED_IN';starts_at:Date;party_size:number}>(
+   `SELECT r.status,r.starts_at,r.party_size FROM devices d JOIN meta_table_reservations r ON r.merchant_id=d.merchant_id AND r.table_id=d.table_id
+    WHERE d.id=$1 AND ((r.status='HELD' AND clock_timestamp()<=r.starts_at+interval '${CHECKIN_MINUTES} minutes' AND r.starts_at<=clock_timestamp()+interval '3 hours')
+     OR (r.status='CHECKED_IN' AND clock_timestamp()<r.starts_at+interval '${SEATED_MINUTES} minutes'))
+    ORDER BY (r.status='CHECKED_IN') DESC,r.starts_at LIMIT 1`,[deviceId])).rows[0];
+  const iso=(ms:number)=>new Date(ms).toISOString(),now=t.now.getTime();
+  if(!r)return {tableLabel:t.label,state:'free',partySize:null,startsAt:null,checkInFrom:null,checkInUntil:null,seatedUntil:null,now:iso(now)};
+  const start=r.starts_at.getTime(),from=start-CHECKIN_MINUTES*60_000,until=start+CHECKIN_MINUTES*60_000;
+  const state=r.status==='CHECKED_IN'?'seated':now>=from?'check_in':'upcoming';
+  return {tableLabel:t.label,state,partySize:r.party_size,startsAt:iso(start),checkInFrom:iso(from),checkInUntil:iso(until),
+   seatedUntil:r.status==='CHECKED_IN'?iso(start+SEATED_MINUTES*60_000):null,now:iso(now)};
+ });
+}
+
+/** Tables with an active NTAG sticker, for the staff page's table-screen links. */
+export async function screenTags(db:MetaDb,merchantId:string):Promise<{tagId:string;tableLabel:string}[]>{
+ return db.tenant(merchantId,async c=>(await c.query<{tag_id:string;label:string}>(
+  `SELECT g.tag_id,t.label FROM meta_ntag_tags g JOIN devices d ON d.merchant_id=g.merchant_id AND d.id=g.device_id JOIN merchant_tables t ON t.merchant_id=d.merchant_id AND t.id=d.table_id
+   WHERE g.retired_at IS NULL AND t.retired_at IS NULL ORDER BY t.label LIMIT 20`)).rows.map(r=>({tagId:r.tag_id,tableLabel:r.label})));
+}
+
 /** Inside the tap's transaction: the booked customer checks in; returns true when this tap did it. */
 export async function checkIn(c:pg.PoolClient,hold:TableHold,tapSessionId:string):Promise<boolean>{
  return (await c.query("UPDATE meta_table_reservations SET status='CHECKED_IN',checked_in_at=clock_timestamp(),tap_session_id=$2 WHERE id=$1 AND status='HELD'",[hold.reservationId,tapSessionId])).rowCount===1;

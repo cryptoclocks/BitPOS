@@ -17,6 +17,9 @@ BitPOS is a point-of-sale system for small Thai cafés. It existed before the ha
 | **Order by voice (web)** | The same agent on the shop's web page. The browser's own speech recognition (th-TH) turns speech into text, and the server receives text only. | `routes.ts` → `/meta/order` |
 | **BitPOS Muse Connector (MCP)** | Tools: `list_menu`, `get_quote`, `complete_checkout` (Stripe Shared Payment Token), `order_status`, `cancel_order` (refund). The agent passes ids only; it never sets a price and never sees a card. | `mcp.ts`, `agent-orders.ts`, migration 306 |
 | **Owner approval + Allow All** | Muse Spark drafts a promotion (product, percent and duration from server lists). The owner approves the first one. "Approve + Allow All like this" lets later drafts inside the same bounds apply automatically, up to a daily cap; the owner can stop any offer or revoke at once. Offers are written through the POS's own offer command. | `offer-policy.ts`, migration 308 |
+| **Table booking by chat** | "จองโต๊ะ 2 คน 1 ทุ่ม" in Messenger or by voice. Missing date, time or party size is asked back. A booking holds a table that has a BitPOS device with a sticker. The booker checks in by tapping it within ±15 minutes; otherwise it lapses (no-show, Messenger notice) and the table is free. While held, other customers' taps at that table are refused. | `reservations.ts`, migration 309 |
+| **Table screen** | A tablet or phone at the table shows the booking state with a live countdown: free / reserved from HH:MM / waiting for check-in (minutes left) / seated. No personal data; the link carries a key derived from the tap master key, and staff open it from their page. | `screen.ts`, migration 311 → `/meta/screen/<tag>` |
+| **One shop, two platforms** | The shop's menu, tables and devices are shared with the existing POS. Meta orders live in their own ledgers; `meta_order_feed()` lists all orders with `platform` (pos / meta) and `channel` (tap / chat / mcp), every Meta change to shared stock is recorded in `meta_stock_movements`, and `meta_offer_origin()` marks offers that came from Meta drafts. | migration 310 |
 | **Staff view + evidence ledger** | Staff sign in with their POS account (the role is re-checked on every request) and hand paid orders over once. Owners see every model call, tap, Stripe event and promotion decision. | `staff.ts`, `routes.ts`, migration 305 |
 
 ## Meta models
@@ -34,9 +37,10 @@ curl -s -X POST https://meta-pay.cashlessthailand.com/meta/mcp/11111111-1111-411
 ```
 
 - The full agent run (quote → sandbox SPT → pay → status → cancel with refund) is in `tools/meta/mcp-smoke.ts`. It needs a Stripe *test* key to mint a sandbox SPT.
+- Customer pages, webhooks and the connector run on `meta-pay.cashlessthailand.com`; the staff and owner pages on `meta-pos.cashlessthailand.com`. Both are separate from the existing POS hosts.
 - Staff, owner, Messenger and tap flows are shown in the demo video. Live access can be arranged for judges, because the Meta app is in development mode.
 
-**Tests:** 58 tests against PostgreSQL under row-level security. Models and Stripe are stubbed in tests.
+**Tests:** 67 tests against PostgreSQL under row-level security. Models and Stripe are stubbed in tests.
 
 ```bash
 META_TEST_DATABASE_URL=postgres://… node --import tsx --test tests/meta-*.test.ts

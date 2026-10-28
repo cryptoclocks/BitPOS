@@ -8,7 +8,11 @@ import pg from 'pg';
 import {aesCmac,deriveTagKeys} from '../packages/meta-ai/src/ntag424';
 import {handleMessengerEvents,handleTap,type IdentityDeps,type MetaDb} from '../apps/api/src/meta/identity';
 import {parseMessengerWebhook} from '../apps/api/src/meta/messenger';
-import {cancelReservation,parseBooking,requestBooking,staffReservations,sweepLapsed} from '../apps/api/src/meta/reservations';
+import {cancelReservation,parseBooking,requestBooking,screenTags,staffReservations,sweepLapsed,tableScreen} from '../apps/api/src/meta/reservations';
+import {screenKey} from '../apps/api/src/meta/screen';
+import {serveMeta} from '../apps/api/src/meta/routes';
+import http from 'node:http';
+import type {AddressInfo} from 'node:net';
 import {handleAgentRequest,type ChatAgentDeps} from '../apps/api/src/meta/agent';
 import type {EffectiveMenu} from '../apps/api/src/offers';
 
@@ -93,6 +97,10 @@ test('tap: booker checks in inside the window; others (cookie or not) are refuse
  const r=await requestBooking(db,M,L1,{date:soon.d,time:soon.t,partySize:2},fallback);
  assert.equal(r.kind,'booked');const id=(r as any).reservation.id,table=(r as any).reservation.tableLabel;
  const tag=table==='A1'?TAG1:TAG2,uid=table==='A1'?UID1:UID2;
+ const dev=table==='A1'?D1:D2;
+ const shown=await tableScreen(db,M,dev);
+ assert.deepEqual([shown?.state,shown?.partySize,shown?.tableLabel],['check_in',2,table],'the table screen counts down to the check-in deadline');
+ assert.equal(Date.parse(shown!.checkInUntil!)-Date.parse(shown!.startsAt!),15*60_000);
  const other=await tap(tag,uid,cookie2);
  assert.deepEqual([other.kind,(other as any).status,(other as any).url],['reserved','HELD',null]);
  const anon=await tap(tag,uid,null);
@@ -105,11 +113,14 @@ test('tap: booker checks in inside the window; others (cookie or not) are refuse
  const mine=await tap(tag,uid,cookie1);
  assert.equal(mine.kind,'known');assert.deepEqual([(mine as any).checkedIn.tableLabel,(mine as any).checkedIn.justNow],[table,true]);
  assert.equal(await status(id),'CHECKED_IN');
+ assert.equal((await tableScreen(db,M,dev))?.state,'seated');
  const seated=await tap(tag,uid,cookie2);
  assert.deepEqual([seated.kind,(seated as any).status],['reserved','CHECKED_IN'],'while the booker is seated, others are still refused');
  const list=await staffReservations(db,M);
  assert.equal(list.find(x=>x.id===id)?.status,'CHECKED_IN');
  await admin.query("UPDATE meta_table_reservations SET status='CANCELLED',cancelled_at=clock_timestamp(),cancelled_by='staff',checked_in_at=NULL,tap_session_id=NULL WHERE id=$1",[id]);
+
+ assert.equal((await tableScreen(db,M,dev))?.state,'free');
 });
 
 test('lapse: no check-in within 15 minutes → NO_SHOW once, customer told, table free again',{skip},async()=>{
@@ -144,4 +155,26 @@ test('chat: "จองโต๊ะ…" books through the agent without a model; 
  assert.match(viaModel[0].text,/Booked/);assert.match(viaModel[0].text,/Muse Spark/);
  const row=(await admin.query("SELECT chosen_by,invocation_id IS NOT NULL AS inv FROM meta_table_reservations WHERE link_id=$1 ORDER BY created_at DESC LIMIT 1",[L1])).rows[0];
  assert.deepEqual([row.chosen_by,row.inv],['model',true]);
+});
+
+test('table screen page: needs the derived key; shows no personal data; counts down with a nonce script',{skip},async()=>{
+ const later=await bkkClock(60);
+ const r=await requestBooking(db,M,L2,{date:later.d,time:later.t,partySize:4},fallback);
+ assert.equal(r.kind,'booked');const id=(r as any).reservation.id,table=(r as any).reservation.tableLabel,tag=table==='A1'?TAG1:TAG2;
+ const server=http.createServer(async(req,res)=>{if(!(await serveMeta(req,res,{identity:deps,messenger:null,offers:null}))){res.writeHead(404);res.end();}});
+ await new Promise<void>(ok=>server.listen(0,'127.0.0.1',ok));
+ const base=`http://127.0.0.1:${(server.address() as AddressInfo).port}/meta/screen/${tag}`;
+ try{
+  const ok=await fetch(`${base}?k=${screenKey(master,tag)}`);
+  assert.equal(ok.status,200);
+  const nonce=/script-src 'nonce-([^']+)'/.exec(ok.headers.get('content-security-policy')??'')?.[1];assert.ok(nonce);
+  const html=await ok.text();
+  assert.match(html,new RegExp(`<script nonce="${nonce.replace(/[+/=]/g,c=>'\\'+c)}">`));
+  assert.match(html,/จองไว้/);assert.match(html,/Reserved for 4/);assert.match(html,/data-target=/);
+  assert.doesNotMatch(html,new RegExp(PSID2));
+  assert.equal((await fetch(`${base}?k=${'A'.repeat(22)}`)).status,404,'wrong key');
+  assert.equal((await fetch(base)).status,404,'no key');
+  assert.deepEqual((await screenTags(db,M)).map(t=>t.tagId).sort(),[TAG1,TAG2].sort(),'staff page lists each sticker table');
+  assert.equal((await fetch(`${base.replace(tag,'no-such-tag')}?k=${screenKey(master,'no-such-tag')}`)).status,404,'unknown tag');
+ }finally{server.close();await admin.query("UPDATE meta_table_reservations SET status='CANCELLED',cancelled_at=clock_timestamp(),cancelled_by='staff' WHERE id=$1",[id]);}
 });

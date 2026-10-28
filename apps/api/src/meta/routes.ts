@@ -9,7 +9,8 @@ import {stripeSandboxFromEnv,StripePaymentError} from './stripe';
 import {createMetaRouter,metaProvidersFromEnv} from '../../../../packages/meta-ai/src/router';
 import {formatTapAmount,handOver,listTapOrders,pickupCode,staffConfigFromEnv,staffDemoSignIn,staffFromSession,staffSignIn,staffSignOut,type SignInResult,type StaffDeps,type StaffOrder} from './staff';
 import {serveMcp} from './mcp';
-import {cancelReservation,staffReservations,sweepLapsed} from './reservations';
+import {cancelReservation,screenTags,staffReservations,sweepLapsed,tableScreen} from './reservations';
+import {screenHtml,screenKey,screenKeyValid} from './screen';
 import {approveDraft,draftOffer,listOffersOverview,rejectDraft,revokePolicy,stopOffer,OfferPolicyError,type DraftView,type OfferPolicyDeps,type PolicyView} from './offer-policy';
 import {bookingMessages,handleAgentRequest,planChatOrder,type ChatAgentDeps} from './agent';
 import {randomBytes} from 'node:crypto';
@@ -109,6 +110,18 @@ export async function serveMeta(req:http.IncomingMessage,res:http.ServerResponse
   if(r.kind==='replayed'){page(res,409,'กรุณาแตะใหม่อีกครั้ง',['ลิงก์นี้ใช้ไปแล้ว ให้แตะมือถือที่เครื่องอีกครั้ง','This tap link was already used. Tap the device again.']);return true;}
   if(r.kind==='no_page'){page(res,503,'ร้านยังไม่ได้เชื่อม Messenger',['The shop has not connected a Messenger page yet.']);return true;}
   page(res,400,'แตะไม่สำเร็จ',['ให้แตะมือถือที่เครื่องอีกครั้ง','Please tap the device again.']);return true;
+ }
+ const screen=path.match(/^\/meta\/screen\/([A-Za-z0-9_-]{4,64})$/);
+ if(screen&&method==='GET'){
+  const notFound=()=>{res.writeHead(404,{'Content-Type':'text/plain','Cache-Control':'no-store'});res.end('not found');return true as const;};
+  if(!screenKeyValid(deps.identity.masterKey,screen[1],url.searchParams.get('k')))return notFound();
+  const tag=(await deps.identity.db.query<{merchant_id:string;device_id:string}>('SELECT merchant_id,device_id FROM bitpos.meta_tag_device($1)',[screen[1]])).rows[0];
+  const view=tag?await tableScreen(deps.identity.db,tag.merchant_id,tag.device_id):null;
+  if(!view)return notFound();
+  const nonce=randomBytes(16).toString('base64');
+  res.writeHead(200,{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store','Referrer-Policy':'no-referrer','X-Content-Type-Options':'nosniff',
+   'Content-Security-Policy':`default-src 'none'; style-src 'unsafe-inline'; script-src 'nonce-${nonce}'; form-action 'none'; frame-ancestors 'none'`});
+  res.end(screenHtml(view,nonce));return true;
  }
  if(path==='/meta/messenger/webhook'){
   const messenger=deps.messenger;
@@ -217,7 +230,7 @@ function chatDeps(deps:MetaRouteDeps):ChatAgentDeps|null{
 }
 
 // Requests per client address (behind the tunnel, Cloudflare's client IP header) per window: staff sign-in and MCP calls.
-const attempts=new Map<string,{start:number;n:number}>(),mcpCalls=new Map<string,{start:number;n:number}>();
+const attempts=new Map<string,{start:number;n:number}>(),mcpCalls=new Map<string,{start:number;n:number}>(),orderPosts=new Map<string,{start:number;n:number}>();
 function allowAttempt(req:http.IncomingMessage,now=Date.now(),bucket=attempts,limit=10,windowMs=600_000):boolean{
  const remote=req.socket.remoteAddress??'';
  const viaTunnel=['127.0.0.1','::1','::ffff:127.0.0.1'].includes(remote)&&typeof req.headers['cf-connecting-ip']==='string';
@@ -265,6 +278,7 @@ async function serveStaff(req:http.IncomingMessage,res:http.ServerResponse,deps:
   const lines=[`<small>${esc(me.role)} · อัปเดตทุก 10 วินาที / refreshes every 10 s · Stripe sandbox, test mode</small>`,
    ...(done&&/^[0-9A-F]{4}$/.test(done)?[`✓ ส่งมอบ #${done} แล้ว / Handed over.`]:[]),...orderLines(await listTapOrders(staff,me)),
    ...reservationLines(await staffReservations(deps.identity.db,me.merchantId)),
+   ...screenLinks(deps,await screenTags(deps.identity.db,me.merchantId)),
    ...(me.role!=='staff'?['<a href="/meta/staff/offers">โปรโมชัน + Allow All / Promotions →</a> · <a href="/meta/staff/ledger">หลักฐาน AI + การจ่าย / Evidence ledger →</a>']:[]),
    '<form method="post" action="/meta/staff/logout"><button>ออกจากระบบ / Sign out</button></form>'];
   page(res,200,'ออเดอร์จากการแตะ / Tap orders',lines,{Refresh:'10'});return true;
@@ -376,6 +390,8 @@ async function serveWebOrder(req:http.IncomingMessage,res:http.ServerResponse,de
  const me=await customerFromSession(deps.identity,cookieValue(req.headers.cookie));
  if(!me){page(res,401,'ยังไม่ได้เชื่อมต่อ',['แตะมือถือที่เครื่องในร้านเพื่อเริ่ม','Tap your phone on the device in the shop to start.']);return true;}
  if(method==='POST'&&req.headers.origin!==deps.identity.publicOrigin){page(res,403,'ไม่อนุญาต',['Same-origin request required.']);return true;}
+ // Per-address cap on top of the per-customer model-call cap: 30 orders or payments a minute.
+ if(method==='POST'&&!allowAttempt(req,Date.now(),orderPosts,30,60_000)){page(res,429,'ลองใหม่ภายหลัง',['ส่งคำสั่งถี่เกินไป รอสักครู่แล้วลองใหม่','Too many requests. Wait a moment and try again.']);return true;}
  const nonce=randomBytes(16).toString('base64');
  const csp=`default-src 'none'; style-src 'unsafe-inline'; script-src 'nonce-${nonce}'; form-action 'self' https://checkout.stripe.com`;
  const form=`<form method="post" action="/meta/order" id="f"><input name="q" id="q" maxlength="300" placeholder="เช่น ขอลาเต้ 1 แก้ว / e.g. one latte" required style="font:inherit;width:100%;padding:8px;margin:4px 0"><button>ส่ง / Send</button> <button type="button" id="mic" hidden>🎙️ พูด / Speak</button></form>`;
@@ -434,6 +450,11 @@ async function serveLedger(res:http.ServerResponse,deps:MetaRouteDeps,staff:Staf
  return true;
 }
 
+/** Links to each table's countdown screen (on the customer host), to open on a tablet or phone at the table. */
+function screenLinks(deps:MetaRouteDeps,tags:{tagId:string;tableLabel:string}[]):string[]{
+ if(!tags.length)return [];
+ return [`🖥️ จอโต๊ะ / Table screens: ${tags.map(g=>`<a href="${esc(`${deps.identity.publicOrigin}/meta/screen/${g.tagId}?k=${screenKey(deps.identity.masterKey,g.tagId)}`)}" target="_blank" rel="noopener">${esc(g.tableLabel)}</a>`).join(' · ')}`];
+}
 function reservationLines(rows:Awaited<ReturnType<typeof staffReservations>>):string[]{
  if(!rows.length)return [];
  const t=(iso:string)=>new Date(iso).toLocaleString('en-GB',{weekday:'short',hour:'2-digit',minute:'2-digit',timeZone:'Asia/Bangkok'});
