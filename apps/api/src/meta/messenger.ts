@@ -1,6 +1,7 @@
 // Meta hackathon work (2026-10-26..11-04). See meta-hackathon/PROVENANCE.md.
 // Messenger Platform adapter: webhook signature check, event normalisation and the Send API.
-// Only the fields BitPOS needs are read; message text other than a stop word is never stored.
+// Only the fields BitPOS needs are read; message text is never stored (it is passed in memory to the
+// ordering agent for consented customers only).
 import {createHash,createHmac,timingSafeEqual} from 'node:crypto';
 
 export class MessengerError extends Error {constructor(readonly code:'SIGNATURE_INVALID'|'PAYLOAD_INVALID'|'SEND_FAILED'|'CONFIGURATION_REQUIRED'){super(code);}}
@@ -30,7 +31,9 @@ export function verifySubscription(params:URLSearchParams,verifyToken:string):st
 export type MessengerEvent=
  {kind:'referral';pageId:string;psid:string;timestamp:number;ref:string}|
  {kind:'consent';pageId:string;psid:string;timestamp:number;requestId:string;accept:boolean}|
- {kind:'revoke';pageId:string;psid:string;timestamp:number};
+ {kind:'revoke';pageId:string;psid:string;timestamp:number}|
+ {kind:'text';pageId:string;psid:string;timestamp:number;text:string}|
+ {kind:'agent_pay';pageId:string;psid:string;timestamp:number;quoteId:string};
 
 export interface ParsedEvent {event:MessengerEvent;key:Buffer}
 
@@ -54,6 +57,8 @@ export function parseMessengerWebhook(body:unknown):ParsedEvent[]{
    if(consent&&UUID.test(consent[2]))event={...base,kind:'consent',requestId:consent[2],accept:consent[1]==='ACCEPT'};
    else if(payload==='BITPOS_REVOKE'||typeof m.message?.text==='string'&&STOP.has(m.message.text.trim().toLowerCase()))event={...base,kind:'revoke'};
    else if(typeof ref==='string'&&REF.test(ref))event={...base,kind:'referral',ref};
+   else if(payload?.startsWith('BITPOS_AGENT_PAY:')&&UUID.test(payload.slice(17)))event={...base,kind:'agent_pay',quoteId:payload.slice(17)};
+   else if(!payload&&m.message?.is_echo!==true&&typeof m.message?.text==='string'&&m.message.text.trim())event={...base,kind:'text',text:m.message.text.trim().slice(0,300)};
    if(!event)continue;
    const mid=typeof m.message?.mid==='string'?m.message.mid:'';
    const key=createHash('sha256').update(JSON.stringify([pageId,psid,timestamp,event.kind,ref??'',payload??'',mid])).digest();

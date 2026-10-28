@@ -97,6 +97,8 @@ export function paymentFactFromEvent(event:StripeEvent):PaymentFact|null{
 
 export interface CheckoutRequest {
  orderId:string;merchantId:string;productName:string;
+ /** Quote the order was priced from; defaults to the order id (tap orders). */
+ quoteId?:string;
  /** Re-quoted server price in minor units; never a client value. */
  amountMinor:bigint;currency:'thb'|'usd';successUrl:string;cancelUrl:string;expiresAtSeconds:number;
 }
@@ -125,7 +127,7 @@ function checkoutView(body:any):CheckoutSession{
 /** Hosted Stripe Checkout for one tap order; the same order id always maps to the same session. */
 export async function createCheckoutSession(config:StripeSandboxConfig,req:CheckoutRequest,fetchImpl:StripeFetch=fetch):Promise<CheckoutSession>{
  if(req.amountMinor<=0n||req.amountMinor>MAX_MINOR)throw new StripePaymentError('INVALID_AMOUNT');
- const meta={bitpos_merchant:req.merchantId,bitpos_order:req.orderId,bitpos_quote:req.orderId,bitpos_checkout:req.orderId};
+ const meta={bitpos_merchant:req.merchantId,bitpos_order:req.orderId,bitpos_quote:req.quoteId??req.orderId,bitpos_checkout:req.orderId};
  const form=new URLSearchParams({mode:'payment',client_reference_id:req.orderId,success_url:req.successUrl,cancel_url:req.cancelUrl,expires_at:String(req.expiresAtSeconds),
   'line_items[0][quantity]':'1','line_items[0][price_data][currency]':req.currency,'line_items[0][price_data][unit_amount]':req.amountMinor.toString(),'line_items[0][price_data][product_data][name]':req.productName.slice(0,250)});
  for(const [k,v] of Object.entries(meta)){form.set(`metadata[${k}]`,v);form.set(`payment_intent_data[metadata][${k}]`,v);}

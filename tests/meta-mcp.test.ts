@@ -31,8 +31,8 @@ let mode:'ok'|'decline'|'down'='ok';
 const stripeFetch=async(u:string,init:RequestInit)=>{
  const body=new URLSearchParams(String(init.body??''));calls.push({url:u,body,key:(init.headers as Record<string,string>)['Idempotency-Key']??null});
  if(mode==='down')throw new TypeError('network');
- if(u.endsWith('/v1/refunds'))return new Response(JSON.stringify({object:'refund',id:`re_${calls.length}x`,livemode:false,amount:Number(body.get('amount')),payment_intent:body.get('payment_intent'),status:'succeeded'}),{status:200});
- if(mode==='decline')return new Response(JSON.stringify({error:{type:'card_error',decline_code:'insufficient_funds',payment_intent:{id:'pi_declined1'}}}),{status:402});
+ if(u.endsWith('/v1/refunds'))return new Response(JSON.stringify({object:'refund',id:`re_${Date.now()}${calls.length}x`,livemode:false,amount:Number(body.get('amount')),payment_intent:body.get('payment_intent'),status:'succeeded'}),{status:200});
+ if(mode==='decline')return new Response(JSON.stringify({error:{type:'card_error',decline_code:'insufficient_funds',payment_intent:{id:`pi_declined${Date.now()}${calls.length}`}}}),{status:402});
  return new Response(JSON.stringify({object:'payment_intent',id:`pi_ok${body.get('metadata[bitpos_checkout]')!.replace(/-/g,'')}`,livemode:false,amount:Number(body.get('amount')),currency:body.get('currency'),status:'succeeded',metadata:{bitpos_checkout:body.get('metadata[bitpos_checkout]')}}),{status:200});
 };
 const rpc=(name:string,args:Record<string,unknown>={},merchant=A)=>handleRpc(deps,merchant,{jsonrpc:'2.0',id:1,method:'tools/call',params:{name,arguments:args}}) as Promise<any>;
@@ -107,7 +107,7 @@ test('checkout: canonical amount, one charge per quote, stock once; decline; unk
  const orderId=(await admin.query<{id:string;status:string}>('SELECT id,status FROM meta_agent_orders WHERE quote_id=$1',[q3.quoteId])).rows[0];
  assert.equal(orderId.status,'PENDING');
  mode='ok';
- const event={id:`evt_mcp${Date.now()}`,type:'payment_intent.succeeded',livemode:false,created:1,data:{object:{object:'payment_intent',id:'pi_webhook1',status:'succeeded',amount_received:400,currency:'usd',
+ const event={id:`evt_mcp${Date.now()}`,type:'payment_intent.succeeded',livemode:false,created:1,data:{object:{object:'payment_intent',id:`pi_webhook${Date.now()}`,status:'succeeded',amount_received:400,currency:'usd',
   metadata:{bitpos_merchant:A,bitpos_order:orderId.id,bitpos_quote:q3.quoteId,bitpos_checkout:orderId.id}}}};
  const raw=JSON.stringify(event),ts=Math.floor(Date.now()/1000),sig=`t=${ts},v1=${createHmac('sha256','whsec_mcp').update(`${ts}.${raw}`).digest('hex')}`;
  const identity={db,masterKey:Buffer.alloc(16),publicOrigin:'https://pay.example.test'};
@@ -119,7 +119,7 @@ test('checkout: canonical amount, one charge per quote, stock once; decline; unk
  const q4=out(await rpc('get_quote',{product_id:latte}));
  await admin.query("INSERT INTO meta_agent_orders(merchant_id,quote_id,product_id,quantity,currency,amount_minor) SELECT merchant_id,id,product_id,quantity,currency,amount_minor FROM meta_quotes WHERE id=$1",[q4.quoteId]);
  const o4=(await admin.query<{id:string}>('SELECT id FROM meta_agent_orders WHERE quote_id=$1',[q4.quoteId])).rows[0].id;
- const bad=JSON.stringify({...event,id:`evt_bad${Date.now()}`,data:{object:{...event.data.object,id:'pi_bad1',amount_received:1,metadata:{bitpos_merchant:A,bitpos_order:o4,bitpos_quote:q4.quoteId,bitpos_checkout:o4}}}});
+ const bad=JSON.stringify({...event,id:`evt_bad${Date.now()}`,data:{object:{...event.data.object,id:`pi_bad${Date.now()}`,amount_received:1,metadata:{bitpos_merchant:A,bitpos_order:o4,bitpos_quote:q4.quoteId,bitpos_checkout:o4}}}});
  assert.equal(await applyStripeWebhook(identity,deps.stripe!,bad,`t=${ts},v1=${createHmac('sha256','whsec_mcp').update(`${ts}.${bad}`).digest('hex')}`),'MISMATCH');
 
  // Expired quotes cannot be paid.

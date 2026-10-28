@@ -35,7 +35,7 @@ test('referrals, consent postbacks and stop words become events; everything else
  assert.equal((parseMessengerWebhook(msg({message:{mid:'m1',quick_reply:{payload:`BITPOS_CONSENT_DECLINE:${id}`}}}))[0].event as any).accept,false);
  assert.equal(parseMessengerWebhook(msg({message:{mid:'m2',text:' ลบข้อมูล '}}))[0].event.kind,'revoke');
  assert.equal(parseMessengerWebhook(msg({message:{mid:'m3',text:'STOP'}}))[0].event.kind,'revoke');
- assert.equal(parseMessengerWebhook(msg({message:{mid:'m4',text:'ขอเมนูหน่อย'}})).length,0);
+ assert.equal(parseMessengerWebhook(msg({message:{mid:'m4',text:'ขอเมนูหน่อย'}}))[0].event.kind,'text','other text goes to the ordering agent (consented customers only)');
  assert.equal(parseMessengerWebhook(msg({referral:{ref:'short'}})).length,0);
  assert.equal(parseMessengerWebhook(msg({postback:{payload:'BITPOS_CONSENT_ACCEPT:not-a-uuid'}})).length,0);
  // An event whose recipient is not the entry's page is dropped.

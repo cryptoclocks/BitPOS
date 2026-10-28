@@ -69,7 +69,7 @@ async function orderMerchant(deps:IdentityDeps,orderId:string):Promise<string|nu
 }
 
 /** Stripe webhook: signature over the raw body, then `payment_intent.succeeded` facts matched to our row. */
-export async function applyStripeWebhook(deps:IdentityDeps,stripe:StripeDeps,rawBody:string,signature:string|undefined,nowSeconds=Math.floor(Date.now()/1000)):Promise<PaidOutcome|'IGNORED'>{
+export async function applyStripeWebhook(deps:IdentityDeps,stripe:StripeDeps,rawBody:string,signature:string|undefined,nowSeconds=Math.floor(Date.now()/1000),onAgentConfirmed?:(merchantId:string,orderId:string)=>Promise<void>):Promise<PaidOutcome|'IGNORED'>{
  const event=verifyStripeWebhook(rawBody,signature,stripe.config.webhookSecret,nowSeconds);
  const fact=paymentFactFromEvent(event);
  if(!fact||fact.orderId!==fact.checkoutId)return 'IGNORED';
@@ -79,6 +79,8 @@ export async function applyStripeWebhook(deps:IdentityDeps,stripe:StripeDeps,raw
   const agentMerchant=await agentOrderMerchant(deps.db,fact.orderId);
   if(!agentMerchant||agentMerchant!==fact.merchantId)return 'UNKNOWN_ORDER';
   const r=await applyAgentWebhook(deps.db,agentMerchant,fact);
+  // Runs after the confirming transaction committed (e.g. the Messenger receipt).
+  if(r==='CONFIRMED'&&onAgentConfirmed)await onAgentConfirmed(agentMerchant,fact.orderId).catch(()=>{});
   return r==='CONFIRMED'?'PAID':r==='ALREADY'?'ALREADY_PAID':r==='NOT_FOUND'?'UNKNOWN_ORDER':r;
  }
  if(merchant!==fact.merchantId)return 'UNKNOWN_ORDER';

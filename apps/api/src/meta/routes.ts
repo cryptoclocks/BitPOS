@@ -9,6 +9,8 @@ import {stripeSandboxFromEnv,StripePaymentError} from './stripe';
 import {createMetaRouter,metaProvidersFromEnv} from '../../../../packages/meta-ai/src/router';
 import {formatTapAmount,handOver,listTapOrders,pickupCode,staffConfigFromEnv,staffDemoSignIn,staffFromSession,staffSignIn,staffSignOut,type SignInResult,type StaffDeps,type StaffOrder} from './staff';
 import {serveMcp} from './mcp';
+import {handleAgentRequest,type ChatAgentDeps} from './agent';
+import {agentReceipt,reconcileAgentCheckout} from './agent-orders';
 import {MessengerError,messengerConfigFromEnv,parseMessengerWebhook,sendMessenger,verifyMessengerSignature,verifySubscription,type MessengerConfig,type MessengerFetch} from './messenger';
 
 export interface MetaRouteDeps {identity:IdentityDeps;messenger:MessengerConfig|null;offers:OfferDeps|null;stripe?:StripeDeps|null;staff?:StaffDeps|null;fetch?:MessengerFetch;log?:(msg:string)=>void}
@@ -90,12 +92,18 @@ export async function serveMeta(req:http.IncomingMessage,res:http.ServerResponse
    if(!raw){json(res,413,{error:'REQUEST_TOO_LARGE'});return true;}
    try{verifyMessengerSignature(raw,req.headers['x-hub-signature-256'] as string|undefined,messenger.appSecret);}catch{json(res,401,{error:'SIGNATURE_INVALID'});return true;}
    let events;try{events=parseMessengerWebhook(JSON.parse(raw.toString('utf8')));}catch{json(res,400,{error:'PAYLOAD_INVALID'});return true;}
-   const {outbox,offers}=await handleMessengerEvents(deps.identity,events);
+   const {outbox,offers,agent}=await handleMessengerEvents(deps.identity,events);
    json(res,200,{received:events.length});
    const send=async(message:Parameters<typeof sendMessenger>[1])=>{try{await sendMessenger(messenger,message,deps.fetch);}catch(e){log(`Messenger send failed: ${e instanceof MessengerError?e.code:'UNKNOWN'}`);}};
    for(const message of outbox)await send(message);
    // Offers are chosen after the webhook transaction committed, so the model call never holds a lock.
    for(const o of offers){const view=await offerOrNull(deps,o.merchantId,o.linkId,o.tapSessionId);if(view)await send(offerMessage(o.psid,view));}
+   // Chat orders also run after commit, so the model and Stripe calls never hold a transaction.
+   const chat=chatDeps(deps);
+   for(const a of agent){
+    if(!chat){await send({kind:'text',psid:a.psid,text:'ร้านยังไม่เปิดสั่งผ่านแชทค่ะ / Chat ordering is not available.'});continue;}
+    try{for(const m of await handleAgentRequest(chat,a))await send(m);}catch{log('Chat agent failed');}
+   }
    return true;
   }
  }
@@ -143,7 +151,8 @@ export async function serveMeta(req:http.IncomingMessage,res:http.ServerResponse
   if(!deps.stripe){json(res,503,{error:'NOT_CONFIGURED'});return true;}
   const raw=await rawBody(req,MAX_WEBHOOK);
   if(!raw){json(res,413,{error:'REQUEST_TOO_LARGE'});return true;}
-  try{json(res,200,{result:await applyStripeWebhook(deps.identity,deps.stripe,raw.toString('utf8'),req.headers['stripe-signature'] as string|undefined)});}
+  const receipt=async(merchantId:string,orderId:string)=>{const r=await agentReceipt(deps.identity.db,merchantId,orderId);if(r&&deps.messenger)await sendMessenger(deps.messenger,{kind:'text',psid:r.psid,text:r.text},deps.fetch).catch(()=>log('Receipt send failed'));};
+  try{json(res,200,{result:await applyStripeWebhook(deps.identity,deps.stripe,raw.toString('utf8'),req.headers['stripe-signature'] as string|undefined,undefined,receipt)});}
   catch(e){json(res,e instanceof StripePaymentError?400:500,{error:e instanceof StripePaymentError?e.code:'INTERNAL'});}
   return true;
  }
@@ -155,6 +164,15 @@ export async function serveMeta(req:http.IncomingMessage,res:http.ServerResponse
   page(res,ok?200:401,ok?'ลบการเชื่อมต่อแล้ว':'ไม่พบการเชื่อมต่อ',[ok?'ร้านจะไม่จำคุณอีก / The shop no longer remembers you.':'Nothing to forget.'],{'Set-Cookie':sessionCookie(deps,'',0)});
   return true;
  }
+ if(path==='/meta/agent/paid'&&method==='GET'){
+  const chat=chatDeps(deps);
+  if(!chat){page(res,503,'ยังรับชำระไม่ได้',['Payments are not configured.']);return true;}
+  let o;try{o=await reconcileAgentCheckout(chat,url.searchParams.get('o'));}catch{o=undefined;}
+  if(o===null){page(res,404,'ไม่พบรายการ',['Order not found.']);return true;}
+  if(o?.confirmedNow&&deps.messenger){const r=await agentReceipt(deps.identity.db,o.merchantId,o.orderId);if(r)await sendMessenger(deps.messenger,{kind:'text',psid:r.psid,text:r.text},deps.fetch).catch(()=>log('Receipt send failed'));}
+  if(o?.status==='CONFIRMED'){page(res,200,'จ่ายแล้ว ✓',['ร้านได้รับออเดอร์แล้ว รับที่เคาน์เตอร์ได้เลย','Paid — pick it up at the counter.',`รหัสรับสินค้า / Pickup code: <strong>${esc(o.pickupCode)}</strong>`,'กลับไปที่ Messenger ได้เลย / You can go back to Messenger.','<small>Stripe sandbox · test mode · no real money</small>']);return true;}
+  page(res,202,'กำลังตรวจสอบการชำระเงิน',['ยังไม่ได้รับการยืนยันจาก Stripe ลองรีเฟรชอีกครั้ง','Waiting for Stripe to confirm. Refresh in a moment.']);return true;
+ }
  if(path==='/meta/staff'||path.startsWith('/meta/staff/'))return serveStaff(req,res,deps,url,log);
  const mcp=path.match(/^\/meta\/mcp\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[89ab][0-9a-f]{3}-[0-9a-f]{12})$/);
  if(mcp){
@@ -164,6 +182,10 @@ export async function serveMeta(req:http.IncomingMessage,res:http.ServerResponse
   return true;
  }
  json(res,404,{error:'RESOURCE_NOT_FOUND'});return true;
+}
+
+function chatDeps(deps:MetaRouteDeps):ChatAgentDeps|null{
+ return deps.offers?{db:deps.identity.db,offers:deps.offers,stripe:deps.stripe??null,router:deps.offers.router,publicOrigin:deps.identity.publicOrigin}:null;
 }
 
 // Requests per client address (behind the tunnel, Cloudflare's client IP header) per window: staff sign-in and MCP calls.

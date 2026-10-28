@@ -13,7 +13,8 @@ import {serveMeta,type MetaRouteDeps} from '../apps/api/src/meta/routes';
 
 const url=process.env.META_TEST_DATABASE_URL;
 const skip=!url&&'META_TEST_DATABASE_URL not set';
-const A='00000000-0000-4000-8000-000000000001',B='00000000-0000-4000-8000-000000000002',PAGE_A='100000000001';
+// Each run uses its own shop so earlier runs' orders never crowd the 50-row list.
+const A=randomUUID(),B='00000000-0000-4000-8000-000000000002',PAGE_A=String(300_000_000_000+Math.floor(Math.random()*1e9));
 const STAFF=randomUUID(),OTHER=randomUUID(),CUSTOMER=randomUUID(),NOBODY=randomUUID();
 const users:Record<string,{id:string;password:string}>={'staff@shop.test':{id:STAFF,password:'pw-staff'},'other@shop.test':{id:OTHER,password:'pw-other'},
  'customer@shop.test':{id:CUSTOMER,password:'pw-customer'},'nobody@shop.test':{id:NOBODY,password:'pw-nobody'}};
@@ -46,7 +47,8 @@ before(async()=>{
  app.on('connect',c=>{c.query('SET ROLE bitpos_app');});
  const db:MetaDb={query:(sql,params)=>app.query(sql,params as any[]),tenant:async(merchant,fn)=>{const c=await app.connect();try{await c.query('SET ROLE bitpos_app');await c.query('BEGIN');await c.query("SELECT set_config('bitpos.merchant',$1,true)",[merchant]);const r=await fn(c);await c.query('COMMIT');return r;}catch(e){await c.query('ROLLBACK');throw e;}finally{c.release();}}};
  deps={db,config:{origin:'https://pos.example.test',authUrl:'http://auth.test',anonKey:'anon',fetch:authFetch}};
- await admin.query(`INSERT INTO meta_messenger_pages(page_id,merchant_id,page_username) VALUES($1,$2,'bitposdemoa'),('200000000002',$3,'bitposdemob') ON CONFLICT DO NOTHING`,[PAGE_A,A,B]);
+ await admin.query("INSERT INTO merchants(id,name,treasury) SELECT $1,'staff test shop',treasury FROM merchants WHERE id=$2",[A,B]);
+ await admin.query(`INSERT INTO meta_messenger_pages(page_id,merchant_id,page_username) VALUES($1,$2,'staffshop'),('200000000002',$3,'bitposdemob') ON CONFLICT DO NOTHING`,[PAGE_A,A,B]);
  await admin.query("INSERT INTO members(user_id,merchant_id,role) VALUES($1,$2,'staff'),($3,$4,'owner')",[STAFF,A,OTHER,B]);
  paidOrder=await order(A,'PAID');openOrder=await order(A,'CREATED');otherShopOrder=await order(B,'PAID');
 });

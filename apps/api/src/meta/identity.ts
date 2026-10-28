@@ -75,15 +75,18 @@ const T={
  declined:'รับทราบค่ะ ร้านจะไม่จำข้อมูลของคุณ\nOK, the shop will not remember you.',
  expired:'ลิงก์หมดอายุแล้ว กรุณาแตะที่เครื่องอีกครั้ง\nThis link expired. Please tap again.',
  revoked:'ลบการเชื่อมต่อกับร้านแล้วค่ะ\nYou are disconnected from this shop.',
+ notLinked:'สั่งผ่านแชทได้หลังเชื่อมต่อกับร้าน แตะมือถือที่เครื่องในร้านเพื่อเริ่มค่ะ\nTo order by chat, connect first: tap your phone on the device in the shop.',
 };
 const openButton=(url:string)=>({type:'web_url' as const,title:'เปิดหน้าร้าน / Open',url});
 
 /** A customer just became known at a tap: the caller picks and sends an offer after commit. */
 export interface OfferRequest {merchantId:string;linkId:string;tapSessionId:string;psid:string}
+/** A consented customer wrote to the shop or pressed Pay: handled by the ordering agent after commit. */
+export type AgentRequest={merchantId:string;linkId:string;psid:string}&({kind:'text';text:string}|{kind:'agent_pay';quoteId:string});
 
 /** Applies verified webhook events. Returns messages and offer requests to handle after the transactions commit. */
-export async function handleMessengerEvents(deps:IdentityDeps,events:ParsedEvent[]):Promise<{outbox:Outgoing[];offers:OfferRequest[]}>{
- const out:Outgoing[]=[],offers:OfferRequest[]=[];
+export async function handleMessengerEvents(deps:IdentityDeps,events:ParsedEvent[]):Promise<{outbox:Outgoing[];offers:OfferRequest[];agent:AgentRequest[]}>{
+ const out:Outgoing[]=[],offers:OfferRequest[]=[],agent:AgentRequest[]=[];
  for(const {event,key} of events){
   const merchantId=(await deps.db.query<{m:string|null}>('SELECT bitpos.meta_page_merchant($1) AS m',[event.pageId])).rows[0]?.m;
   if(!merchantId)continue;
@@ -94,6 +97,13 @@ export async function handleMessengerEvents(deps:IdentityDeps,events:ParsedEvent
     const links=(await db.query<{id:string}>('UPDATE meta_customer_links SET revoked_at=clock_timestamp() WHERE page_id=$1 AND psid=$2 AND revoked_at IS NULL RETURNING id',[pageId,psid])).rows;
     if(links.length)await db.query('UPDATE meta_customer_sessions SET revoked_at=clock_timestamp() WHERE link_id=ANY($1::uuid[]) AND revoked_at IS NULL',[links.map(l=>l.id)]);
     return {kind:'text',psid,text:T.revoked} as Outgoing;
+   }
+   if(event.kind==='text'||event.kind==='agent_pay'){
+    // Only a customer who consented in Messenger can order by chat; nobody else's text reaches a model.
+    const link=(await db.query<{id:string}>('SELECT id FROM meta_customer_links WHERE page_id=$1 AND psid=$2 AND revoked_at IS NULL',[pageId,psid])).rows[0];
+    if(!link)return {kind:'text',psid,text:T.notLinked} as Outgoing;
+    agent.push(event.kind==='text'?{merchantId,linkId:link.id,psid,kind:'text',text:event.text}:{merchantId,linkId:link.id,psid,kind:'agent_pay',quoteId:event.quoteId});
+    return null;
    }
    if(event.kind==='referral'){
     if(!REF.test(event.ref))return null;
@@ -114,7 +124,7 @@ export async function handleMessengerEvents(deps:IdentityDeps,events:ParsedEvent
   });
   if(reply)out.push(reply);
  }
- return {outbox:out,offers};
+ return {outbox:out,offers,agent};
 }
 
 export interface CustomerSession {merchantId:string;sessionToken:string;linkId:string;tapSessionId:string|null}

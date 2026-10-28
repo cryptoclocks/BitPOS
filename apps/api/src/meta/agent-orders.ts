@@ -9,7 +9,7 @@ import type pg from 'pg';
 import type {MetaDb,OfferDeps} from './identity';
 import {approvedOffers} from './offer-select';
 import {formatTapAmount} from './staff';
-import {STRIPE_MINIMUM,chargeSharedPaymentToken,refundPaymentIntent,toStripeMinor,StripePaymentError,type PaymentFact,type StripeFetch,type StripeSandboxConfig} from './stripe';
+import {STRIPE_MINIMUM,chargeSharedPaymentToken,createCheckoutSession,refundPaymentIntent,retrieveCheckoutSession,toStripeMinor,StripePaymentError,type PaymentFact,type StripeFetch,type StripeSandboxConfig} from './stripe';
 
 export interface AgentDeps {db:MetaDb;offers:OfferDeps;stripe:{config:StripeSandboxConfig;fetch?:StripeFetch}|null}
 export type Currency='thb'|'usd';
@@ -51,7 +51,8 @@ export async function listMenu(deps:AgentDeps,merchantId:string):Promise<MenuIte
 }
 
 /** Prices one product from the live catalog and stores a quote that expires in 10 minutes. */
-export async function createQuote(deps:AgentDeps,merchantId:string,channel:'mcp'|'messenger',productIdIn:unknown,quantityIn:unknown=1):Promise<QuoteView>{
+export async function createQuote(deps:AgentDeps,merchantId:string,channel:'mcp'|'messenger',productIdIn:unknown,quantityIn:unknown=1,linkId:string|null=null):Promise<QuoteView>{
+ if((channel==='messenger')!==(linkId!==null))throw new AgentOrderError('INVALID_INPUT');
  const productId=uuidOrFail(productIdIn);
  const quantity=Number(quantityIn);if(!Number.isInteger(quantity)||quantity<1||quantity>10)throw new AgentOrderError('INVALID_INPUT');
  return deps.db.tenant(merchantId,async db=>{
@@ -65,8 +66,8 @@ export async function createQuote(deps:AgentDeps,merchantId:string,channel:'mcp'
   const total=unit*BigInt(quantity);
   if(total<STRIPE_MINIMUM[currency])throw new AgentOrderError('BELOW_MINIMUM');
   const offerId=approvedOffers(menu).find(o=>o.productId===productId)?.offerId??null;
-  const q=(await db.query<{id:string;expires_at:Date}>("WITH n AS (SELECT clock_timestamp() AS t) INSERT INTO meta_quotes(merchant_id,channel,product_id,offer_id,quantity,currency,unit_amount_minor,base_unit_amount_minor,amount_minor,created_at,expires_at) SELECT $1,$2,$3,$4,$5,$6,$7,$8,$9,t,t+interval '10 minutes' FROM n RETURNING id,expires_at",
-   [merchantId,channel,productId,offerId,quantity,currency,unit.toString(),base.toString(),total.toString()])).rows[0];
+  const q=(await db.query<{id:string;expires_at:Date}>("WITH n AS (SELECT clock_timestamp() AS t) INSERT INTO meta_quotes(merchant_id,channel,product_id,offer_id,quantity,currency,unit_amount_minor,base_unit_amount_minor,amount_minor,link_id,created_at,expires_at) SELECT $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,t,t+interval '10 minutes' FROM n RETURNING id,expires_at",
+   [merchantId,channel,productId,offerId,quantity,currency,unit.toString(),base.toString(),total.toString(),linkId])).rows[0];
   return {quoteId:q.id,productId,name:p.name,nameEn:p.nameEn,quantity,currency,unitAmountMinor:unit.toString(),amountMinor:total.toString(),total:formatTapAmount(total.toString(),currency),offerId,expiresAt:q.expires_at.toISOString(),terms:TERMS};
  });
 }
@@ -78,7 +79,7 @@ const view=(o:OrderRow):OrderView=>({orderId:o.id,quoteId:o.quote_id,status:o.st
  confirmedAt:o.confirmed_at?.toISOString()??null,handedOverAt:o.handed_over_at?.toISOString()??null,cancelledAt:o.cancelled_at?.toISOString()??null});
 
 /** Inside the shop's transaction: match Stripe's facts to the row, confirm and take stock once. */
-async function confirm(db:pg.PoolClient,orderId:string,f:{paymentIntentId:string;amountMinor:bigint;currency:string;source:'charge'|'webhook'}):Promise<'CONFIRMED'|'ALREADY'|'MISMATCH'|'NOT_FOUND'>{
+async function confirm(db:pg.PoolClient,orderId:string,f:{paymentIntentId:string;amountMinor:bigint;currency:string;source:'charge'|'webhook'|'lookup'}):Promise<'CONFIRMED'|'ALREADY'|'MISMATCH'|'NOT_FOUND'>{
  const o=(await db.query<{status:OrderStatus;amount_minor:string;currency:string;product_id:string;quantity:number;stripe_payment_intent_id:string|null}>('SELECT status,amount_minor::text,currency,product_id,quantity,stripe_payment_intent_id FROM meta_agent_orders WHERE id=$1 FOR UPDATE',[orderId])).rows[0];
  if(!o)return 'NOT_FOUND';
  if(o.status!=='PENDING'&&o.status!=='FAILED')return 'ALREADY';
@@ -100,7 +101,8 @@ export async function completeCheckout(deps:AgentDeps,merchantId:string,quoteIdI
  const prep=await deps.db.tenant(merchantId,async db=>{
   const existing=(await db.query<OrderRow>(`SELECT ${ORDER_COLS} FROM meta_agent_orders WHERE quote_id=$1 FOR UPDATE`,[quoteId])).rows[0];
   if(existing&&existing.status!=='PENDING')return {kind:'done' as const,order:existing};
-  const q=(await db.query<{product_id:string;quantity:number;currency:Currency;amount_minor:string;live:boolean}>('SELECT product_id,quantity,currency,amount_minor::text,expires_at>clock_timestamp() AS live FROM meta_quotes WHERE id=$1',[quoteId])).rows[0];
+  // SPT checkout is for connector (MCP) quotes; a chat quote is paid only through its own Stripe Checkout.
+  const q=(await db.query<{product_id:string;quantity:number;currency:Currency;amount_minor:string;live:boolean}>("SELECT product_id,quantity,currency,amount_minor::text,expires_at>clock_timestamp() AS live FROM meta_quotes WHERE id=$1 AND channel='mcp'",[quoteId])).rows[0];
   if(!q)throw new AgentOrderError('NOT_FOUND');
   if(existing)return {kind:'charge' as const,order:existing};
   if(!q.live)throw new AgentOrderError('QUOTE_EXPIRED');
@@ -181,5 +183,66 @@ export async function applyAgentWebhook(db:MetaDb,merchantId:string,fact:Payment
   if(q.quote_id!==fact.quoteId)return 'MISMATCH';
   if(!(await c.query('INSERT INTO meta_agent_stripe_events(merchant_id,event_id,order_id) VALUES($1,$2,$3) ON CONFLICT DO NOTHING',[merchantId,fact.eventId,fact.orderId])).rowCount)return 'DUPLICATE_EVENT';
   return confirm(c,fact.orderId,{paymentIntentId:fact.paymentIntentId,amountMinor:fact.amountMinor,currency:fact.currency,source:'webhook'});
+ });
+}
+
+export type AgentCheckoutStart={kind:'redirect';url:string;orderId:string;total:string}|{kind:'paid';orderId:string;pickupCode:string}|{kind:'ended'};
+
+/** Chat orders: one hosted Stripe Checkout per quote, for the customer the quote was made for. */
+export async function startAgentCheckout(deps:AgentDeps,merchantId:string,linkId:string,quoteIdIn:unknown,publicOrigin:string):Promise<AgentCheckoutStart>{
+ const quoteId=uuidOrFail(quoteIdIn);
+ if(!deps.stripe)throw new AgentOrderError('PAYMENTS_UNAVAILABLE');
+ const stripe=deps.stripe;
+ const prep=await deps.db.tenant(merchantId,async db=>{
+  const q=(await db.query<{product_id:string;quantity:number;currency:Currency;amount_minor:string;live:boolean;name:string;name_en:string;emoji:string}>(
+   `SELECT q.product_id,q.quantity,q.currency,q.amount_minor::text,q.expires_at>clock_timestamp() AS live,coalesce(p.name,'') AS name,coalesce(p.name_en,'') AS name_en,coalesce(p.emoji,'') AS emoji
+    FROM meta_quotes q LEFT JOIN products p ON p.merchant_id=q.merchant_id AND p.id=q.product_id WHERE q.id=$1 AND q.channel='messenger' AND q.link_id=$2`,[quoteId,linkId])).rows[0];
+  if(!q)throw new AgentOrderError('NOT_FOUND');
+  const o=(await db.query<OrderRow&{checkout_url:string|null}>(`SELECT ${ORDER_COLS},checkout_url FROM meta_agent_orders WHERE quote_id=$1 FOR UPDATE`,[quoteId])).rows[0];
+  if(o?.status==='CONFIRMED')return {kind:'paid' as const,orderId:o.id};
+  if(o&&o.status!=='PENDING')return {kind:'ended' as const};
+  if(o?.checkout_url)return {kind:'redirect' as const,url:o.checkout_url,orderId:o.id,amount:q.amount_minor,currency:q.currency};
+  if(!o&&!q.live)throw new AgentOrderError('QUOTE_EXPIRED');
+  const orderId=o?.id??(await db.query<{id:string}>('INSERT INTO meta_agent_orders(merchant_id,quote_id,product_id,quantity,currency,amount_minor,link_id) VALUES($1,$2,$3,$4,$5,$6,$7) RETURNING id',
+   [merchantId,quoteId,q.product_id,q.quantity,q.currency,q.amount_minor,linkId])).rows[0].id;
+  return {kind:'create' as const,orderId,amount:q.amount_minor,currency:q.currency,productName:`${q.emoji} ${q.name} / ${q.name_en} ×${q.quantity}`};
+ });
+ if(prep.kind==='paid')return {kind:'paid',orderId:prep.orderId,pickupCode:code(prep.orderId)};
+ if(prep.kind==='ended')return prep;
+ if(prep.kind==='redirect')return {kind:'redirect',url:prep.url,orderId:prep.orderId,total:formatTapAmount(prep.amount,prep.currency)};
+ let session;
+ try{session=await createCheckoutSession(stripe.config,{orderId:prep.orderId,quoteId,merchantId,productName:prep.productName,amountMinor:BigInt(prep.amount),currency:prep.currency,
+  successUrl:`${publicOrigin}/meta/agent/paid?o=${prep.orderId}`,cancelUrl:`${publicOrigin}/meta/agent/paid?o=${prep.orderId}`,expiresAtSeconds:Math.floor(Date.now()/1000)+31*60},stripe.fetch);}
+ catch{throw new AgentOrderError('PROVIDER_OUTCOME_UNKNOWN');}
+ await deps.db.tenant(merchantId,db=>db.query('UPDATE meta_agent_orders SET stripe_checkout_id=$2,checkout_url=$3 WHERE id=$1 AND stripe_checkout_id IS NULL',[prep.orderId,session.id,session.url]));
+ return {kind:'redirect',url:session.url!,orderId:prep.orderId,total:formatTapAmount(prep.amount,prep.currency)};
+}
+
+/** Return page after Stripe: ask Stripe server to server before believing the order is paid. */
+export async function reconcileAgentCheckout(deps:AgentDeps,orderIdIn:unknown):Promise<(OrderView&{merchantId:string;confirmedNow:boolean})|null>{
+ if(typeof orderIdIn!=='string'||!UUID.test(orderIdIn))return null;
+ const orderId=orderIdIn,merchantId=await agentOrderMerchant(deps.db,orderId);
+ if(!merchantId)return null;
+ const read=(db:pg.PoolClient)=>db.query<OrderRow&{stripe_checkout_id:string|null}>(`SELECT ${ORDER_COLS},stripe_checkout_id FROM meta_agent_orders WHERE id=$1`,[orderId]).then(r=>r.rows[0]);
+ const before=await deps.db.tenant(merchantId,read);
+ const unchanged={...view(before),merchantId,confirmedNow:false};
+ if(before.status!=='PENDING'||!before.stripe_checkout_id||!deps.stripe)return unchanged;
+ const s=await retrieveCheckoutSession(deps.stripe.config,before.stripe_checkout_id,deps.stripe.fetch);
+ if(!s.paid||s.orderId!==orderId||s.merchantId!==merchantId||!s.paymentIntentId)return unchanged;
+ return deps.db.tenant(merchantId,async db=>{
+  const r=await confirm(db,orderId,{paymentIntentId:s.paymentIntentId!,amountMinor:s.amountMinor,currency:s.currency,source:'lookup'});
+  return {...view((await read(db))!),merchantId,confirmedNow:r==='CONFIRMED'};
+ });
+}
+
+/** Who to tell when a chat order is paid (consented Messenger customers only). */
+export async function agentReceipt(db:MetaDb,merchantId:string,orderId:string):Promise<{psid:string;text:string}|null>{
+ return db.tenant(merchantId,async c=>{
+  const r=(await c.query<{psid:string;status:string;amount_minor:string;currency:string;quantity:number;name:string;name_en:string;emoji:string}>(
+   `SELECT l.psid,o.status,o.amount_minor::text,o.currency,o.quantity,coalesce(p.name,'') AS name,coalesce(p.name_en,'') AS name_en,coalesce(p.emoji,'') AS emoji FROM meta_agent_orders o
+    JOIN meta_customer_links l ON l.merchant_id=o.merchant_id AND l.id=o.link_id AND l.revoked_at IS NULL
+    LEFT JOIN products p ON p.merchant_id=o.merchant_id AND p.id=o.product_id WHERE o.id=$1`,[orderId])).rows[0];
+  if(!r||r.status!=='CONFIRMED')return null;
+  return {psid:r.psid,text:`จ่ายแล้ว ✓ ${r.emoji} ${r.name} ×${r.quantity} · ${formatTapAmount(r.amount_minor,r.currency)}\nรหัสรับสินค้า #${code(orderId)} รับที่เคาน์เตอร์ได้เลยค่ะ\nPaid — pickup code #${code(orderId)}. Stripe sandbox, test mode.`};
  });
 }

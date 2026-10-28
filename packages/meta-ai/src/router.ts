@@ -36,6 +36,7 @@ export const DEFAULT_ROUTES:Record<MetaTask,MetaProviderId[]>={
  promotion_copy:['meta_api','baseten','local_mac','modal'],
  poster_direction:['meta_api','baseten','local_mac','modal'],
  offer_selection:['meta_api','baseten','modal','local_mac'],
+ agent_order:['meta_api','baseten','modal','local_mac'],
 };
 
 export interface MetaRouterOptions {
