@@ -80,3 +80,48 @@ export function paymentFactFromEvent(event:StripeEvent):PaymentFact|null{
  for(const k of ['bitpos_merchant','bitpos_order','bitpos_quote','bitpos_checkout'])if(typeof m[k]!=='string'||!m[k])return null;
  return {eventId:event.id,paymentIntentId:pi.id,merchantId:m.bitpos_merchant,orderId:m.bitpos_order,quoteId:m.bitpos_quote,checkoutId:m.bitpos_checkout,amountMinor:BigInt(pi.amount_received),currency:pi.currency};
 }
+
+export interface CheckoutRequest {
+ orderId:string;merchantId:string;productName:string;
+ /** Re-quoted server price in minor units; never a client value. */
+ amountMinor:bigint;currency:'thb'|'usd';successUrl:string;cancelUrl:string;expiresAtSeconds:number;
+}
+export interface CheckoutSession {id:string;url:string|null;paid:boolean;paymentIntentId:string|null;amountMinor:bigint;currency:string;orderId:string|null;merchantId:string|null}
+
+async function stripeCall(config:StripeSandboxConfig,method:'GET'|'POST',path:string,form:URLSearchParams|null,idempotencyKey:string|null,fetchImpl:StripeFetch):Promise<any>{
+ let res:Response;
+ try{res=await fetchImpl(`${config.apiBase??'https://api.stripe.com'}${path}`,{method,redirect:'error',signal:AbortSignal.timeout(config.timeoutMs??20000),
+  headers:{Authorization:`Bearer ${config.secretKey}`,...(form?{'Content-Type':'application/x-www-form-urlencoded'}:{}),...(idempotencyKey?{'Idempotency-Key':idempotencyKey}:{})},body:form??undefined});}
+ catch{throw new StripePaymentError('PROVIDER_OUTCOME_UNKNOWN');}
+ let body:any;try{body=await res.json();}catch{throw new StripePaymentError('PROVIDER_OUTCOME_UNKNOWN');}
+ if(res.status>=500)throw new StripePaymentError('PROVIDER_OUTCOME_UNKNOWN');
+ if(!res.ok)throw new StripePaymentError('PAYMENT_FAILED',String(body?.error?.code??body?.error?.type??res.status));
+ return body;
+}
+function checkoutView(body:any):CheckoutSession{
+ if(body?.object!=='checkout.session'||typeof body.id!=='string'||!/^cs_test_[A-Za-z0-9]+$/.test(body.id))throw new StripePaymentError('PROVIDER_OUTCOME_UNKNOWN');
+ if(body.livemode!==false)throw new StripePaymentError('LIVE_MODE_REFUSED');
+ if(!Number.isSafeInteger(body.amount_total)||typeof body.currency!=='string')throw new StripePaymentError('PROVIDER_OUTCOME_UNKNOWN');
+ const pi=typeof body.payment_intent==='string'?body.payment_intent:typeof body.payment_intent?.id==='string'?body.payment_intent.id:null;
+ return {id:body.id,url:typeof body.url==='string'&&body.url.startsWith('https://checkout.stripe.com/')?body.url:null,
+  paid:body.status==='complete'&&body.payment_status==='paid'&&pi!==null,paymentIntentId:pi,amountMinor:BigInt(body.amount_total),currency:body.currency,
+  orderId:typeof body.metadata?.bitpos_order==='string'?body.metadata.bitpos_order:null,merchantId:typeof body.metadata?.bitpos_merchant==='string'?body.metadata.bitpos_merchant:null};
+}
+
+/** Hosted Stripe Checkout for one tap order; the same order id always maps to the same session. */
+export async function createCheckoutSession(config:StripeSandboxConfig,req:CheckoutRequest,fetchImpl:StripeFetch=fetch):Promise<CheckoutSession>{
+ if(req.amountMinor<=0n||req.amountMinor>MAX_MINOR)throw new StripePaymentError('INVALID_AMOUNT');
+ const meta={bitpos_merchant:req.merchantId,bitpos_order:req.orderId,bitpos_quote:req.orderId,bitpos_checkout:req.orderId};
+ const form=new URLSearchParams({mode:'payment',client_reference_id:req.orderId,success_url:req.successUrl,cancel_url:req.cancelUrl,expires_at:String(req.expiresAtSeconds),
+  'line_items[0][quantity]':'1','line_items[0][price_data][currency]':req.currency,'line_items[0][price_data][unit_amount]':req.amountMinor.toString(),'line_items[0][price_data][product_data][name]':req.productName.slice(0,250)});
+ for(const [k,v] of Object.entries(meta)){form.set(`metadata[${k}]`,v);form.set(`payment_intent_data[metadata][${k}]`,v);}
+ const session=checkoutView(await stripeCall(config,'POST','/v1/checkout/sessions',form,`bitpos-meta-checkout-${req.orderId}`,fetchImpl));
+ if(!session.url||session.amountMinor!==req.amountMinor||session.currency!==req.currency||session.orderId!==req.orderId)throw new StripePaymentError('RESPONSE_MISMATCH');
+ return session;
+}
+
+/** Server-side lookup used when the customer returns from Stripe; the redirect itself proves nothing. */
+export async function retrieveCheckoutSession(config:StripeSandboxConfig,id:string,fetchImpl:StripeFetch=fetch):Promise<CheckoutSession>{
+ if(!/^cs_test_[A-Za-z0-9]+$/.test(id))throw new StripePaymentError('INVALID_AMOUNT');
+ return checkoutView(await stripeCall(config,'GET',`/v1/checkout/sessions/${id}`,null,null,fetchImpl));
+}

@@ -68,3 +68,25 @@ test('payment facts ignore foreign events and refuse malformed succeeded intents
  assert.equal(paymentFactFromEvent({...base,type:'payment_intent.succeeded',data:{object:{object:'payment_intent',id:'pi_x',status:'succeeded',amount_received:100,currency:'usd',metadata:{}}}}),null);
  assert.throws(()=>paymentFactFromEvent({...base,type:'payment_intent.succeeded',data:{object:{object:'payment_intent',id:'pi_x',status:'processing',amount_received:100,currency:'usd',metadata:{}}}}),code('WEBHOOK_INVALID'));
 });
+
+test('Checkout Session: canonical amount, metadata on session and PaymentIntent, idempotent per order',async()=>{
+ const {createCheckoutSession,retrieveCheckoutSession}=await import('../apps/api/src/meta/stripe');
+ let seen:{url:string;init:RequestInit}|undefined;
+ const session=(over:Record<string,unknown>={})=>({object:'checkout.session',id:'cs_test_a1',livemode:false,url:'https://checkout.stripe.com/c/pay/cs_test_a1',amount_total:5200,currency:'thb',status:'open',payment_status:'unpaid',payment_intent:null,metadata:{bitpos_order:'o-1',bitpos_merchant:'m-1'},...over});
+ const req={orderId:'o-1',merchantId:'m-1',productName:'🥐 Croissant',amountMinor:5200n,currency:'thb' as const,successUrl:'https://shop.test/meta/paid?o=o-1',cancelUrl:'https://shop.test/meta/offer-page',expiresAtSeconds:1_800_000_000};
+ const s=await createCheckoutSession(config,req,async(url,init)=>{seen={url,init};return new Response(JSON.stringify(session()),{status:200});});
+ assert.equal(s.url,'https://checkout.stripe.com/c/pay/cs_test_a1');assert.equal(s.paid,false);
+ const form=new URLSearchParams(String(seen!.init.body));
+ assert.equal(form.get('line_items[0][price_data][unit_amount]'),'5200');assert.equal(form.get('line_items[0][price_data][currency]'),'thb');
+ assert.equal(form.get('payment_intent_data[metadata][bitpos_order]'),'o-1');assert.equal(form.get('metadata[bitpos_checkout]'),'o-1');
+ assert.equal((seen!.init.headers as Record<string,string>)['Idempotency-Key'],'bitpos-meta-checkout-o-1');
+ await assert.rejects(createCheckoutSession(config,req,reply(200,session({amount_total:100}))),code('RESPONSE_MISMATCH'));
+ await assert.rejects(createCheckoutSession(config,req,reply(200,session({livemode:true}))),code('LIVE_MODE_REFUSED'));
+ await assert.rejects(createCheckoutSession(config,req,reply(200,session({url:'https://evil.example/pay'}))),code('RESPONSE_MISMATCH'));
+ await assert.rejects(createCheckoutSession(config,{...req,amountMinor:0n},reply(200,session())),code('INVALID_AMOUNT'));
+ const paid=await retrieveCheckoutSession(config,'cs_test_a1',reply(200,session({status:'complete',payment_status:'paid',payment_intent:{id:'pi_9'}})));
+ assert.deepEqual([paid.paid,paid.paymentIntentId,paid.amountMinor],[true,'pi_9',5200n]);
+ const unpaid=await retrieveCheckoutSession(config,'cs_test_a1',reply(200,session({status:'complete',payment_status:'unpaid'})));
+ assert.equal(unpaid.paid,false);
+ await assert.rejects(retrieveCheckoutSession(config,'cs_live_x',reply(200,session())),code('INVALID_AMOUNT'));
+});

@@ -11,6 +11,7 @@ import pg from 'pg';
 import {aesCmac,deriveTagKeys} from '../packages/meta-ai/src/ntag424';
 import {consumeMagicLink,customerFromSession,handleMessengerEvents,handleTap,offerForTap,type IdentityDeps,type MetaDb,type OfferDeps} from '../apps/api/src/meta/identity';
 import {invocationSink} from '../apps/api/src/meta/evidence';
+import {applyStripeWebhook,reconcileTapOrder,startTapCheckout,type StripeDeps} from '../apps/api/src/meta/tap-checkout';
 import {createMetaRouter} from '../packages/meta-ai/src/router';
 import type {EffectiveMenu} from '../apps/api/src/offers';
 import {parseMessengerWebhook,type Outgoing} from '../apps/api/src/meta/messenger';
@@ -178,4 +179,89 @@ test('offer on tap: Muse Spark picks from approved offers once per tap; the call
  const fallback=await offerForTap(deps,{menu,router:null},back.offers[0].merchantId,back.offers[0].linkId,back.offers[0].tapSessionId);
  assert.equal(fallback?.chosenBy,'fallback');assert.equal(fallback?.nameEn,'Croissant');
  await outboxOf(webhook({message:{mid:`stop-offer-${run}`,text:'STOP'}},53));
+});
+
+test('pay for the tapped offer: re-quoted checkout, PAID only from signed webhook or Stripe lookup, stock taken once',{skip},async()=>{
+ const [croissant]=(await admin.query<{id:string}>(`INSERT INTO products(merchant_id,name,name_en,emoji,price_minor,stock) VALUES($1,'ครัวซองต์','Croissant','🥐',6500,3) RETURNING id`,[A])).rows;
+ const thb=(v:string)=>({currency:'THB' as const,decimals:2 as const,amountMinor:v});
+ let unit='5200';
+ const menu:OfferDeps['menu']=async()=>({merchant:{id:A,name:'demo'},asOf:new Date().toISOString(),priceValidUntil:new Date(Date.now()+3600e3).toISOString(),menuVersion:'v',priceVersion:null,pricingRevision:'1',currency:null,decimals:null,
+  products:[{id:croissant.id,catalogKey:null,name:'ครัวซองต์',nameEn:'Croissant',emoji:'🥐',available:3,imageUrl:null,category:'bakery',description:null,basePrice:thb('6500'),unitPrice:thb(unit),promotion:{revision:'9',expiresAt:new Date(Date.now()+3600e3).toISOString(),discount:{kind:'percent',percent:20},priceVersion:A}}]} as EffectiveMenu);
+ const offers:OfferDeps={menu,router:null};
+ // Stripe stub: records sessions; GET reports paid once `paidPi` is set.
+ const sessions=new Map<string,any>();let paidPi:string|null=null;let creates=0;
+ const stripe:StripeDeps={config:{secretKey:'sk_test_x',webhookSecret:'whsec_flow'},fetch:async(url,init)=>{
+  if(init.method==='POST'){creates++;const f=new URLSearchParams(String(init.body));const id=`cs_test_${f.get('client_reference_id')!.replace(/-/g,'')}`;
+   const s={object:'checkout.session',id,livemode:false,url:`https://checkout.stripe.com/c/pay/${id}`,amount_total:Number(f.get('line_items[0][price_data][unit_amount]')),currency:f.get('line_items[0][price_data][currency]'),status:'open',payment_status:'unpaid',payment_intent:null,metadata:{bitpos_order:f.get('metadata[bitpos_order]'),bitpos_merchant:f.get('metadata[bitpos_merchant]')}};
+   sessions.set(id,s);return new Response(JSON.stringify(s),{status:200});}
+  const s=sessions.get(url.split('/').pop()!);
+  return new Response(JSON.stringify(paidPi?{...s,status:'complete',payment_status:'paid',payment_intent:paidPi}:s),{status:200});}};
+
+ // Customer with a web session taps and is offered the croissant.
+ const t=sunParams(TAG_A,UID_A,70);const tap=await handleTap(deps,TAG_A,t.e,t.m,null);
+ const consent=await outboxOf(webhook({referral:{ref:refOf((tap as any).url)}},70));
+ const welcome=await outboxOf(webhook({postback:{payload:(consent[0] as any).buttons[0].payload}},71));
+ const session=await consumeMagicLink(deps,magicOf(welcome[0]));
+ const offer=await offerForTap(deps,offers,A,session!.linkId,session!.tapSessionId!);
+ assert.equal(offer?.price,'฿52');
+
+ // The price can change between showing and paying: checkout uses today's catalog price.
+ unit='5000';
+ const start=await startTapCheckout(deps,offers,stripe,session!.sessionToken);
+ assert.equal(start.kind,'redirect');
+ const orderId=(start as any).orderId as string;
+ assert.equal(sessions.values().next().value.amount_total,5000);
+ const again=await startTapCheckout(deps,offers,stripe,session!.sessionToken);
+ assert.deepEqual([again.kind,(again as any).orderId,creates],['redirect',orderId,1],'same tap reuses the open checkout');
+ assert.equal((await startTapCheckout(deps,offers,stripe,null)).kind,'unavailable');
+
+ // The return page alone does not make it paid.
+ assert.equal((await reconcileTapOrder(deps,stripe,session!.sessionToken,orderId))?.status,'CREATED');
+
+ const sign=(raw:string)=>{const ts=Math.floor(Date.now()/1000);return `t=${ts},v1=${createHmac('sha256','whsec_flow').update(`${ts}.${raw}`).digest('hex')}`;};
+ const event=(id:string,amount:number)=>JSON.stringify({id,type:'payment_intent.succeeded',livemode:false,created:1,data:{object:{object:'payment_intent',id:`pi_flow${run}`,status:'succeeded',amount_received:amount,currency:'thb',metadata:{bitpos_merchant:A,bitpos_order:orderId,bitpos_quote:orderId,bitpos_checkout:orderId}}}});
+ const stockOf=async()=>(await admin.query<{stock:number}>('SELECT stock FROM products WHERE id=$1',[croissant.id])).rows[0].stock;
+ const wrong=event(`evt_wrong${run}`,4000);
+ assert.equal(await applyStripeWebhook(deps,stripe,wrong,sign(wrong)),'MISMATCH');
+ assert.equal(await stockOf(),3);
+ const forged=event(`evt_forged${run}`,5000);
+ await assert.rejects(applyStripeWebhook(deps,stripe,forged,sign(forged).replace(/v1=./,'v1=0')));
+ const good=event(`evt_good${run}`,5000);
+ assert.equal(await applyStripeWebhook(deps,stripe,good,sign(good)),'PAID');
+ assert.equal(await stockOf(),2,'stock taken once');
+ assert.equal(await applyStripeWebhook(deps,stripe,good,sign(good)),'DUPLICATE_EVENT');
+ const second=event(`evt_second${run}`,5000);
+ assert.equal(await applyStripeWebhook(deps,stripe,second,sign(second)),'ALREADY_PAID');
+ assert.equal(await stockOf(),2);
+ // A late Stripe lookup agrees and changes nothing.
+ paidPi=`pi_flow${run}`;
+ const view=await reconcileTapOrder(deps,stripe,session!.sessionToken,orderId);
+ assert.deepEqual([view?.status,view?.amountMinor,view?.currency,view?.stockShort],['PAID','5000','thb',false]);
+ assert.equal(await stockOf(),2);
+ assert.equal((await startTapCheckout(deps,offers,stripe,session!.sessionToken)).kind,'paid','a paid tap cannot be paid again');
+ await outboxOf(webhook({message:{mid:`stop-pay-${run}`,text:'STOP'}},72));
+});
+
+test('payment confirmed by Stripe lookup when no webhook arrives',{skip},async()=>{
+ const [tea]=(await admin.query<{id:string}>(`INSERT INTO products(merchant_id,name,name_en,emoji,price_minor,stock) VALUES($1,'ชาไทย','Thai tea','🍵',6000,0) RETURNING id`,[A])).rows;
+ const thb=(v:string)=>({currency:'THB' as const,decimals:2 as const,amountMinor:v});
+ const menu:OfferDeps['menu']=async()=>({merchant:{id:A,name:'demo'},asOf:new Date().toISOString(),priceValidUntil:new Date(Date.now()+3600e3).toISOString(),menuVersion:'v',priceVersion:null,pricingRevision:'1',currency:null,decimals:null,
+  products:[{id:tea.id,catalogKey:null,name:'ชาไทย',nameEn:'Thai tea',emoji:'🍵',available:1,imageUrl:null,category:'drink',description:null,basePrice:thb('6000'),unitPrice:thb('4500'),promotion:{revision:'2',expiresAt:new Date(Date.now()+3600e3).toISOString(),discount:{kind:'percent',percent:25},priceVersion:A}}]} as EffectiveMenu);
+ const offers:OfferDeps={menu,router:null};let paid=false;let id='';
+ const stripe:StripeDeps={config:{secretKey:'sk_test_x',webhookSecret:'whsec_flow'},fetch:async(_url,init)=>{
+  if(init.method==='POST'){const f=new URLSearchParams(String(init.body));id=`cs_test_${f.get('client_reference_id')!.replace(/-/g,'')}`;}
+  const order=id.slice(8).replace(/^(.{8})(.{4})(.{4})(.{4})(.{12})$/,'$1-$2-$3-$4-$5');
+  return new Response(JSON.stringify({object:'checkout.session',id,livemode:false,url:`https://checkout.stripe.com/c/pay/${id}`,amount_total:4500,currency:'thb',status:paid?'complete':'open',payment_status:paid?'paid':'unpaid',payment_intent:paid?`pi_lookup${run}`:null,metadata:{bitpos_order:order,bitpos_merchant:A}}),{status:200});}};
+ const t=sunParams(TAG_A,UID_A,80);const tap=await handleTap(deps,TAG_A,t.e,t.m,null);
+ const consent=await outboxOf(webhook({referral:{ref:refOf((tap as any).url)}},80));
+ const welcome=await outboxOf(webhook({postback:{payload:(consent[0] as any).buttons[0].payload}},81));
+ const session=await consumeMagicLink(deps,magicOf(welcome[0]));
+ await offerForTap(deps,offers,A,session!.linkId,session!.tapSessionId!);
+ const start=await startTapCheckout(deps,offers,stripe,session!.sessionToken);
+ paid=true;
+ const view=await reconcileTapOrder(deps,stripe,session!.sessionToken,(start as any).orderId);
+ // The physical stock was already 0: the payment stands, and staff see a stock shortage flag.
+ assert.deepEqual([view?.status,view?.stockShort],['PAID',true]);
+ assert.equal((await admin.query<{paid_source:string}>('SELECT paid_source FROM meta_tap_orders WHERE id=$1',[(start as any).orderId])).rows[0].paid_source,'lookup');
+ await outboxOf(webhook({message:{mid:`stop-lookup-${run}`,text:'STOP'}},82));
 });

@@ -41,3 +41,11 @@ if(spt.status<300){
  const retry=await chargeSharedPaymentToken({secretKey:key,webhookSecret:'whsec_unused'},job);
  console.log('SPT retry same checkout',JSON.stringify(retry),retry.paymentIntentId===first.paymentIntentId?'(same PaymentIntent: no double charge)':'(DIFFERENT PaymentIntent)');
 }
+
+// Hosted Checkout through the production module, in THB, as the tap page does.
+const {createCheckoutSession,retrieveCheckoutSession}=await import('../../apps/api/src/meta/stripe');
+const orderId=randomUUID();
+const checkout=await createCheckoutSession({secretKey:key,webhookSecret:'whsec_unused'},{orderId,merchantId:'probe-merchant',productName:'🥐 ครัวซองต์ / Croissant (probe)',amountMinor:5200n,currency:'thb',successUrl:`https://example.test/meta/paid?o=${orderId}`,cancelUrl:'https://example.test/meta/offer-page',expiresAtSeconds:Math.floor(Date.now()/1000)+31*60});
+console.log('checkout session',JSON.stringify({id:checkout.id,amount:checkout.amountMinor.toString(),currency:checkout.currency,paid:checkout.paid,url:checkout.url}));
+const looked=await retrieveCheckoutSession({secretKey:key,webhookSecret:'whsec_unused'},checkout.id);
+console.log('checkout lookup',JSON.stringify({paid:looked.paid,orderId:looked.orderId===orderId}));
