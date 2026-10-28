@@ -13,3 +13,6 @@ test('OP01-OP16 are all present exactly once', () => {
   const ids = platformDestinations.map(d => d.id).filter(id => id.startsWith('OP'));
   assert.deepEqual(ids, Array.from({ length: 16 }, (_, n) => `OP${String(n + 1).padStart(2, '0')}`));
 });
+test('every linked destination says what it is for', () => {
+  for (const item of platformDestinations) if (item.href) assert.ok(item.duty && item.duty[0] && item.duty[1], `${item.id} needs a duty text`);
+});

@@ -2,7 +2,8 @@ import {useEffect,useRef,useState} from 'react';
 import {FoodCancellationReviewSession,type PendingFoodCancellationReview} from '../lib/food-cancellation-review-session';
 import {PlatformError} from '../lib/platform-session';
 import type {FoodCancellationReviewQueue,FoodCancellationReviewSnapshot,FoodCancellationReviewInspection} from '../../../../packages/contracts/src/mobile-v1.generated';
-import PlatformLinks from './PlatformLinks';
+import PlatformSidebar from './PlatformSidebar';
+import '../styles/food-dispatch.css';
 import '../styles/platform.css';
 export default function PlatformFoodCancellationReviews(){
  const api=useRef<FoodCancellationReviewSession|null>(null);if(!api.current)api.current=new FoodCancellationReviewSession();const service=api.current;
@@ -20,7 +21,7 @@ export default function PlatformFoodCancellationReviews(){
  async function inspect(){if(!detail)return;const generation=owner.current,selection=intent.current,result=await service.inspectReview(detail.review.reviewId,purpose.trim());if(alive.current&&generation===owner.current&&selection===intent.current&&document.visibilityState==='visible'){setInspection(result);setPurpose('');timer.current=setTimeout(()=>{if(alive.current){setInspection(null);timer.current=null;}},30000);}}
  async function submit(saved:PendingFoodCancellationReview){const generation=owner.current,selection=intent.current,selected=detail?.review.reviewId;try{await service.submitReview(saved);if(!alive.current||generation!==owner.current)return;setNotice(t('บันทึกผลตรวจสอบแล้ว ไม่ได้ยกเลิกออร์เดอร์ คืนเงิน คืนสต็อก หรือปล่อยงาน','Review disposition recorded. No order cancellation, refund, stock return or custody release.'));setExplanation('');if(selected&&selection===intent.current&&document.visibilityState==='visible')await open(selected);if(merchant.trim())await load();}finally{if(alive.current&&generation===owner.current&&service.accountId)setPending(service.pendingReview());}}
  const review=detail?.review;
- return <main className="platform"><header><div><small>BITPOS · PLATFORM</small><h1>{t('ตรวจคำขอยกเลิกออร์เดอร์จัดส่ง','Delivery cancellation reviews')}</h1></div><button onClick={()=>setThai(!thai)}>{thai?'English':'ไทย'}</button></header><PlatformLinks thai={thai} current="/platform/food-cancellation-reviews"/>
+ return <div className="platform-shell"><PlatformSidebar thai={thai} current="/platform/food-cancellation-reviews"/><main className="platform"><header><div><small>BITPOS · PLATFORM</small><h1>{t('ตรวจคำขอยกเลิกออร์เดอร์จัดส่ง','Delivery cancellation reviews')}</h1></div><button onClick={()=>setThai(!thai)}>{thai?'English':'ไทย'}</button></header>
  <a href="/platform/food-incidents">{t('เหตุและความช่วยเหลืองานไรเดอร์','Driver incidents and support')}</a>
  <a href="/platform/support">{t('ช่วยเหลือลูกค้า','Customer support')}</a>
  <a href="/platform/food-dispatch">{t('ศูนย์จัดส่งและนโยบายไรเดอร์','Food dispatch and matching policy')}</a>
@@ -41,5 +42,5 @@ export default function PlatformFoodCancellationReviews(){
  </section>}
  </>}
  </>}
- <footer>{t('ข้อมูลเข้าสู่ระบบอยู่ในหน่วยความจำ คำสั่งค้างแยกตามบัญชี ต้องเข้าสู่ระบบใหม่เพื่อกู้คืน คำอธิบายผลที่บันทึกไว้เป็นข้อมูลที่ลูกค้าอ่านได้ ไม่เก็บรายละเอียดส่วนตัวที่ตรวจอ่าน','Credentials stay in memory. Pending commands are account-scoped and require sign-in to recover. Saved disposition explanations are customer-visible; inspected private detail is never persisted.')}</footer></main>;
+ <footer>{t('ข้อมูลเข้าสู่ระบบอยู่ในหน่วยความจำ คำสั่งค้างแยกตามบัญชี ต้องเข้าสู่ระบบใหม่เพื่อกู้คืน คำอธิบายผลที่บันทึกไว้เป็นข้อมูลที่ลูกค้าอ่านได้ ไม่เก็บรายละเอียดส่วนตัวที่ตรวจอ่าน','Credentials stay in memory. Pending commands are account-scoped and require sign-in to recover. Saved disposition explanations are customer-visible; inspected private detail is never persisted.')}</footer></main></div>;
 }

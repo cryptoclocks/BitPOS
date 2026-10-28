@@ -1,4 +1,5 @@
 import {parseSettlementSourcePairs} from '../lib/settlement-source-input';
+import PlatformSidebar from './PlatformSidebar';
 import {formatMoney} from '../lib/money';
 import {useEffect,useRef,useState} from 'react';
 import {DriverSettlementSession,type DriverSettlementJournal,type DriverSettlementResult,type PendingDriverSettlement} from '../lib/driver-settlement-session';
@@ -131,13 +132,7 @@ export default function PlatformDriverEarnings(){
   };return labels[value]?t(...labels[value]):value;
  };
  return <main className="dispatch-console" lang={thai?'th':'en'}>
-  <aside className="dispatch-sidebar"><strong>BitPOS</strong><small>PLATFORM · {t('การเงินไรเดอร์','DRIVER FINANCE')}</small><nav><a href="/platform/support">{t('ช่วยเหลือลูกค้า','Customer support')}</a>
-   <a href="/platform/food-dispatch">{t('จัดส่งและไรเดอร์','Food dispatch')}</a>
-   <a href="/platform/food-incidents">{t('เหตุและความช่วยเหลือ','Incidents and support')}</a>
-   <a href="/platform/food-cancellation-reviews">{t('ตรวจคำขอยกเลิก','Cancellation reviews')}</a>
-   <a href="/platform/drivers">{t('ตรวจสิทธิ์ไรเดอร์','Driver verification')}</a>
-   <a href="/platform/driver-earnings" aria-current="page">{t('รายได้และรอบจ่ายไรเดอร์','Driver earnings and settlement')}</a>
-  </nav></aside>
+  <PlatformSidebar thai={thai} current="/platform/driver-earnings"/>
   <div className="dispatch-main">
    <header><span>{t('เจ้าหน้าที่การเงิน · เซสชันแยกจากร้าน','Finance staff · independent mobile session')}</span><button onClick={()=>setThai(!thai)}>{thai?'English':'ไทย'}</button></header>
    <div className="dispatch-heading"><h1>{t('รายได้และรอบจ่ายไรเดอร์','Driver earnings and settlement')}</h1><p>{t('รายการจริงตามสิทธิ์ร้าน ไม่มีช่วงวันที่หรือยอดรายวันสมมติ สิทธิ์และรุ่นตรวจซ้ำที่เซิร์ฟเวอร์ทุกคำสั่ง','Server earning facts within merchant scope. No date-range or daily-total claims. Every command rechecks authority and versions.')}</p></div>

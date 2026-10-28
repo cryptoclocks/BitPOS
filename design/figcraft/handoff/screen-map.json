@@ -2945,7 +2945,7 @@
       "width": 1440,
       "height": 1000,
       "source": "source/screens/PL01-hub.svg",
-      "sha256": "312c4f5e78924570a03bb1d1df96d4f5d014a7ee19bde957975859db533ae3bb",
+      "sha256": "bea438509bea6316e124dad2dbb01d4a55c99a9aec826b402a46711dbfdbe88c",
       "phase": "food-first",
       "fixture": true,
       "added": "2026-10-29"
@@ -2961,7 +2961,7 @@
       "width": 1440,
       "height": 1000,
       "source": "source/screens/PL02-dispatch.svg",
-      "sha256": "79eb8941b9d9ec559ffe021eeb690c37e605e5bffabccc001cf36fb02be17e67",
+      "sha256": "1654242febf4e2033233868aed6b534c386d6ace2c6229f0ed93bb3d9387c9b1",
       "phase": "food-first",
       "fixture": true,
       "added": "2026-10-29"
@@ -2977,7 +2977,7 @@
       "width": 1440,
       "height": 1000,
       "source": "source/screens/PL03-drivers.svg",
-      "sha256": "3f50293cf66e9ab8efd346a5556c9ed0cc6a29c0c61142b333e73809c7ace915",
+      "sha256": "4a66155b7220900415fa3ff129f98dfe1e80d3ba0d27f8a21a8212296639423f",
       "phase": "food-first",
       "fixture": true,
       "added": "2026-10-29"
@@ -2993,7 +2993,7 @@
       "width": 1440,
       "height": 1000,
       "source": "source/screens/PL04-incidents.svg",
-      "sha256": "d997163fa45dd16c3e30315fd0d53d217a20693e51dce3f3f47fa0bbbe2f6926",
+      "sha256": "ae78099096f43aa62bc8efb13830dcce0f906eeddd97961c715021b816448351",
       "phase": "food-first",
       "fixture": true,
       "added": "2026-10-29"
@@ -3009,7 +3009,7 @@
       "width": 1440,
       "height": 1000,
       "source": "source/screens/PL05-support.svg",
-      "sha256": "b7040f68e3f9ce45643fd0dddf6d94fe9e0f77b0ca8e7779338e698e1e6498d5",
+      "sha256": "9f54d4b3acd8dd5697ef28920c71fda3c75f4979aecc17927430848eefae7f3f",
       "phase": "food-first",
       "fixture": true,
       "added": "2026-10-29"
@@ -3025,7 +3025,7 @@
       "width": 1440,
       "height": 1000,
       "source": "source/screens/PL06-reviews.svg",
-      "sha256": "e341f3ebb4c338f15c5c62204798b7c366b98dd646b899786ab3be0b49e9f1af",
+      "sha256": "27f2d6d70102631b371ef7523eed280c9a29fb7a1827e85c07dc618aa78c9210",
       "phase": "food-first",
       "fixture": true,
       "added": "2026-10-29"
@@ -3041,7 +3041,7 @@
       "width": 1440,
       "height": 1000,
       "source": "source/screens/PL07-driver-earnings.svg",
-      "sha256": "a3e439d0ec3b86acc15d7f1621bec3bf70fa63fa7dd9c4f77f7f362d8c9d3996",
+      "sha256": "979f7f21f74cb921375a8418675dd1479f174cceb503f6c23395b5bdc5f57cb1",
       "phase": "food-first",
       "fixture": true,
       "added": "2026-10-29"
@@ -3057,7 +3057,7 @@
       "width": 1440,
       "height": 1000,
       "source": "source/screens/PL08-cancel-reviews.svg",
-      "sha256": "830c1d78ed213d7079a645d4427997b493cdd9a474e2e0d34a62332939626424",
+      "sha256": "93f3763dac752e1a1c61a1843be1356489e0e8a13db261bc86593d06657906bb",
       "phase": "food-first",
       "fixture": true,
       "added": "2026-10-29"
@@ -3073,7 +3073,7 @@
       "width": 1440,
       "height": 1000,
       "source": "source/screens/PL09-rides.svg",
-      "sha256": "c6dc3d3b56783c4e64435d6ad304fc27fecc5830dbbd1329bccb8d41d4c22309",
+      "sha256": "264254369fbc2970672b8b5e0c30c15bd60d5b8f1227c4a033431e90866b2928",
       "phase": "food-first",
       "fixture": true,
       "added": "2026-10-29"
@@ -3089,7 +3089,7 @@
       "width": 1440,
       "height": 1000,
       "source": "source/screens/PL10-refund-reconciliation.svg",
-      "sha256": "b237e90db4523c4a60413197a7fd9b4cce3a214be18ebd93bf809f6cec665c6d",
+      "sha256": "d77dd6ee45fa9755b5c679b816fbd592a75b42974a502e91eca1e07763c75961",
       "phase": "food-first",
       "fixture": true,
       "added": "2026-10-29"
