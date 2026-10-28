@@ -80,10 +80,22 @@ void main() {
     await tester.tap(openChat);
     await tester.pumpAndSettle();
 
-    expect(find.text('Work'), findsOneWidget);
-    expect(find.text('History'), findsOneWidget);
-    expect(find.text('Earnings'), findsOneWidget);
-    expect(find.text('Account'), findsOneWidget);
+    for (
+      var i = 0;
+      i < 100 &&
+          find.textContaining('Rider fixture: order received.').evaluate().isEmpty;
+      i++
+    ) {
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 100)),
+      );
+      await tester.pump();
+    }
+    // Owner decision 2026-10-28: chat is a full-screen route; the bottom tabs stay hidden while it is open.
+    expect(find.text('Work'), findsNothing);
+    expect(find.text('History'), findsNothing);
+    expect(find.text('Earnings'), findsNothing);
+    expect(find.text('Account'), findsNothing);
     expect(
       find.textContaining('Rider fixture: order received.'),
       findsOneWidget,
