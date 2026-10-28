@@ -1,6 +1,6 @@
 # Flutter AVD suites: how to run them on a clean local stack
 
-Local only. Everything below uses a **disposable** Postgres database (`bitpos_delivery_fixture`, port 55440) and fixture APIs started from `tools/runtime/delivery-fixture-server.ts`. Nothing here touches the OCI server. Status on 2026-10-29: **41 of 42** suites pass; `dispatch-avd-location` needs the real driver app driven by hand (see the end).
+Local only. Everything below uses a **disposable** Postgres database (`bitpos_delivery_fixture`, port 55440) and fixture APIs started from `tools/runtime/delivery-fixture-server.ts`. Nothing here touches the OCI server. Status on 2026-10-29: **42 of 42** suites pass (`dispatch-avd-location` needs the real driver app driven with `tools/avd/ui.py`, see the end).
 
 ## Common setup
 - Postgres on `127.0.0.1:55440`; emulator `Pixel_10a` (`emulator-5554`).
@@ -23,5 +23,11 @@ Local only. Everything below uses a **disposable** Postgres database (`bitpos_de
 | `settlement-direct-earnings` | stage with `dispatch-http-smoke.ts --settlement088-http --direct` (APIs on 3003 and 3022); every API needs `BITPOS_SETTLEMENT_VERIFIER_DATABASE_URL=postgresql://bitpos_settlement088_fixture@127.0.0.1:55440/bitpos_delivery_fixture` (LOGIN role inside `bitpos_settlement_worker`) |
 | `rider-r19-root-chat`, `driver100-history`, `customer-u21/u24`, `merchant-search`, `account-overview` | no extra fixture; run through their wrappers (they set the AVD size); `driver100` accumulates support cases per account, clear them between runs |
 
-## Not reproducible hands-off
-`dispatch-avd-location` verifies that background location reaches SQL after the real driver app was run in the foreground with GPS enabled (permission dialogs and a first foreground sample, then HOME and an `adb emu geo fix`). The staging script `dispatch-http-smoke.ts --avd-stage` only prepares the data; the foreground part was done by driving the installed app by hand. It needs a person or an adb-scripted UI walk-through.
+## `dispatch-avd-location` (background location, real driver app)
+Done by driving the real driver app on the emulator with `tools/avd/ui.py` (adb + uiautomator; taps visible labels, fills fields):
+1. Free the fixture driver (`+66900000002`): no open assignment, no `OFFERED` rows in `food_dispatch_offers` (set stale ones to `EXPIRED` on the disposable database). Offers last only about 30 seconds.
+2. Fixture API on 3003; `tsx tools/runtime/dispatch-http-smoke.ts --avd-stage` writes `dispatch066-avd-fixture-20261018.json`. Immediately (inside the 30 seconds) log in as the driver over HTTP, `PUT /driver/availability {online:true, expectedVersion: profile.driver.availability.version}` and `POST /driver/food/offers/<offer.id>/claim {expectedVersion:'1', generation}` (the app's own heartbeat is not enough to see offers in time).
+3. Build the real app against the fixture API and install it: `flutter build apk --debug --dart-define=BITPOS_FIXTURE=true --dart-define=BITPOS_MOBILE_API=http://10.0.2.2:3003/api/mobile/v1/` in `apps/mobile-driver`, then `adb install -r`, `adb shell pm clear com.bitpos.bitpos_driver`, `adb shell am start -n com.bitpos.bitpos_driver/.MainActivity`.
+4. In the app: "เริ่มเป็น BitPOS Rider" → phone field `+66900000002` → "ขอ OTP" → code `123456` → "ยืนยัน OTP" → tab "รับงาน" → "โหลดใหม่"; set a GPS fix (`adb emu geo fix 100.5018 13.7560`), scroll down, "อนุญาตและเริ่ม GPS ของงานนี้", choose "While using the app". A first foreground sample (`seq 1`) must appear in `driver_latest_locations`.
+5. Run `tsx tools/runtime/dispatch-avd-location-smoke.ts` while the app stays in the foreground: it presses HOME, injects a new coordinate with `adb emu geo fix` and checks that the new background sample reaches SQL within the reported accuracy.
+Result 2026-10-29: PASS (`seq 2` received about one second after the injection).
