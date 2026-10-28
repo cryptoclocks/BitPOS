@@ -244,5 +244,199 @@
 ],
 "characters": "การทำงาน"
 }
+},
+{
+"command": "edit.delete",
+"params": {
+"ids": [
+6910,
+6458,
+5260,
+5435,
+5523,
+6816,
+8183
+]
+}
+},
+{
+"command": "node.set",
+"params": {
+"ids": [
+6835,
+6841,
+6847
+],
+"characters": "จากสินค้าในเมนู"
+}
+},
+{
+"command": "node.set",
+"params": {
+"ids": [
+6836,
+6842,
+6848
+],
+"characters": "—"
+}
+},
+{
+"command": "node.set",
+"params": {
+"ids": [
+5540
+],
+"characters": "Croissant"
+}
+},
+{
+"command": "node.set",
+"params": {
+"ids": [
+5541
+],
+"characters": "รับเข้า +24 ชิ้น · RCV-001"
+}
+},
+{
+"command": "node.set",
+"params": {
+"ids": [
+5542
+],
+"characters": "รับเข้า"
+}
+},
+{
+"command": "node.set",
+"params": {
+"ids": [
+5543
+],
+"characters": "08:00"
+}
+},
+{
+"command": "node.set",
+"params": {
+"ids": [
+5546
+],
+"characters": "Oat milk"
+}
+},
+{
+"command": "node.set",
+"params": {
+"ids": [
+5547
+],
+"characters": "ปรับ −2 ลิตร · นับสต็อก"
+}
+},
+{
+"command": "node.set",
+"params": {
+"ids": [
+5548
+],
+"characters": "ปรับปรุง"
+}
+},
+{
+"command": "node.set",
+"params": {
+"ids": [
+5549
+],
+"characters": "09:00"
+}
+},
+{
+"command": "node.set",
+"params": {
+"ids": [
+5552,
+5553,
+5554,
+5555
+],
+"characters": ""
+}
+},
+{
+"command": "node.set",
+"params": {
+"ids": [
+5532
+],
+"characters": "2 รายการตัวอย่าง"
+}
+},
+{
+"command": "node.set",
+"params": {
+"ids": [
+5278
+],
+"characters": "รับเข้า +24 ชิ้น · ผู้จำหน่าย Coffee Supply"
+}
+},
+{
+"command": "node.set",
+"params": {
+"ids": [
+5284
+],
+"characters": "รับเข้า +10 ลิตร · ผู้จำหน่าย Bakery Supply"
+}
+},
+{
+"command": "node.set",
+"params": {
+"ids": [
+5279,
+5285
+],
+"characters": "รับเข้า"
+}
+},
+{
+"command": "node.set",
+"params": {
+"ids": [
+5453
+],
+"characters": "เหลือ 8 / ขั้นต่ำ 10"
+}
+},
+{
+"command": "node.set",
+"params": {
+"ids": [
+5459
+],
+"characters": "เหลือ 48 / ขั้นต่ำ 100"
+}
+},
+{
+"command": "node.set",
+"params": {
+"ids": [
+5449
+],
+"characters": "การทำงาน"
+}
+},
+{
+"command": "node.set",
+"params": {
+"ids": [
+5455,
+5461
+],
+"characters": "รับเข้า"
+}
 }
 ]

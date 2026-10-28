@@ -4,7 +4,7 @@ Where the real app and the design differ, each difference was judged and the bet
 FigCraft source (`source/screens/*.svg`), the PNG preview (`previews/current-native/*.png`) and the `sha256` in `screen-map.json`
 were updated to match.
 
-**Master status:** the exported SVG/PNG/sha256 were patched first. The native master was then edited too, headlessly with `figcraft-cli run` (the first note here that the master "could not be opened" was wrong: FigCraft is installed and the CLI edits .figcraft files without the app window). The edited copy is `BitPOS-Platform-UI.edited-20261029.figcraft` next to this folder's exports and the exact steps are in `master-edit-20261029.json` (U01 bell replaced by an "English" text, U02 and U03 button labels and link rows, U04 centred description). With the owner's OK the master at `design/figcraft/BitPOS-Platform-UI.figcraft` in the main checkout was replaced by the edited copy (the original is kept as `BitPOS-Platform-UI.before-20261029.figcraft` beside it). Later edits (P20 and P25 text) are appended to `master-edit-20261029.json`; replay with `figcraft-cli run master-edit-20261029.json --in <master> --out <master>`. The exported SVG/PNG of P20 and P25 in `source/` and `previews/` were NOT refreshed.
+**Master status:** the exported SVG/PNG/sha256 were patched first. The native master was then edited too, headlessly with `figcraft-cli run` (the first note here that the master "could not be opened" was wrong: FigCraft is installed and the CLI edits .figcraft files without the app window). The edited copy is `BitPOS-Platform-UI.edited-20261029.figcraft` next to this folder's exports and the exact steps are in `master-edit-20261029.json` (U01 bell replaced by an "English" text, U02 and U03 button labels and link rows, U04 centred description). With the owner's OK the master at `design/figcraft/BitPOS-Platform-UI.figcraft` in the main checkout was replaced by the edited copy (the original is kept as `BitPOS-Platform-UI.before-20261029.figcraft` beside it). Later edits (P20 and P25 text) are appended to `master-edit-20261029.json`; replay with `figcraft-cli run master-edit-20261029.json --in <master> --out <master>`. The exported SVG/PNG/sha256 of P10, P12, P13, P20, P24, P25 and P37 were patched to match (the CLI's own SVG export uses outlines, unlike the existing text-based exports, so the text was patched in place).
 
 ## Applied to the exported files (app kept, design updated)
 
@@ -43,3 +43,9 @@ These are too structural to patch in the exported SVG. The app is the better beh
 
 - **P20 export:** the two sample "stored exports" became one row that says what the app does: orders of the chosen range, CSV built on this device, nothing uploaded; count text "1 item". The "add item" button is still drawn (the app has none).
 - **P25 users:** sample names replaced by short ids with the real role descriptions; the "last update" column became "actions" with "make staff" / "make manager". The "add item" button is still drawn (invitations are not offered).
+
+## Third step (2026-10-29): list frames aligned to the app, master and exports
+
+- "Add item" buttons deleted from P10, P12, P13, P20, P24, P25, P37 (the app has none; P21 suppliers keeps its button because the app has "Add supplier").
+- P13 movement list now shows only receive and adjust entries (the ledger does not record sales); P10 rows carry no cost; P12 shows "left / minimum" without a unit and an action column; P24 categories show "from menu items" and no update time.
+- Still superset or structural, not redrawn: U20, U22, U23, U33, P03, P07, P09, P35 (app kept).

@@ -1420,7 +1420,7 @@
       "width": 1440,
       "height": 1000,
       "source": "source/screens/P10-rcvHistory.svg",
-      "sha256": "12889808cfe74052daaeac26a472d27a8089b22773cf2c5a31cb5d23c16422af",
+      "sha256": "5ad956b46cfb094223353cc29cca2060db6fcb852d0f757fdde84961fb4e1fed",
       "phase": "food-first",
       "fixture": true
     },
@@ -1448,7 +1448,7 @@
       "width": 1440,
       "height": 1000,
       "source": "source/screens/P12-lowstock.svg",
-      "sha256": "a36a6caec0d922c2c1a76aa776fcb90dd41b5d6106342a2c52db787e7c71cc65",
+      "sha256": "5b6bf0d4d478ef31ab2ddb663f0e76f3f95bc5acd126db330ccc1f9cc2e7d1a2",
       "phase": "food-first",
       "fixture": true
     },
@@ -1462,7 +1462,7 @@
       "width": 1440,
       "height": 1000,
       "source": "source/screens/P13-movement.svg",
-      "sha256": "3c8826366599d15fdd9c7f140b1f6ec572f74b277d9b35614a9dd6b08992b385",
+      "sha256": "36ca52591847d5f95598adc302e6ea4173252edf8575a059995cc0959ac40846",
       "phase": "food-first",
       "fixture": true
     },
@@ -1560,7 +1560,7 @@
       "width": 1440,
       "height": 1000,
       "source": "source/screens/P20-exportC.svg",
-      "sha256": "b3615e7c1c5fa83faeeaa8ec82e02e8fefbf31d539311b69d1d8ae0c44ce1f64",
+      "sha256": "4a9f9aa61d059a13e8d98dc5e2026b14d1542bbdfd358f892c14674b3eb56f7e",
       "phase": "food-first",
       "fixture": true
     },
@@ -1616,7 +1616,7 @@
       "width": 1440,
       "height": 1000,
       "source": "source/screens/P24-categories.svg",
-      "sha256": "147c9059e606aefe85af2871193ed4d5d55da30b47e924a38bb83e9854ed38b4",
+      "sha256": "6fb346ae6c5888c88447792c9d2f19c1ab5a86ff02ae99fe7050657df73090aa",
       "phase": "food-first",
       "fixture": true
     },
@@ -1630,7 +1630,7 @@
       "width": 1440,
       "height": 1000,
       "source": "source/screens/P25-users.svg",
-      "sha256": "f5fa65e55ea84262f72f574175081bc5c2ecf53920befff714a19dfd83556614",
+      "sha256": "fb2b1ac72228cb9a13b834c7e2697f8e10db17437a44358121e121ec0920d4f6",
       "phase": "food-first",
       "fixture": true
     },
@@ -1798,7 +1798,7 @@
       "width": 1440,
       "height": 1000,
       "source": "source/screens/P37-refunds.svg",
-      "sha256": "a47a3ee22278e6c843fe85b068ad2eaba9850e719d12d792e9ec7cca6e876f03",
+      "sha256": "7d91853ef1c222dd19b0c5e4b41a6f84f7334fb2ce3dd7941f8aa556e0e5826c",
       "phase": "food-first",
       "fixture": true
     },
