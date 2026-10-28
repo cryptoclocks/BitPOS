@@ -9,7 +9,7 @@ This file tells judges exactly which parts of this repository were built during 
 - Show everything built during the hackathon with: `git diff --stat meta-hackathon-baseline..hackathon/meta-2026`
 
 ### Pre-hackathon functionality (NOT claimed as hackathon work)
-POS and table QR ordering, Solana devnet / x402 / delegated payments, the voice ordering copilot (Gemini-based), AI promotion drafts with merchant approval, the device promotion queue and render ACK, pickup fulfillment notices, BitPOS Mini ESP32-S3 firmware, and migrations `001`–`137`.
+POS and table QR ordering, Solana devnet / x402 / delegated payments, the earlier voice ordering copilot, AI promotion drafts with merchant approval, the device promotion queue and render ACK, pickup fulfillment notices, BitPOS Mini ESP32-S3 firmware, and migrations `001`–`137`.
 
 ## Built during the hackathon
 
@@ -26,6 +26,7 @@ Conventions: every new file starts with `Meta hackathon work (2026-10-26..11-04)
 | 2026-10-27 | `apps/api/src/meta/stripe.ts`, `tests/meta-stripe.test.ts` | Stripe sandbox agent payment: charge a Shared Payment Token for the canonical quote (idempotent, response must match amount/currency/checkout, live mode refused), Stripe webhook signature verification, paid-fact extraction; 6 tests |
 | 2026-10-27 | `packages/meta-ai/src/ntag424.ts`, `tests/meta-ntag424.test.ts` | NTAG 424 DNA SUN verification (AES-CMAC, PICCData decryption, per-sticker key derivation); NXP and RFC 4493 vectors |
 | 2026-10-27 | `supabase/migrations/301_meta_tap.sql` | Sticker registry, replay-safe counter advance, single-use 120 s tap sessions |
+| 2026-10-28 | `/meta/staff/ledger`, `/meta/order` (voice/web ordering) and chat labels in `routes.ts`/`staff.ts`/`agent.ts`; `tools/meta/{deploy-oci.sh,provenance-report.ts}`; `meta-hackathon/{JUDGES.md,PROVENANCE_REPORT.md}` | Evidence ledger, browser-speech ordering on the same agent, repeatable deploy, provenance check, judge README |
 | 2026-10-28 | `supabase/migrations/308_meta_offer_policy.sql`, `apps/api/src/meta/offer-policy.ts`, owner pages in `routes.ts`, `tests/meta-offer-policy.test.ts` | Promotion drafts by Muse Spark, owner approval and Allow All policies; offers written through the inherited `productOffer()` |
 | 2026-10-28 | `supabase/migrations/307_meta_messenger_agent.sql`, `apps/api/src/meta/agent.ts`, chat checkout/receipt in `agent-orders.ts`, chat events in `messenger.ts`/`identity.ts`, `agent_order` task in `packages/meta-ai`, `tests/meta-agent.test.ts` | Ordering by chat in Messenger: Muse Spark picks a step from an enum, server-priced quote, Stripe Checkout, Messenger receipt; per-customer model-call cap |
 | 2026-10-28 | `supabase/migrations/306_meta_agent_orders.sql`, `apps/api/src/meta/{agent-orders,mcp}.ts`, refunds + unit conversion in `stripe.ts`, agent orders in `tap-checkout.ts`/`staff.ts`/`routes.ts`, `tests/meta-mcp.test.ts`, `tools/meta/mcp-smoke.ts` | Canonical server quotes and the BitPOS Muse Connector (MCP): menu, quote, SPT checkout, status, cancel with refund |

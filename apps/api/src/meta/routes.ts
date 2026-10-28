@@ -10,8 +10,9 @@ import {createMetaRouter,metaProvidersFromEnv} from '../../../../packages/meta-a
 import {formatTapAmount,handOver,listTapOrders,pickupCode,staffConfigFromEnv,staffDemoSignIn,staffFromSession,staffSignIn,staffSignOut,type SignInResult,type StaffDeps,type StaffOrder} from './staff';
 import {serveMcp} from './mcp';
 import {approveDraft,draftOffer,listOffersOverview,rejectDraft,revokePolicy,stopOffer,OfferPolicyError,type DraftView,type OfferPolicyDeps,type PolicyView} from './offer-policy';
-import {handleAgentRequest,type ChatAgentDeps} from './agent';
-import {agentReceipt,reconcileAgentCheckout} from './agent-orders';
+import {handleAgentRequest,planChatOrder,type ChatAgentDeps} from './agent';
+import {randomBytes} from 'node:crypto';
+import {AgentOrderError,agentReceipt,reconcileAgentCheckout,startAgentCheckout} from './agent-orders';
 import {MessengerError,messengerConfigFromEnv,parseMessengerWebhook,sendMessenger,verifyMessengerSignature,verifySubscription,type MessengerConfig,type MessengerFetch} from './messenger';
 
 export interface MetaRouteDeps {identity:IdentityDeps;messenger:MessengerConfig|null;offers:OfferDeps|null;stripe?:StripeDeps|null;staff?:StaffDeps|null;fetch?:MessengerFetch;log?:(msg:string)=>void}
@@ -79,7 +80,7 @@ export async function serveMeta(req:http.IncomingMessage,res:http.ServerResponse
  if(tap&&method==='GET'){
   const r=await handleTap(deps.identity,tap[1],url.searchParams.get('e'),url.searchParams.get('m'),cookieValue(req.headers.cookie));
   if(r.kind==='messenger'){res.writeHead(303,{Location:r.url,'Cache-Control':'no-store','Referrer-Policy':'no-referrer'});res.end();return true;}
-  if(r.kind==='known'){page(res,200,'สวัสดีค่ะ 👋',['ร้านจำคุณได้แล้ว','Welcome back — the shop knows it is you.',...offerCard(await offerOrNull(deps,r.merchantId,r.linkId,r.tapSessionId),!!deps.stripe)]);return true;}
+  if(r.kind==='known'){page(res,200,'สวัสดีค่ะ 👋',['ร้านจำคุณได้แล้ว','Welcome back — the shop knows it is you.',...offerCard(await offerOrNull(deps,r.merchantId,r.linkId,r.tapSessionId),!!deps.stripe),ORDER_LINK]);return true;}
   if(r.kind==='replayed'){page(res,409,'กรุณาแตะใหม่อีกครั้ง',['ลิงก์นี้ใช้ไปแล้ว ให้แตะมือถือที่เครื่องอีกครั้ง','This tap link was already used. Tap the device again.']);return true;}
   if(r.kind==='no_page'){page(res,503,'ร้านยังไม่ได้เชื่อม Messenger',['The shop has not connected a Messenger page yet.']);return true;}
   page(res,400,'แตะไม่สำเร็จ',['ให้แตะมือถือที่เครื่องอีกครั้ง','Please tap the device again.']);return true;
@@ -111,7 +112,7 @@ export async function serveMeta(req:http.IncomingMessage,res:http.ServerResponse
  if(path==='/meta/login'&&method==='GET'){
   const s=await consumeMagicLink(deps.identity,url.searchParams.get('t')??'');
   if(!s){page(res,410,'ลิงก์หมดอายุ',['ขอลิงก์ใหม่ได้โดยแตะที่เครื่องอีกครั้ง','This sign-in link expired or was already used.']);return true;}
-  page(res,200,'เชื่อมต่อแล้ว ✓',['ครั้งหน้าแค่แตะมือถือที่เครื่อง ร้านจะรู้ว่าเป็นคุณ','Next time, just tap your phone on the device.',...offerCard(s.tapSessionId?await offerOrNull(deps,s.merchantId,s.linkId,s.tapSessionId):null,!!deps.stripe),'<form method="post" action="/meta/me/revoke"><button>ลบการเชื่อมต่อ / Forget me</button></form>'],{'Set-Cookie':sessionCookie(deps,s.sessionToken,2592000)});
+  page(res,200,'เชื่อมต่อแล้ว ✓',['ครั้งหน้าแค่แตะมือถือที่เครื่อง ร้านจะรู้ว่าเป็นคุณ','Next time, just tap your phone on the device.',...offerCard(s.tapSessionId?await offerOrNull(deps,s.merchantId,s.linkId,s.tapSessionId):null,!!deps.stripe),ORDER_LINK,'<form method="post" action="/meta/me/revoke"><button>ลบการเชื่อมต่อ / Forget me</button></form>'],{'Set-Cookie':sessionCookie(deps,s.sessionToken,2592000)});
   return true;
  }
  if(path==='/meta/me'&&method==='GET'){
@@ -128,7 +129,7 @@ export async function serveMeta(req:http.IncomingMessage,res:http.ServerResponse
   const me=await customerFromSession(deps.identity,cookieValue(req.headers.cookie));
   if(!me){page(res,401,'ยังไม่ได้เชื่อมต่อ',['แตะมือถือที่เครื่องเพื่อเริ่ม','Tap your phone on the device to start.']);return true;}
   const offer=me.lastTap?await offerOrNull(deps,me.merchantId,me.linkId,me.lastTap.tapSessionId):null;
-  page(res,200,'โปรของคุณ',offer?offerCard(offer,!!deps.stripe):['ยังไม่มีโปรตอนนี้ ลองแตะที่เครื่องอีกครั้ง','No offer right now. Tap the device again.']);return true;
+  page(res,200,'โปรของคุณ',[...(offer?offerCard(offer,!!deps.stripe):['ยังไม่มีโปรตอนนี้ ลองแตะที่เครื่องอีกครั้ง','No offer right now. Tap the device again.']),ORDER_LINK]);return true;
  }
  if(path==='/meta/checkout'&&method==='POST'){
   if(req.headers.origin!==deps.identity.publicOrigin){page(res,403,'ไม่อนุญาต',['Same-origin request required.']);return true;}
@@ -174,6 +175,7 @@ export async function serveMeta(req:http.IncomingMessage,res:http.ServerResponse
   if(o?.status==='CONFIRMED'){page(res,200,'จ่ายแล้ว ✓',['ร้านได้รับออเดอร์แล้ว รับที่เคาน์เตอร์ได้เลย','Paid — pick it up at the counter.',`รหัสรับสินค้า / Pickup code: <strong>${esc(o.pickupCode)}</strong>`,'กลับไปที่ Messenger ได้เลย / You can go back to Messenger.','<small>Stripe sandbox · test mode · no real money</small>']);return true;}
   page(res,202,'กำลังตรวจสอบการชำระเงิน',['ยังไม่ได้รับการยืนยันจาก Stripe ลองรีเฟรชอีกครั้ง','Waiting for Stripe to confirm. Refresh in a moment.']);return true;
  }
+ if(path==='/meta/order'||path==='/meta/order/pay')return serveWebOrder(req,res,deps,url,log);
  if(path==='/meta/staff'||path.startsWith('/meta/staff/'))return serveStaff(req,res,deps,url,log);
  const mcp=path.match(/^\/meta\/mcp\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[89ab][0-9a-f]{3}-[0-9a-f]{12})$/);
  if(mcp){
@@ -212,7 +214,7 @@ function orderLines(orders:StaffOrder[]):string[]{
  if(!orders.length)return ['ยังไม่มีออเดอร์จากการแตะใน 24 ชั่วโมง / No tap orders in the last 24 hours.'];
  const time=(iso:string)=>new Date(iso).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Bangkok'});
  return orders.map(o=>{
-  const what=`<strong>#${esc(o.code)}</strong> ${esc(o.emoji)} ${esc(o.name)} <small>${esc(o.nameEn)}</small> · ${esc(formatTapAmount(o.amountMinor,o.currency))}${o.channel==='agent'?' <small>· 🤖 agent (MCP)</small>':''}`;
+  const what=`<strong>#${esc(o.code)}</strong> ${esc(o.emoji)} ${esc(o.name)} <small>${esc(o.nameEn)}</small> · ${esc(formatTapAmount(o.amountMinor,o.currency))}${o.channel==='agent'?' <small>· 🤖 agent (MCP)</small>':o.channel==='chat'?' <small>· 💬 chat (Messenger / voice)</small>':''}`;
   if(o.status==='PAID'&&o.handedOverAt)return `${what}<br><small>ส่งมอบแล้ว / Handed over ${time(o.handedOverAt)}</small>`;
   if(o.status==='PAID')return `${what}<br>✅ จ่ายแล้ว / Paid ${time(o.paidAt!)} <small>(${o.paidSource==='webhook'?'Stripe webhook':o.paidSource==='charge'?'Stripe PaymentIntent':'Stripe lookup'})</small>${o.stockShort?'<br>⚠️ สต็อกในระบบไม่พอ ตรวจของจริง / Stock was short in the system':''}<form method="post" action="/meta/staff/orders/${o.id}/handover"><button>ส่งมอบแล้ว / Handed over</button></form>`;
   if(o.status==='CREATED')return `${what}<br><small>⏳ รอชำระเงิน / Waiting for payment · ${time(o.createdAt)}</small>`;
@@ -237,7 +239,7 @@ async function serveStaff(req:http.IncomingMessage,res:http.ServerResponse,deps:
   const done=url.searchParams.get('done');
   const lines=[`<small>${esc(me.role)} · อัปเดตทุก 10 วินาที / refreshes every 10 s · Stripe sandbox, test mode</small>`,
    ...(done&&/^[0-9A-F]{4}$/.test(done)?[`✓ ส่งมอบ #${done} แล้ว / Handed over.`]:[]),...orderLines(await listTapOrders(staff,me)),
-   ...(me.role!=='staff'?['<a href="/meta/staff/offers">โปรโมชัน + Allow All / Promotions →</a>']:[]),
+   ...(me.role!=='staff'?['<a href="/meta/staff/offers">โปรโมชัน + Allow All / Promotions →</a> · <a href="/meta/staff/ledger">หลักฐาน AI + การจ่าย / Evidence ledger →</a>']:[]),
    '<form method="post" action="/meta/staff/logout"><button>ออกจากระบบ / Sign out</button></form>'];
   page(res,200,'ออเดอร์จากการแตะ / Tap orders',lines,{Refresh:'10'});return true;
  }
@@ -260,6 +262,7 @@ async function serveStaff(req:http.IncomingMessage,res:http.ServerResponse,deps:
   page(res,r==='NOT_FOUND'?404:409,'ส่งมอบไม่ได้',[r==='NOT_PAID'?'ออเดอร์นี้ยังไม่ได้จ่าย / This order is not paid.':'ไม่พบออเดอร์ / Order not found.','<a href="/meta/staff">← กลับ / Back</a>']);return true;
  }
  if(path==='/meta/staff/offers'||path.startsWith('/meta/staff/offers/')||path.startsWith('/meta/staff/policies/'))return serveOffers(req,res,deps,staff,cookie,url,log);
+ if(path==='/meta/staff/ledger'&&method==='GET')return serveLedger(res,deps,staff,cookie);
  if(path==='/meta/staff/logout'&&method==='POST'){
   await staffSignOut(staff,cookie);
   res.writeHead(303,{Location:'/meta/staff','Set-Cookie':staffCookie(staff,'',0),'Cache-Control':'no-store'});res.end();return true;
@@ -325,4 +328,74 @@ async function serveOffers(req:http.IncomingMessage,res:http.ServerResponse,deps
   if(e instanceof OfferPolicyError){page(res,e.code==='ROLE_REQUIRED'||e.code==='OWNER_REQUIRED'?403:e.code==='NOT_FOUND'?404:409,'ทำรายการไม่ได้',[OFFER_ERRORS[e.code],'<a href="/meta/staff/offers">← กลับ / Back</a>']);return true;}
   log('Offer action failed');page(res,500,'ระบบขัดข้อง',['Something went wrong.','<a href="/meta/staff/offers">← กลับ / Back</a>']);return true;
  }
+}
+
+const ORDER_LINK='<a href="/meta/order">🎙️ สั่งด้วยเสียงหรือพิมพ์ / Order by voice or text →</a>';
+const ORDER_ERR:Partial<Record<AgentOrderError['code'],string>>={QUOTE_EXPIRED:'รายการหมดเวลา สั่งใหม่ได้เลย / Quote expired; order again.',NOT_FOUND:'ไม่พบรายการ / Not found.',PAYMENTS_UNAVAILABLE:'ยังรับชำระไม่ได้ / Payments are not available.'};
+
+/** Voice or typed ordering on the shop's web page, for a customer signed in from Messenger. Speech is turned
+ * into text by the browser's own speech recognition; the server receives text only, and the same agent,
+ * quote and Stripe Checkout as the Messenger chat are used. */
+async function serveWebOrder(req:http.IncomingMessage,res:http.ServerResponse,deps:MetaRouteDeps,url:URL,log:(m:string)=>void):Promise<true>{
+ const method=req.method??'GET';
+ const chat=chatDeps(deps);
+ if(!chat){page(res,503,'ยังไม่พร้อม',['Ordering is not configured on this server.']);return true;}
+ const me=await customerFromSession(deps.identity,cookieValue(req.headers.cookie));
+ if(!me){page(res,401,'ยังไม่ได้เชื่อมต่อ',['แตะมือถือที่เครื่องในร้านเพื่อเริ่ม','Tap your phone on the device in the shop to start.']);return true;}
+ if(method==='POST'&&req.headers.origin!==deps.identity.publicOrigin){page(res,403,'ไม่อนุญาต',['Same-origin request required.']);return true;}
+ const nonce=randomBytes(16).toString('base64');
+ const csp=`default-src 'none'; style-src 'unsafe-inline'; script-src 'nonce-${nonce}'; form-action 'self' https://checkout.stripe.com`;
+ const form=`<form method="post" action="/meta/order" id="f"><input name="q" id="q" maxlength="300" placeholder="เช่น ขอลาเต้ 1 แก้ว / e.g. one latte" required style="font:inherit;width:100%;padding:8px;margin:4px 0"><button>ส่ง / Send</button> <button type="button" id="mic" hidden>🎙️ พูด / Speak</button></form>`;
+ // Browser speech-to-text (th-TH): fills the box and sends it. Hidden where the browser has no speech API.
+ const script=`<script nonce="${nonce}">(()=>{const R=window.SpeechRecognition||window.webkitSpeechRecognition;if(!R)return;const b=document.getElementById('mic');b.hidden=false;b.onclick=()=>{const r=new R();r.lang='th-TH';r.interimResults=false;b.textContent='🎙️ กำลังฟัง… / Listening…';r.onresult=e=>{document.getElementById('q').value=e.results[0][0].transcript;document.getElementById('f').submit();};r.onend=()=>{b.textContent='🎙️ พูด / Speak';};r.start();};})();</script>`;
+ const show=(status:number,lines:string[])=>page(res,status,'สั่งด้วยเสียงหรือพิมพ์ / Order',[...lines,form,'<small>เสียงแปลงเป็นข้อความโดยเบราว์เซอร์ของคุณ · ราคาคิดโดยร้าน · Stripe sandbox, test mode</small>',script],{'Content-Security-Policy':csp});
+ try{
+  if(url.pathname==='/meta/order'&&method==='GET'){show(200,['พูดหรือพิมพ์สิ่งที่อยากสั่ง / Say or type what you would like.']);return true;}
+  const body=await formBody(req);
+  if(!body){page(res,413,'คำขอใหญ่เกินไป',['Request too large.']);return true;}
+  if(url.pathname==='/meta/order'&&method==='POST'){
+   const text=(body.get('q')??'').trim().slice(0,300);
+   if(!text){show(400,['พิมพ์หรือพูดก่อนนะคะ / Please say or type something.']);return true;}
+   const plan=await planChatOrder(chat,me.merchantId,me.linkId,text);
+   const by=plan.kind!=='error'&&plan.by?` <small>· ${esc(plan.by)}</small>`:'';
+   if(plan.kind==='quote'){show(200,[`<small>คุณ / You: ${esc(text)}</small>`,esc(plan.reply).replace(/\n/g,'<br>')+by,`<strong>${esc(plan.line)}</strong>`,`<form method="post" action="/meta/order/pay"><input type="hidden" name="quote" value="${esc(plan.quoteId)}"><button>จ่าย ${esc(plan.total)} / Pay (Stripe test mode)</button></form>`]);return true;}
+   if(plan.kind==='menu'){show(200,[`<small>คุณ / You: ${esc(text)}</small>`,esc(plan.reply).replace(/\n/g,'<br>')+by,...plan.lines.map(esc)]);return true;}
+   if(plan.kind==='help'){show(200,[`<small>คุณ / You: ${esc(text)}</small>`,esc(plan.reply).replace(/\n/g,'<br>')+by]);return true;}
+   show(409,[esc(plan.text)]);return true;
+  }
+  if(url.pathname==='/meta/order/pay'&&method==='POST'){
+   const r=await startAgentCheckout(chat,me.merchantId,me.linkId,body.get('quote'),deps.identity.publicOrigin);
+   if(r.kind==='redirect'){res.writeHead(303,{Location:r.url,'Cache-Control':'no-store','Referrer-Policy':'no-referrer'});res.end();return true;}
+   if(r.kind==='paid'){show(200,[`จ่ายแล้ว รหัสรับสินค้า #${esc(r.pickupCode)} / Already paid.`]);return true;}
+   show(409,['รายการนี้ปิดแล้ว สั่งใหม่ได้เลย / This order is closed; order again.']);return true;
+  }
+  json(res,404,{error:'RESOURCE_NOT_FOUND'});return true;
+ }catch(e){
+  if(e instanceof AgentOrderError){show(409,[esc(ORDER_ERR[e.code]??'ระบบขัดข้อง / Something went wrong.')]);return true;}
+  log('Web order failed');page(res,500,'ระบบขัดข้อง',['Something went wrong.']);return true;
+ }
+}
+
+/** Owner/manager evidence ledger: every model call, tap, payment event and promotion decision of the last day.
+ * No customer identity (PSID) and no message text is shown or stored. */
+async function serveLedger(res:http.ServerResponse,deps:MetaRouteDeps,staff:StaffDeps,cookie:string|null):Promise<true>{
+ const me=await staffFromSession(staff,cookie);
+ if(!me){res.writeHead(303,{Location:'/meta/staff','Cache-Control':'no-store'});res.end();return true;}
+ if(me.role==='staff'){page(res,403,'ทำรายการไม่ได้',[OFFER_ERRORS.ROLE_REQUIRED,'<a href="/meta/staff">← กลับ / Back</a>']);return true;}
+ const t=(d:Date)=>d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit',timeZone:'Asia/Bangkok'});
+ const code=(id:string)=>id.replace(/-/g,'').slice(0,4).toUpperCase();
+ const data=await deps.identity.db.tenant(me.merchantId,async db=>({
+  ai:(await db.query<{started_at:Date;task:string;provider:string;model:string;outcome:string;latency_ms:number;prompt_tokens:number|null;completion_tokens:number|null}>("SELECT started_at,task,provider,model,outcome,latency_ms,prompt_tokens,completion_tokens FROM meta_ai_invocations WHERE started_at>clock_timestamp()-interval '24 hours' ORDER BY started_at DESC LIMIT 30")).rows,
+  taps:(await db.query<{created_at:Date;tag_id:string;counter:number;bound:boolean}>("SELECT created_at,tag_id,counter,link_id IS NOT NULL AS bound FROM meta_tap_sessions WHERE created_at>clock_timestamp()-interval '24 hours' ORDER BY created_at DESC LIMIT 20")).rows,
+  pay:(await db.query<{at:Date;event_id:string;order_id:string;kind:string}>("SELECT received_at AS at,event_id,order_id,'tap' AS kind FROM meta_stripe_events WHERE received_at>clock_timestamp()-interval '24 hours' UNION ALL SELECT received_at,event_id,order_id,'agent' FROM meta_agent_stripe_events WHERE received_at>clock_timestamp()-interval '24 hours' ORDER BY at DESC LIMIT 20")).rows,
+  decisions:(await db.query<{decided_at:Date;state:string;approval_kind:string|null;discount_percent:number;chosen_by:string;name_en:string}>("SELECT d.decided_at,d.state,d.approval_kind,d.discount_percent,d.chosen_by,coalesce(p.name_en,'') AS name_en FROM meta_offer_drafts d LEFT JOIN products p ON p.merchant_id=d.merchant_id AND p.id=d.product_id WHERE d.decided_at>clock_timestamp()-interval '24 hours' ORDER BY d.decided_at DESC LIMIT 20")).rows,
+ }));
+ const section=(title:string,rows:string[])=>[`<strong>${title}</strong>`,...(rows.length?rows:['<small>— none in the last 24 h —</small>'])];
+ page(res,200,'หลักฐาน / Evidence ledger',[`<small>${esc(me.role)} · 24 ชั่วโมงล่าสุด / last 24 hours · ไม่แสดงตัวตนลูกค้า / no customer identity shown</small>`,
+  ...section('🧠 AI calls (Meta Model API)',data.ai.map(r=>`<small>${t(r.started_at)} · ${esc(r.task)} · ${esc(r.model)} (${esc(r.provider)}) · ${esc(r.outcome)} · ${r.latency_ms} ms · ${r.prompt_tokens??'?'}/${r.completion_tokens??'?'} tokens</small>`)),
+  ...section('📱 Taps (NTAG424 SUN verified)',data.taps.map(r=>`<small>${t(r.created_at)} · ${esc(r.tag_id)} · counter ${r.counter} · ${r.bound?'customer known':'not linked'}</small>`)),
+  ...section('💳 Stripe events (signature verified, once each)',data.pay.map(r=>`<small>${t(r.at)} · ${esc(r.event_id)} · order #${code(r.order_id)} · ${r.kind}</small>`)),
+  ...section('🛡️ Promotion decisions',data.decisions.map(r=>`<small>${t(r.decided_at)} · ${esc(r.name_en)} −${r.discount_percent}% · ${esc(r.state)} · ${r.approval_kind==='policy'?'Allow All':r.approval_kind==='owner'?'owner':'—'} · drafted by ${r.chosen_by==='model'?'Muse Spark':'fallback'}</small>`)),
+  '<a href="/meta/staff">← ออเดอร์ / Orders</a>']);
+ return true;
 }

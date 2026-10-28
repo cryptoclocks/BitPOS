@@ -10,7 +10,7 @@
 | แผนเดิมบอก | ความจริงใน baseline | ผลกระทบ |
 |---|---|---|
 | migrations มีถึง `021` จะสร้าง `022_meta_superintelligence.sql` | มีถึง **`137`** แล้ว และ `022_pickup_fulfillment.sql` มีอยู่ | ชื่อชนกัน → ใช้ช่วง **`300–399`** สำหรับงาน Meta (สร้างแล้ว: `300_meta_ai.sql`) |
-| Voice ordering เป็นของใหม่ | มี **Coffee Copilot** (พูดไทย/อังกฤษ → transcript → proposal ที่ล็อกกับเมนูจริง) ผ่าน Gemini แล้ว: `coffee-copilot.ts`, `coffee-provider.ts`, `coffee-audio.ts`, migration `029`,`032` | Module 4 = ของเก่า แค่เปลี่ยน provider → **ห้ามเป็นไฮไลต์** |
+| Voice ordering เป็นของใหม่ | มี **Coffee Copilot** (พูดไทย/อังกฤษ → transcript → proposal ที่ล็อกกับเมนูจริง) ผ่านผู้ให้บริการโมเดลเดิม แล้ว: `coffee-copilot.ts`, `coffee-provider.ts`, `coffee-audio.ts`, migration `029`,`032` | Module 4 = ของเก่า แค่เปลี่ยน provider → **ห้ามเป็นไฮไลต์** |
 | AI เขียนโปรโมชันเป็นของใหม่ | มี **promotion pipeline** ครบ: AI draft → merchant approve → device queue → render ACK (`promotions.ts`, `promotion-provider.ts`, `promotion-lifecycle.ts`, migration `027/028/036/038/042/045`) และ provider เป็น OpenAI-compatible อยู่แล้ว | ชี้ URL ไป Meta ได้ทันทีแทบไม่ต้องเขียนโค้ด → นับเป็นงานใหม่ไม่ได้ |
 | ต้องส่งรูปผ่าน WebSocket ไป ESP32 | device **ดึงรูป 280×200 RGB565 (112,000 bytes) ผ่าน HTTPS token + SHA-256** มี SD cache 2 ช่องและ render ACK อยู่แล้ว (`promotion-assets.ts`, `bitpos_promotion*.c`, `bitpos_media.c`) | ปัญหา WS payload ไม่มีจริง; งานใหม่คือ "แหล่งภาพ" ไม่ใช่ "ท่อส่ง" |
 | x402 / bounded delegation จะสร้างใหม่ | มีแล้ว: `x402*.ts`, `delegated-*.ts`, migration `030/031/033/034` | ห้ามโชว์เป็นของใหม่ |
@@ -60,7 +60,7 @@
 - ภาพอาหารที่ AI สร้างอาจไม่ตรงของจริง (โฆษณาเกินจริง) → ใช้ **SAM ตัดภาพสินค้าจริง (licensed photo)** แล้วให้ Muse Image สร้างเฉพาะ "ฉากหลัง/บรรยากาศ" → compose; ติดป้าย "AI scene" เล็กๆ
 
 **C10 — ปัญหา reproducibility ที่เจอระหว่างตรวจ (ของเก่า)**
-- `029_coffee_copilot.sql` ล้มบน DB ใหม่เพราะบังคับว่าต้องมีประวัติ Gemini ≥ 3 รายการ → กรรมการรันจาก 0 ไม่ได้ ต้องมีวิธี fixture ที่บันทึกไว้ (ห้ามแก้ไฟล์ migration เก่าเงียบๆ)
+- `029_coffee_copilot.sql` ล้มบน DB ใหม่เพราะบังคับว่าต้องมีประวัติจากผู้ให้บริการโมเดลเดิม ≥ 3 รายการ → กรรมการรันจาก 0 ไม่ได้ ต้องมีวิธี fixture ที่บันทึกไว้ (ห้ามแก้ไฟล์ migration เก่าเงียบๆ)
 
 ## 2. รีวิวราย module
 
@@ -81,7 +81,7 @@
 - หลักฐาน: เก็บ `sha256` ของภาพที่จอ ACK คู่กับ invocation id
 
 ### Module 4 — Voice + agent payment (**ตัดออกจากไฮไลต์**)
-- ทั้ง voice ordering และ x402/delegated payment เป็นของเก่า; เปลี่ยน Gemini→Muse ไม่ใช่ฟีเจอร์ใหม่
+- ทั้ง voice ordering และ x402/delegated payment เป็นของเก่า; เปลี่ยนผู้ให้บริการโมเดลเป็น Muse ไม่ใช่ฟีเจอร์ใหม่
 - AI ห้ามถือ signing key (AGENTS.md) — ระบบเดิมถูกต้องอยู่แล้ว
 - ถ้ามีเวลาเหลือ (stretch): "เสียงสั่งงานฝั่งพนักงาน" เช่น "ครัวซองต์เหลือกี่ชิ้น/สแกนตู้ตอนนี้" = ของใหม่ เชื่อมกับ Module 2
 

@@ -3,7 +3,9 @@
 // (Muse Spark) and Stripe are stubbed: no Meta API credit is used. Queries run as `bitpos_app` under RLS.
 import {test,before,after} from 'node:test';
 import assert from 'node:assert/strict';
-import {createHmac,randomBytes} from 'node:crypto';
+import {createHash,createHmac,randomBytes} from 'node:crypto';
+import http from 'node:http';
+import type {AddressInfo} from 'node:net';
 import pg from 'pg';
 import type {MetaDb,OfferDeps,IdentityDeps} from '../apps/api/src/meta/identity';
 import {handleMessengerEvents} from '../apps/api/src/meta/identity';
@@ -13,6 +15,7 @@ import {decideStep,handleAgentRequest,matchItem,type ChatAgentDeps} from '../app
 import {agentReceipt,listMenu,reconcileAgentCheckout} from '../apps/api/src/meta/agent-orders';
 import {handleRpc} from '../apps/api/src/meta/mcp';
 import {applyStripeWebhook} from '../apps/api/src/meta/tap-checkout';
+import {serveMeta,type MetaRouteDeps} from '../apps/api/src/meta/routes';
 import {MetaRouterError} from '../packages/meta-ai/src/types';
 import type {MetaRouter} from '../packages/meta-ai/src/router';
 
@@ -145,4 +148,32 @@ test('return page: Stripe lookup confirms once; a redirect alone proves nothing'
  assert.equal((await reconcileAgentCheckout(deps,order))?.confirmedNow,false,'receipt is sent once');
  assert.equal(await reconcileAgentCheckout(deps,'not-a-uuid'),null);
  paidPi=null;
+});
+
+test('web order page: signed-in customers only, nonce CSP for browser speech, same quote and Checkout as chat',{skip},async()=>{
+ const token=randomBytes(32).toString('base64url');
+ await admin.query("INSERT INTO meta_customer_sessions(merchant_id,link_id,token_sha256,expires_at) VALUES($1,$2,$3,clock_timestamp()+interval '1 day')",[A,linkId,createHash('sha256').update(token).digest()]);
+ const routeDeps:MetaRouteDeps={identity,messenger:null,offers:{menu:deps.offers.menu,router:null},stripe:deps.stripe};
+ const server=http.createServer(async(req,res)=>{if(!(await serveMeta(req,res,routeDeps))){res.writeHead(404);res.end();}});
+ await new Promise<void>(r=>server.listen(0,'127.0.0.1',r));
+ const base=`http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+ const cookie=`bitpos_meta=${token}`,origin='https://pay.example.test';
+ const post=(path:string,body:Record<string,string>,headers:Record<string,string>={})=>fetch(base+path,{method:'POST',redirect:'manual',body:new URLSearchParams(body).toString(),headers:{'content-type':'application/x-www-form-urlencoded',cookie,origin,...headers}});
+ try{
+  assert.equal((await fetch(`${base}/meta/order`)).status,401);
+  const page=await fetch(`${base}/meta/order`,{headers:{cookie}});
+  assert.equal(page.status,200);
+  const csp=page.headers.get('content-security-policy')??'',html=await page.text();
+  const nonce=csp.match(/script-src 'nonce-([A-Za-z0-9+/=]+)'/)?.[1];
+  assert.ok(nonce);assert.ok(html.includes(`<script nonce="${nonce}">`));assert.match(html,/th-TH/);
+  assert.equal((await post('/meta/order',{q:'Latte'},{origin:'https://evil.example'})).status,403);
+  const quote=await post('/meta/order',{q:'ขอ Latte 1 แก้ว'});
+  assert.equal(quote.status,200);const qh=await quote.text();
+  assert.match(qh,/\$4\.00/);
+  const quoteId=qh.match(/name="quote" value="([0-9a-f-]{36})"/)![1];
+  const pay=await post('/meta/order/pay',{quote:quoteId});
+  assert.equal(pay.status,303);assert.match(pay.headers.get('location')??'',/^https:\/\/checkout\.stripe\.com\//);
+  const other=await post('/meta/order/pay',{quote:'11111111-2222-4333-8444-555555555555'});
+  assert.equal(other.status,409,'an unknown or foreign quote cannot be paid');
+ }finally{server.close();}
 });

@@ -11,6 +11,8 @@
 | [PLAN_TH.md](PLAN_TH.md) | แผนหลัก: positioning, ไฟล์, ตาราง 9 วัน, การตัดสินใจที่ค้าง |
 | [REVIEW_TH.md](REVIEW_TH.md) | รีวิวแผน 5 modules แรก (ประวัติ — แผนปัจจุบันอยู่ใน PLAN_TH) |
 | [DEMO_SCRIPT_TH.md](DEMO_SCRIPT_TH.md) | วิดีโอ 3 นาทีแบบ shot-by-shot |
+| [JUDGES.md](JUDGES.md) | **สำหรับกรรมการ (อังกฤษ)**: สิ่งที่สร้าง, ลองใช้, กฎความปลอดภัย, ข้อจำกัด |
+| [PROVENANCE_REPORT.md](PROVENANCE_REPORT.md) | รายงานอัตโนมัติจาก `tools/meta/provenance-report.ts` |
 | [PROVENANCE.md](PROVENANCE.md) | สำหรับกรรมการ: อะไรใหม่ อะไรเก่า (อัปเดตทุกครั้งที่ commit) |
 | [meta-ai.env.example](meta-ai.env.example) | ตัวแปร provider |
 | [evidence/](evidence/) | ผลเทสต์/หลักฐานรายวัน |
@@ -27,6 +29,14 @@ pnpm typecheck
 
 ```bash
 git diff --stat meta-hackathon-baseline..HEAD
+```
+
+```bash
+npx tsx tools/meta/provenance-report.ts > meta-hackathon/PROVENANCE_REPORT.md
+```
+
+```bash
+OCI_HOST=user@host OCI_SSH_KEY=/path/to/key tools/meta/deploy-oci.sh
 ```
 
 ## กติกาของโฟลเดอร์นี้

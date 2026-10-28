@@ -70,6 +70,26 @@ const ERRORS:Partial<Record<AgentOrderError['code'],string>>={OUT_OF_STOCK:'ข�
  NOT_FOUND:'ไม่พบรายการนี้ค่ะ / Order not found.',PAYMENTS_UNAVAILABLE:'ร้านยังไม่เปิดจ่ายผ่านแชทค่ะ / Chat payments are not available.'};
 const errorText=(e:unknown)=>e instanceof AgentOrderError?ERRORS[e.code]??'ระบบขัดข้อง ลองใหม่อีกครั้งค่ะ / Something went wrong, please try again.':null;
 
+export type ChatPlan={kind:'quote';reply:string;by:string;quoteId:string;line:string;total:string}|{kind:'menu';reply:string;by:string;lines:string[]}|{kind:'help';reply:string;by:string}|{kind:'error';text:string};
+
+/** One customer message → one step (Muse Spark or the free matcher) → a server-priced quote or the menu. */
+export async function planChatOrder(deps:ChatAgentDeps,merchantId:string,linkId:string,text:string):Promise<ChatPlan>{
+ try{
+  const items=(await listMenu(deps,merchantId)).filter(i=>i.payable);
+  if(!items.length)return {kind:'error',text:'ตอนนี้ยังไม่มีเมนูที่สั่งผ่านแชทได้ค่ะ / Nothing can be ordered by chat right now.'};
+  const step=await decideStep(deps.router&&allowModelCall(linkId,deps.modelCallsPerHour??10)?deps.router:null,merchantId,text,items);
+  const by=step.chosenBy==='model'?'Muse Spark':'';
+  const reply=`${step.replyTh}\n${step.replyEn}`;
+  if(step.action==='quote'){
+   const q=await createQuote(deps,merchantId,'messenger',step.productId,step.quantity,linkId);
+   const item=items.find(i=>i.productId===q.productId)!;
+   return {kind:'quote',reply,by,quoteId:q.quoteId,total:q.total,line:`${item.emoji} ${q.name} / ${q.nameEn} ×${q.quantity} = ${q.total}${item.offer?` (โปร −${item.offer.discountPercent}%)`:''}`};
+  }
+  if(step.action==='menu')return {kind:'menu',reply,by,lines:items.slice(0,8).map(i=>`${i.emoji} ${i.name} / ${i.nameEn} ${i.price.display}${i.offer?` (−${i.offer.discountPercent}%)`:''}`)};
+  return {kind:'help',reply,by};
+ }catch(e){const t=errorText(e);if(t)return {kind:'error',text:t};throw e;}
+}
+
 /** Handles one chat request after the webhook transaction committed; returns the replies to send. */
 export async function handleAgentRequest(deps:ChatAgentDeps,req:AgentRequest):Promise<Outgoing[]>{
  const {merchantId,linkId,psid}=req;
@@ -80,21 +100,12 @@ export async function handleAgentRequest(deps:ChatAgentDeps,req:AgentRequest):Pr
    if(r.kind==='ended')return [{kind:'text',psid,text:'รายการนี้ปิดแล้ว พิมพ์สั่งใหม่ได้เลยค่ะ / This order is closed; order again.'}];
    return [{kind:'buttons',psid,text:`ยอด ${r.total} · จ่ายบนหน้า Stripe Checkout\nTotal ${r.total} · pay on Stripe Checkout.\n${LABEL}`,buttons:[{type:'web_url',title:'จ่าย / Pay',url:r.url}]}];
   }
-  const items=(await listMenu(deps,merchantId)).filter(i=>i.payable);
-  if(!items.length)return [{kind:'text',psid,text:'ตอนนี้ยังไม่มีเมนูที่สั่งผ่านแชทได้ค่ะ / Nothing can be ordered by chat right now.'}];
-  const step=await decideStep(deps.router&&allowModelCall(linkId,deps.modelCallsPerHour??10)?deps.router:null,merchantId,req.text,items);
-  const by=step.chosenBy==='model'?' · Muse Spark':'';
-  if(step.action==='quote'){
-   const q=await createQuote(deps,merchantId,'messenger',step.productId,step.quantity,linkId);
-   const item=items.find(i=>i.productId===q.productId)!;
-   return [{kind:'buttons',psid,text:`${step.replyTh}\n${step.replyEn}\n\n${item.emoji} ${q.name} / ${q.nameEn} ×${q.quantity} = ${q.total}${item.offer?` (โปร −${item.offer.discountPercent}%)`:''}\n${LABEL}${by}`,
-    buttons:[{type:'postback',title:`จ่าย ${q.total}`.slice(0,20),payload:`BITPOS_AGENT_PAY:${q.quoteId}`}]}];
-  }
-  if(step.action==='menu'){
-   const lines=items.slice(0,8).map(i=>`${i.emoji} ${i.name} / ${i.nameEn} ${i.price.display}${i.offer?` (−${i.offer.discountPercent}%)`:''}`);
-   return [{kind:'text',psid,text:`${step.replyTh}\n${step.replyEn}\n\n${lines.join('\n')}${by}`.slice(0,1900)}];
-  }
-  return [{kind:'text',psid,text:`${step.replyTh}\n${step.replyEn}${by}`}];
+  const plan=await planChatOrder(deps,merchantId,linkId,req.text);
+  const by=plan.kind!=='error'&&plan.by?` · ${plan.by}`:'';
+  if(plan.kind==='quote')return [{kind:'buttons',psid,text:`${plan.reply}\n\n${plan.line}\n${LABEL}${by}`,buttons:[{type:'postback',title:`จ่าย ${plan.total}`.slice(0,20),payload:`BITPOS_AGENT_PAY:${plan.quoteId}`}]}];
+  if(plan.kind==='menu')return [{kind:'text',psid,text:`${plan.reply}\n\n${plan.lines.join('\n')}${by}`.slice(0,1900)}];
+  if(plan.kind==='help')return [{kind:'text',psid,text:`${plan.reply}${by}`}];
+  return [{kind:'text',psid,text:plan.text}];
  }catch(e){
   const t=errorText(e);if(t)return [{kind:'text',psid,text:t}];
   throw e;

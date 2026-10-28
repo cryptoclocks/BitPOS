@@ -18,7 +18,7 @@ export interface StaffDeps {db:MetaDb;config:StaffConfig}
 export interface StaffView {merchantId:string;userId:string;role:'owner'|'manager'|'staff';sessionId:string}
 export type SignInResult={kind:'ok';token:string;role:StaffView['role']}|{kind:'error';reason:'AUTH'|'ROLE'|'UNAVAILABLE'};
 export type HandOverResult='HANDED_OVER'|'ALREADY'|'NOT_PAID'|'NOT_FOUND';
-export interface StaffOrder {id:string;channel:'tap'|'agent';code:string;status:'CREATED'|'PAID'|'EXPIRED'|'FAILED'|'CANCELLED';emoji:string;name:string;nameEn:string;amountMinor:string;currency:string;
+export interface StaffOrder {id:string;channel:'tap'|'agent'|'chat';code:string;status:'CREATED'|'PAID'|'EXPIRED'|'FAILED'|'CANCELLED';emoji:string;name:string;nameEn:string;amountMinor:string;currency:string;
  createdAt:string;paidAt:string|null;paidSource:string|null;stockShort:boolean;handedOverAt:string|null}
 
 const ROLES=['owner','manager','staff'] as const;
@@ -93,7 +93,7 @@ export async function listTapOrders(deps:StaffDeps,me:StaffView):Promise<StaffOr
     SELECT id,'tap' AS channel,CASE WHEN status='CREATED' AND expires_at<=clock_timestamp() THEN 'EXPIRED' ELSE status END AS status,
      merchant_id,product_id,amount_minor::text,currency,created_at,paid_at,paid_source,stock_short,handed_over_at FROM meta_tap_orders WHERE created_at>clock_timestamp()-interval '24 hours'
     UNION ALL
-    SELECT id,'agent',CASE status WHEN 'CONFIRMED' THEN 'PAID' WHEN 'PENDING' THEN 'CREATED' WHEN 'FAILED' THEN 'FAILED' ELSE 'CANCELLED' END,
+    SELECT id,CASE WHEN link_id IS NULL THEN 'agent' ELSE 'chat' END,CASE status WHEN 'CONFIRMED' THEN 'PAID' WHEN 'PENDING' THEN 'CREATED' WHEN 'FAILED' THEN 'FAILED' ELSE 'CANCELLED' END,
      merchant_id,product_id,amount_minor::text,currency,created_at,confirmed_at,confirmed_source,stock_short,handed_over_at FROM meta_agent_orders WHERE created_at>clock_timestamp()-interval '24 hours'
    ) o LEFT JOIN products p ON p.merchant_id=o.merchant_id AND p.id=o.product_id
    ORDER BY (o.status='PAID' AND o.handed_over_at IS NULL) DESC,o.created_at DESC LIMIT 50`)).rows.map(r=>({

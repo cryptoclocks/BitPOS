@@ -151,6 +151,10 @@ test('HTTP: owner page lists drafts; staff are refused; cross-origin POSTs refus
    const r=await post(owner,'https://pos.example.test');
    assert.equal(r.status,303);assert.match(r.headers.get('location')??'',/\/meta\/staff\/offers\?n=(drafted|auto)/);
    assert.equal(modelCalls,calls+1,'one model call per draft button press');
+   const ledger=await fetch(`${base}/meta/staff/ledger`,{headers:{cookie:owner}});
+   assert.equal(ledger.status,200);const lh=await ledger.text();
+   assert.match(lh,/AI calls/);assert.match(lh,/promotion_copy/);assert.match(lh,/Promotion decisions/);
+   assert.equal((await fetch(`${base}/meta/staff/ledger`,{headers:{cookie:staff}})).status,403);
   }finally{server.close();}
  }finally{await admin.query('DELETE FROM members WHERE user_id = ANY($1)',[[OWNER,STAFF]]);}
 });
