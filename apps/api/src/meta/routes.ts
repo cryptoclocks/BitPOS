@@ -13,6 +13,7 @@ import {cancelReservation,staffReservations,sweepLapsed} from './reservations';
 import {approveDraft,draftOffer,listOffersOverview,rejectDraft,revokePolicy,stopOffer,OfferPolicyError,type DraftView,type OfferPolicyDeps,type PolicyView} from './offer-policy';
 import {bookingMessages,handleAgentRequest,planChatOrder,type ChatAgentDeps} from './agent';
 import {randomBytes} from 'node:crypto';
+import {readFile} from 'node:fs/promises';
 import {AgentOrderError,agentReceipt,reconcileAgentCheckout,startAgentCheckout} from './agent-orders';
 import {MessengerError,messengerConfigFromEnv,parseMessengerWebhook,sendMessenger,verifyMessengerSignature,verifySubscription,type MessengerConfig,type MessengerFetch} from './messenger';
 
@@ -20,6 +21,8 @@ export interface MetaRouteDeps {identity:IdentityDeps;messenger:MessengerConfig|
 export const COOKIE='bitpos_meta',STAFF_COOKIE='bitpos_meta_staff';
 const STAFF_SESSION_SECONDS=8*3600,MAX_FORM=4096;
 const MAX_WEBHOOK=65536;
+// The shop's existing menu photos (inherited), served by this container so Messenger cards do not depend on the POS host.
+const MENU_IMAGES=new URL('../../../web/public/images/menu/',import.meta.url);
 
 export function metaRouteDepsFromEnv(env:Record<string,string|undefined>,db:IdentityDeps['db'],menu?:OfferDeps['menu']):MetaRouteDeps|null{
  const master=env.META_TAP_MASTER_KEY,origin=env.META_PUBLIC_URL;
@@ -77,6 +80,20 @@ export async function serveMeta(req:http.IncomingMessage,res:http.ServerResponse
  if(!path.startsWith('/meta/'))return false;
  if(!deps){page(res,503,'ยังไม่พร้อมใช้งาน',['Meta features are not configured on this server.']);return true;}
  const log=deps.log??(()=>{});
+ // Customer pages live on META_PUBLIC_URL's host, staff pages on META_STAFF_URL's host. On the staff host only
+ // /meta/staff answers; elsewhere (customer host or the legacy pay.… /meta/ route) staff pages redirect there.
+ // Direct loopback requests (host health checks, tests) are not redirected.
+ const staffOrigin=deps.staff?.config.origin,host=(req.headers.host??'').toLowerCase(),isStaffPath=path==='/meta/staff'||path.startsWith('/meta/staff/');
+ if(staffOrigin&&staffOrigin!==deps.identity.publicOrigin&&!/^(127\.0\.0\.1|localhost)(:\d+)?$/.test(host)){
+  if(host===new URL(staffOrigin).host){if(!isStaffPath){res.writeHead(404,{'Content-Type':'text/plain'});res.end('not found');return true;}}
+  else if(isStaffPath&&method==='GET'){res.writeHead(302,{Location:staffOrigin+path,'Cache-Control':'no-store'});res.end();return true;}
+ }
+ const image=path.match(/^\/meta\/images\/menu\/([a-z0-9-]{1,64}\.jpg)$/);
+ if(image&&method==='GET'){
+  try{const body=await readFile(new URL(image[1],MENU_IMAGES));res.writeHead(200,{'Content-Type':'image/jpeg','Cache-Control':'public, max-age=86400','X-Content-Type-Options':'nosniff'});res.end(body);}
+  catch{res.writeHead(404,{'Content-Type':'text/plain'});res.end('not found');}
+  return true;
+ }
  const tap=path.match(/^\/meta\/t\/([A-Za-z0-9_-]{4,64})$/);
  if(tap&&method==='GET'){
   const r=await handleTap(deps.identity,tap[1],url.searchParams.get('e'),url.searchParams.get('m'),cookieValue(req.headers.cookie));

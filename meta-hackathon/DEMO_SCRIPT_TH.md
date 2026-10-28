@@ -20,7 +20,7 @@
 
 ## Shot list ที่ต้องเตรียม
 - มือถือ 2 เครื่อง (บัญชีที่มี role ใน Meta App เพราะแอปยังเป็น development mode)
-- อุปกรณ์ BitPOS ติดสติกเกอร์ NTAG424 DNA (หรือป้าย simulated tap), แท็บเล็ตเปิด `pay.cashlessthailand.com/meta/staff`
+- อุปกรณ์ BitPOS ติดสติกเกอร์ NTAG424 DNA (หรือป้าย simulated tap), แท็บเล็ตเปิด `meta-pos.cashlessthailand.com/meta/staff`
 - Screen recording: Messenger, หน้าแตะ, Stripe test checkout, หน้าพนักงาน, หน้าโปร, ledger, terminal MCP
 - ก่อนถ่าย: หยุดโปรทดสอบ/ยกเลิก Allow All ที่ค้าง, ล้างออเดอร์ทดสอบด้วยการกด "ส่งมอบแล้ว"
 - ห้ามโชว์ Solana/crypto

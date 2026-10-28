@@ -3,7 +3,8 @@
 # It reuses the existing runtime image, pinned under its own tag bitpos-meta-base:20261029 (same image id as
 # bitpos-runtime:current on 2026-10-29, so a retag by the Solana stream cannot change it), and mounts the
 # hackathon source read-only at /app/meta-src, so modules resolve from the image's /app/node_modules.
-# Listens on 127.0.0.1:3102 only; the existing Cloudflare tunnel routes pay.<domain>/meta/* here.
+# Listens on 127.0.0.1:3102 only; the Cloudflare tunnel routes meta-pay.<domain> (customers) and meta-pos.<domain>
+# (staff) here, plus the legacy pay.<domain>/meta/* route during the move.
 # Deploy: upload the source to ~/bitpos-meta/src, then `docker compose -f ~/bitpos-meta/compose.yaml up -d`.
 # The env file is private (mode 600, outside any repository); see tools/meta/meta-server.ts for keys.
 name: bitpos-meta

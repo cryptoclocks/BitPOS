@@ -104,9 +104,9 @@ export async function planChatOrder(deps:ChatAgentDeps,merchantId:string,linkId:
  }catch(e){const t=errorText(e);if(t)return {kind:'error',text:t};throw e;}
 }
 
-/** Absolute image for a Messenger card: the shop's own /images/ path on the public origin, or an https URL. */
+/** Absolute image for a Messenger card: the shop's own /images/ path, served by the /meta container, or an https URL. */
 function imageFor(deps:ChatAgentDeps,i:MenuItem):string|undefined{
- if(i.imageUrl?.startsWith('/images/'))return deps.publicOrigin+i.imageUrl;
+ if(i.imageUrl?.startsWith('/images/'))return deps.publicOrigin+'/meta'+i.imageUrl;
  return i.imageUrl?.startsWith('https://')?i.imageUrl:undefined;
 }
 /** The menu as a swipeable card carousel; "Order" quotes the item directly, with no model call. */

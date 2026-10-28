@@ -30,7 +30,7 @@ BitPOS is a point-of-sale system for small Thai cafés. It existed before the ha
 **MCP connector (no account needed):**
 
 ```bash
-curl -s -X POST https://pay.cashlessthailand.com/meta/mcp/11111111-1111-4111-8111-111111111111 -H 'content-type: application/json' -d '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"list_menu","arguments":{}}}'
+curl -s -X POST https://meta-pay.cashlessthailand.com/meta/mcp/11111111-1111-4111-8111-111111111111 -H 'content-type: application/json' -d '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"list_menu","arguments":{}}}'
 ```
 
 - The full agent run (quote → sandbox SPT → pay → status → cancel with refund) is in `tools/meta/mcp-smoke.ts`. It needs a Stripe *test* key to mint a sandbox SPT.

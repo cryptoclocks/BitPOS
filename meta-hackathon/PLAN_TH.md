@@ -8,7 +8,7 @@
 |---|---|
 | Migrations | 300 ledger AI · 301 แท็ก+tap session · 302 ตัวตน Messenger · 303 โปรตอนแตะ · 304 Stripe ของการแตะ · 305 พนักงาน · 306 quote กลาง+ออเดอร์ agent · 307 สั่งผ่านแชท · 308 อนุมัติโปร+Allow All (ตาราง `meta_vision_observations`/`meta_agent_runs`/`meta_agent_policies` ใน 300 ไม่ได้ใช้แล้วหลังตัดกล้อง) |
 | URL | แตะ `/meta/t/:tagId` · Messenger `/meta/messenger/webhook` · Stripe `/meta/stripe/webhook` · ลูกค้า `/meta/offer-page`, `/meta/order` (เสียง/พิมพ์) · พนักงาน `/meta/staff`, `/meta/staff/offers`, `/meta/staff/ledger` · MCP `POST /meta/mcp/<merchantId>` |
-| Runtime | container `bitpos-meta` แยกบน OCI หลัง `pay.cashlessthailand.com/meta/*` (ไม่แตะ `bitpos-runtime`) · deploy ด้วย `tools/meta/deploy-oci.sh` |
+| Runtime | container `bitpos-meta` แยกบน OCI ที่ `meta-pay.cashlessthailand.com` (ลูกค้า) และ `meta-pos.cashlessthailand.com` (ร้าน) แยกจากโดเมน Solana `pay.`/`pos.` (ไม่แตะ `bitpos-runtime`) · deploy ด้วย `tools/meta/deploy-oci.sh` |
 | ยังไม่ทำ | ตั้งค่าสติกเกอร์จริง (ใช้ `tools/meta/sim-tap.ts` แทน) · Muse Image บนจอ (ตัด: ต้องแตะ worker ของ runtime) · ถ่ายทำ/ตัดต่อวิดีโอ |
 
 ## 1. ข้อเท็จจริงที่ตรวจแล้ว และสิ่งที่ยังต้องยืนยัน

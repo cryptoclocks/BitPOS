@@ -244,7 +244,7 @@ export async function agentReceipt(db:MetaDb,merchantId:string,orderId:string,pu
     LEFT JOIN products p ON p.merchant_id=o.merchant_id AND p.id=o.product_id WHERE o.id=$1`,[orderId])).rows[0];
   if(!r||r.status!=='CONFIRMED')return null;
   const total=Number(BigInt(r.amount_minor))/100,unit=total/r.quantity;
-  const image=r.image_url?.startsWith('/images/')&&publicOrigin?publicOrigin+r.image_url:r.image_url?.startsWith('https://')?r.image_url:undefined;
+  const image=r.image_url?.startsWith('/images/')&&publicOrigin?publicOrigin+'/meta'+r.image_url:r.image_url?.startsWith('https://')?r.image_url:undefined;
   const text=`จ่ายแล้ว ✓ ${r.emoji} ${r.name} ×${r.quantity} · ${formatTapAmount(r.amount_minor,r.currency)}\nรหัสรับสินค้า #${code(orderId)} รับที่เคาน์เตอร์ได้เลยค่ะ\nPaid — pickup code #${code(orderId)}. Stripe sandbox, test mode.`;
   return {psid:r.psid,text,receipt:{recipientName:`รหัสรับ #${code(orderId)} / Pickup #${code(orderId)}`,orderNumber:code(orderId),currency:r.currency.toUpperCase(),paymentMethod:'Stripe sandbox (test mode)',
    timestamp:Math.floor((r.confirmed_at??new Date()).getTime()/1000),elements:[{title:`${r.emoji} ${r.name} / ${r.name_en}`,subtitle:'รับที่เคาน์เตอร์ / Pick up at the counter',quantity:r.quantity,price:Math.round(unit*100)/100,currency:r.currency.toUpperCase(),imageUrl:image}],total}};
