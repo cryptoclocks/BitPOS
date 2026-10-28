@@ -46,4 +46,5 @@
 | 18:51:07 | Stripe webhook | `payment_intent.succeeded` `evt_3UVVNkJ3OQ9SsvzG1nkK4lNG`. Order CONFIRMED (`webhook`), `pi_3UVVNkJ3OQ9SsvzG1GRJcu6E`, 400 usd, stock 192 → 191. Receipt sent with no send error |
 | 18:51:07 | `GET /meta/agent/paid` | 200, "Paid ✓", pickup code |
 
+- The owner confirmed the receipt in Messenger (text): "จ่ายแล้ว ✓ 🥛 ลาเต้ ×1 · $4.00 / รหัสรับสินค้า #C923 รับที่เคาน์เตอร์ได้เลยค่ะ / Paid — pickup code #C923. Stripe sandbox, test mode."
 - Muse usage on OCI so far: 2 calls in total (one offer selection, one chat order).
