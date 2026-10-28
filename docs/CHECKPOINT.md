@@ -16,7 +16,8 @@
   - Cloudflare route `pay.cashlessthailand.com/^/meta/` sits ahead of the existing pay route.
   - Messenger and Stripe webhooks now point at `https://pay.cashlessthailand.com/meta/...`. The quick tunnel is stopped.
   - Evidence: `meta-hackathon/evidence/2026-10-28-oci-meta.md`.
-- Next: live tap on OCI (simulated tag `sim-counter-01`); owner approves a first promotion for Purple Cafe so offers appear; pay a hosted Checkout by hand.
+- Live tap on OCI worked at 12:38 ICT: tap → Messenger referral → consent ACCEPTED → bound tap session → magic-link session, all through `pay.cashlessthailand.com/meta/`.
+- Next: owner approves a first promotion for Purple Cafe so offers appear; pay a hosted Checkout by hand.
 - Superseded (kept for history): Messenger (needs the owner signed in to Facebook to create a Page and Meta app), paying a hosted Checkout by hand, a real Messenger app/page and webhook delivery, NTAG424 sticker configuration, Muse connector review, routing `/meta/*` to the API in the tunnel. Next: live Muse Spark call, sticker provisioning tool, Stripe checkout on the tap page.
 
 ## Direct implementation update — Customer U21 delivered page and FigCraft spacing — 21 October 2026
