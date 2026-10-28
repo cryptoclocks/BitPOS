@@ -5,12 +5,13 @@ import {fail,requireRole} from './authority';
 import {audit} from './db';
 
 const uuid=z.string().uuid();
+const reorder=z.object({productId:uuid,reorderLevel:z.number().int().min(0).max(100000).nullable()}).strict();
 const movement=z.object({
  productId:uuid,kind:z.enum(['RECEIVE','ADJUST']),delta:z.number().int().min(-100000).max(100000).refine(v=>v!==0),
  reason:z.string().trim().min(1).max(200),reference:z.string().trim().max(80).default(''),
  expectedStock:z.number().int().min(0),idempotencyKey:z.string().min(1).max(128)
 }).strict().refine(v=>v.kind!=='RECEIVE'||v.delta>0);
-export interface StockRow{productId:string;stock:number;reserved:number;available:number}
+export interface StockRow{productId:string;stock:number;reserved:number;available:number;reorderLevel:number|null}
 export interface StockMovement{id:string;productId:string;kind:'RECEIVE'|'ADJUST';delta:number;stockBefore:number;stockAfter:number;reason:string;reference:string;actor:string;createdAt:string}
 const view=(r:{id:string;product_id:string;kind:'RECEIVE'|'ADJUST';delta:number;stock_before:number;stock_after:number;reason:string;reference:string;actor:string;created_at:Date}):StockMovement=>({id:r.id,productId:r.product_id,kind:r.kind,delta:r.delta,stockBefore:r.stock_before,stockAfter:r.stock_after,reason:r.reason,reference:r.reference,actor:r.actor,createdAt:r.created_at.toISOString()});
 /** Owner/manager only. Quantity changes are optimistic (expectedStock), idempotent, never below reserved stock, and ledgered. */
@@ -19,8 +20,15 @@ export async function inventoryRequest(db:pg.PoolClient,merchant:string,actor:st
  const path=url.pathname;
  if(path==='/api/inventory/stock'&&method==='GET'){
   if(url.search)fail('INVALID_REQUEST',422);
-  const rows=(await db.query<{id:string;stock:number;reserved:number}>('SELECT id,stock,reserved FROM products WHERE merchant_id=$1 AND archived_at IS NULL ORDER BY sort_order,id',[merchant])).rows;
-  return {products:rows.map((r):StockRow=>({productId:r.id,stock:r.stock,reserved:r.reserved,available:r.stock-r.reserved}))};
+  const rows=(await db.query<{id:string;stock:number;reserved:number;reorder_level:number|null}>('SELECT id,stock,reserved,reorder_level FROM products WHERE merchant_id=$1 AND archived_at IS NULL ORDER BY sort_order,id',[merchant])).rows;
+  return {products:rows.map((r):StockRow=>({productId:r.id,stock:r.stock,reserved:r.reserved,available:r.stock-r.reserved,reorderLevel:r.reorder_level}))};
+ }
+ if(path==='/api/inventory/reorder'&&method==='POST'){
+  const data=reorder.safeParse(input);if(!data.success)fail('INVALID_REQUEST',422);
+  const updated=await db.query('UPDATE products SET reorder_level=$3 WHERE merchant_id=$1 AND id=$2 AND archived_at IS NULL RETURNING id',[merchant,data.data.productId,data.data.reorderLevel]);
+  if(!updated.rowCount)fail('RESOURCE_NOT_FOUND',404);
+  await audit(db,merchant,actor,'inventory.reorder_level',data.data.productId);
+  return {productId:data.data.productId,reorderLevel:data.data.reorderLevel};
  }
  if(path==='/api/inventory/movements'&&method==='GET'){
   const keys=[...url.searchParams.keys()];if(keys.some(k=>!['productId','cursor'].includes(k))||new Set(keys).size!==keys.length)fail('INVALID_REQUEST',422);

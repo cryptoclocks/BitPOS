@@ -21,3 +21,6 @@
 .catalog-stock{display:flex;flex-direction:column;gap:16px}
 .catalog-unavailable{background:var(--bp-white);border:1px dashed var(--bp-line);border-radius:18px;padding:18px 20px}
 .catalog-unavailable h2{margin:0;font-size:18px}.catalog-unavailable ul{margin:10px 0 0;padding-left:20px;color:var(--bp-muted)}
+
+.stock-views{display:flex;gap:8px;margin:10px 0}.stock-views button{min-height:36px;padding:0 16px;border-radius:99px;border:0;background:#eadff7;color:var(--bp-primary);font-weight:600}.stock-views button[aria-pressed=true]{background:var(--bp-primary);color:#fff}
+.stock-views button.secondary[aria-pressed=true]{background:var(--bp-primary);color:#fff}

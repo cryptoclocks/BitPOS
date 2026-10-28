@@ -235,7 +235,7 @@ export async function handle(req:http.IncomingMessage){
  if(path==='/api/session'){if(method==='DELETE'){await db.query('DELETE FROM sessions WHERE token_hash=$1',[hash(token)]);await audit(db,merchant,session.user_id,'session.logout',session.user_id);return {ok:true};}if(method==='GET')return {userId:session.user_id,merchantId:merchant,role:session.current_role};}
  if(path==='/api/menu'&&method==='GET')return effectiveMenu(db,merchant);
  if(path==='/api/settings/payment-assets')return merchantPaymentAssets(db,merchant,session.user_id,session.current_role,method??'',input);
- if(path==='/api/inventory/stock'||path==='/api/inventory/movements')return inventoryRequest(db,merchant,session.user_id,session.current_role,url,method??'GET',input);
+ if(path==='/api/inventory/stock'||path==='/api/inventory/movements'||path==='/api/inventory/reorder')return inventoryRequest(db,merchant,session.user_id,session.current_role,url,method??'GET',input);
  if(path==='/api/activity'&&method==='GET')return activityHistory(db,merchant,session.current_role,url);
  if(path==='/api/reports/sales'&&method==='GET')return salesReport(db,merchant,session.current_role,url);
  if(path==='/api/returns'&&method==='GET')return merchantReturns(db,merchant,session.current_role,url);
