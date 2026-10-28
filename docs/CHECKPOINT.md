@@ -9,7 +9,15 @@
 - Live Muse Spark works: `muse-spark-1.3` via `https://api.meta.ai/v1/chat/completions` picked offers in 4/4 runs (3.2–3.5 s) after setting `reasoning_effort: minimal` and a 2,000-token budget (the first call spent its whole 300-token budget on reasoning). Key only in `~/.bitpos-meta/meta-api.env`.
 - Stripe checkout on the tap page: own ledger `meta_tap_orders` (migration 304), re-quoted price, PAID only from a signed webhook or a server-side Checkout lookup, stock decremented once. Live: THB Checkout Session created and looked up in the US sandbox; paying on the hosted page not yet done. Meta tests 39/39 with the database. Evidence: `meta-hackathon/evidence/2026-10-28-tap-checkout.md`.
 - Real Stripe webhook works end to end: Cloudflare quick tunnel (this Mac only) → `tools/meta/meta-server.ts` (/meta only, disposable DB) → sandbox `payment_intent.succeeded` marked the order PAID and took stock once; Stripe shows the delivery acknowledged. Evidence: `meta-hackathon/evidence/2026-10-28-tunnel-webhooks.md`.
-- Not done: Messenger (needs the owner signed in to Facebook to create a Page and Meta app), paying a hosted Checkout by hand, a real Messenger app/page and webhook delivery, NTAG424 sticker configuration, Muse connector review, routing `/meta/*` to the API in the tunnel. Next: live Muse Spark call, sticker provisioning tool, Stripe checkout on the tap page.
+- Messenger live: Page "Bitpos Muse Demo" and a development-mode Meta app; webhook set via the Graph API. A real tap → referral → consent → sign-in link worked on the quick tunnel (12:16–12:17 ICT).
+- /meta moved to the OCI stack (owner approved):
+  - Backup made first; migrations 300–304 applied in one transaction; existing counts and the order digest are unchanged.
+  - Separate compose project `bitpos-meta` (`infra/meta/compose.yaml`, existing image, 127.0.0.1:3102).
+  - Cloudflare route `pay.cashlessthailand.com/^/meta/` sits ahead of the existing pay route.
+  - Messenger and Stripe webhooks now point at `https://pay.cashlessthailand.com/meta/...`. The quick tunnel is stopped.
+  - Evidence: `meta-hackathon/evidence/2026-10-28-oci-meta.md`.
+- Next: live tap on OCI (simulated tag `sim-counter-01`); owner approves a first promotion for Purple Cafe so offers appear; pay a hosted Checkout by hand.
+- Superseded (kept for history): Messenger (needs the owner signed in to Facebook to create a Page and Meta app), paying a hosted Checkout by hand, a real Messenger app/page and webhook delivery, NTAG424 sticker configuration, Muse connector review, routing `/meta/*` to the API in the tunnel. Next: live Muse Spark call, sticker provisioning tool, Stripe checkout on the tap page.
 
 ## Direct implementation update — Customer U21 delivered page and FigCraft spacing — 21 October 2026
 

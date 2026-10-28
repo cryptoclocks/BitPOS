@@ -1,0 +1,23 @@
+# Meta hackathon work (2026-10-26..11-04). See meta-hackathon/PROVENANCE.md.
+# The /meta-only server on the OCI host, as its own compose project beside bitpos-runtime.
+# It reuses the existing runtime image (no new build; the disk is nearly full) and mounts the
+# hackathon source read-only at /app/meta-src, so modules resolve from the image's /app/node_modules.
+# Listens on 127.0.0.1:3102 only; the existing Cloudflare tunnel routes pay.<domain>/meta/* here.
+# Deploy: upload the source to ~/bitpos-meta/src, then `docker compose -f ~/bitpos-meta/compose.yaml up -d`.
+# The env file is private (mode 600, outside any repository); see tools/meta/meta-server.ts for keys.
+name: bitpos-meta
+services:
+  meta:
+    image: bitpos-runtime:current
+    network_mode: host
+    restart: unless-stopped
+    user: "1001:1001"
+    working_dir: /app/meta-src
+    command: ["node", "--import", "tsx", "tools/meta/meta-server.ts", "/run/meta/meta.env"]
+    volumes:
+      - /home/ubuntu/bitpos-meta/src:/app/meta-src:ro
+      - /home/ubuntu/bitpos-private/meta/meta.env:/run/meta/meta.env:ro
+    mem_limit: 256m
+    logging:
+      driver: json-file
+      options: {max-size: "10m", max-file: "3"}
