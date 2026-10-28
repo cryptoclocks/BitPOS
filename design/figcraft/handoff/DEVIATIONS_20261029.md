@@ -4,7 +4,7 @@ Where the real app and the design differ, each difference was judged and the bet
 FigCraft source (`source/screens/*.svg`), the PNG preview (`previews/current-native/*.png`) and the `sha256` in `screen-map.json`
 were updated to match.
 
-**Master status:** the exported SVG/PNG/sha256 were patched first. The native master was then edited too, headlessly with `figcraft-cli run` (the first note here that the master "could not be opened" was wrong: FigCraft is installed and the CLI edits .figcraft files without the app window). The edited copy is `BitPOS-Platform-UI.edited-20261029.figcraft` next to this folder's exports and the exact steps are in `master-edit-20261029.json` (U01 bell replaced by an "English" text, U02 and U03 button labels and link rows, U04 centred description). The original master at `design/figcraft/BitPOS-Platform-UI.figcraft` in the main checkout is untouched; replace it with the edited copy (or re-run the steps with `figcraft-cli run master-edit-20261029.json --in <master> --out <master>`) once you agree.
+**Master status:** the exported SVG/PNG/sha256 were patched first. The native master was then edited too, headlessly with `figcraft-cli run` (the first note here that the master "could not be opened" was wrong: FigCraft is installed and the CLI edits .figcraft files without the app window). The edited copy is `BitPOS-Platform-UI.edited-20261029.figcraft` next to this folder's exports and the exact steps are in `master-edit-20261029.json` (U01 bell replaced by an "English" text, U02 and U03 button labels and link rows, U04 centred description). With the owner's OK the master at `design/figcraft/BitPOS-Platform-UI.figcraft` in the main checkout was replaced by the edited copy (the original is kept as `BitPOS-Platform-UI.before-20261029.figcraft` beside it). Later edits (P20 and P25 text) are appended to `master-edit-20261029.json`; replay with `figcraft-cli run master-edit-20261029.json --in <master> --out <master>`. The exported SVG/PNG of P20 and P25 in `source/` and `previews/` were NOT refreshed.
 
 ## Applied to the exported files (app kept, design updated)
 
@@ -38,3 +38,8 @@ These are too structural to patch in the exported SVG. The app is the better beh
 | P24 categories | summary card with rename; categories are derived from products | a categories list with visibility and update time |
 | P25 users | member list by short id with role change for managers and staff; names and invitations stay in the auth service | member names and an add button |
 | P35 devices | richer floor-plan editor with the same facts | plain tables-and-devices list |
+
+## Text-level alignments applied to the master (2026-10-29, second step)
+
+- **P20 export:** the two sample "stored exports" became one row that says what the app does: orders of the chosen range, CSV built on this device, nothing uploaded; count text "1 item". The "add item" button is still drawn (the app has none).
+- **P25 users:** sample names replaced by short ids with the real role descriptions; the "last update" column became "actions" with "make staff" / "make manager". The "add item" button is still drawn (invitations are not offered).

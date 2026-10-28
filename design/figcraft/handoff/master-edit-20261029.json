@@ -1,11 +1,248 @@
 [
-{"command":"edit.delete","params":{"ids":[287]}},
-{"command":"text.create","params":{"text":"English","x":311,"y":61,"parent":279,"props":{"fontFamily":"Noto Sans Thai","fontStyle":"SemiBold","fontSize":15,"fill":"#64188A"}}},
-{"command":"node.set","params":{"ids":[12114],"characters":"ขอรหัสเข้าสู่ระบบ"}},
-{"command":"edit.delete","params":{"ids":[327]}},
-{"command":"node.set","params":{"ids":[328],"characters":"ข้อมูลบริการและความเป็นส่วนตัว","textAutoResize":"none","x":24,"width":342,"textAlign":"center"}},
-{"command":"node.set","params":{"ids":[12117],"characters":"ยืนยันรหัส"}},
-{"command":"node.set","params":{"ids":[353],"characters":"เปลี่ยนหมายเลข / ขอรหัสใหม่","textAutoResize":"none","x":24,"width":342,"textAlign":"center"}},
-{"command":"node.set","params":{"ids":[371],"textAutoResize":"none","x":24,"width":342,"textAlign":"center"}},
-{"command":"node.set","params":{"ids":[372],"textAutoResize":"none","x":24,"width":342,"textAlign":"center"}}
+{
+"command": "edit.delete",
+"params": {
+"ids": [
+287
+]
+}
+},
+{
+"command": "text.create",
+"params": {
+"text": "English",
+"x": 311,
+"y": 61,
+"parent": 279,
+"props": {
+"fontFamily": "Noto Sans Thai",
+"fontStyle": "SemiBold",
+"fontSize": 15,
+"fill": "#64188A"
+}
+}
+},
+{
+"command": "node.set",
+"params": {
+"ids": [
+12114
+],
+"characters": "ขอรหัสเข้าสู่ระบบ"
+}
+},
+{
+"command": "edit.delete",
+"params": {
+"ids": [
+327
+]
+}
+},
+{
+"command": "node.set",
+"params": {
+"ids": [
+328
+],
+"characters": "ข้อมูลบริการและความเป็นส่วนตัว",
+"textAutoResize": "none",
+"x": 24,
+"width": 342,
+"textAlign": "center"
+}
+},
+{
+"command": "node.set",
+"params": {
+"ids": [
+12117
+],
+"characters": "ยืนยันรหัส"
+}
+},
+{
+"command": "node.set",
+"params": {
+"ids": [
+353
+],
+"characters": "เปลี่ยนหมายเลข / ขอรหัสใหม่",
+"textAutoResize": "none",
+"x": 24,
+"width": 342,
+"textAlign": "center"
+}
+},
+{
+"command": "node.set",
+"params": {
+"ids": [
+371
+],
+"textAutoResize": "none",
+"x": 24,
+"width": 342,
+"textAlign": "center"
+}
+},
+{
+"command": "node.set",
+"params": {
+"ids": [
+372
+],
+"textAutoResize": "none",
+"x": 24,
+"width": 342,
+"textAlign": "center"
+}
+},
+{
+"command": "node.set",
+"params": {
+"ids": [
+6467
+],
+"characters": "1 รายการ"
+}
+},
+{
+"command": "node.set",
+"params": {
+"ids": [
+6475
+],
+"characters": "ออเดอร์ในช่วงที่เลือก"
+}
+},
+{
+"command": "node.set",
+"params": {
+"ids": [
+6476
+],
+"characters": "CSV · สร้างบนเครื่องนี้ ไม่อัปโหลด"
+}
+},
+{
+"command": "node.set",
+"params": {
+"ids": [
+6477
+],
+"characters": "พร้อมดาวน์โหลด"
+}
+},
+{
+"command": "node.set",
+"params": {
+"ids": [
+6478
+],
+"characters": "ตอนนี้"
+}
+},
+{
+"command": "node.set",
+"params": {
+"ids": [
+6481,
+6482,
+6483,
+6484
+],
+"characters": ""
+}
+},
+{
+"command": "node.set",
+"params": {
+"ids": [
+6927
+],
+"characters": "ผู้ใช้ #3fe7c298"
+}
+},
+{
+"command": "node.set",
+"params": {
+"ids": [
+6928
+],
+"characters": "เจ้าของร้าน · จัดการร้านและสิทธิ์"
+}
+},
+{
+"command": "node.set",
+"params": {
+"ids": [
+6930
+],
+"characters": "—"
+}
+},
+{
+"command": "node.set",
+"params": {
+"ids": [
+6933
+],
+"characters": "ผู้ใช้ #99726c37"
+}
+},
+{
+"command": "node.set",
+"params": {
+"ids": [
+6934
+],
+"characters": "ผู้จัดการ · จัดการการขาย สต็อก และรายงาน"
+}
+},
+{
+"command": "node.set",
+"params": {
+"ids": [
+6936
+],
+"characters": "เปลี่ยนเป็นพนักงาน"
+}
+},
+{
+"command": "node.set",
+"params": {
+"ids": [
+6939
+],
+"characters": "ผู้ใช้ #4b5988ed"
+}
+},
+{
+"command": "node.set",
+"params": {
+"ids": [
+6940
+],
+"characters": "พนักงาน · รับและเตรียมออเดอร์"
+}
+},
+{
+"command": "node.set",
+"params": {
+"ids": [
+6942
+],
+"characters": "เปลี่ยนเป็นผู้จัดการ"
+}
+},
+{
+"command": "node.set",
+"params": {
+"ids": [
+6924
+],
+"characters": "การทำงาน"
+}
+}
 ]
