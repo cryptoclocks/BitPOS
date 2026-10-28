@@ -41,3 +41,4 @@ __pycache__/
 
 # Local video edit intermediates and upload masters.
 /RealUse/export/
+device/firmware/build-meta/

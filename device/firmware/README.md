@@ -278,3 +278,32 @@ adapter, not a physical WebSocket/display proof. Financial journal invariance is
 checked around catalog consumption and negative parser cases, not falsely
 claimed across ordinary order ownership changes. No build/test/physical/flash/
 deployment acceptance is claimed for this repair until the coordinator runs it.
+
+## BitPOS Mini · Meta product (`bitpos_terminal_meta`)
+
+<!-- Meta hackathon work (2026-10-26..11-04). See meta-hackathon/PROVENANCE.md. -->
+A separate product built from this same source for the Meta hackathon entry: own name, version (`0.4.0-meta`), sdkconfig
+layer (`sdkconfig.meta`, `CONFIG_BITPOS_PRODUCT_META`) and build directory (`build-meta/`). It starts no ordering
+WebSocket and shows no crypto. Every 2 s it asks `GET <meta-pay>/meta/device/state?d=<device>` (HTTPS, certificate
+bundle, `Authorization: Bearer <device key>`) which screen to show and renders one template: idle, tap (new / known),
+Stripe QR for a counter bill, waiting, paid, booking countdown, seated (design/figcraft-meta B01–B11). The server
+decides; the device never computes prices, payment or bookings. Source: `main/bitpos_meta.c`.
+
+```sh
+bash tools/firmware/build-meta.sh          # build only
+```
+
+Install without touching the standard firmware: the standard app stays in `app0`; the Meta app goes into `app1` and
+the boot slot is switched (ESP-IDF `otatool.py write_ota_partition --slot 1`, then `switch_ota_partition --slot 1`).
+Back to the standard terminal: `otatool.py switch_ota_partition --slot 0`. Take a full private flash backup first.
+
+Settings are written over USB into a separate `meta` namespace of `bitpos_nvs`; the standard `config`/`state`
+namespaces are read for WiFi only and never written. The device key is derived on the server and piped straight in:
+
+```sh
+ssh <oci> 'docker exec -w /app/meta-src bitpos-meta-meta-1 node --import tsx tools/meta/device-key.ts /run/meta/meta.env <device-id>' \
+  | python3 tools/meta/provision-mini.py /dev/cu.usbmodem101 https://meta-pay.cashlessthailand.com <device-id>
+```
+
+USB commands: `META_STATUS`, `META_PROVISION <origin> <device> <key>` (key never echoed or logged), `META_FORGET`.
+The device font covers ASCII and Thai only; the server maps other symbols before sending.

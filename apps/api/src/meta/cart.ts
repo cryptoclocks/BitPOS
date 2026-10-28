@@ -57,15 +57,15 @@ export async function quoteCart(deps:AgentDeps,merchantId:string,lines:CartLine[
 }
 
 /** Makes the order and its hosted Stripe Checkout. Returns the order and a one-time access token for its receipt page. */
-export async function startCart(deps:AgentDeps,merchantId:string,lines:CartLine[],opts:{channel:CartChannel;tableId?:string|null;linkId?:string|null;staffUserId?:string|null;publicOrigin:string}):Promise<{orderId:string;access:string;checkoutUrl:string}>{
+export async function startCart(deps:AgentDeps,merchantId:string,lines:CartLine[],opts:{channel:CartChannel;tableId?:string|null;linkId?:string|null;staffUserId?:string|null;deviceId?:string|null;publicOrigin:string}):Promise<{orderId:string;access:string;checkoutUrl:string}>{
  if(!deps.stripe)throw new CartError('PAYMENTS_UNAVAILABLE');
  if((opts.channel==='counter')!==Boolean(opts.staffUserId))throw new CartError('INVALID_INPUT');
  const p=await price(deps,merchantId,lines);
  const access=randomBytes(24).toString('base64url');
  const orderId=await deps.db.tenant(merchantId,async c=>{
-  const id=(await c.query<{id:string}>(`INSERT INTO meta_cart_orders(merchant_id,channel,table_id,link_id,access_sha256,currency,amount_minor,discount_minor,created_by,expires_at)
-   VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,clock_timestamp()+interval '${LIFETIME_MIN} minutes') RETURNING id`,
-   [merchantId,opts.channel,opts.tableId??null,opts.linkId??null,sha(access),p.currency,p.total.toString(),p.discount.toString(),opts.staffUserId??null])).rows[0].id;
+  const id=(await c.query<{id:string}>(`INSERT INTO meta_cart_orders(merchant_id,channel,table_id,link_id,access_sha256,currency,amount_minor,discount_minor,created_by,device_id,expires_at)
+   VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,clock_timestamp()+interval '${LIFETIME_MIN} minutes') RETURNING id`,
+   [merchantId,opts.channel,opts.tableId??null,opts.linkId??null,sha(access),p.currency,p.total.toString(),p.discount.toString(),opts.staffUserId??null,opts.deviceId??null])).rows[0].id;
   for(const x of p.priced)await c.query('INSERT INTO meta_cart_items(merchant_id,order_id,line,product_id,name,name_en,emoji,quantity,unit_minor,base_minor,offer_id) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)',
    [merchantId,id,x.line,x.m.productId,x.m.name,x.m.nameEn,x.m.emoji,x.quantity,x.unit.toString(),x.base.toString(),x.m.offer?.offerId??null]);
   return id;

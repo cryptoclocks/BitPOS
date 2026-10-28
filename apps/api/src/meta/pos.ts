@@ -94,16 +94,20 @@ ${row({href:'/meta/staff/offers',icon:'✨',title:`${r.drafts} ร่างโ�
  if(path==='/meta/staff/counter'&&method==='GET'){
   if(!agent)return send(503,path,'ขายหน้าร้าน','<div class="card">ระบบเมนูยังไม่พร้อม</div>');
   const menu=await listMenu(agent,me.merchantId);
+  const devices=(await db.tenant(me.merchantId,c=>c.query<{id:string;label:string}>('SELECT id,label FROM devices WHERE revoked_at IS NULL ORDER BY label'))).rows;
   const tiles=menu.map(m=>`<label class="tile">${photo(m.imageUrl)?`<img src="${esc(photo(m.imageUrl)!)}" alt="">`:''}<div><b>${esc(m.name)}</b><br><small>${esc(m.nameEn)} · ${esc(m.price.display)}${m.offer?` · −${m.offer.discountPercent}%`:''}</small>
 <select name="q_${m.productId}"${m.payable?'':' disabled'}>${[0,1,2,3,4,5].map(n=>`<option value="${n}">${n?`× ${n}`:'—'}</option>`).join('')}</select></div></label>`).join('');
-  return send(200,path,'ขายหน้าร้าน',`<form method="post" action="/meta/staff/counter"><div class="grid g4">${tiles}</div><div class="card"><div class="note">ลูกค้าสแกน QR เพื่อจ่ายบน Stripe Checkout (sandbox) · ราคาจากเซิร์ฟเวอร์ · จ่ายแล้วจาก webhook เท่านั้น</div><button>สร้างบิลและแสดง QR ของ Stripe</button></div></form>`,
+  return send(200,path,'ขายหน้าร้าน',`<form method="post" action="/meta/staff/counter"><div class="grid g4">${tiles}</div><div class="card"><label>แสดง QR บนเครื่อง BitPOS Mini</label><select name="device"><option value="">ไม่แสดง (ใช้จอนี้)</option>${devices.map((d,i)=>`<option value="${d.id}"${i===0?' selected':''}>${esc(d.label)}</option>`).join('')}</select>
+<div class="note">ลูกค้าสแกน QR เพื่อจ่ายบน Stripe Checkout (sandbox) · ราคาจากเซิร์ฟเวอร์ · จ่ายแล้วจาก webhook เท่านั้น</div><button>สร้างบิลและแสดง QR ของ Stripe</button></div></form>`,
    {sub:'เลือกจำนวน → สร้างบิล → ลูกค้าสแกน QR บนจอ (หรือบน BitPOS Mini)'});
  }
  if(path==='/meta/staff/counter'&&method==='POST'){
   if(!agent)return send(503,path,'ขายหน้าร้าน','<div class="card">ระบบเมนูยังไม่พร้อม</div>');
   const f=await body(req);const lines:CartLine[]=[];
   for(const [k,v] of f??[]){const m=k.match(/^q_([0-9a-f-]{36})$/);const n=Number(v)|0;if(m&&UUID.test(m[1])&&n>0&&n<=20)lines.push({productId:m[1],quantity:n});}
-  try{const r=await startCart(agent,me.merchantId,lines,{channel:'counter',staffUserId:me.userId,publicOrigin:deps.identity.publicOrigin});log('Counter bill started');go(res,`/meta/staff/counter/${r.orderId}`);return true;}
+  const device=f?.get('device')??'';
+  const deviceId=UUID.test(device)&&(await db.tenant(me.merchantId,c=>c.query('SELECT 1 FROM devices WHERE id=$1 AND revoked_at IS NULL',[device]))).rowCount?device:null;
+  try{const r=await startCart(agent,me.merchantId,lines,{channel:'counter',staffUserId:me.userId,deviceId,publicOrigin:deps.identity.publicOrigin});log('Counter bill started');go(res,`/meta/staff/counter/${r.orderId}`);return true;}
   catch(e){if(e instanceof CartError)return send(409,'/meta/staff/counter','สร้างบิลไม่ได้',`<div class="card">${e.code==='EMPTY'?'ยังไม่ได้เลือกเมนู':e.code==='BELOW_MINIMUM'?'ยอดต่ำกว่าขั้นต่ำของ Stripe ($0.50)':e.code==='OUT_OF_STOCK'?'บางเมนูหมด':e.code}</div><a class="btn g inline" href="/meta/staff/counter">← เลือกใหม่</a>`);throw e;}
  }
  const bill=path.match(/^\/meta\/staff\/counter\/([0-9a-f-]{36})$/);

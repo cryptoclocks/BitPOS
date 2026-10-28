@@ -34,6 +34,7 @@
 #include <inttypes.h>
 #include "ccp_board.h"
 #include "display_engine.h"
+#include "bitpos_meta.h"
 LV_FONT_DECLARE(bitpos_font_20);
 LV_FONT_DECLARE(bitpos_clock_64);
 LV_IMAGE_DECLARE(bitpos_logo);
@@ -1026,11 +1027,15 @@ void app_main(void) {
     esp_log_level_set("BitPOS",ESP_LOG_INFO);
     esp_log_level_set("BitPOSMedia",ESP_LOG_INFO);
     uint8_t mac[6];ESP_ERROR_CHECK(esp_read_mac(mac,ESP_MAC_WIFI_STA));
-    ESP_LOGI("BitPOS","BOOT product=bitpos_terminal version=%s mac=%02x:%02x:%02x:%02x:%02x:%02x",esp_app_get_description()->version,mac[0],mac[1],mac[2],mac[3],mac[4],mac[5]);
+    ESP_LOGI("BitPOS","BOOT product=%s version=%s mac=%02x:%02x:%02x:%02x:%02x:%02x",esp_app_get_description()->project_name,esp_app_get_description()->version,mac[0],mac[1],mac[2],mac[3],mac[4],mac[5]);
     /* Never erase NVS on errors: preserving original/private state beats an automatic reset. */
     ESP_ERROR_CHECK(nvs_flash_init_partition("bitpos_nvs"));
     ESP_ERROR_CHECK(nvs_open_from_partition("bitpos_nvs","state",NVS_READWRITE,&state_nvs));
     ESP_ERROR_CHECK(ccp_board_init());ESP_ERROR_CHECK(display_engine_start());
+#if CONFIG_BITPOS_PRODUCT_META
+    bitpos_meta_main(); /* Meta product: server-driven screens only (bitpos_meta.c). */
+    return;
+#endif
     bitpos_probe_init(); /* Optional read-only pixels; before any app consumers. */
     touches=xQueueCreate(12,sizeof(touch_t));configASSERT(touches);
     /* JSON payloads are task-only, not DMA/ISR data; preserve internal RAM for WiFi. */

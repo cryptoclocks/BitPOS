@@ -18,6 +18,7 @@ import {AsyncLocalStorage} from 'node:async_hooks';
 import {customerHtml,staffHtml} from './ui';
 import {servePos} from './pos';
 import {handOverCart} from './cart';
+import {deviceKeyValid,deviceView} from './device';
 import {readFile} from 'node:fs/promises';
 import {AgentOrderError,agentReceipt,reconcileAgentCheckout,startAgentCheckout} from './agent-orders';
 import {MessengerError,messengerConfigFromEnv,parseMessengerWebhook,sendMessenger,verifyMessengerSignature,verifySubscription,type MessengerConfig,type MessengerFetch} from './messenger';
@@ -123,6 +124,14 @@ export async function serveMeta(req:http.IncomingMessage,res:http.ServerResponse
   if(r.kind==='replayed'){page(res,409,'กรุณาแตะใหม่อีกครั้ง',['ลิงก์นี้ใช้ไปแล้ว ให้แตะมือถือที่เครื่องอีกครั้ง','This tap link was already used. Tap the device again.']);return true;}
   if(r.kind==='no_page'){page(res,503,'ร้านยังไม่ได้เชื่อม Messenger',['The shop has not connected a Messenger page yet.']);return true;}
   page(res,400,'แตะไม่สำเร็จ',['ให้แตะมือถือที่เครื่องอีกครั้ง','Please tap the device again.']);return true;
+ }
+ // BitPOS Mini Meta product: which screen to show (device key in the Authorization header, never in the URL).
+ if(path==='/meta/device/state'&&method==='GET'){
+  const d=url.searchParams.get('d')??'';
+  if(!/^[0-9a-f-]{36}$/.test(d)||!deviceKeyValid(deps.identity.masterKey,d,req.headers.authorization)){json(res,401,{error:'UNAUTHORIZED'});return true;}
+  const v=await deviceView(deps.identity.db,d,deps.identity.publicOrigin);
+  if(!v){json(res,404,{error:'NOT_FOUND'});return true;}
+  json(res,200,v);return true;
  }
  const screen=path.match(/^\/meta\/screen\/([A-Za-z0-9_-]{4,64})$/);
  if(screen&&method==='GET'){

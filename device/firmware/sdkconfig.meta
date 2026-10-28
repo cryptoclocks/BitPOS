@@ -1,0 +1,3 @@
+# Meta hackathon work (2026-10-26..11-04). See meta-hackathon/PROVENANCE.md.
+# BitPOS Mini Meta product: layered on sdkconfig.defaults by tools/firmware/build-meta.sh.
+CONFIG_BITPOS_PRODUCT_META=y

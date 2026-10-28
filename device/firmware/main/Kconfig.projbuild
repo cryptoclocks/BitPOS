@@ -1,0 +1,9 @@
+# Meta hackathon work (2026-10-26..11-04). See meta-hackathon/PROVENANCE.md.
+menu "BitPOS product"
+config BITPOS_PRODUCT_META
+    bool "BitPOS Mini · Meta product (bitpos_terminal_meta)"
+    default n
+    help
+        Server-driven Meta screens over HTTPS (tap, Stripe QR, booking countdown); the standard ordering
+        WebSocket and crypto payment scenes are not started. Build with BITPOS_PRODUCT=meta (sdkconfig.meta).
+endmenu

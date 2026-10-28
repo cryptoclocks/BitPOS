@@ -229,7 +229,8 @@ test('pay for the tapped offer: re-quoted checkout, PAID only from signed webhoo
  assert.equal(await applyStripeWebhook(deps,stripe,wrong,sign(wrong)),'MISMATCH');
  assert.equal(await stockOf(),3);
  const forged=event(`evt_forged${run}`,5000);
- await assert.rejects(applyStripeWebhook(deps,stripe,forged,sign(forged).replace(/v1=./,'v1=0')));
+ // Flip the first signature digit to a different one (replacing it with a fixed '0' did nothing 1 run in 16).
+ await assert.rejects(applyStripeWebhook(deps,stripe,forged,sign(forged).replace(/v1=(.)/,(_,c)=>`v1=${c==='0'?'1':'0'}`)));
  const good=event(`evt_good${run}`,5000);
  assert.equal(await applyStripeWebhook(deps,stripe,good,sign(good)),'PAID');
  assert.equal(await stockOf(),2,'stock taken once');

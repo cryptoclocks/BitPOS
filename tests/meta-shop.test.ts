@@ -15,6 +15,7 @@ import {applyStripeWebhook} from '../apps/api/src/meta/tap-checkout';
 import {listTapOrders,staffSignIn,type StaffDeps} from '../apps/api/src/meta/staff';
 import {serveMeta,type MetaRouteDeps} from '../apps/api/src/meta/routes';
 import {serveShop} from '../apps/api/src/meta/shop';
+import {deviceKey,deviceView} from '../apps/api/src/meta/device';
 
 const url=process.env.META_TEST_DATABASE_URL;
 const skip=!url&&'META_TEST_DATABASE_URL not set';
@@ -139,5 +140,25 @@ test('HTTP: shop pages always offer a way on; same-origin POSTs; staff pages nee
   const stock=await fetch(`${base}/meta/staff/menu/${latte}/stock`,{method:'POST',body:'stock=30',redirect:'manual',headers:{cookie:sc,'content-type':'application/x-www-form-urlencoded',origin:'https://pos.example.test'}});
   assert.equal(stock.status,303);assert.equal(await stockOf(latte),30);
   assert.equal((await admin.query("SELECT delta FROM meta_stock_movements WHERE product_id=$1 AND reason='staff_adjust' ORDER BY created_at DESC LIMIT 1",[latte])).rows[0].delta>0,true);
+ }finally{server.close();}
+});
+
+test('BitPOS Mini Meta screens: device key required; idle, counter Stripe QR, paid; only device-font characters',{skip},async()=>{
+ const dev=(await admin.query<{id:string}>("INSERT INTO devices(merchant_id,label,table_id) VALUES($1,'Muse Mini test',$2) RETURNING id",[M,table])).rows[0].id;
+ const master=Buffer.alloc(16,7);
+ const routeDeps:MetaRouteDeps={identity:{db,masterKey:master,publicOrigin:'https://pay.example.test'},messenger:null,offers:deps.offers,stripe:deps.stripe,staff:staffDeps,demoMerchant:M};
+ const server=http.createServer(async(req,res)=>{if(!(await serveMeta(req,res,routeDeps))){res.writeHead(404);res.end();}});
+ await new Promise<void>(ok=>server.listen(0,'127.0.0.1',ok));
+ const state=(key?:string)=>fetch(`http://127.0.0.1:${(server.address() as AddressInfo).port}/meta/device/state?d=${dev}`,{headers:key?{authorization:`Bearer ${key}`}:{}});
+ try{
+  assert.equal((await state()).status,401);assert.equal((await state('A'.repeat(43))).status,401,'wrong key');
+  const idle=await (await state(deviceKey(master,dev))).json();
+  assert.deepEqual([idle.v,idle.screen,idle.table,idle.qr],[1,'idle','Table 1','']);
+  const r=await startCart(deps,M,[{productId:cake,quantity:1}],{channel:'counter',staffUserId:OWNER,deviceId:dev,publicOrigin:'https://pay.example.test'});
+  const qr=await deviceView(db,dev,'https://pay.example.test');
+  assert.deepEqual([qr?.screen,qr?.big,qr?.qr],['pay_qr','$6.50',`https://pay.example.test/pay/${r.orderId}`]);
+  const ev=signedEvent(r.orderId,650);assert.equal(await applyStripeWebhook({db,masterKey:master,publicOrigin:'https://pay.example.test'},deps.stripe!,ev.raw,ev.sig),'PAID');
+  const paid=await deviceView(db,dev,'https://pay.example.test');assert.deepEqual([paid?.screen,paid?.tone],['paid','green']);
+  for(const v of [idle,qr!,paid!])for(const f of ['table','title','line1','line2','big'] as const)assert.match((v as any)[f],/^[\x20-\x7e\u0e00-\u0e7f]*$/,`${f}: ${(v as any)[f]}`);
  }finally{server.close();}
 });
