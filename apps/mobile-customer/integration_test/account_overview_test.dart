@@ -139,7 +139,7 @@ void main() {
       await tester.pump();
     }
     expect(find.text('Other session'), findsNothing);
-    await tester.pageBack();
+    await tester.tap(find.byTooltip('Back to account settings'));
     await tester.pumpAndSettle();
     await tester.ensureVisible(find.text('Privacy and notifications'));
     await tester.pumpAndSettle();

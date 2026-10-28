@@ -115,7 +115,7 @@ void main() {
     await tester.pump();
     for (
       var i = 0;
-      i < 100 && find.textContaining('Quoted delivery fee:').evaluate().isEmpty;
+      i < 100 && find.textContaining('Quoted delivery fee').evaluate().isEmpty;
       i++
     ) {
       await tester.runAsync(
@@ -127,7 +127,7 @@ void main() {
     debugPrint(
       'HISTORY_VISIBLE_LABELS ${tester.widgetList<Text>(find.byType(Text)).map((t) => t.data ?? '').join(' | ')}',
     );
-    expect(find.textContaining('Quoted delivery fee:'), findsWidgets);
+    expect(find.textContaining('Quoted delivery fee'), findsWidgets);
     debugPrint('BITPOS_DRIVER_HISTORY_VISIBLE');
     await tester.runAsync(
       () => Future<void>.delayed(const Duration(seconds: 2)),
@@ -149,7 +149,7 @@ void main() {
     }
     await tester.pumpAndSettle();
     expect(find.text('Your earnings'), findsOneWidget);
-    expect(find.textContaining('Quoted delivery fee:'), findsNothing);
+    expect(find.textContaining('Quoted delivery fee'), findsNothing);
     debugPrint('BITPOS_DRIVER_EARNINGS_TAB_VISIBLE');
     await tester.runAsync(
       () => Future<void>.delayed(const Duration(seconds: 2)),
@@ -206,7 +206,7 @@ void main() {
 
     for (
       var i = 0;
-      i < 100 && find.textContaining('Quoted delivery fee:').evaluate().isEmpty;
+      i < 100 && find.textContaining('Quoted delivery fee').evaluate().isEmpty;
       i++
     ) {
       await tester.runAsync(
@@ -215,10 +215,10 @@ void main() {
       await tester.pump();
     }
     await tester.pumpAndSettle();
-    expect(find.textContaining('Quoted delivery fee:'), findsWidgets);
+    expect(find.textContaining('Quoted delivery fee'), findsWidgets);
     await tester.runAsync(() => api.logout());
     await tester.pumpAndSettle();
     expect(find.text('Rider sign in'), findsOneWidget);
-    expect(find.textContaining('Quoted delivery fee:'), findsNothing);
+    expect(find.textContaining('Quoted delivery fee'), findsNothing);
   });
 }
