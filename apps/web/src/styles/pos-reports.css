@@ -21,3 +21,5 @@
 @media(max-width:900px){.reports-kpis-4{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:700px){.reports-kpis-4{grid-template-columns:minmax(0,1fr)}.channel-row{grid-template-columns:minmax(70px,110px) minmax(0,1fr) 48px}}
 
 .hour-chart{margin:16px 0;padding:16px 18px;border:1px solid var(--bp-line);border-radius:14px;display:grid;gap:10px}.hour-chart h3{margin:0;font-size:16px;color:var(--bp-dark)}.net-card strong{color:var(--bp-dark)}
+
+.returns-tools{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:12px 0}.returns-tools input{flex:1 1 260px;min-height:44px;border:1px solid var(--bp-line);border-radius:14px;padding:0 14px;font:inherit}.returns-tools button{min-height:36px;padding:0 16px;border-radius:99px;border:0;background:#eadff7;color:var(--bp-primary);font:inherit;font-weight:600}.returns-tools button[aria-pressed=true]{background:var(--bp-primary);color:#fff}.returns-tools small{margin-left:auto;color:var(--bp-muted)}
