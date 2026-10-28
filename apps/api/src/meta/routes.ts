@@ -9,7 +9,7 @@ import {stripeSandboxFromEnv,StripePaymentError} from './stripe';
 import {createMetaRouter,metaProvidersFromEnv} from '../../../../packages/meta-ai/src/router';
 import {MessengerError,messengerConfigFromEnv,parseMessengerWebhook,sendMessenger,verifyMessengerSignature,verifySubscription,type MessengerConfig,type MessengerFetch} from './messenger';
 
-export interface MetaRouteDeps {identity:IdentityDeps;messenger:MessengerConfig;offers:OfferDeps|null;stripe?:StripeDeps|null;fetch?:MessengerFetch;log?:(msg:string)=>void}
+export interface MetaRouteDeps {identity:IdentityDeps;messenger:MessengerConfig|null;offers:OfferDeps|null;stripe?:StripeDeps|null;fetch?:MessengerFetch;log?:(msg:string)=>void}
 export const COOKIE='bitpos_meta';
 const MAX_WEBHOOK=65536;
 
@@ -17,7 +17,8 @@ export function metaRouteDepsFromEnv(env:Record<string,string|undefined>,db:Iden
  const master=env.META_TAP_MASTER_KEY,origin=env.META_PUBLIC_URL;
  if(!master||!/^[0-9a-fA-F]{32}$/.test(master)||!origin)return null;
  const u=new URL(origin);if(!['https:','http:'].includes(u.protocol)||u.pathname!=='/'||u.search||u.hash||u.username)return null;
- let messenger;try{messenger=messengerConfigFromEnv(env);}catch{return null;}
+ // Messenger and Stripe are each optional: a route whose provider is not configured answers 503.
+ let messenger:MessengerConfig|null=null;try{messenger=messengerConfigFromEnv(env);}catch{messenger=null;}
  // Offers work without a model (deterministic fallback); with META_AI_* providers set, Muse Spark chooses.
  const providers=metaProvidersFromEnv(env as NodeJS.ProcessEnv);
  const offers=menu?{menu,router:providers.length?createMetaRouter({providers,record:invocationSink(db)}):null}:null;
@@ -73,15 +74,17 @@ export async function serveMeta(req:http.IncomingMessage,res:http.ServerResponse
   page(res,400,'แตะไม่สำเร็จ',['ให้แตะมือถือที่เครื่องอีกครั้ง','Please tap the device again.']);return true;
  }
  if(path==='/meta/messenger/webhook'){
-  if(method==='GET'){const challenge=verifySubscription(url.searchParams,deps.messenger.verifyToken);res.writeHead(challenge?200:403,{'Content-Type':'text/plain'});res.end(challenge??'');return true;}
+  const messenger=deps.messenger;
+  if(!messenger){json(res,503,{error:'NOT_CONFIGURED'});return true;}
+  if(method==='GET'){const challenge=verifySubscription(url.searchParams,messenger.verifyToken);res.writeHead(challenge?200:403,{'Content-Type':'text/plain'});res.end(challenge??'');return true;}
   if(method==='POST'){
    const raw=await rawBody(req,MAX_WEBHOOK);
    if(!raw){json(res,413,{error:'REQUEST_TOO_LARGE'});return true;}
-   try{verifyMessengerSignature(raw,req.headers['x-hub-signature-256'] as string|undefined,deps.messenger.appSecret);}catch{json(res,401,{error:'SIGNATURE_INVALID'});return true;}
+   try{verifyMessengerSignature(raw,req.headers['x-hub-signature-256'] as string|undefined,messenger.appSecret);}catch{json(res,401,{error:'SIGNATURE_INVALID'});return true;}
    let events;try{events=parseMessengerWebhook(JSON.parse(raw.toString('utf8')));}catch{json(res,400,{error:'PAYLOAD_INVALID'});return true;}
    const {outbox,offers}=await handleMessengerEvents(deps.identity,events);
    json(res,200,{received:events.length});
-   const send=async(message:Parameters<typeof sendMessenger>[1])=>{try{await sendMessenger(deps.messenger,message,deps.fetch);}catch(e){log(`Messenger send failed: ${e instanceof MessengerError?e.code:'UNKNOWN'}`);}};
+   const send=async(message:Parameters<typeof sendMessenger>[1])=>{try{await sendMessenger(messenger,message,deps.fetch);}catch(e){log(`Messenger send failed: ${e instanceof MessengerError?e.code:'UNKNOWN'}`);}};
    for(const message of outbox)await send(message);
    // Offers are chosen after the webhook transaction committed, so the model call never holds a lock.
    for(const o of offers){const view=await offerOrNull(deps,o.merchantId,o.linkId,o.tapSessionId);if(view)await send(offerMessage(o.psid,view));}
