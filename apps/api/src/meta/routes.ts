@@ -8,6 +8,7 @@ import {applyStripeWebhook,reconcileTapOrder,startTapCheckout,type StripeDeps} f
 import {stripeSandboxFromEnv,StripePaymentError} from './stripe';
 import {createMetaRouter,metaProvidersFromEnv} from '../../../../packages/meta-ai/src/router';
 import {formatTapAmount,handOver,listTapOrders,pickupCode,staffConfigFromEnv,staffDemoSignIn,staffFromSession,staffSignIn,staffSignOut,type SignInResult,type StaffDeps,type StaffOrder} from './staff';
+import {serveMcp} from './mcp';
 import {MessengerError,messengerConfigFromEnv,parseMessengerWebhook,sendMessenger,verifyMessengerSignature,verifySubscription,type MessengerConfig,type MessengerFetch} from './messenger';
 
 export interface MetaRouteDeps {identity:IdentityDeps;messenger:MessengerConfig|null;offers:OfferDeps|null;stripe?:StripeDeps|null;staff?:StaffDeps|null;fetch?:MessengerFetch;log?:(msg:string)=>void}
@@ -155,18 +156,25 @@ export async function serveMeta(req:http.IncomingMessage,res:http.ServerResponse
   return true;
  }
  if(path==='/meta/staff'||path.startsWith('/meta/staff/'))return serveStaff(req,res,deps,url,log);
+ const mcp=path.match(/^\/meta\/mcp\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[89ab][0-9a-f]{3}-[0-9a-f]{12})$/);
+ if(mcp){
+  if(!deps.offers){json(res,503,{error:'NOT_CONFIGURED'});return true;}
+  if(!allowAttempt(req,Date.now(),mcpCalls,120,60_000)){json(res,429,{error:'RATE_LIMITED'});return true;}
+  if(!(await serveMcp(req,res,{db:deps.identity.db,offers:deps.offers,stripe:deps.stripe??null},mcp[1])))json(res,404,{error:'RESOURCE_NOT_FOUND'});
+  return true;
+ }
  json(res,404,{error:'RESOURCE_NOT_FOUND'});return true;
 }
 
-// Sign-in attempts per client address (behind the tunnel, Cloudflare's client IP header) per 10 minutes.
-const attempts=new Map<string,{start:number;n:number}>();
-function allowAttempt(req:http.IncomingMessage,now=Date.now()):boolean{
+// Requests per client address (behind the tunnel, Cloudflare's client IP header) per window: staff sign-in and MCP calls.
+const attempts=new Map<string,{start:number;n:number}>(),mcpCalls=new Map<string,{start:number;n:number}>();
+function allowAttempt(req:http.IncomingMessage,now=Date.now(),bucket=attempts,limit=10,windowMs=600_000):boolean{
  const remote=req.socket.remoteAddress??'';
  const viaTunnel=['127.0.0.1','::1','::ffff:127.0.0.1'].includes(remote)&&typeof req.headers['cf-connecting-ip']==='string';
  const key=viaTunnel?String(req.headers['cf-connecting-ip']):remote;
- const a=attempts.get(key);
- if(!a||now-a.start>600_000){if(attempts.size>10_000)attempts.clear();attempts.set(key,{start:now,n:1});return true;}
- return ++a.n<=10;
+ const a=bucket.get(key);
+ if(!a||now-a.start>windowMs){if(bucket.size>10_000)bucket.clear();bucket.set(key,{start:now,n:1});return true;}
+ return ++a.n<=limit;
 }
 function staffCookie(deps:StaffDeps,value:string,maxAge:number){
  return `${STAFF_COOKIE}=${value}; Path=/meta/staff; HttpOnly; SameSite=Strict; Max-Age=${maxAge}${deps.config.origin.startsWith('https:')?'; Secure':''}`;
@@ -181,10 +189,12 @@ function orderLines(orders:StaffOrder[]):string[]{
  if(!orders.length)return ['ยังไม่มีออเดอร์จากการแตะใน 24 ชั่วโมง / No tap orders in the last 24 hours.'];
  const time=(iso:string)=>new Date(iso).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Bangkok'});
  return orders.map(o=>{
-  const what=`<strong>#${esc(o.code)}</strong> ${esc(o.emoji)} ${esc(o.name)} <small>${esc(o.nameEn)}</small> · ${esc(formatTapAmount(o.amountMinor,o.currency))}`;
+  const what=`<strong>#${esc(o.code)}</strong> ${esc(o.emoji)} ${esc(o.name)} <small>${esc(o.nameEn)}</small> · ${esc(formatTapAmount(o.amountMinor,o.currency))}${o.channel==='agent'?' <small>· 🤖 agent (MCP)</small>':''}`;
   if(o.status==='PAID'&&o.handedOverAt)return `${what}<br><small>ส่งมอบแล้ว / Handed over ${time(o.handedOverAt)}</small>`;
-  if(o.status==='PAID')return `${what}<br>✅ จ่ายแล้ว / Paid ${time(o.paidAt!)} <small>(${o.paidSource==='webhook'?'Stripe webhook':'Stripe lookup'})</small>${o.stockShort?'<br>⚠️ สต็อกในระบบไม่พอ ตรวจของจริง / Stock was short in the system':''}<form method="post" action="/meta/staff/orders/${o.id}/handover"><button>ส่งมอบแล้ว / Handed over</button></form>`;
+  if(o.status==='PAID')return `${what}<br>✅ จ่ายแล้ว / Paid ${time(o.paidAt!)} <small>(${o.paidSource==='webhook'?'Stripe webhook':o.paidSource==='charge'?'Stripe PaymentIntent':'Stripe lookup'})</small>${o.stockShort?'<br>⚠️ สต็อกในระบบไม่พอ ตรวจของจริง / Stock was short in the system':''}<form method="post" action="/meta/staff/orders/${o.id}/handover"><button>ส่งมอบแล้ว / Handed over</button></form>`;
   if(o.status==='CREATED')return `${what}<br><small>⏳ รอชำระเงิน / Waiting for payment · ${time(o.createdAt)}</small>`;
+  if(o.status==='FAILED')return `${what}<br><small>จ่ายไม่สำเร็จ / Payment failed · ${time(o.createdAt)}</small>`;
+  if(o.status==='CANCELLED')return `${what}<br><small>ยกเลิก / คืนเงิน · Cancelled / refunded</small>`;
   return `${what}<br><small>หมดเวลาชำระ / Checkout expired · ${time(o.createdAt)}</small>`;
  });
 }

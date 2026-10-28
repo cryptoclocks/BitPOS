@@ -9,6 +9,20 @@ export type StripeFetch=(input:string,init:RequestInit)=>Promise<Response>;
 export class StripePaymentError extends Error {constructor(readonly code:'CONFIGURATION_REQUIRED'|'LIVE_MODE_REFUSED'|'INVALID_AMOUNT'|'PROVIDER_OUTCOME_UNKNOWN'|'PAYMENT_FAILED'|'RESPONSE_MISMATCH'|'WEBHOOK_INVALID',readonly detail?:string){super(code);}}
 
 const MAX_MINOR=99999999n;
+// Stripe amounts for THB and USD are in hundredths; menus may keep more decimals (e.g. USD with 4).
+// meta_tap_orders / meta_agent_orders amounts are stored in these Stripe units so webhook and lookup facts compare exactly.
+const STRIPE_DECIMALS=2;
+// Stripe's minimum charge per currency, in Stripe units (USD $0.50, THB ฿10).
+export const STRIPE_MINIMUM:Record<'thb'|'usd',bigint>={usd:50n,thb:1000n};
+
+/** Menu minor units → Stripe minor units, or null when the price cannot be expressed exactly. */
+export function toStripeMinor(amountMinor:string|bigint,decimals:number):bigint|null{
+ if(!Number.isInteger(decimals)||decimals<0||decimals>18)return null;
+ const v=BigInt(amountMinor);
+ if(decimals<=STRIPE_DECIMALS)return v*10n**BigInt(STRIPE_DECIMALS-decimals);
+ const f=10n**BigInt(decimals-STRIPE_DECIMALS);
+ return v%f===0n?v/f:null;
+}
 const CURRENCY=/^[a-z]{3}$/;
 
 export function stripeSandboxFromEnv(env:Record<string,string|undefined>):StripeSandboxConfig {
@@ -124,4 +138,17 @@ export async function createCheckoutSession(config:StripeSandboxConfig,req:Check
 export async function retrieveCheckoutSession(config:StripeSandboxConfig,id:string,fetchImpl:StripeFetch=fetch):Promise<CheckoutSession>{
  if(!/^cs_test_[A-Za-z0-9]+$/.test(id))throw new StripePaymentError('INVALID_AMOUNT');
  return checkoutView(await stripeCall(config,'GET',`/v1/checkout/sessions/${id}`,null,null,fetchImpl));
+}
+
+export interface Refund {id:string;status:string}
+/** Full refund of a succeeded test PaymentIntent; the same order id always maps to the same refund. */
+export async function refundPaymentIntent(config:StripeSandboxConfig,req:{paymentIntentId:string;amountMinor:bigint;orderId:string},fetchImpl:StripeFetch=fetch):Promise<Refund>{
+ if(!/^pi_[A-Za-z0-9]+$/.test(req.paymentIntentId)||req.amountMinor<=0n||req.amountMinor>MAX_MINOR)throw new StripePaymentError('INVALID_AMOUNT');
+ const form=new URLSearchParams({payment_intent:req.paymentIntentId,amount:req.amountMinor.toString(),'metadata[bitpos_order]':req.orderId});
+ const body=await stripeCall(config,'POST','/v1/refunds',form,`bitpos-meta-refund-${req.orderId}`,fetchImpl);
+ if(body?.object!=='refund'||typeof body.id!=='string'||!/^re_[A-Za-z0-9]+$/.test(body.id))throw new StripePaymentError('PROVIDER_OUTCOME_UNKNOWN');
+ if(body.livemode===true)throw new StripePaymentError('LIVE_MODE_REFUSED');
+ if(String(body.amount)!==req.amountMinor.toString()||body.payment_intent!==req.paymentIntentId)throw new StripePaymentError('RESPONSE_MISMATCH');
+ if(!['succeeded','pending'].includes(body.status))throw new StripePaymentError('PAYMENT_FAILED',String(body.status));
+ return {id:body.id,status:body.status};
 }

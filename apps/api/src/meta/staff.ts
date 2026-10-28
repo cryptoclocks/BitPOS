@@ -18,7 +18,7 @@ export interface StaffDeps {db:MetaDb;config:StaffConfig}
 export interface StaffView {merchantId:string;userId:string;role:'owner'|'manager'|'staff';sessionId:string}
 export type SignInResult={kind:'ok';token:string;role:StaffView['role']}|{kind:'error';reason:'AUTH'|'ROLE'|'UNAVAILABLE'};
 export type HandOverResult='HANDED_OVER'|'ALREADY'|'NOT_PAID'|'NOT_FOUND';
-export interface StaffOrder {id:string;code:string;status:'CREATED'|'PAID'|'EXPIRED';emoji:string;name:string;nameEn:string;amountMinor:string;currency:string;
+export interface StaffOrder {id:string;channel:'tap'|'agent';code:string;status:'CREATED'|'PAID'|'EXPIRED'|'FAILED'|'CANCELLED';emoji:string;name:string;nameEn:string;amountMinor:string;currency:string;
  createdAt:string;paidAt:string|null;paidSource:string|null;stockShort:boolean;handedOverAt:string|null}
 
 const ROLES=['owner','manager','staff'] as const;
@@ -86,15 +86,18 @@ export async function staffSignOut(deps:StaffDeps,token:string|null|undefined):P
  if(me)await deps.db.tenant(me.merchantId,db=>db.query('UPDATE meta_staff_sessions SET revoked_at=clock_timestamp() WHERE id=$1 AND revoked_at IS NULL',[me.sessionId]));
 }
 
-/** The last day of tap orders: paid ones first until handed over, then open checkouts, newest first. */
+/** The last day of tap and agent orders: paid ones first until handed over, then the rest, newest first. */
 export async function listTapOrders(deps:StaffDeps,me:StaffView):Promise<StaffOrder[]>{
- return deps.db.tenant(me.merchantId,async db=>(await db.query<{id:string;status:StaffOrder['status'];emoji:string;name:string;name_en:string;amount_minor:string;currency:string;created_at:Date;paid_at:Date|null;paid_source:string|null;stock_short:boolean;handed_over_at:Date|null}>(
-  `SELECT o.id,CASE WHEN o.status='CREATED' AND o.expires_at<=clock_timestamp() THEN 'EXPIRED' ELSE o.status END AS status,
-   coalesce(p.emoji,'') AS emoji,coalesce(p.name,'') AS name,coalesce(p.name_en,'') AS name_en,o.amount_minor::text,o.currency,o.created_at,o.paid_at,o.paid_source,o.stock_short,o.handed_over_at
-   FROM meta_tap_orders o LEFT JOIN products p ON p.merchant_id=o.merchant_id AND p.id=o.product_id
-   WHERE o.created_at>clock_timestamp()-interval '24 hours'
+ return deps.db.tenant(me.merchantId,async db=>(await db.query<{id:string;channel:StaffOrder['channel'];status:StaffOrder['status'];emoji:string;name:string;name_en:string;amount_minor:string;currency:string;created_at:Date;paid_at:Date|null;paid_source:string|null;stock_short:boolean;handed_over_at:Date|null}>(
+  `SELECT o.*,coalesce(p.emoji,'') AS emoji,coalesce(p.name,'') AS name,coalesce(p.name_en,'') AS name_en FROM (
+    SELECT id,'tap' AS channel,CASE WHEN status='CREATED' AND expires_at<=clock_timestamp() THEN 'EXPIRED' ELSE status END AS status,
+     merchant_id,product_id,amount_minor::text,currency,created_at,paid_at,paid_source,stock_short,handed_over_at FROM meta_tap_orders WHERE created_at>clock_timestamp()-interval '24 hours'
+    UNION ALL
+    SELECT id,'agent',CASE status WHEN 'CONFIRMED' THEN 'PAID' WHEN 'PENDING' THEN 'CREATED' WHEN 'FAILED' THEN 'FAILED' ELSE 'CANCELLED' END,
+     merchant_id,product_id,amount_minor::text,currency,created_at,confirmed_at,confirmed_source,stock_short,handed_over_at FROM meta_agent_orders WHERE created_at>clock_timestamp()-interval '24 hours'
+   ) o LEFT JOIN products p ON p.merchant_id=o.merchant_id AND p.id=o.product_id
    ORDER BY (o.status='PAID' AND o.handed_over_at IS NULL) DESC,o.created_at DESC LIMIT 50`)).rows.map(r=>({
-  id:r.id,code:pickupCode(r.id),status:r.status,emoji:r.emoji,name:r.name,nameEn:r.name_en,amountMinor:r.amount_minor,currency:r.currency,
+  id:r.id,channel:r.channel,code:pickupCode(r.id),status:r.status,emoji:r.emoji,name:r.name,nameEn:r.name_en,amountMinor:r.amount_minor,currency:r.currency,
   createdAt:r.created_at.toISOString(),paidAt:r.paid_at?.toISOString()??null,paidSource:r.paid_source,stockShort:r.stock_short,handedOverAt:r.handed_over_at?.toISOString()??null})));
 }
 
@@ -102,12 +105,16 @@ export async function listTapOrders(deps:StaffDeps,me:StaffView):Promise<StaffOr
 export async function handOver(deps:StaffDeps,me:StaffView,orderId:string):Promise<HandOverResult>{
  if(!UUID.test(orderId))return 'NOT_FOUND';
  return deps.db.tenant(me.merchantId,async db=>{
-  const o=(await db.query<{status:string;handed_over_at:Date|null}>('SELECT status,handed_over_at FROM meta_tap_orders WHERE id=$1 FOR UPDATE',[orderId])).rows[0];
-  if(!o)return 'NOT_FOUND';
-  if(o.status!=='PAID')return 'NOT_PAID';
-  if(o.handed_over_at)return 'ALREADY';
-  await db.query('UPDATE meta_tap_orders SET handed_over_at=clock_timestamp(),handed_over_by=$2 WHERE id=$1',[orderId,me.userId]);
-  return 'HANDED_OVER';
+  // Tap orders are PAID when paid; agent orders are CONFIRMED (a refund in progress blocks hand-over).
+  for(const [table,paid] of [['meta_tap_orders','PAID'],['meta_agent_orders','CONFIRMED']] as const){
+   const o=(await db.query<{status:string;handed_over_at:Date|null}>(`SELECT status,handed_over_at FROM ${table} WHERE id=$1 FOR UPDATE`,[orderId])).rows[0];
+   if(!o)continue;
+   if(o.handed_over_at)return 'ALREADY';
+   if(o.status!==paid)return 'NOT_PAID';
+   await db.query(`UPDATE ${table} SET handed_over_at=clock_timestamp(),handed_over_by=$2 WHERE id=$1`,[orderId,me.userId]);
+   return 'HANDED_OVER';
+  }
+  return 'NOT_FOUND';
  });
 }
 

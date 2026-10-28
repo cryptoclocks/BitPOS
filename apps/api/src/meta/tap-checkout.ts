@@ -5,8 +5,9 @@
 // and the stock decrement happens in that same transaction, once.
 import type pg from 'pg';
 import {approvedOffers} from './offer-select';
+import {agentOrderMerchant,applyAgentWebhook} from './agent-orders';
 import {customerFromSession,type IdentityDeps,type OfferDeps} from './identity';
-import {createCheckoutSession,paymentFactFromEvent,retrieveCheckoutSession,verifyStripeWebhook,StripePaymentError,type StripeFetch,type StripeSandboxConfig} from './stripe';
+import {STRIPE_MINIMUM,toStripeMinor,createCheckoutSession,paymentFactFromEvent,retrieveCheckoutSession,verifyStripeWebhook,StripePaymentError,type StripeFetch,type StripeSandboxConfig} from './stripe';
 
 export interface StripeDeps {config:StripeSandboxConfig;fetch?:StripeFetch}
 export type CheckoutStart=
@@ -14,20 +15,7 @@ export type CheckoutStart=
  {kind:'unavailable';reason:'NO_SESSION'|'NO_TAP'|'NO_OFFER'|'OFFER_ENDED'|'CURRENCY'|'OUT_OF_STOCK'|'BELOW_MINIMUM'};
 
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
-// Stripe amounts for THB and USD are in hundredths; menus may keep more decimals (e.g. USD with 4).
-// meta_tap_orders.amount_minor is stored in these Stripe units so webhook and lookup facts compare exactly.
-const STRIPE_DECIMALS=2;
-// Stripe's minimum charge per currency, in Stripe units (USD $0.50, THB ฿10).
-const STRIPE_MINIMUM:Record<'thb'|'usd',bigint>={usd:50n,thb:1000n};
-
-/** Menu minor units → Stripe minor units, or null when the price cannot be expressed exactly. */
-export function toStripeMinor(amountMinor:string|bigint,decimals:number):bigint|null{
- if(!Number.isInteger(decimals)||decimals<0||decimals>18)return null;
- const v=BigInt(amountMinor);
- if(decimals<=STRIPE_DECIMALS)return v*10n**BigInt(STRIPE_DECIMALS-decimals);
- const f=10n**BigInt(decimals-STRIPE_DECIMALS);
- return v%f===0n?v/f:null;
-}
+export {toStripeMinor};
 
 export async function startTapCheckout(deps:IdentityDeps,offers:OfferDeps,stripe:StripeDeps,sessionToken:string|null|undefined):Promise<CheckoutStart>{
  const me=await customerFromSession(deps,sessionToken);
@@ -86,7 +74,14 @@ export async function applyStripeWebhook(deps:IdentityDeps,stripe:StripeDeps,raw
  const fact=paymentFactFromEvent(event);
  if(!fact||fact.orderId!==fact.checkoutId)return 'IGNORED';
  const merchant=await orderMerchant(deps,fact.orderId);
- if(!merchant||merchant!==fact.merchantId)return 'UNKNOWN_ORDER';
+ if(!merchant){
+  // Not a tap order: an agent (MCP / Messenger) order paid with a Shared Payment Token.
+  const agentMerchant=await agentOrderMerchant(deps.db,fact.orderId);
+  if(!agentMerchant||agentMerchant!==fact.merchantId)return 'UNKNOWN_ORDER';
+  const r=await applyAgentWebhook(deps.db,agentMerchant,fact);
+  return r==='CONFIRMED'?'PAID':r==='ALREADY'?'ALREADY_PAID':r==='NOT_FOUND'?'UNKNOWN_ORDER':r;
+ }
+ if(merchant!==fact.merchantId)return 'UNKNOWN_ORDER';
  return deps.db.tenant(merchant,db=>markPaid(db,{orderId:fact.orderId,paymentIntentId:fact.paymentIntentId,amountMinor:fact.amountMinor,currency:fact.currency,source:'webhook',eventId:fact.eventId}));
 }
 
