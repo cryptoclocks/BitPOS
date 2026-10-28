@@ -4,9 +4,7 @@ Where the real app and the design differ, each difference was judged and the bet
 FigCraft source (`source/screens/*.svg`), the PNG preview (`previews/current-native/*.png`) and the `sha256` in `screen-map.json`
 were updated to match.
 
-**Important:** the native FigCraft master (the live design file the SVGs are exported from) was not running, so it was *not* updated.
-The exported SVG/PNG files were patched directly. When FigCraft is next opened, apply the same edits to the master, otherwise a
-re-export will bring the old text back.
+**Master status:** the exported SVG/PNG/sha256 were patched first. The native master was then edited too, headlessly with `figcraft-cli run` (the first note here that the master "could not be opened" was wrong: FigCraft is installed and the CLI edits .figcraft files without the app window). The edited copy is `BitPOS-Platform-UI.edited-20261029.figcraft` next to this folder's exports and the exact steps are in `master-edit-20261029.json` (U01 bell replaced by an "English" text, U02 and U03 button labels and link rows, U04 centred description). The original master at `design/figcraft/BitPOS-Platform-UI.figcraft` in the main checkout is untouched; replace it with the edited copy (or re-run the steps with `figcraft-cli run master-edit-20261029.json --in <master> --out <master>`) once you agree.
 
 ## Applied to the exported files (app kept, design updated)
 

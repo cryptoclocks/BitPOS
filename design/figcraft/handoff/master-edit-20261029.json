@@ -1,0 +1,11 @@
+[
+{"command":"edit.delete","params":{"ids":[287]}},
+{"command":"text.create","params":{"text":"English","x":311,"y":61,"parent":279,"props":{"fontFamily":"Noto Sans Thai","fontStyle":"SemiBold","fontSize":15,"fill":"#64188A"}}},
+{"command":"node.set","params":{"ids":[12114],"characters":"ขอรหัสเข้าสู่ระบบ"}},
+{"command":"edit.delete","params":{"ids":[327]}},
+{"command":"node.set","params":{"ids":[328],"characters":"ข้อมูลบริการและความเป็นส่วนตัว","textAutoResize":"none","x":24,"width":342,"textAlign":"center"}},
+{"command":"node.set","params":{"ids":[12117],"characters":"ยืนยันรหัส"}},
+{"command":"node.set","params":{"ids":[353],"characters":"เปลี่ยนหมายเลข / ขอรหัสใหม่","textAutoResize":"none","x":24,"width":342,"textAlign":"center"}},
+{"command":"node.set","params":{"ids":[371],"textAutoResize":"none","x":24,"width":342,"textAlign":"center"}},
+{"command":"node.set","params":{"ids":[372],"textAutoResize":"none","x":24,"width":342,"textAlign":"center"}}
+]
