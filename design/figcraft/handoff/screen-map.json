@@ -261,7 +261,7 @@
       "width": 390,
       "height": 844,
       "source": "source/screens/U07-search.svg",
-      "sha256": "f693e21a324886146f80404541da3829087b07f227b15e9c5fe1a7a30360ea7c",
+      "sha256": "87c4248f0212bd09b3523bbfa94c05e0ed61e48c4032d3b41e141ea252c2225c",
       "phase": "food-first",
       "fixture": true
     },
@@ -276,7 +276,7 @@
       "width": 390,
       "height": 844,
       "source": "source/screens/U08-filters.svg",
-      "sha256": "2c7890b36c02c6d6f49e3e468c126deeba579261ad60e9d4523796463636f748",
+      "sha256": "d108faa07f4cdbc5206135e00f16e5f457f00950e003b93dad05578e5cb5e828",
       "phase": "food-first",
       "fixture": true
     },
@@ -636,7 +636,7 @@
       "width": 390,
       "height": 844,
       "source": "source/screens/U32-settings.svg",
-      "sha256": "d9cbe9eaf52c27d705a499cb62e4752b18de99e22599850a8e7a9ef254d6e837",
+      "sha256": "ca7d2933e38c782b8a49b4078c64e3e715d0229bd4f18fd1d28109978fe17896",
       "phase": "food-first",
       "fixture": true
     },
@@ -666,7 +666,7 @@
       "width": 390,
       "height": 844,
       "source": "source/screens/U34-privacy.svg",
-      "sha256": "e3a3e9643d2300f5b71b114c24947906946883ecf2b624910548e8c4d192131b",
+      "sha256": "e86809b045e5f0db076cb4342ec00f76673f86a9ccbadfe5d8c23ec5a6bb3331",
       "phase": "food-first",
       "fixture": true
     },
@@ -696,7 +696,7 @@
       "width": 390,
       "height": 844,
       "source": "source/screens/U36-group-order.svg",
-      "sha256": "507f02da933c2c607edfae4480db41d709b94c7034fd57351ade65a42ca63cbd",
+      "sha256": "94263cb5736ffd417fd5be21f2eb4b22eafd4e3c3d6b352894212cc5eea04346",
       "phase": "food-first",
       "fixture": true
     },
@@ -966,7 +966,7 @@
       "width": 390,
       "height": 844,
       "source": "source/screens/R11-pickup.svg",
-      "sha256": "d72909967ee37f0f8dfba72f68ecda0df7bb71676b9f588ef17948136fd3deef",
+      "sha256": "4c1efd6a9a92104e956833f05d501fdf7c67741414f436b69cc3742178c96f84",
       "phase": "food-first",
       "fixture": true
     },
@@ -996,7 +996,7 @@
       "width": 390,
       "height": 844,
       "source": "source/screens/R13-delivery-proof.svg",
-      "sha256": "d249ee2cf2c3f3b353d4ba04fd8474f54ac19e62827c57d1080400cde6900c9b",
+      "sha256": "36209c3ab46905600f117a57038ecf8b366cd86b710972dc356fefbfabe6a6fa",
       "phase": "food-first",
       "fixture": true
     },
@@ -1101,7 +1101,7 @@
       "width": 390,
       "height": 844,
       "source": "source/screens/R20-help.svg",
-      "sha256": "0eb8d7bec423b2236dbeb1fb541019f37d9c6d7951e09bab17b9b329dcd8ef41",
+      "sha256": "05859373315de9c47ee794e5a24dac63bef42c17d1a1b533d79bac3e83c3b942",
       "phase": "food-first",
       "fixture": true
     },
@@ -1116,7 +1116,7 @@
       "width": 390,
       "height": 844,
       "source": "source/screens/R21-safety.svg",
-      "sha256": "ad3deb86454b1af62e28253a4a31718e4a8116e0b1b7dab01bae32c7855a0bd3",
+      "sha256": "bc9e9c937bcb94c4dad03d48f8c498806fb1454f54587ea7d6abfcdf6e76005a",
       "phase": "food-first",
       "fixture": true
     },
@@ -1176,7 +1176,7 @@
       "width": 390,
       "height": 844,
       "source": "source/screens/R25-failed-delivery.svg",
-      "sha256": "ac0478875d9c420e5c62e7909cbd35038094c56675240d0c16562e2fc1bf5297",
+      "sha256": "29abedffc6fdc7fc0aa131d2e3d23c480e79f450f1fe646d5c32f4566bfa7859",
       "phase": "food-first",
       "fixture": true
     },
@@ -1191,7 +1191,7 @@
       "width": 390,
       "height": 844,
       "source": "source/screens/R26-handover.svg",
-      "sha256": "87cff8343bc893d6e95cd26a0906fb7c094423825a57538bc27a42ea038ef9c3",
+      "sha256": "5e9bdde402c418d325ad9140b56b77bb6baf6a6f233bbc99dc4b28047a647bbe",
       "phase": "food-first",
       "fixture": true
     },
@@ -1504,7 +1504,7 @@
       "width": 1440,
       "height": 1000,
       "source": "source/screens/P16-repReceive.svg",
-      "sha256": "f9b04a250057d97247c37c960503e974c571459878b6841b03f8092e1c6c425a",
+      "sha256": "1c3b7b01774d445fca422ea9fab0d1b09cee5cf8e61cf3023dd9db65cc45062a",
       "phase": "food-first",
       "fixture": true
     },
@@ -1546,7 +1546,7 @@
       "width": 1440,
       "height": 1000,
       "source": "source/screens/P19-top.svg",
-      "sha256": "9e3222ffeb0ac494ea5fceaec7db4e1c5197c88a32696b6f9a28b094b77c0890",
+      "sha256": "1459315242c9a92af3bb06b013843b56913ff262a6cd0faa62c19edc0083510d",
       "phase": "food-first",
       "fixture": true
     },
@@ -2374,7 +2374,7 @@
       "width": 390,
       "height": 844,
       "source": "source/screens/S11-pos-mobile-0.svg",
-      "sha256": "96f6539560bc5ce4cc1a7fbab74bc23a7ca0edf47111d18596254f7871c82122",
+      "sha256": "26117a984d72968baacd877be13f801286bed470a1041e796b3982c72e130c57",
       "phase": "food-first",
       "fixture": true
     },
@@ -2388,7 +2388,7 @@
       "width": 390,
       "height": 844,
       "source": "source/screens/S12-pos-mobile-1.svg",
-      "sha256": "4bccbaa8b0ca03baf4cd96a563093b348ed4bf1dce346f066ce2d6a82a3b8fc0",
+      "sha256": "970a984c6de194ed6aa928945d3e862f49c18fd9ceaff08dd445bc386609f7c6",
       "phase": "food-first",
       "fixture": true
     },
@@ -3105,7 +3105,7 @@
       "width": 390,
       "height": 844,
       "source": "source/screens/U44-sessions.svg",
-      "sha256": "203bc42d7e7895b5e35289f7bb9f43d2d09024fc0c12b0b98e5fe6adb78c00c6",
+      "sha256": "02818f29ec51fa6cc39d7e2f8b37999041aa2560e916f3065501d7228d4037c0",
       "phase": "food-first",
       "fixture": true,
       "added": "2026-10-29"
@@ -3121,7 +3121,7 @@
       "width": 390,
       "height": 844,
       "source": "source/screens/U45-order-again.svg",
-      "sha256": "cd186ef6375b27e638039353bd4ccd91228a128ff586ebc6bdf6065dfd4a7488",
+      "sha256": "3cc4202d7a254e680e378a73f029ae776e7986af3b8481a1814edd19ac8e58fc",
       "phase": "food-first",
       "fixture": true,
       "added": "2026-10-29"
@@ -3137,7 +3137,7 @@
       "width": 390,
       "height": 844,
       "source": "source/screens/U46-merchant-reviews.svg",
-      "sha256": "69d6995f8083f2eebafe98a2867acfab643af92b569052e7f0d84c369e462045",
+      "sha256": "27eef3e8184a22286bc76ee7669c184dc5449cdd00e28daa23904fa5604bcb75",
       "phase": "food-first",
       "fixture": true,
       "added": "2026-10-29"

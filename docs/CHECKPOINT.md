@@ -3522,3 +3522,6 @@ Method: the real debug apps (`flutter build apk --debug` with `BITPOS_FIXTURE` a
 ### Frames made honest for the demo (2026-10-29)
 - 27 frames patched in the master (both copies), exported SVG/PNG and sha256 refreshed: wording for U16/W06/U24/U25/U26/U27/U31 now matches the app, and ribbons mark unbuilt or fixture-only frames (details: `design/figcraft/handoff/DEVIATIONS_20261029.md` step 8). Owner asked for demo-ready, not production: remaining redraws (P16/P19 bodies, U07/U08, U32/U34, U36, U44–U46, R11/R13, R20/R21/R25/R26, S11/S12) are listed there and not done. The full unit run shows 4 failures (x402-payment, coffee-repeat-cap, promotion-destination, devnet test-mint) that all fail on a missing-environment Zod parse, unrelated to this change; the web tests pass.
 - Deploy #9 put the operator-page web change on OCI (see the entry above this one from the deploy session).
+
+### Remaining frame redraws done (2026-10-29)
+- 18 more frames redrawn to match the app (P16, P19, U07, U08, U32, U34, U36, U44–U46, R11, R13, R20, R21, R25, R26, S11, S12); master (both copies), SVG/PNG and sha256 updated; details in DEVIATIONS step 9. Rendered and checked U07, U36, U44, R11, R21, S12, P19. Not redrawn: smaller MINOR rows in the three reports (e.g. fixture ids "#BP1024" vs UUID prefixes, ETA text), which stay as labelled fixtures.

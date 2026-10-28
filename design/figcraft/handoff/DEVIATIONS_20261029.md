@@ -92,3 +92,9 @@ Owner direction: demo-ready, not production. Text/overlay patches rather than fu
 - Yellow ribbon "ภาพแนวคิด · ยังไม่มีในแอป" on frames of unbuilt features: U39–U43, R27–R31, W03, W13, W21, W22, WD16, WD23, P41; "ตัวเลขตัวอย่าง · ไม่ใช่ข้อมูลจริง" on R16–R18.
 - Owner questions decided by the assistant for the demo: guest option picker (W03/WD23) and P41 partial refund stay planned (ribbon), the English default of TableMenu/PayMenu is kept (browser tests rely on it).
 - Still open from the reports: P16/P19 bodies are copies of P14, U07/U08 search/filters, U32/U34 toggles, U36 group order, U44–U46 chips, R11/R13 PIN boxes, R20/R21/R25/R26 hubs, S11/S12 default 15 minutes. Generator: `generators/gen_honest.py`.
+
+### Step 9 – remaining MAJOR rows redrawn to the app (2026-10-29)
+- P16 now a stock-receipt ledger with total row and the two honest notes; P19 a ranked bar list from paid orders only (both were dashboard copies).
+- U07 (name/branch/address search, ทั้งหมด/รับที่ร้าน/จัดส่ง chips, "ร้านที่ค้นพบ"), U08 (store filter sheet with the single pickup/delivery group), U32 and U34 (the app's real settings and privacy rows, no save button), U36 (create/join group, 24 h invite code, lock), U44 sessions, U45 order again (read-only list), U46 reviews (average header).
+- R11/R13 token field instead of 4-digit PIN boxes (QR scan marked planned, photo proof dropped), R20 help, R21 incident dialog with the seven real categories, R25 delivery-problem dialog, R26 pre-pickup withdrawal with the restricted-duty warning; S11 no list-level accept, S12 typed preparation minutes (no default) and collapsed charges.
+- Spelling "ออร์เดอร์" vs "ออเดอร์" and a "customer unreachable" incident category stay app-side and unchanged. Generators: `generators/gen_p16.py, gen_c2.py, gen_r2.py, hl.py` (they overlay new shapes/text on the earlier master state; replay order: gen_honest, gen_p16, gen_c2, gen_r2).
