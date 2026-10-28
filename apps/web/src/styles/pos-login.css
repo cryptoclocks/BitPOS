@@ -9,3 +9,21 @@
  .shell .login-brand span{font-size:14px;opacity:.9;line-height:1.6}
  .shell .login-form{padding:40px 40px 32px;min-width:0}
 }
+
+/* P39: signed out, the split sign-in fills the window like the design (brand half left, form half right, no app header). */
+@media(min-width:900px){
+ .shell[data-signed-out]{min-height:100vh;display:block;padding:0;background:#fff}
+ .shell[data-signed-out]>header,.shell[data-signed-out]>footer{display:none}
+ .shell[data-signed-out] .login.panel{max-width:none;width:100%;min-height:100vh;margin:0;border:0;border-radius:0;box-shadow:none;grid-template-columns:1fr 1fr}
+ .shell[data-signed-out] .login-brand{padding:48px 60px;justify-content:flex-start}
+ .shell[data-signed-out] .login-brand-photo{margin-top:48px}
+ .shell[data-signed-out] .login-brand strong{font-size:30px;margin-top:20px}
+ .shell[data-signed-out] .login-form{display:flex;flex-direction:column;justify-content:center;padding:48px 100px;max-width:640px}
+ .shell[data-signed-out] .login-form .eyebrow{display:none}
+}
+
+/* The header (with its language switch) is hidden on the full-bleed sign-in, so the form carries its own switch like the design. */
+.shell .login-lang{margin:18px 0 0;font-size:13px;color:#7a6c88}
+.shell .login-lang button{background:none;border:0;padding:4px 2px;min-height:0;min-width:0;font:inherit;color:#64188a;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+.shell .login-lang button[aria-pressed=true]{font-weight:700;text-decoration:none}
+@media(max-width:899px){.shell .login-lang{text-align:center}}
