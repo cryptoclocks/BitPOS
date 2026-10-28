@@ -25,7 +25,7 @@ void main(){
    final finder=find.widgetWithText(FilledButton,label);await enabled(finder);
    await tester.ensureVisible(finder);await tester.pump();await enabled(finder);await tester.tap(finder);await tester.pump();
   }
-  app.main();await waitFor(find.text('English'));await tester.tap(find.text('English'));await tester.pump();
+  app.main();await waitFor(find.text('บัญชี').last);await tester.pump(const Duration(seconds: 2));await tester.tap(find.text('บัญชี').last);await tester.pump();await tester.pump(const Duration(seconds: 1));await waitFor(find.text('English'));await tester.tap(find.text('English'));await tester.pump();
   Future<void> idle() async {
    final deadline=DateTime.now().add(const Duration(seconds:45));
    while(find.byType(LinearProgressIndicator).evaluate().isNotEmpty&&DateTime.now().isBefore(deadline)){await tester.pump(const Duration(milliseconds:200));}

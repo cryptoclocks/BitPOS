@@ -64,19 +64,23 @@ class DriverNavigation extends StatelessWidget {
               : null,
           destinations: [
             NavigationDestination(
-              icon: const Icon(Icons.delivery_dining_outlined),
+              icon: const Icon(Icons.home_outlined),
+              selectedIcon: const Icon(Icons.home),
               label: thai ? 'รับงาน' : 'Work',
             ),
             NavigationDestination(
-              icon: const Icon(Icons.history),
+              icon: const Icon(Icons.receipt_long_outlined),
+              selectedIcon: const Icon(Icons.receipt_long),
               label: thai ? 'ประวัติ' : 'History',
             ),
             NavigationDestination(
               icon: const Icon(Icons.account_balance_wallet_outlined),
+              selectedIcon: const Icon(Icons.account_balance_wallet),
               label: thai ? 'รายได้' : 'Earnings',
             ),
             NavigationDestination(
-              icon: const Icon(Icons.account_circle_outlined),
+              icon: const Icon(Icons.person_outline),
+              selectedIcon: const Icon(Icons.person),
               label: thai ? 'บัญชี' : 'Account',
             ),
           ],

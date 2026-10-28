@@ -57,6 +57,11 @@ void main() {
         expect(check(), isTrue);
       }
 
+      // FigCraft R06: the signed-in home is Work; the language switch lives on the Account tab.
+      await ready(() => find.text('บัญชี').evaluate().length >= 2); // session nav + the Work tab route on top
+      await tester.tap(find.text('บัญชี').last);
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 1)); // let the tab route finish popping
       await ready(() => find.text('English').evaluate().isNotEmpty);
       await tester.tap(find.text('English'));
       await tester.pump();

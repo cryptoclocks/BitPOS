@@ -18,6 +18,7 @@ import 'food_history_page.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show SystemNavigator;
 import 'package:mobile_shared/mobile_api.dart';
 import 'package:mobile_shared/mobile_v1.generated.dart';
 import 'package:mobile_shared/driver_mutation.dart';
@@ -76,6 +77,8 @@ class _DriverSessionPageState extends State<DriverSessionPage>
   bool _snapshotStale = false;
   MobilePushController? _push;
   bool _destinationOpen = false;
+  // FigCraft R06: the signed-in home is the Work tab; Account is the fourth root tab. One landing per session.
+  String? _landedFor;
   bool _profileKnown = false;
   DriverApplicationStage _applicationStage = DriverApplicationStage.identity;
   bool _applicationOpen = false, _applicationDismissed = false;
@@ -429,7 +432,7 @@ class _DriverSessionPageState extends State<DriverSessionPage>
     if (mounted && work == true) await _openDestination(0);
   }
 
-  Future<void> _openDestination(int index) async {
+  Future<void> _openDestination(int index, {bool landing = false}) async {
     if (_destinationOpen || _busy || !_signedIn || _api == null || index == 3)
       return;
     if (index != 0 && _profile == null) return;
@@ -480,6 +483,10 @@ class _DriverSessionPageState extends State<DriverSessionPage>
           await route.completed;
           travelMode.dispose();
         }
+      }
+      // A tab opened as the home has nothing beneath it to return to: system back leaves the app.
+      if (landing && mounted && _signedIn && api.sessionScope == owner && destination == null) {
+        unawaited(SystemNavigator.pop());
       }
     } finally {
       _destinationOpen = false;
@@ -814,6 +821,13 @@ class _DriverSessionPageState extends State<DriverSessionPage>
         _profileKnown &&
         (_applicationOpen || (_profile == null && !_applicationDismissed))) {
       return _applicationPage(context);
+    }
+    final scope = _api?.sessionScope;
+    if (_signedIn && _profileKnown && p != null && scope != null && _landedFor != scope.sessionId && !_busy && !_destinationOpen) {
+      _landedFor = scope.sessionId;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) unawaited(_openDestination(0, landing: true));
+      });
     }
     return Scaffold(
       bottomNavigationBar: SafeArea(

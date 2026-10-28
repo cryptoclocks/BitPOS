@@ -305,6 +305,12 @@ void main() {
       final api = RootOwnerApi();
       addTearDown(api.close);
       await tester.pumpWidget(MaterialApp(home: DriverSessionPage(api: api)));
+      // FigCraft R06: the signed-in home is the Work tab; the account is the fourth root tab.
+      for (var i = 0; i < 20; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+      expect(find.byType(DriverDestination), findsOneWidget);
+      await tester.tap(find.text('บัญชี'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('English'));
       await tester.pump();

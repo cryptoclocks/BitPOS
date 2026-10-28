@@ -69,8 +69,8 @@ class CustomerNavigation extends StatelessWidget {
             label: thai ? 'รายการโปรด' : 'Favourites',
           ),
           NavigationDestination(
-            icon: const Icon(Icons.account_circle_outlined),
-            selectedIcon: const Icon(Icons.account_circle),
+            icon: const Icon(Icons.person_outline),
+            selectedIcon: const Icon(Icons.person),
             label: thai ? 'บัญชี' : 'Account',
           ),
         ],

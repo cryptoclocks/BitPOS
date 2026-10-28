@@ -67,6 +67,10 @@ void main() {
       await tester.tap(finder.first);await tester.pump();
     }
     await tester.pumpWidget(MaterialApp(debugShowCheckedModeBanner: false, theme: BitPosTheme.light(), home: DriverSessionPage(api: api)));
+    await wait(() => find.text('บัญชี').evaluate().length >= 2);
+    await tap(find.text('บัญชี').last);
+    await tester.pump(const Duration(seconds: 1));
+    await wait(() => find.text('English').evaluate().isNotEmpty);
     await tap(find.text('English'));
     await wait(() => find.byType(NavigationBar).evaluate().isNotEmpty && tester.widget<NavigationBar>(find.byType(NavigationBar)).onDestinationSelected != null);
     await tap(find.text('Work'));
