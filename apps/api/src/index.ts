@@ -54,6 +54,7 @@ import {salesReport} from './reports';
 import {merchantReturns} from './merchant-returns';
 import {suppliersRequest} from './suppliers';
 import {shiftsRequest} from './shifts';
+import {teamRequest} from './team';
 import {inventoryRequest} from './inventory';
 import {activityHistory} from './activity';
 import {archiveProduct,createProduct,editProduct,renameCategory,unarchiveProduct} from './catalog-edit';
@@ -242,6 +243,7 @@ export async function handle(req:http.IncomingMessage){
  if(path==='/api/reports/sales'&&method==='GET')return salesReport(db,merchant,session.current_role,url);
  if(path==='/api/returns'&&method==='GET')return merchantReturns(db,merchant,session.current_role,url);
  if(path==='/api/shifts'||path==='/api/shifts/close')return shiftsRequest(db,merchant,session.user_id,session.current_role,url,method??'GET',input);
+ if(path==='/api/team'||/^\/api\/team\/[0-9a-f-]{36}$/.test(path))return teamRequest(db,merchant,session.user_id,session.current_role,url,method??'GET',input);
  if(path==='/api/suppliers'||/^\/api\/suppliers\/[0-9a-f-]{36}$/.test(path))return suppliersRequest(db,merchant,session.user_id,session.current_role,url,method??'GET',input);
  if(path==='/api/settings/hours'&&(method==='GET'||method==='PUT'))return openingHoursSettings(db,merchant,session.user_id,session.current_role,method,input);
  if(path==='/api/settings/collection'&&(method==='GET'||method==='PUT'))return collectionSettings(db,merchant,session.user_id,session.current_role,method,input);

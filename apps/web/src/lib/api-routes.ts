@@ -55,6 +55,8 @@ export const apiRoutes: [RegExp, readonly string[]][] = [
   [/^reports\/sales$/, ['GET']],
   [/^returns$/, ['GET']],
   [/^shifts$/, ['GET']],
+  [/^team$/, ['GET']],
+  [/^team\/[0-9a-f-]{36}$/, ['PATCH']],
   [/^shifts\/close$/, ['POST']],
   [/^suppliers$/, ['GET', 'POST']],
   [/^suppliers\/[0-9a-f-]{36}$/, ['PATCH']],
