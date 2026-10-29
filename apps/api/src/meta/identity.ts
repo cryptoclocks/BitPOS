@@ -153,7 +153,7 @@ export async function handleMessengerEvents(deps:IdentityDeps,events:ParsedEvent
    const decided=(await db.query<{tap_session_id:string|null}>('UPDATE meta_consent_requests SET decided_at=clock_timestamp(),decision=$4 WHERE id=$1 AND page_id=$2 AND psid=$3 AND decided_at IS NULL AND expires_at>clock_timestamp() RETURNING tap_session_id',[event.requestId,pageId,psid,event.accept?'ACCEPTED':'DECLINED'])).rows[0];
    if(!decided)return {kind:'text',psid,text:T.expired} as Outgoing;
    if(!event.accept)return {kind:'text',psid,text:T.declined} as Outgoing;
-   await db.query('INSERT INTO meta_customer_links(merchant_id,page_id,psid,consent_version) VALUES($1,$2,$3,$4) ON CONFLICT (page_id,psid) WHERE revoked_at IS NULL DO NOTHING',[merchantId,pageId,psid,CONSENT_VERSION]);
+   await db.query('INSERT INTO meta_customer_links(merchant_id,page_id,psid,consent_version) VALUES($1,$2,$3,$4) ON CONFLICT (merchant_id,page_id,psid) WHERE revoked_at IS NULL DO NOTHING',[merchantId,pageId,psid,CONSENT_VERSION]);
    const link=(await db.query<{id:string}>('SELECT id FROM meta_customer_links WHERE page_id=$1 AND psid=$2 AND revoked_at IS NULL',[pageId,psid])).rows[0];
    const held=decided.tap_session_id?await tableHoldForTap(db,decided.tap_session_id):null;
    if(!(held&&held.linkId!==link.id)&&await bindTap(db,decided.tap_session_id,link.id))offers.push({merchantId,linkId:link.id,tapSessionId:decided.tap_session_id!,psid});
