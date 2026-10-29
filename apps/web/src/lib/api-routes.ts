@@ -53,6 +53,7 @@ export const apiRoutes: [RegExp, readonly string[]][] = [
   [/^settings\/collection$/, ['GET', 'PUT']],
   [/^settings\/rewards$/, ['GET', 'PUT']],
   [/^settings\/hours$/, ['GET', 'PUT']],
+  [/^overview\/summary$/, ['GET']],
   [/^reports\/sales$/, ['GET']], [/^reports\/export$/, ['GET']],
   [/^returns$/, ['GET']],
   [/^shifts$/, ['GET']],

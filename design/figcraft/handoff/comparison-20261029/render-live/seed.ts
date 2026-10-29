@@ -139,6 +139,11 @@ export async function retime(){
  const admin=new (await import('pg')).default.Client({connectionString:process.env.ADMIN_DATABASE_URL});await admin.connect();await admin.query('SET session_replication_role=replica');
  for(const [k,t] of Object.entries(at)){const neg=t.startsWith('-');const [h,m]=t.replace('-','').split(':').map(Number);const mins=(neg?-1:1)*(h*60+m);
   await admin.query("UPDATE bitpos.orders SET created_at=(((now() AT TIME ZONE 'Asia/Bangkok')::date)::timestamp+($2||' minutes')::interval) AT TIME ZONE 'Asia/Bangkok' WHERE id=$1",[o[k],String(mins)]);}
+ // A paid order is paid when it was created, except collected3: created 23:50 yesterday, paid 00:05 today (the straddler between "created" and "paid" days).
+ const paidAt:Record<string,string>={collected3:'0:05'};
+ for(const k of Object.keys(at)){const t=paidAt[k];if(t){const [h,m]=t.split(':').map(Number);await admin.query("UPDATE bitpos.orders SET paid_at=(((now() AT TIME ZONE 'Asia/Bangkok')::date)::timestamp+($2||' minutes')::interval) AT TIME ZONE 'Asia/Bangkok' WHERE id=$1 AND status='PAID'",[o[k],String(h*60+m)]);}
+  else await admin.query("UPDATE bitpos.orders SET paid_at=created_at WHERE id=$1 AND status='PAID'",[o[k]]);}
+ await admin.query("UPDATE bitpos.orders SET paid_at=created_at WHERE merchant_id='7e0d0c0e-0000-4000-8000-00000000f002' AND status='PAID'");
  await admin.end();console.log('retimed',Object.keys(at).length,'orders around Bangkok midnight');
 }
 /** One fresh unpaid counter bill (quotes expire within minutes, so the pay capture creates its own). */

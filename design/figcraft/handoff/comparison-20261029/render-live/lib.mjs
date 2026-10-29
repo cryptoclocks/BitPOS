@@ -1,6 +1,6 @@
 import {chromium} from '/Users/cryptoclock/Desktop/BitPOS/local/toolchains/browser-contract/node_modules/playwright/index.mjs';
 import {readFileSync,mkdirSync} from 'node:fs';
-export const ORIGIN='http://127.0.0.1:4482';
+export const ORIGIN='http://127.0.0.1:'+(process.env.RENDER_WEB_PORT||4482);
 export const here=new URL('.',import.meta.url).pathname;
 export const fixture=()=>JSON.parse(readFileSync(here+'.fixture.json','utf8'));
 export const MERCHANT='7e0d0c0e-0000-4000-8000-00000000f001';
