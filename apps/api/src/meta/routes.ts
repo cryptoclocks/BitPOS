@@ -3,7 +3,7 @@
 // They need the exact request bytes (webhook signature), cookies and redirects, so they sit beside the JSON API.
 import type http from 'node:http';
 import type {Outgoing} from './messenger';
-import {consumeMagicLink,customerFromSession,handleMessengerEvents,handleTap,offerForTap,offerMessage,revokeFromSession,type IdentityDeps,type OfferDeps,type OfferView} from './identity';
+import {consumeMagicLink,customerFromSession,handleMessengerEvents,handleQrTap,handleTap,issueDeviceQr,offerForTap,offerMessage,revokeFromSession,type IdentityDeps,type OfferDeps,type OfferView} from './identity';
 import {invocationSink} from './evidence';
 import {applyStripeWebhook,reconcileTapOrder,startTapCheckout,type StripeDeps} from './tap-checkout';
 import {stripeSandboxFromEnv,StripePaymentError} from './stripe';
@@ -147,9 +147,11 @@ export async function serveMeta(req:http.IncomingMessage,res:http.ServerResponse
   catch{res.writeHead(404,{'Content-Type':'text/plain'});res.end('not found');}
   return true;
  }
- const tap=path.match(/^\/meta\/t\/([A-Za-z0-9_-]{4,64})$/);
- if(tap&&method==='GET'){
-  const r=await handleTap(deps.identity,tap[1],url.searchParams.get('e'),url.searchParams.get('m'),cookieValue(req.headers.cookie));
+ const tap=path.match(/^\/meta\/t\/([A-Za-z0-9_-]{4,64})$/),qrTap=path.match(/^\/meta\/q\/([A-Za-z0-9_-]{43})$/);
+ if((tap||qrTap)&&method==='GET'){
+  // NFC sticker tap (NTAG424 SUN) or the BitPOS Mini's short-lived "scan to open Messenger" QR: the same flow after this.
+  const r=tap?await handleTap(deps.identity,tap[1],url.searchParams.get('e'),url.searchParams.get('m'),cookieValue(req.headers.cookie))
+   :await handleQrTap(deps.identity,qrTap![1],cookieValue(req.headers.cookie));
   if(r.kind==='messenger'){res.writeHead(303,{Location:r.url,'Cache-Control':'no-store','Referrer-Policy':'no-referrer'});res.end();return true;}
   if(r.kind==='reserved'){
    const mins=Math.max(0,Math.ceil((Date.parse(r.checkInUntil)-Date.now())/60_000));
@@ -159,9 +161,17 @@ export async function serveMeta(req:http.IncomingMessage,res:http.ServerResponse
   }
   if(r.kind==='known'&&r.checkedIn){page(res,200,`เช็กอินโต๊ะ ${r.checkedIn.tableLabel} แล้ว ✓`,['ยินดีต้อนรับค่ะ โต๊ะนี้เป็นของคุณ','Checked in — welcome, this table is yours.',...offerCard(await offerOrNull(deps,r.merchantId,r.linkId,r.tapSessionId),!!deps.stripe),ORDER_LINK]);return true;}
   if(r.kind==='known'){page(res,200,'สวัสดีค่ะ 👋',['ร้านจำคุณได้แล้ว','Welcome back — the shop knows it is you.',...offerCard(await offerOrNull(deps,r.merchantId,r.linkId,r.tapSessionId),!!deps.stripe),ORDER_LINK]);return true;}
-  if(r.kind==='replayed'){page(res,409,'กรุณาแตะใหม่อีกครั้ง',['ลิงก์นี้ใช้ไปแล้ว ให้แตะมือถือที่เครื่องอีกครั้ง','This tap link was already used. Tap the device again.']);return true;}
+  if(r.kind==='replayed'){page(res,409,qrTap?'QR หมดอายุแล้ว':'กรุณาแตะใหม่อีกครั้ง',qrTap?['กดปุ่มที่เครื่องเพื่อสร้าง QR ใหม่ แล้วสแกนอีกครั้ง','This QR expired. Press the button on the device for a new one.']:['ลิงก์นี้ใช้ไปแล้ว ให้แตะมือถือที่เครื่องอีกครั้ง','This tap link was already used. Tap the device again.']);return true;}
   if(r.kind==='no_page'){page(res,503,'ร้านยังไม่ได้เชื่อม Messenger',['The shop has not connected a Messenger page yet.']);return true;}
   page(res,400,'แตะไม่สำเร็จ',['ให้แตะมือถือที่เครื่องอีกครั้ง','Please tap the device again.']);return true;
+ }
+ // BitPOS Mini: a short-lived "scan to open Messenger" link for its screen (device key in the Authorization header).
+ if(path==='/meta/device/qr'&&method==='POST'){
+  const d=url.searchParams.get('d')??'';
+  if(!/^[0-9a-f-]{36}$/.test(d)||!deviceKeyValid(deps.identity.masterKey,d,req.headers.authorization)){json(res,401,{error:'UNAUTHORIZED'});return true;}
+  const q=await issueDeviceQr(deps.identity,d);
+  if(!q){json(res,404,{error:'NOT_FOUND'});return true;}
+  json(res,200,{url:q.url,expires_s:Math.max(0,Math.floor((Date.parse(q.expiresAt)-Date.now())/1000))});return true;
  }
  // BitPOS Mini Meta product: which screen to show (device key in the Authorization header, never in the URL).
  if(path==='/meta/device/state'&&method==='GET'){
@@ -858,14 +868,14 @@ async function serveLedger(res:http.ServerResponse,deps:MetaRouteDeps,staff:Staf
  const code=(id:string)=>id.replace(/-/g,'').slice(0,4).toUpperCase();
  const data=await deps.identity.db.tenant(me.merchantId,async db=>({
   ai:(await db.query<{started_at:Date;task:string;provider:string;model:string;outcome:string;latency_ms:number;prompt_tokens:number|null;completion_tokens:number|null}>("SELECT started_at,task,provider,model,outcome,latency_ms,prompt_tokens,completion_tokens FROM meta_ai_invocations WHERE started_at>clock_timestamp()-interval '24 hours' ORDER BY started_at DESC LIMIT 30")).rows,
-  taps:(await db.query<{created_at:Date;tag_id:string;counter:number;bound:boolean}>("SELECT created_at,tag_id,counter,link_id IS NOT NULL AS bound FROM meta_tap_sessions WHERE created_at>clock_timestamp()-interval '24 hours' ORDER BY created_at DESC LIMIT 20")).rows,
+  taps:(await db.query<{created_at:Date;tag_id:string;counter:number;bound:boolean}>("SELECT created_at,coalesce(tag_id,'QR on the Mini screen') AS tag_id,counter,link_id IS NOT NULL AS bound FROM meta_tap_sessions WHERE created_at>clock_timestamp()-interval '24 hours' ORDER BY created_at DESC LIMIT 20")).rows,
   pay:(await db.query<{at:Date;event_id:string;order_id:string;kind:string}>("SELECT received_at AS at,event_id,order_id,'tap' AS kind FROM meta_stripe_events WHERE received_at>clock_timestamp()-interval '24 hours' UNION ALL SELECT received_at,event_id,order_id,'agent' FROM meta_agent_stripe_events WHERE received_at>clock_timestamp()-interval '24 hours' ORDER BY at DESC LIMIT 20")).rows,
   decisions:(await db.query<{decided_at:Date;state:string;approval_kind:string|null;discount_percent:number;chosen_by:string;name_en:string}>("SELECT d.decided_at,d.state,d.approval_kind,d.discount_percent,d.chosen_by,coalesce(p.name_en,'') AS name_en FROM meta_offer_drafts d LEFT JOIN products p ON p.merchant_id=d.merchant_id AND p.id=d.product_id WHERE d.decided_at>clock_timestamp()-interval '24 hours' ORDER BY d.decided_at DESC LIMIT 20")).rows,
  }));
  const section=(title:string,rows:string[])=>[`<strong>${title}</strong>`,...(rows.length?rows:['<small>— none in the last 24 h —</small>'])];
  page(res,200,'หลักฐาน / Evidence ledger',[`<small>${esc(me.role)} · ${L('24 ชั่วโมงล่าสุด · ไม่แสดงตัวตนลูกค้า','last 24 hours · no customer identity shown')}</small>`,
   ...section('🧠 AI calls (Meta Model API)',data.ai.map(r=>`<small>${t(r.started_at)} · ${esc(r.task)} · ${esc(r.model)} (${esc(r.provider)}) · ${esc(r.outcome)} · ${r.latency_ms} ms · ${r.prompt_tokens??'?'}/${r.completion_tokens??'?'} tokens</small>`)),
-  ...section('📱 Taps (NTAG424 SUN verified)',data.taps.map(r=>`<small>${t(r.created_at)} · ${esc(r.tag_id)} · counter ${r.counter} · ${r.bound?'customer known':'not linked'}</small>`)),
+  ...section('📱 Taps (NTAG424 SUN verified, or the Mini\'s short-lived QR)',data.taps.map(r=>`<small>${t(r.created_at)} · ${esc(r.tag_id)} · counter ${r.counter} · ${r.bound?'customer known':'not linked'}</small>`)),
   ...section('💳 Stripe events (signature verified, once each)',data.pay.map(r=>`<small>${t(r.at)} · ${esc(r.event_id)} · order #${code(r.order_id)} · ${r.kind}</small>`)),
   ...section('🛡️ Promotion decisions',data.decisions.map(r=>`<small>${t(r.decided_at)} · ${esc(r.name_en)} −${r.discount_percent}% · ${esc(r.state)} · ${r.approval_kind==='policy'?'Allow All':r.approval_kind==='owner'?'owner':'—'} · drafted by ${r.chosen_by==='model'?'Muse Spark':'fallback'}</small>`)),
   '<a href="/meta/staff">← ออเดอร์ / Orders</a>']);

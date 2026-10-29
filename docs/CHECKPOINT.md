@@ -97,6 +97,11 @@
     - Screens were redesigned in the standard terminal's visual language: dark ink background, panel cards, a 44 px header with the logo pill, Meta-blue accent. There are 3 layouts: Stripe QR (white tile and total card); offer animation (GIF and a card with an "แตะมือถือที่นี่" button); status (tone ring with an icon, title, big value or countdown, and a details card sized to its lines).
     - Thai: LVGL has no shaping, so a tone mark on an upper vowel (ที่, เพื่อ) was hidden. `text()` reorders the pair, and a font wrapper raises the mark at draw time. The server folds accents (Café → Cafe).
     - Layout was checked from real device screenshots via the new USB commands `META_DEMO` and `META_SHOT`.
+  - **Scan to open Messenger on the Mini (owner request, for phones without NFC):**
+    - On the idle, welcome, first-tap and seated screens there is a touch button "สแกน QR เข้าแชท". The Mini asks `POST /meta/device/qr` (device key in the header) for a link to `/meta/q/<token>`. It lives at most 150 s and opens at most 5 sessions, because a screen QR can be photographed.
+    - Opening it starts a tap session for that device (`via='qr'`, no tag) and then follows the same flow as an NFC tap (m.me consent, known customer, booking hold). The QR screen shows a countdown and a Back button, and closes on its own.
+    - Migration 323 was applied on OCI after backup `bitpos-20261029T202634Z-pre323.dump`.
+    - Checked: the QR decoded from a device screenshot opened with a 303 to m.me. Identity test added; Meta tests 95/95 (the animation test needs resvg).
   - **Live on OCI:** migration 322 applied after backup `bitpos-20261029T185016Z-pre322.dump`. Muse Spark paired Latte + Croissant −10% for 4 h, the owner approved it, and Muse Image drew the picture in 10 s (WebP). The animation is served at 480 px (1.35 MB, ~4 s the first time) and 240 px (326 KB). The meta-pay cart showed −$0.90 for one pair.
   - **Tests:** `tests/meta-combos.test.ts` checks that the GIF round-trips through a decoder past the 4096-code reset, pair pricing, RLS, the cache, and the device path filter. Meta tests 95/95.
   - **Open:**

@@ -11,7 +11,8 @@
  *   META_PROVISION <https-origin> <device-uuid> <device-key>
  * The key is never logged. Text must stay within the device font (ASCII and Thai); the server keeps to that. "META_STATUS" prints whether settings exist; "META_FORGET" erases the meta namespace.
  * Layout checks: "META_DEMO <qr|paid|checkin|upcoming|seated|tapnew|idle>" shows a sample screen for 30 s, and
- * "META_SHOT" prints the rendered 480x320 RGB565 frame as hex rows (only what is on screen; no settings).
+ * "META_SHOT" prints the rendered 480x320 RGB565 frame as hex rows (only what is on screen; no settings), and
+ * "META_JOIN" acts like pressing the "scan QR" button.
  * Offer animations: on the idle and welcome screens the server may name a 240 px looping GIF ("anim", a same-origin
  * /meta/anim/... path). The device downloads it once into PSRAM (at most ANIM_MAX bytes, must start with GIF8) and plays
  * it with lv_gif; the text moves to the right. A failed download just leaves the plain screen. Playback follows the Sol
@@ -54,6 +55,10 @@ static volatile bool wifi_up;
 static struct {char screen[16],tone[10],table[40],title[96],line1[128],line2[128],big[24],qr[200],anim[ANIM_PATH_MAX];int countdown;int poll_ms;int64_t fetched_us;bool online;} view;
 static lv_obj_t *countdown_label;
 static volatile int64_t demo_until_us; /* META_DEMO holds the screen until then */
+/* "Scan to open Messenger": a short-lived link from POST /meta/device/qr, shown until it expires or Back is pressed.
+ * Touch handlers only set flags and wake the poller; all HTTP happens on the poller task. */
+static char join_url[200];static volatile int64_t join_until_us;static volatile bool join_wanted,join_close;
+static TaskHandle_t poller_task;static lv_obj_t *join_countdown;
 /* The downloaded animation (PSRAM) and the path it came from; the image descriptor points into anim_buf. */
 static uint8_t *anim_buf;static size_t anim_len;static char anim_loaded[ANIM_PATH_MAX];
 /* Read-only lv_fs drive 'A:' over anim_buf (one open file at a time), as bitpos_media.c does for the Sol GIFs. */
@@ -147,9 +152,26 @@ static int fit(lv_obj_t *l,int lines){
     if(h>max){h=max;lv_obj_set_height(l,h);lv_label_set_long_mode(l,LV_LABEL_LONG_DOT);}
     return h;
 }
+static void on_join(lv_event_t *e){(void)e;join_wanted=true;if(poller_task)xTaskNotifyGive(poller_task);}
+static void on_back(lv_event_t *e){(void)e;join_close=true;if(poller_task)xTaskNotifyGive(poller_task);}
+/* Screens where a customer may start: offer the QR button there (never over a bill, payment or booking countdown). */
+static bool join_allowed(void){return !strcmp(view.screen,"idle")||!strcmp(view.screen,"welcome")||!strcmp(view.screen,"tap_new")||!strcmp(view.screen,"seated");}
+static bool joining(void){return join_url[0]&&esp_timer_get_time()<join_until_us&&join_allowed();}
+static lv_obj_t *button(lv_obj_t *parent,int x,int y,int w,const char *label,uint32_t color,lv_event_cb_t cb){
+    lv_obj_t *b=box(parent,x,y,w,46,color,12);lv_obj_add_flag(b,LV_OBJ_FLAG_CLICKABLE);lv_obj_set_ext_click_area(b,8);
+    lv_obj_set_style_bg_opa(b,LV_OPA_80,LV_STATE_PRESSED);lv_obj_add_event_cb(b,cb,LV_EVENT_CLICKED,NULL);
+    lv_obj_t *t=text(b,label,14,8,w-28,&bitpos_font_20,0xffffff,1);lv_obj_set_style_text_align(t,LV_TEXT_ALIGN_CENTER,0);
+    return b;
+}
+static void join_left(lv_obj_t *l){
+    int left=(int)((join_until_us-esp_timer_get_time())/1000000);if(left<0)left=0;
+    if(left>999){left=999;}
+    char s[64];snprintf(s,sizeof(s),"QR หมดอายุใน %d:%02d",left/60,left%60);lv_label_set_text(l,s);
+}
+
 /* One template for every screen; layout depends only on which fields the server sent. Call with the LVGL lock. */
 static void render(void){
-    lv_obj_t *scr=lv_screen_active();lv_obj_clean(scr);countdown_label=NULL;
+    lv_obj_t *scr=lv_screen_active();lv_obj_clean(scr);countdown_label=NULL;join_countdown=NULL;
     lv_obj_set_style_bg_color(scr,lv_color_hex(INK),0);lv_obj_set_style_bg_opa(scr,LV_OPA_COVER,0);
     lv_obj_set_style_pad_all(scr,0,0);lv_obj_remove_flag(scr,LV_OBJ_FLAG_SCROLLABLE);
     uint32_t tone=accent(view.online?view.tone:"amber");
@@ -165,6 +187,19 @@ static void render(void){
         text(scr,"กำลังเชื่อมต่อใหม่…",138,104,324,&bitpos_font_20,CREAM,2);
         box(scr,20,244,440,62,PANEL,10);
         text(scr,"ออเดอร์ที่ค้างจะไม่หาย - ไม่ตัดเงินซ้ำ",32,261,416,&bitpos_font_20,MUTED,1);return;
+    }
+    if(joining()){
+        /* Scan to open Messenger: QR left, how it works right, Back. */
+        text(scr,"สแกนเพื่อเข้า Messenger",12,52,300,&bitpos_font_20,BLUE,1);
+        box(scr,8,84,216,216,0xffffff,6);
+        lv_obj_t *qr=lv_qrcode_create(scr);lv_qrcode_set_size(qr,196);lv_qrcode_set_dark_color(qr,lv_color_hex(0x111827));lv_qrcode_set_light_color(qr,lv_color_hex(0xffffff));
+        lv_qrcode_update(qr,join_url,strlen(join_url));lv_obj_set_pos(qr,18,94);
+        lv_obj_t *card=box(scr,236,84,232,216,PANEL,12);
+        text(card,"เปิดกล้องแล้วสแกน",14,12,204,&bitpos_font_20,CREAM,1);
+        text(card,"กดยินยอมในแชท ร้านจะส่งโปรและเมนูให้",14,50,204,&bitpos_font_20,MUTED,2);
+        join_countdown=text(card,"",14,116,204,&bitpos_font_20,BLUE,1);join_left(join_countdown);
+        button(card,14,156,96,"กลับ",LINE,on_back);
+        return;
     }
     bool anim=false;
     if(!view.qr[0]&&view.anim[0]&&anim_buf&&!strcmp(view.anim,anim_loaded)){
@@ -194,11 +229,7 @@ static void render(void){
         text(chip,"โปรวันนี้",12,1,80,&bitpos_font_20,0xb9d3ff,0);
         text(card,view.title,14,56,176,&bitpos_font_20,CREAM,2);
         text(card,view.line1,14,116,176,&bitpos_font_20,MUTED,2);
-        if(view.line2[0]){
-            lv_obj_t *cta=box(card,12,180,180,46,tone,12);
-            text(cta,LV_SYMBOL_WIFI,12,13,24,&lv_font_montserrat_20,0xffffff,0);
-            text(cta,view.line2,40,8,134,&bitpos_font_20,0xffffff,1);
-        }
+        if(join_allowed())button(card,12,180,180,"สแกน QR เข้าแชท",tone,on_join);
         return;
     }
     /* Status: ring with an icon left, title and big value right, details card at the bottom (like the paid scene). */
@@ -206,7 +237,8 @@ static void render(void){
     lv_obj_t *i=text(r,icon(view.screen),0,24,78,&lv_font_montserrat_28,tone,0);lv_obj_set_style_text_align(i,LV_TEXT_ALIGN_CENTER,0);
     /* Title centred on the ring, or above the big value / countdown. */
     lv_obj_t *t=text(scr,view.title,138,0,324,&bitpos_font_20,CREAM,0);int th=fit(t,2);
-    bool value=view.big[0]||view.countdown>0;int ty=value?72:115-th/2;lv_obj_set_y(t,ty);
+    bool value=view.big[0]||view.countdown>0,join=!value&&join_allowed();int ty=value||join?70:115-th/2;lv_obj_set_y(t,ty);
+    if(join)button(scr,138,ty+th+10,220,"สแกน QR เข้าแชท",tone,on_join);
     if(view.big[0])text(scr,view.big,138,ty+th+4,324,&lv_font_montserrat_48,tone,0);
     else if(view.countdown>0)countdown_label=text(scr,"--:--",138,ty+th+4,324,&lv_font_montserrat_48,tone,0);
     if(view.line1[0]||view.line2[0]){
@@ -227,6 +259,7 @@ static void backlight_on(void){
 }
 static void tick(lv_timer_t *t){
     (void)t;
+    if(join_countdown){join_left(join_countdown);if(esp_timer_get_time()>=join_until_us&&poller_task)xTaskNotifyGive(poller_task);}
     if(!countdown_label||view.countdown<=0)return;
     int left=view.countdown-(int)((esp_timer_get_time()-view.fetched_us)/1000000);if(left<0)left=0;
     char s[12];snprintf(s,sizeof(s),"%02d:%02d",left/60,left%60);lv_label_set_text(countdown_label,s);
@@ -279,12 +312,36 @@ static bool fetch_anim(uint8_t **out,size_t *len){
     if(!ok)ESP_LOGW(TAG,"offer animation not loaded");
     return ok;
 }
+/* POST /meta/device/qr: a fresh "scan to open Messenger" link for this device (key only in the header). */
+static bool fetch_join(void){
+    static char body[512];char url[URL_MAX+64],auth[KEY_MAX+16];
+    snprintf(url,sizeof(url),"%s/meta/device/qr?d=%s",meta_url,meta_device);snprintf(auth,sizeof(auth),"Bearer %s",meta_key);
+    esp_http_client_config_t cfg={.url=url,.method=HTTP_METHOD_POST,.crt_bundle_attach=esp_crt_bundle_attach,.timeout_ms=6000,.disable_auto_redirect=true};
+    esp_http_client_handle_t c=esp_http_client_init(&cfg);if(!c)return false;
+    esp_http_client_set_header(c,"Authorization",auth);memset(auth,0,sizeof(auth));
+    bool ok=false;
+    if(esp_http_client_open(c,0)==ESP_OK&&esp_http_client_fetch_headers(c)>=0&&esp_http_client_get_status_code(c)==200){
+        int n=0,r;while(n<(int)sizeof(body)-1&&(r=esp_http_client_read(c,body+n,sizeof(body)-1-n))>0)n+=r;body[n]=0;
+        cJSON *j=cJSON_Parse(body);cJSON *u=cJSON_GetObjectItemCaseSensitive(j,"url"),*e=cJSON_GetObjectItemCaseSensitive(j,"expires_s");
+        char prefix[URL_MAX+16];snprintf(prefix,sizeof(prefix),"%s/meta/q/",meta_url);
+        if(cJSON_IsString(u)&&u->valuestring&&!strncmp(u->valuestring,prefix,strlen(prefix))&&strlen(u->valuestring)<sizeof(join_url)&&cJSON_IsNumber(e)&&e->valueint>5&&e->valueint<=180){
+            snprintf(join_url,sizeof(join_url),"%s",u->valuestring);join_until_us=esp_timer_get_time()+(int64_t)(e->valueint-5)*1000000;ok=true;
+        }
+        cJSON_Delete(j);
+    }
+    esp_http_client_close(c);esp_http_client_cleanup(c);
+    if(!ok)ESP_LOGW("BitPOS","META_JOIN qr link not issued");
+    return ok;
+}
 static void poller(void *arg){
     (void)arg;uint32_t last=0;bool rendered=false;int failures=0;
     for(;;){
         if(esp_timer_get_time()<demo_until_us){rendered=false;vTaskDelay(pdMS_TO_TICKS(500));continue;}
         bool ok=wifi_up&&fetch_view();
         failures=ok?0:failures+1;bool online=failures<3;
+        if(join_close){join_close=false;join_url[0]=0;join_until_us=0;}
+        if(join_wanted){join_wanted=false;if(ok&&join_allowed())fetch_join();}
+        if(join_url[0]&&esp_timer_get_time()>=join_until_us)join_url[0]=0;
         /* A new animation: download first, then swap it in under the lock (the old buffer is freed after the re-render). */
         uint8_t *old=NULL;
         static int64_t anim_retry_us;
@@ -296,10 +353,11 @@ static void poller(void *arg){
         /* Re-render only when what the screen shows changed (FNV-1a over the fields). */
         uint32_t sig=2166136261u;const char *fields[]={view.screen,view.tone,view.title,view.line1,view.line2,view.big,view.qr,view.table,view.anim,anim_loaded};
         for(size_t f=0;f<sizeof(fields)/sizeof(fields[0]);f++)for(const char *p=fields[f];;p++){sig=(sig^(uint8_t)*p)*16777619u;if(!*p)break;}
-        sig=(sig^(uint32_t)online^((uint32_t)(view.countdown>0)<<1))*16777619u;
+        sig=(sig^(uint32_t)online^((uint32_t)(view.countdown>0)<<1)^((uint32_t)joining()<<2))*16777619u;
+        for(const char *p=join_url;*p;p++)sig=(sig^(uint8_t)*p)*16777619u;
         if((sig!=last||!rendered)&&display_engine_lock(1000)){view.online=online;render();display_engine_unlock();last=sig;rendered=true;backlight_on();}
         if(old&&rendered)heap_caps_free(old);else if(old&&display_engine_lock(5000)){lv_obj_clean(lv_screen_active());display_engine_unlock();heap_caps_free(old);rendered=false;}
-        vTaskDelay(pdMS_TO_TICKS(ok?view.poll_ms:3000));
+        ulTaskNotifyTake(pdTRUE,pdMS_TO_TICKS(ok?view.poll_ms:3000)); /* a button press wakes the poller at once */
     }
 }
 
@@ -329,7 +387,8 @@ static void provisioning(void *arg){
         if(ch!='\n'&&ch!='\r'){if(n<sizeof(line)-1)line[n++]=(char)ch;continue;}
         line[n]=0;n=0;char cmd[24]={0},u[URL_MAX]={0},d[ID_MAX]={0},k[KEY_MAX]={0};
         int parts=sscanf(line,"%23s %159s %39s %63s",cmd,u,d,k);memset(line,0,sizeof(line));
-        if(!strcmp(cmd,"META_DEMO")){
+        if(!strcmp(cmd,"META_JOIN")){on_join(NULL);printf("META_JOIN requested\n");}
+        else if(!strcmp(cmd,"META_DEMO")){
             /* Layout check without a real order: show a sample of one template for 30 s (u = template name). */
             static const struct {const char *name,*screen,*tone,*title,*big,*line1,*line2,*qr;int cd;} demo[]={
                 {"qr","pay_qr","white","สแกนเพื่อจ่าย","$9.45","Latte x 1, Croissant x 1","Stripe sandbox - ไม่ใช่เงินจริง","https://meta-pay.cashlessthailand.com/pay/demo",0},
@@ -395,5 +454,5 @@ void bitpos_meta_main(void){
     wifi_config_t cfg={0};memcpy(cfg.sta.ssid,ssid,strlen(ssid));memcpy(cfg.sta.password,password,strlen(password));memset(password,0,sizeof(password));
     cfg.sta.threshold.authmode=WIFI_AUTH_WPA2_PSK;cfg.sta.pmf_cfg.capable=true;
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA,&cfg));ESP_ERROR_CHECK(esp_wifi_start());ESP_ERROR_CHECK(esp_wifi_set_ps(WIFI_PS_NONE));
-    xTaskCreate(poller,"meta_poll",8192,NULL,5,NULL);
+    xTaskCreate(poller,"meta_poll",8192,NULL,5,&poller_task);
 }

@@ -36,6 +36,24 @@ export async function handleTap(deps:IdentityDeps,tagId:string,e:string|null,m:s
  let sun;try{sun=verifySun(deriveTagKeys(deps.masterKey,tagId),e,m);}catch(err){if(err instanceof SunError)return {kind:'invalid'};throw err;}
  const tap=(await deps.db.query<{merchant_id:string;device_id:string;session_id:string}>('SELECT merchant_id,device_id,session_id FROM bitpos.meta_record_tap($1,$2,$3,$4)',[tagId,sun.uid,sun.counter,sha(token())])).rows[0];
  if(!tap)return {kind:'replayed'};
+ return afterTap(deps,tap,cookieToken);
+}
+
+/** A BitPOS Mini asks for a short-lived "scan to open Messenger" link (device key already checked by the route). */
+export async function issueDeviceQr(deps:IdentityDeps,deviceId:string):Promise<{url:string;expiresAt:string}|null>{
+ const t=token();
+ const at=(await deps.db.query<{e:Date|null}>('SELECT bitpos.meta_issue_device_qr($1,$2) AS e',[deviceId,sha(t)])).rows[0]?.e;
+ return at?{url:`${deps.publicOrigin}/meta/q/${t}`,expiresAt:at.toISOString()}:null;
+}
+/** Opening a device QR link: a tap session for that device (like an NFC tap), then the same Messenger flow. */
+export async function handleQrTap(deps:IdentityDeps,qrToken:string,cookieToken?:string|null):Promise<TapOutcome>{
+ if(!TOKEN.test(qrToken))return {kind:'invalid'};
+ const tap=(await deps.db.query<{merchant_id:string;device_id:string;session_id:string}>('SELECT merchant_id,device_id,session_id FROM bitpos.meta_record_qr($1,$2)',[sha(qrToken),sha(token())])).rows[0];
+ if(!tap)return {kind:'replayed'};
+ return afterTap(deps,tap,cookieToken);
+}
+
+async function afterTap(deps:IdentityDeps,tap:{merchant_id:string;device_id:string;session_id:string},cookieToken?:string|null):Promise<TapOutcome>{
  const merchantId=tap.merchant_id,tapSessionId=tap.session_id;
  const reserved=(h:TableHold,url:string|null)=>({kind:'reserved',merchantId,tableLabel:h.tableLabel,checkInUntil:h.checkInUntil.toISOString(),status:h.status,url} as const);
  if(cookieToken&&TOKEN.test(cookieToken)){

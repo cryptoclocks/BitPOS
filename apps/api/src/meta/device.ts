@@ -63,7 +63,7 @@ async function view(db:MetaDb,deviceId:string,publicOrigin:string,animFor?:AnimF
   if(t.state==='seated')return {...v,screen:'seated',tone:'blue',title:'เช็กอินแล้ว ✓ ยินดีต้อนรับ',line1:`โต๊ะนี้ของคุณถึง ${hhmm(t.seatedUntil!)}`,line2:'สั่งจากมือถือหรือสแกน QR บนโต๊ะ'};
  }
  const idle=await anim(null);
- // With an animation the device shows a short card beside it: line2 is the call to action on its button.
- return idle?{...v,title:r.dev?.shop??'BitPOS × Muse',line1:'รับโปรนี้ผ่าน Messenger',line2:'แตะมือถือที่นี่',anim:idle,poll_ms:4000}
-  :{...v,title:r.dev?.shop??'BitPOS × Muse',line1:'แตะมือถือตรงนี้ · รับโปรและสั่งผ่าน Messenger',line2:'หรือสแกน QR บนโต๊ะ · จ่ายด้วย Stripe'};
+ // With an animation the device shows a short card beside it; its button opens the Messenger QR.
+ return idle?{...v,title:r.dev?.shop??'BitPOS × Muse',line1:'แตะมือถือที่เครื่อง หรือกดสแกน QR',line2:'',anim:idle,poll_ms:4000}
+  :{...v,title:r.dev?.shop??'BitPOS × Muse',line1:'แตะมือถือที่เครื่อง หรือกดปุ่มสแกน QR เข้า Messenger',line2:'รับโปร สั่ง และจ่ายด้วย Stripe ในแชท'};
 }

@@ -9,7 +9,7 @@ import http from 'node:http';
 import type {AddressInfo} from 'node:net';
 import pg from 'pg';
 import {aesCmac,deriveTagKeys} from '../packages/meta-ai/src/ntag424';
-import {consumeMagicLink,customerFromSession,handleMessengerEvents,handleTap,offerForTap,type IdentityDeps,type MetaDb,type OfferDeps} from '../apps/api/src/meta/identity';
+import {consumeMagicLink,customerFromSession,handleMessengerEvents,handleQrTap,handleTap,issueDeviceQr,offerForTap,type IdentityDeps,type MetaDb,type OfferDeps} from '../apps/api/src/meta/identity';
 import {invocationSink} from '../apps/api/src/meta/evidence';
 import {applyStripeWebhook,reconcileTapOrder,startTapCheckout,type StripeDeps} from '../apps/api/src/meta/tap-checkout';
 import {createMetaRouter} from '../packages/meta-ai/src/router';
@@ -103,6 +103,23 @@ test('new customer: tap → Messenger consent → web session; replays and dupli
  assert.equal(await customerFromSession(deps,s!.sessionToken),null);
  const fourth=sunParams(TAG_A,UID_A,4);
  assert.equal((await handleTap(deps,TAG_A,fourth.e,fourth.m,s!.sessionToken)).kind,'messenger');
+});
+
+test('Mini QR: a short-lived link opens a tap session for its device like NFC, at most 5 times, then expires',{skip},async()=>{
+ const q=await issueDeviceQr(deps,DEV_A);
+ assert.ok(q&&q.url.startsWith(`${deps.publicOrigin}/meta/q/`));assert.ok(Date.parse(q!.expiresAt)-Date.now()<=180_000);
+ const tok=q!.url.split('/').pop()!;
+ const r=await handleQrTap(deps,tok,null);
+ assert.equal(r.kind,'messenger');assert.match((r as any).url,/^https:\/\/m\.me\/bitposdemoa\?ref=/);
+ const row=(await admin.query('SELECT device_id,via,tag_id FROM meta_tap_sessions WHERE id=$1',[(r as any).tapSessionId])).rows[0];
+ assert.deepEqual([row.device_id,row.via,row.tag_id],[DEV_A,'qr',null]);
+ for(let i=0;i<4;i++)assert.equal((await handleQrTap(deps,tok,null)).kind,'messenger');
+ assert.equal((await handleQrTap(deps,tok,null)).kind,'replayed');// 6th use
+ assert.equal((await handleQrTap(deps,'x'.repeat(43),null)).kind,'replayed');
+ assert.equal((await handleQrTap(deps,'bad',null)).kind,'invalid');
+ const old=await issueDeviceQr(deps,DEV_A);await admin.query("UPDATE meta_device_qr_links SET created_at=created_at-interval '10 minutes',expires_at=expires_at-interval '10 minutes'");
+ assert.equal((await handleQrTap(deps,old!.url.split('/').pop()!,null)).kind,'replayed');
+ assert.equal(await issueDeviceQr(deps,'00000000-0000-4000-8000-0000000000ff'),null);
 });
 
 test('declining consent stores no link',{skip},async()=>{
