@@ -12,13 +12,14 @@ import {serveMcp} from './mcp';
 import {cancelReservation,screenTags,staffReservations,sweepLapsed,tableScreen} from './reservations';
 import {screenHtml,screenKey,screenKeyValid} from './screen';
 import {approveDraft,draftOffer,listOffersOverview,rejectDraft,revokePolicy,stopOffer,OfferPolicyError,type DraftView,type OfferPolicyDeps,type PolicyView} from './offer-policy';
-import {allowModelCall,bookingMessages,handleAgentRequest,planChatOrder,QUICK,type ChatAgentDeps} from './agent';
+import {allowModelCall,bookingMessages,handleAgentRequest,planChatOrder,planPhotoOrder,QUICK,type ChatAgentDeps} from './agent';
+import type {LiveDeps} from './live-voice';
 import {AsrError,asrConfigFromEnv,MAX_WAV_BYTES,transcribe,type AsrConfig,type AsrFetch} from './voice';
 import {randomBytes} from 'node:crypto';
 import {AsyncLocalStorage} from 'node:async_hooks';
 import {aiHtml,customerHtml,photo,staffHtml} from './ui';
 import {servePos} from './pos';
-import {cartChatReceipt,cartOrderMerchant,handOverCart} from './cart';
+import {CartError,cartChatReceipt,cartOrderMerchant,formatCart,handOverCart,parseCart,quoteCart,startCart,type CartLine} from './cart';
 import {receiptAvailable,receiptImageKeyValid,receiptImageUrl,receiptPng} from './receipt-image';
 import {deviceKeyValid,deviceView} from './device';
 import {readFile} from 'node:fs/promises';
@@ -250,7 +251,7 @@ export async function serveMeta(req:http.IncomingMessage,res:http.ServerResponse
   if(o?.status==='CONFIRMED'){page(res,200,'จ่ายแล้ว ✓',['ร้านได้รับออเดอร์แล้ว รับที่เคาน์เตอร์ได้เลย','Paid — pick it up at the counter.',`รหัสรับสินค้า / Pickup code: <strong>${esc(o.pickupCode)}</strong>`,'กลับไปที่ Messenger ได้เลย / You can go back to Messenger.','<small>Stripe sandbox · test mode · no real money</small>']);return true;}
   page(res,202,'กำลังตรวจสอบการชำระเงิน',['ยังไม่ได้รับการยืนยันจาก Stripe ลองรีเฟรชอีกครั้ง','Waiting for Stripe to confirm. Refresh in a moment.']);return true;
  }
- if(path==='/meta/order'||path==='/meta/order/pay'||path==='/meta/order/add'||path==='/meta/order/voice')return serveWebOrder(req,res,deps,url,log);
+ if(path==='/meta/order'||path==='/meta/order/pay'||path==='/meta/order/add'||path==='/meta/order/voice'||path==='/meta/order/cartpay'||path==='/meta/order/photo')return serveWebOrder(req,res,deps,url,log);
  if(path==='/meta/staff'||path.startsWith('/meta/staff/'))return STAFF_CTX.run({active:path.replace(/^(\/meta\/staff\/[a-z]+).*$/,'$1'),me:null,shop:''},()=>serveStaff(req,res,deps,url,log));
  const mcp=path.match(/^\/meta\/mcp\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[89ab][0-9a-f]{3}-[0-9a-f]{12})$/);
  if(mcp){
@@ -284,6 +285,13 @@ async function sendReceipt(deps:MetaRouteDeps,merchantId:string,orderId:string,l
   }
   await sendMessenger(msg,{kind:'receipt',psid:r.psid,receipt:r.receipt,fallbackText:r.text,quick:QUICK},f);
  }catch{log('Receipt send failed');}
+}
+/** What the live voice WebSocket needs: the customer's session cookie and the shared model-call cap. */
+export function liveDepsOf(deps:MetaRouteDeps):LiveDeps{
+ const who=(req:http.IncomingMessage)=>customerFromSession(deps.identity,cookieValue(req.headers.cookie));
+ return {asr:deps.asr??null,publicOrigin:deps.identity.publicOrigin,log:m=>deps.log?.(m),allow:linkId=>allowModelCall(linkId,10),
+  customer:async req=>(await who(req))?.linkId??null,
+  keywords:async req=>{const me=await who(req),chat=chatDeps(deps);return me&&chat?(await listMenu(chat,me.merchantId)).flatMap(i=>[i.name,i.nameEn]):[];}};
 }
 function chatDeps(deps:MetaRouteDeps):ChatAgentDeps|null{
  return deps.offers?{db:deps.identity.db,offers:deps.offers,stripe:deps.stripe??null,router:deps.offers.router,publicOrigin:deps.identity.publicOrigin,shopMerchant:deps.demoMerchant??null}:null;
@@ -463,16 +471,17 @@ async function serveWebOrder(req:http.IncomingMessage,res:http.ServerResponse,de
  if(method==='POST'&&!allowAttempt(req,Date.now(),orderPosts,30,60_000)){page(res,429,'ลองใหม่ภายหลัง',['ส่งคำสั่งถี่เกินไป รอสักครู่แล้วลองใหม่','Too many requests. Wait a moment and try again.']);return true;}
  const nonce=randomBytes(16).toString('base64');
  const headers={'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store','Referrer-Policy':'same-origin','X-Content-Type-Options':'nosniff','Permissions-Policy':'microphone=(self)',
-  'Content-Security-Policy':`default-src 'none'; style-src 'unsafe-inline'; img-src 'self' https: data:; connect-src 'self'; script-src 'nonce-${nonce}'; form-action 'self' https://checkout.stripe.com`};
+  'Content-Security-Policy':`default-src 'none'; style-src 'unsafe-inline'; img-src 'self' https: data:; connect-src 'self' wss://${new URL(deps.identity.publicOrigin).host}; script-src 'nonce-${nonce}'; form-action 'self' https://checkout.stripe.com`};
  const menu=(await listMenu(chat,me.merchantId)).filter(i=>i.payable);
  const hint=menu.slice(0,3).map(i=>`ขอ${i.name} 1 แก้ว`);
  // Design C11 as a modern assistant: dark thread, glowing orb that follows the mic level, glass dock with input and chips.
- const show=(status:number,o:{you?:string;reply?:string;by?:string;result?:string;note?:string})=>{
-  const thread=o.you||o.note||o.result?`${o.you?`<div class="msg me"><div class="tx">${esc(o.you)}</div></div>`:''}${o.reply?`<div class="msg"><span class="av"></span><div class="tx">${esc(o.reply).replace(/\n/g,'<br>')}${o.by?`<div><small>✦ ${esc(o.by)}</small></div>`:''}</div></div>`:''}${o.result?`<div class="glass">${o.result}</div>`:''}${o.note?`<div class="note">${o.note}</div>`:''}`
+ const show=(status:number,o:{you?:string;youImg?:string;reply?:string;by?:string;result?:string;note?:string})=>{
+  const thread=o.you||o.youImg||o.note||o.result?`${o.youImg?`<div class="msg me"><img class="shot" src="${esc(o.youImg)}" alt="รูปที่ส่ง"></div>`:''}${o.you?`<div class="msg me"><div class="tx">${esc(o.you)}</div></div>`:''}${o.reply?`<div class="msg"><span class="av"></span><div class="tx">${esc(o.reply).replace(/\n/g,'<br>')}${o.by?`<div><small>✦ ${esc(o.by)}</small></div>`:''}</div></div>`:''}${o.result?`<div class="glass">${o.result}</div>`:''}${o.note?`<div class="note">${o.note}</div>`:''}`
    :`<div class="hello"><h1>อยากทานอะไรดีคะ?</h1><p class="mu">แตะลูกแก้วแล้วพูดได้เลย หรือพิมพ์ด้านล่าง<br>Muse Spark ช่วยเลือก ร้านคิดราคาเอง</p></div>`;
   const dock=`<div class="orbw"><button type="button" id="mic" class="orb" aria-label="กดแล้วพูด / Tap to speak"><span>🎙️</span></button><div id="live" class="live"></div><div id="st" class="st">แตะเพื่อพูด</div>
 <div class="lang"><a class="on" href="#" data-l="th-TH">ไทย</a><a href="#" data-l="en-US">English</a></div></div>
-<form method="post" action="/meta/order" id="f" class="aibar"><input name="q" id="q" maxlength="300" placeholder="พิมพ์ เช่น ${esc(hint[0]??'ขอลาเต้ 1 แก้ว')}" required autocomplete="off"><button aria-label="ส่ง">↑</button></form>
+<form method="post" action="/meta/order/photo" id="pf" hidden><input type="hidden" name="img" id="img"></form><input type="file" id="cam" accept="image/*" capture="environment" hidden>
+<form method="post" action="/meta/order" id="f" class="aibar"><button type="button" id="camb" class="cam" aria-label="ถ่ายรูปสั่ง / Order from a photo">📷</button><input name="q" id="q" maxlength="300" placeholder="พิมพ์ เช่น ${esc(hint[0]??'ขอลาเต้ 1 แก้ว')}" required autocomplete="off"><button aria-label="ส่ง">↑</button></form>
 ${hint.length?`<div class="sugg">${hint.map(h=>`<form method="post" action="/meta/order"><input type="hidden" name="q" value="${esc(h)}"><button>${esc(h)}</button></form>`).join('')}<form method="get" action="/menu"><button>☕ ดูเมนูทั้งหมด</button></form></div>`:''}`;
   const errs={'not-allowed':'เบราว์เซอร์ไม่ได้รับสิทธิ์ใช้ไมค์ · กดอนุญาตที่ไอคอนไมค์ในแถบที่อยู่ และเปิดใน System Settings › Privacy & Security › Microphone',
    'service-not-allowed':'Safari ต้องเปิด Dictation ก่อน (System Settings › Keyboard › Dictation) หรือใช้ Chrome',
@@ -498,15 +507,26 @@ const wav=(chunks,rate)=>{let n=0;for(const c of chunks)n+=c.length;const ratio=
 // Push-to-talk recorder: the orb follows the level; stops after ~1.2 s of quiet once speech was heard, or 15 s.
 const start=async()=>{let s;try{s=await navigator.mediaDevices.getUserMedia({audio:{channelCount:1,echoCancellation:true,noiseSuppression:true}});}
  catch(e){say(e&&e.name==='NotFoundError'?msg['audio-capture']:msg['not-allowed']);return;}
- const C=window.AudioContext||window.webkitAudioContext;let c;try{c=new C({sampleRate:16000});}catch(e){c=new C();}
- const src=c.createMediaStreamSource(s),p=c.createScriptProcessor(4096,1,1),chunks=[],t0=performance.now();let heard=false,quiet=0;
+ const C=window.AudioContext||window.webkitAudioContext;let c;try{c=new C({sampleRate:24000});}catch(e){c=new C();}
+ const src=c.createMediaStreamSource(s),p=c.createScriptProcessor(2048,1,1),chunks=[],t0=performance.now();let heard=false,quiet=0;
+ // Live transcript: stream 24 kHz PCM16 to the shop's proxy (Muse Voice Transcribe realtime); the clip is kept too as a fallback.
+ const live24=c.sampleRate===24000;let ws=null,finals=[],partial='';
+ if(live24){try{ws=new WebSocket((location.protocol==='https:'?'wss://':'ws://')+location.host+'/meta/order/live');ws.binaryType='arraybuffer';
+  ws.onmessage=e=>{let m;try{m=JSON.parse(e.data);}catch(x){return;}
+   if(m.type==='transcript'){if(m.final){finals.push(m.transcript);partial='';}else partial=m.transcript;live.textContent=(finals.join(' ')+' '+partial).trim();}
+   else if(m.type==='ready')say('กำลังฟัง (Muse สด)… พูดจบแล้วรอสักครู่ หรือแตะเพื่อหยุด');
+   else if(m.type==='closed'||m.type==='error'){ws.done=true;if(ws.wait)ws.wait();}};
+  ws.onclose=()=>{ws.done=true;if(ws.wait)ws.wait();};}catch(x){ws=null;}}
  p.onaudioprocess=e=>{const d=e.inputBuffer.getChannelData(0);chunks.push(new Float32Array(d));let m=0;for(let i=0;i<d.length;i+=8)m=Math.max(m,Math.abs(d[i]));
+  if(ws&&ws.readyState===1){const pcm=new Int16Array(d.length);for(let i=0;i<d.length;i++){const v=Math.max(-1,Math.min(1,d[i]));pcm[i]=v<0?v*32768:v*32767;}ws.send(pcm.buffer);}
   b.style.setProperty('--lvl',Math.min(1,m*2.2).toFixed(3));if(m>0.06){heard=true;quiet=0;}else if(heard)quiet+=d.length/c.sampleRate;
   if((heard&&quiet>1.2)||performance.now()-t0>15000)stop();};
- src.connect(p);p.connect(c.destination);rec={s,c,p,chunks};b.classList.add('on');say('กำลังฟัง… พูดจบแล้วรอสักครู่ หรือแตะเพื่อหยุด');};
-const stop=async()=>{if(!rec)return;const {s,c,p,chunks}=rec;rec=null;p.disconnect();s.getTracks().forEach(t=>t.stop());const rate=c.sampleRate;c.close();b.style.setProperty('--lvl','0');
- if(chunks.length<3){b.classList.remove('on');say('สั้นเกินไป แตะแล้วพูดอีกครั้ง');return;}
+ src.connect(p);p.connect(c.destination);rec={s,c,p,chunks,ws,text:()=>(finals.join(' ')+' '+partial).trim()};b.classList.add('on');say('กำลังฟัง… พูดจบแล้วรอสักครู่ หรือแตะเพื่อหยุด');};
+const stop=async()=>{if(!rec)return;const {s,c,p,chunks,ws,text}=rec;rec=null;p.disconnect();s.getTracks().forEach(t=>t.stop());const rate=c.sampleRate;c.close();b.style.setProperty('--lvl','0');
+ if(chunks.length<3){if(ws)ws.close();b.classList.remove('on');say('สั้นเกินไป แตะแล้วพูดอีกครั้ง');return;}
  busy=true;say('Muse กำลังฟังเสียงของคุณ…');
+ // Live session first: ask for the last results and wait briefly; fall back to the recorded clip if nothing came.
+ if(ws&&ws.readyState===1){ws.send(JSON.stringify({type:'end'}));await new Promise(ok=>{if(ws.done)return ok();ws.wait=ok;setTimeout(ok,6000);});ws.close();const t=text();if(t){busy=false;send(t);return;}}
  try{const r=await fetch('/meta/order/voice',{method:'POST',headers:{'Content-Type':'audio/wav'},body:wav(chunks,rate),credentials:'same-origin'});
   const j=await r.json().catch(()=>({}));busy=false;
   if(r.ok&&j.transcript){send(j.transcript);return;}
@@ -522,15 +542,37 @@ const browser=()=>{said='';st.dataset.err='';live.textContent='';sr=new SR();sr.
  sr.onend=()=>{sr=null;b.classList.remove('on');if(said)send(said);else if(!st.dataset.err)say('แตะเพื่อพูด');};
  try{sr.start();}catch(err){sr=null;say('เริ่มฟังไม่ได้ ลองอีกครั้ง');}};
 b.onclick=()=>{if(busy)return;if(rec){stop();return;}if(sr){sr.stop();return;}if(fallback&&SR)browser();else start();};
-f.addEventListener('submit',()=>say('Muse Spark กำลังคิด…'));})();`;
+f.addEventListener('submit',()=>say('Muse Spark กำลังคิด…'));
+// Photo order: shrink to 768 px JPEG in the page, then post it once; the shop never stores the photo.
+const cam=document.getElementById('cam');document.getElementById('camb').onclick=()=>cam.click();
+cam.onchange=()=>{const file=cam.files&&cam.files[0];if(!file)return;say('กำลังย่อรูป…');const im=new Image(),u=URL.createObjectURL(file);
+ im.onload=()=>{const k=Math.min(1,768/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);c.getContext('2d').drawImage(im,0,0,c.width,c.height);URL.revokeObjectURL(u);
+  document.getElementById('img').value=c.toDataURL('image/jpeg',0.82);say('Muse Spark กำลังดูรูป…');b.classList.add('on');document.getElementById('pf').submit();};
+ im.onerror=()=>say('เปิดรูปนี้ไม่ได้ ลองรูปอื่นนะคะ');im.src=u;};})();`;
   res.writeHead(status,headers);res.end(aiHtml({title:'สั่งด้วยเสียง',back:'/menu',nonce,script,dock},thread));return true as const;
  };
  const quoteCard=(q:{quoteId:string;total:string;quantity:number;name:string;nameEn:string},item?:MenuItem)=>{const img=photo(item?.imageUrl);
   return `<div><div class="row" style="border:0;padding:0;margin:0">${img?`<img src="${esc(img)}" alt="">`:`<div class="ic">${esc(item?.emoji??'☕')}</div>`}<div class="t"><b>${esc(q.name)} × ${q.quantity}</b><small>${esc(q.nameEn)}${item?.offer?` · <span class="pill rd">โปร −${item.offer.discountPercent}%</span>`:''}</small></div><div class="r">${esc(q.total)}</div></div>
 <form method="post" action="/meta/order/pay"><input type="hidden" name="quote" value="${esc(q.quoteId)}"><button>จ่าย ${esc(q.total)} ด้วย Stripe</button></form><small class="mu">ราคาจากร้าน ล็อก 10 นาที · บัตรทดสอบ 4242 4242 4242 4242</small></div>`;};
+ const CART_NOTE:Partial<Record<CartError['code'],string>>={OUT_OF_STOCK:'มีเมนูที่ของไม่พอค่ะ ลองลดจำนวน',NOT_FOUND:'มีเมนูที่ร้านนำออกแล้ว',BELOW_MINIMUM:'ยอดต่ำกว่าขั้นต่ำของ Stripe',EMPTY:'ยังไม่มีรายการค่ะ',PAYMENTS_UNAVAILABLE:'ตอนนี้ยังรับชำระไม่ได้ค่ะ'};
+ const cartCard=(q:Awaited<ReturnType<typeof quoteCart>>,lines:CartLine[])=>`${q.lines.map(l=>{const img=photo(l.imageUrl);return `<div class="row" style="border:0;padding:4px 0;margin:0">${img?`<img src="${esc(img)}" alt="">`:`<span class="ic">${esc(l.emoji)}</span>`}<div class="t"><b>${esc(l.name)} × ${l.quantity}</b><small>${esc(l.nameEn)}${l.offer?' · <span class="pill rd">โปร</span>':''}</small></div><div class="r">${esc(l.amount)}</div></div>`;}).join('')}
+${/[1-9]/.test(q.discount)?`<div class="tot"><span class="mu">ส่วนลดที่ร้านอนุมัติ</span><span style="color:var(--gr)">−${esc(q.discount)}</span></div>`:''}<div class="tot b"><span>รวม</span><span>${esc(q.total)}</span></div>
+<form method="post" action="/meta/order/cartpay"><input type="hidden" name="cart" value="${esc(formatCart(lines))}"><button>จ่าย ${esc(q.total)} ด้วย Stripe</button></form><small class="mu">ราคาจากร้าน คิดใหม่ตอนกดจ่าย · บัตรทดสอบ 4242 4242 4242 4242</small>`;
  const menuRows=(items:MenuItem[])=>`<div class="lst">${items.slice(0,8).map(i=>`<form method="post" action="/meta/order/add"><input type="hidden" name="id" value="${esc(i.productId)}"><button class="row" style="width:100%;text-align:left;font-weight:400;background:#fff">${photo(i.imageUrl)?`<img src="${esc(photo(i.imageUrl)!)}" alt="">`:`<span class="ic">${esc(i.emoji)}</span>`}<span class="t"><b>${esc(i.name)} · ${esc(i.nameEn)}</b><small>${i.offer?`โปร −${i.offer.discountPercent}% · `:''}กดเพื่อสั่ง 1 ชิ้น</small></span><span class="r">${esc(i.price.display)}</span></button></form>`).join('')}</div>`;
  try{
   if(url.pathname==='/meta/order'&&method==='GET')return show(200,{});
+  if(url.pathname==='/meta/order/photo'&&method==='POST'){
+   // One photo (JPEG data URL made by the page, ≤ ~600 KB) → Muse Spark picks a listed item → tappable rows priced by the server.
+   const raw=await rawBody(req,900_000);
+   const img=raw?new URLSearchParams(raw.toString('utf8')).get('img')??'':'';
+   const m=img.match(/^data:image\/jpeg;base64,([A-Za-z0-9+/]+={0,2})$/),bytes=m?Buffer.from(m[1],'base64'):null;
+   if(!bytes||bytes.length>650_000||bytes[0]!==0xff||bytes[1]!==0xd8||bytes[2]!==0xff)return show(400,{note:'รูปนี้ใช้ไม่ได้ ลองถ่ายใหม่นะคะ / Use a JPEG photo.'});
+   const p=await planPhotoOrder(chat,me.merchantId,me.linkId,img);
+   if(p.kind==='error')return show(409,{youImg:img,note:esc(p.text)});
+   const shown=[...(p.match?[p.match]:[]),...p.alternatives];
+   log(`Photo order (${p.match?p.confidence:'no match'})`);
+   return show(200,{youImg:img,reply:p.reply+(p.match&&p.confidence!=='high'?'\nไม่แน่ใจ 100% ตรวจก่อนสั่งนะคะ':''),by:p.by,result:menuRows(shown.length?shown:menu)});
+  }
   if(url.pathname==='/meta/order/voice'&&method==='POST'){
    // One push-to-talk clip → Muse Voice Transcribe → transcript only. Counts against the customer's model-call cap.
    if(!deps.asr){json(res,503,{error:'ASR_UNAVAILABLE'});return true;}
@@ -556,12 +598,23 @@ f.addEventListener('submit',()=>say('Muse Spark กำลังคิด…'));}
    if(!text)return show(400,{note:'พิมพ์หรือพูดก่อนนะคะ / Please say or type something.'});
    const plan=await planChatOrder(chat,me.merchantId,me.linkId,text);
    if(plan.kind==='quote')return show(200,{you:text,reply:plan.reply,by:plan.by,result:quoteCard(plan.quote,plan.item)});
+   if(plan.kind==='cart'){
+    try{return show(200,{you:text,reply:plan.reply,by:plan.by,result:cartCard(await quoteCart(chat,me.merchantId,plan.lines),plan.lines)});}
+    catch(e){if(e instanceof CartError)return show(409,{you:text,note:esc(CART_NOTE[e.code]??'ตรวจรายการอีกครั้งนะคะ'),result:menuRows(menu)});throw e;}
+   }
    if(plan.kind==='menu')return show(200,{you:text,reply:plan.reply,by:plan.by,result:menuRows(plan.items)});
    if(plan.kind==='help')return show(200,{you:text,reply:plan.reply,by:plan.by,result:menuRows(menu)});
    if(plan.kind==='book'){const m=bookingMessages('0',plan.result,plan.reply);
     return show(200,{you:text,reply:m.map(x=>x.kind==='text'||x.kind==='buttons'?x.text:'').filter(Boolean).join('\n'),by:plan.by,
      result:m.filter(x=>x.kind==='cards').map(x=>x.kind==='cards'?`<div class="card"><b>${esc(x.cards[0].title)}</b><br><small class="mu">${esc(x.cards[0].subtitle??'')}</small><div class="mu" style="margin-top:6px">ยกเลิกหรือดูการจองได้ใน Messenger › ออเดอร์ของฉัน</div></div>`:'').join('')});}
    return show(409,{you:text,note:esc(plan.text)});
+  }
+  if(url.pathname==='/meta/order/cartpay'&&method==='POST'){
+   // Several items from one sentence: one cart order for this connected customer, priced again by the server now.
+   const lines=parseCart(body.get('cart'));
+   try{const r=await startCart(chat,me.merchantId,lines,{channel:'web',linkId:me.linkId,publicOrigin:deps.identity.publicOrigin});
+    res.writeHead(303,{Location:r.checkoutUrl,'Cache-Control':'no-store','Referrer-Policy':'no-referrer'});res.end();return true;}
+   catch(e){if(e instanceof CartError)return show(409,{note:esc(CART_NOTE[e.code]??'ตรวจรายการอีกครั้งนะคะ'),result:menuRows(menu)});throw e;}
   }
   if(url.pathname==='/meta/order/pay'&&method==='POST'){
    const r=await startAgentCheckout(chat,me.merchantId,me.linkId,body.get('quote'),deps.identity.publicOrigin);

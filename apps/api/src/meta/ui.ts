@@ -89,6 +89,7 @@ const AI_CSS=`body.ai{background:#070B18;color:#EEF2FF;min-height:100vh;backgrou
 .aibar input{flex:1;border:0;background:transparent;color:#fff;font:inherit;padding:10px 0;margin:0;outline:none}.aibar input::placeholder{color:#8F9AB8}.aibar button{width:44px;height:44px;border-radius:22px;padding:0;margin:0;font-size:18px;background:linear-gradient(135deg,#0866FF,#7A3FF2)}
 .sugg{display:flex;gap:8px;overflow-x:auto;padding:10px 0 2px;scrollbar-width:none}.sugg form{flex:none}.sugg button{width:auto;margin:0;padding:8px 14px;border-radius:18px;font-size:13px;font-weight:500;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);color:#E3E9FF}
 .lang{display:flex;gap:6px;justify-content:center}.lang a{font-size:12px;padding:3px 10px;border-radius:12px;color:#9AA4BF;border:1px solid rgba(255,255,255,.12)}.lang a.on{color:#fff;background:rgba(255,255,255,.14)}
+.cam{flex:none;width:40px!important;height:40px!important;background:rgba(255,255,255,.1)!important;font-size:18px!important}.shot{max-width:200px;max-height:200px;border-radius:18px;border:2px solid rgba(255,255,255,.2);object-fit:cover}
 .ai .note{background:rgba(255,190,70,.12);color:#FFD58A;border:1px solid rgba(255,190,70,.25);margin-left:40px}
 @keyframes breathe{0%,100%{filter:saturate(1)}50%{filter:saturate(1.4) brightness(1.08)}}@keyframes ring{0%{transform:scale(1);opacity:.8}100%{transform:scale(1.6);opacity:0}}@keyframes spin{to{filter:hue-rotate(360deg)}}
 @keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}

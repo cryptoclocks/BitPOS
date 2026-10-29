@@ -22,7 +22,8 @@ if(!dbUrl||!/^postgres(ql)?:\/\/[^@]*@(127\.0\.0\.1|localhost)(:\d+)?\//.test(db
 Object.assign(process.env,{DATABASE_URL:dbUrl,ADMIN_DATABASE_URL:dbUrl,AUTH_URL:'http://127.0.0.1:9',AUTH_ANON_KEY:'unused',APP_SECRET:randomBytes(32).toString('hex'),
  PUBLIC_URL:env.META_PUBLIC_URL,SOLANA_RPC:'https://api.devnet.solana.com',DEVNET_PRIVATE_DIR:'/nonexistent'});
 const {effectiveCatalog}=await import('../../apps/api/src/catalog');
-const {serveMeta,metaRouteDepsFromEnv,startReservationSweeper}=await import('../../apps/api/src/meta/routes');
+const {serveMeta,metaRouteDepsFromEnv,startReservationSweeper,liveDepsOf}=await import('../../apps/api/src/meta/routes');
+const {handleLiveUpgrade}=await import('../../apps/api/src/meta/live-voice');
 const {serveShop}=await import('../../apps/api/src/meta/shop');
 
 const pool=new pg.Pool({connectionString:dbUrl,max:5,options:'-c search_path=bitpos,public'});
@@ -37,10 +38,13 @@ deps.log=msg=>console.log(new Date().toISOString(),msg);
 startReservationSweeper(deps);
 const port=Number(env.META_PORT??3101);
 
-http.createServer(async(req,res)=>{
+const server=http.createServer(async(req,res)=>{
  const started=Date.now();
  try{if(!(await serveShop(req,res,deps))&&!(await serveMeta(req,res,deps))){res.writeHead(404,{'Content-Type':'text/plain'});res.end('not found');}}
  catch{if(!res.headersSent){res.writeHead(500,{'Content-Type':'text/plain'});res.end('error');}}
  // Path only: query strings can carry one-time tokens.
  console.log(new Date().toISOString(),req.method,(req.url??'').split('?')[0],res.statusCode,`${Date.now()-started}ms`);
-}).listen(port,'127.0.0.1',()=>console.log(`meta-only server on http://127.0.0.1:${port} (messenger ${deps.messenger?'on':'off'}, stripe ${deps.stripe?'on':'off'}, offers ${deps.offers?.router?'muse spark':'fallback'})`));
+});
+// Live voice transcript (WebSocket proxy to Muse Voice Transcribe realtime).
+server.on('upgrade',(req,socket,head)=>{if(!handleLiveUpgrade(req,socket,head,liveDepsOf(deps)))socket.destroy();});
+server.listen(port,'127.0.0.1',()=>console.log(`meta-only server on http://127.0.0.1:${port} (messenger ${deps.messenger?'on':'off'}, stripe ${deps.stripe?'on':'off'}, offers ${deps.offers?.router?'muse spark':'fallback'})`));

@@ -38,6 +38,7 @@ export type MessengerEvent=
  {kind:'menu';pageId:string;psid:string;timestamp:number}|
  {kind:'my_orders';pageId:string;psid:string;timestamp:number}|
  {kind:'welcome';pageId:string;psid:string;timestamp:number}|
+ {kind:'photo';pageId:string;psid:string;timestamp:number;url:string}|
  {kind:'cart_add';pageId:string;psid:string;timestamp:number;cart:string}|
  {kind:'cart_pay';pageId:string;psid:string;timestamp:number;cart:string}|
  {kind:'cart_menu';pageId:string;psid:string;timestamp:number;cart:string}|
@@ -54,6 +55,11 @@ const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}
 const CART=/^BITPOS_CART_(ADD|PAY|MENU):((?:[0-9a-f-]{36}:[0-9]{1,2})(?:,[0-9a-f-]{36}:[0-9]{1,2}){0,9})$/;
 const ANY_UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
+/** A photo the customer sent: only Messenger's own https CDN hosts (the model fetches it; nothing else is followed). */
+export function messengerImageUrl(u:unknown):u is string{
+ if(typeof u!=='string'||u.length>2048)return false;
+ try{const x=new URL(u);return x.protocol==='https:'&&!x.username&&!x.password&&/(^|\.)(fbcdn\.net|fbsbx\.com)$/.test(x.hostname);}catch{return false;}
+}
 /** Turns a `page` webhook body into the BitPOS events it carries; anything else is ignored. */
 export function parseMessengerWebhook(body:unknown):ParsedEvent[]{
  const b=body as any;
@@ -83,6 +89,8 @@ export function parseMessengerWebhook(body:unknown):ParsedEvent[]{
     const m=payload.slice(16).match(/^(?:date:(\d{4}-\d{2}-\d{2})|time:(\d{2}:\d{2})|at:(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2}))$/);
     if(m)event={...base,kind:'book_set',date:m[1]??m[3]??null,time:m[2]??m[4]??null};
    }
+   else if(!payload&&m.message?.is_echo!==true&&Array.isArray(m.message?.attachments)&&m.message.attachments[0]?.type==='image'&&messengerImageUrl(m.message.attachments[0]?.payload?.url))
+    event={...base,kind:'photo',url:m.message.attachments[0].payload.url};
    else if(!payload&&m.message?.is_echo!==true&&typeof m.message?.text==='string'&&m.message.text.trim())event={...base,kind:'text',text:m.message.text.trim().slice(0,300)};
    if(!event)continue;
    const mid=typeof m.message?.mid==='string'?m.message.mid:'';

@@ -3,15 +3,15 @@
 // (Muse Spark) and Stripe are stubbed: no Meta API credit is used. Queries run as `bitpos_app` under RLS.
 import {test,before,after} from 'node:test';
 import assert from 'node:assert/strict';
-import {createHash,createHmac,randomBytes} from 'node:crypto';
+import {createHash,createHmac,randomBytes,randomUUID} from 'node:crypto';
 import http from 'node:http';
 import type {AddressInfo} from 'node:net';
 import pg from 'pg';
 import type {MetaDb,OfferDeps,IdentityDeps} from '../apps/api/src/meta/identity';
 import {handleMessengerEvents} from '../apps/api/src/meta/identity';
-import {parseMessengerWebhook,sendMessenger} from '../apps/api/src/meta/messenger';
+import {messengerImageUrl,parseMessengerWebhook,sendMessenger} from '../apps/api/src/meta/messenger';
 import type {EffectiveMenu} from '../apps/api/src/offers';
-import {decideStep,handleAgentRequest,matchItem,type ChatAgentDeps} from '../apps/api/src/meta/agent';
+import {decideStep,handleAgentRequest,matchItem,planPhotoOrder,type ChatAgentDeps} from '../apps/api/src/meta/agent';
 import {agentReceipt,listMenu,reconcileAgentCheckout} from '../apps/api/src/meta/agent-orders';
 import {cartChatReceipt} from '../apps/api/src/meta/cart';
 import {wavValid} from '../apps/api/src/meta/voice';
@@ -171,16 +171,17 @@ test('web order page: signed-in customers only, nonce CSP for browser speech, sa
   assert.equal(page.status,200);
   const csp=page.headers.get('content-security-policy')??'',html=await page.text();
   const nonce=csp.match(/script-src 'nonce-([A-Za-z0-9+/=]+)'/)?.[1];
-  assert.ok(nonce);assert.ok(html.includes(`<script nonce="${nonce}">`));assert.match(html,/th-TH/);
+  assert.ok(nonce);assert.ok(html.includes(`<script nonce="${nonce}">`));
+  const js=html.split(`<script nonce="${nonce}">`)[1].split('</script>')[0];assert.doesNotThrow(()=>new Function(js),'page script parses');assert.match(js,/\/meta\/order\/live/);assert.match(csp,/connect-src 'self' wss:\/\//);assert.match(html,/th-TH/);
   assert.equal((await post('/meta/order',{q:'Latte'},{origin:'https://evil.example'})).status,403);
   // Muse Voice Transcribe: WAV in, transcript out; the menu names bias recognition; junk audio never reaches Muse.
-  const voice=(body:Buffer,type='audio/wav',o=origin)=>fetch(base+'/meta/order/voice',{method:'POST',body,headers:{'content-type':type,cookie,origin:o}});
+  const voice=(body:Buffer,type='audio/wav',o=origin)=>fetch(base+'/meta/order/voice',{method:'POST',body:new Uint8Array(body),headers:{'content-type':type,cookie,origin:o}});
   const v=await voice(testWav());assert.equal(v.status,200);assert.deepEqual(await v.json(),{transcript:'ขอ Latte 1 แก้ว'});
   assert.match(asrCalls[0].url,/^https:\/\/api\.meta\.example\/v1\/asr\/transcribe\?sessionId=/);assert.deepEqual([asrCalls[0].request.audioEncoding,asrCalls[0].request.mode],['WAV','PUSH_TO_TALK']);
   assert.ok(asrCalls[0].request.keywords.includes('Latte'),'menu names as keywords');
   assert.equal((await voice(Buffer.from('not a wav at all, just some bytes......................'))).status,400);
   assert.equal((await voice(testWav(),'text/plain')).status,415);assert.equal((await voice(testWav(),'audio/wav','https://evil.example')).status,403);
-  assert.equal((await fetch(base+'/meta/order/voice',{method:'POST',body:testWav(),headers:{'content-type':'audio/wav',origin}})).status,401,'signed-in customers only');
+  assert.equal((await fetch(base+'/meta/order/voice',{method:'POST',body:new Uint8Array(testWav()),headers:{'content-type':'audio/wav',origin}})).status,401,'signed-in customers only');
   assert.equal(asrCalls.length,1,'only the valid clip was sent to Muse');
   const quote=await post('/meta/order',{q:'ขอ Latte 1 แก้ว'});
   assert.equal(quote.status,200);const qh=await quote.text();
@@ -265,4 +266,33 @@ function testWav(rate=16000,channels=1,ms=500):Buffer{
 test('WAV check: RIFF/WAVE integer PCM mono 16 or 24 kHz only',()=>{
  assert.ok(wavValid(testWav()));assert.ok(wavValid(testWav(24000)));
  assert.ok(!wavValid(testWav(44100)),'44.1 kHz');assert.ok(!wavValid(testWav(16000,2)),'stereo');assert.ok(!wavValid(Buffer.alloc(100)));
+});
+
+test('free matcher: several items in one sentence become a cart, with Thai or digit quantities; longer names win',()=>{
+ const item=(id:string,name:string,nameEn:string)=>({productId:id,name,nameEn,emoji:'',category:null,available:9,imageUrl:null,price:{amountMinor:'400',currency:'USD',display:'$4.00'},basePrice:{amountMinor:'400',display:'$4.00'},offer:null,payable:true}) as any;
+ const L='11111111-1111-4111-8111-000000000001',I='11111111-1111-4111-8111-000000000002',C='11111111-1111-4111-8111-000000000003';
+ const items=[item(L,'ลาเต้','Latte'),item(I,'ลาเต้เย็น','Iced Latte'),item(C,'ครัวซองต์','Croissant')];
+ const a=matchItem('ขอลาเต้สองแก้วกับครัวซองต์หนึ่งชิ้นค่ะ',items) as any;
+ assert.equal(a.action,'cart');assert.deepEqual(a.lines,[{productId:L,quantity:2},{productId:C,quantity:1}]);
+ const b=matchItem('2 iced latte and a croissant',items) as any;
+ assert.deepEqual(b.lines,[{productId:I,quantity:2},{productId:C,quantity:1}],'Iced Latte (not Latte), number before the name');
+ const c=matchItem('ขอลาเต้ 3 แก้ว',items) as any;assert.deepEqual([c.action,c.productId,c.quantity],['quote',L,3]);
+ assert.equal(matchItem('สวัสดี',items).action,'menu');
+});
+
+test('photo order: Messenger CDN images only; Muse Spark picks a listed item; the server prices it',{skip},async()=>{
+ assert.ok(messengerImageUrl('https://scontent.xx.fbcdn.net/v/t1/abc.jpg?x=1'));assert.ok(messengerImageUrl('https://cdn.fbsbx.com/v/a.jpg'));
+ for(const bad of ['http://scontent.fbcdn.net/a.jpg','https://evil.example/fbcdn.net.jpg','https://fbcdn.net.evil.example/a.jpg','https://u:p@x.fbcdn.net/a',''])assert.ok(!messengerImageUrl(bad),bad);
+ const ev=msg(PSID,{message:{mid:'p1',attachments:[{type:'image',payload:{url:'https://scontent.xx.fbcdn.net/v/a.jpg'}}]}},80)[0].event as any;
+ assert.deepEqual([ev.kind,ev.url],['photo','https://scontent.xx.fbcdn.net/v/a.jpg']);
+ assert.equal(msg(PSID,{message:{mid:'p2',attachments:[{type:'image',payload:{url:'https://evil.example/a.jpg'}}]}},81).length,0,'other hosts ignored');
+ let seen:any=null;
+ const router={invoke:async(r:any)=>{seen=r;return {value:{productId:latte,alternatives:[latte,'none'],confidence:'medium',replyTh:'เหมือนลาเต้เลยค่ะ',replyEn:'Looks like a latte'},invocation:{id:randomUUID()},attempts:[]};}} as any;
+ const pd:ChatAgentDeps={...deps,router,modelCallsPerHour:50};
+ const p=await planPhotoOrder(pd,A,linkId,'data:image/jpeg;base64,/9j/AAAA') as any;
+ assert.equal(p.kind,'photo');assert.equal(p.match.productId,latte);assert.equal(p.alternatives.length,0,'no repeat of the match');
+ assert.equal(seen.messages[1].content[1].type,'image_url');
+ const out=await handleAgentRequest(pd,{merchantId:A,linkId,psid:PSID,kind:'photo',url:'https://scontent.xx.fbcdn.net/v/a.jpg'}) as any[];
+ assert.match(out[0].text,/ไม่แน่ใจ/,'medium confidence is said');assert.equal(out[1].cards[0].buttons[0].payload,`BITPOS_CART_ADD:${latte}:1`);
+ const none=await planPhotoOrder({...deps,router:null},A,linkId,'data:image/jpeg;base64,/9j/AAAA');assert.equal(none.kind,'error','no model, no guess');
 });

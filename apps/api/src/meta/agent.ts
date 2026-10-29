@@ -18,6 +18,7 @@ import {CartError,customerCartOrders,formatCart,parseCart,quoteCart,startCart,ty
 export interface ChatAgentDeps extends AgentDeps {router:MetaRouter|null;publicOrigin:string;modelCallsPerHour?:number;shopMerchant?:string|null}
 type By={chosenBy:'model'|'fallback';invocationId?:string|null};
 export type AgentStep=({action:'quote';productId:string;quantity:number;replyTh:string;replyEn:string}|
+ {action:'cart';lines:{productId:string;quantity:number}[];replyTh:string;replyEn:string}|
  {action:'book';booking:BookingFields;replyTh:string;replyEn:string}|
  {action:'menu'|'help';replyTh:string;replyEn:string})&By;
 /** What the agent knows besides the message: today in Bangkok and a booking the customer is part-way through. */
@@ -31,6 +32,7 @@ const DEFAULT={quote:['ได้เลยค่ะ ตรวจรายกา�
 const SYSTEM=`You take orders for a small cafe in Facebook Messenger.
 Read the customer's message and choose exactly one action:
 - "quote": the customer clearly wants one item from the list; set productId to that item and quantity (1-10, default 1).
+- "cart": the customer wants two or more different items in one message; put each in lines as {productId, quantity} (quantity 1-10, default 1), at most 5 lines.
 - "menu": the customer asks what is available, or the item is unclear or not in the list.
 - "book": the customer wants to reserve a table, or answers a question about a booking in progress (pendingBooking). Fill bookingDate as YYYY-MM-DD (use today's date for "today"), bookingTime as HH:MM in 24-hour time (for example Thai "1 ทุ่ม" is 19:00, "บ่าย 2" is 14:00), and partySize; use "" or 0 for anything the customer did not say. Do not guess a time.
 - "help": anything else (greetings, questions you cannot answer).
@@ -53,26 +55,45 @@ export function matchItem(text:string,items:MenuItem[],ctx?:StepContext):AgentSt
   const b=parseBooking(text,ctx.today);
   if(b.intent||ctx.pendingBooking&&(b.fields.date||b.fields.time||b.fields.partySize))return {action:'book',booking:b.fields,replyTh:'รับทราบค่ะ',replyEn:'Got it.',chosenBy:'fallback'};
  }
- const hits=items.filter(i=>[i.nameEn,i.name].some(n=>n&&t.includes(n.toLowerCase()))).sort((a,b)=>Math.max(b.nameEn.length,b.name.length)-Math.max(a.nameEn.length,a.name.length));
- const qty=Number(t.match(/\b([1-9]|10)\b/)?.[1]??1);
- if(hits.length)return {action:'quote',productId:hits[0].productId,quantity:qty,replyTh:DEFAULT.quote[0],replyEn:DEFAULT.quote[1],chosenBy:'fallback'};
+ // Every menu name in the message (longest names first, so "Iced Latte" wins over "Latte"), each with the number after it.
+ const found:{i:MenuItem;at:number;end:number}[]=[];
+ for(const i of [...items].sort((a,b)=>Math.max(b.nameEn.length,b.name.length)-Math.max(a.nameEn.length,a.name.length)))
+  for(const n of [i.nameEn,i.name].filter(Boolean).map(n=>n.toLowerCase())){
+   const at=t.indexOf(n);
+   if(at>=0&&!found.some(f=>at<f.end&&at+n.length>f.at)){found.push({i,at,end:at+n.length});break;}
+  }
+ found.sort((a,b)=>a.at-b.at);
+ const qtyAfter=(from:number,to:number)=>{const m=t.slice(from,Math.min(to,from+16)).match(/([1-9]|10)(?![0-9])|สิบ|หนึ่ง|สอง|สาม|สี่|ห้า|หก|เจ็ด|แปด|เก้า/);
+  return m?Number(m[1]??({หนึ่ง:1,สอง:2,สาม:3,สี่:4,ห้า:5,หก:6,เจ็ด:7,แปด:8,เก้า:9,สิบ:10} as Record<string,number>)[m[0]]):null;};
+ // A number right before the name ("2 iced latte") counts when none follows it.
+ const qtyBefore=(from:number,to:number)=>{const m=t.slice(from,to).match(/([1-9]|10)\s*(?:x|×)?\s*$/);return m?Number(m[1]):null;};
+ const lines=found.slice(0,5).map((f,k)=>({productId:f.i.productId,quantity:qtyAfter(f.end,found[k+1]?.at??t.length)??qtyBefore(found[k-1]?.end??0,f.at)??1}));
+ if(lines.length>1)return {action:'cart',lines,replyTh:DEFAULT.quote[0],replyEn:DEFAULT.quote[1],chosenBy:'fallback'};
+ if(lines.length){const before=t.slice(0,found[0].at).match(/([1-9]|10)(?![0-9])\s*$/);
+  return {action:'quote',productId:lines[0].productId,quantity:lines[0].quantity>1?lines[0].quantity:before?Number(before[1]):Number(t.match(/\b([1-9]|10)\b/)?.[1]??1),replyTh:DEFAULT.quote[0],replyEn:DEFAULT.quote[1],chosenBy:'fallback'};}
  return {action:'menu',replyTh:DEFAULT.menu[0],replyEn:DEFAULT.menu[1],chosenBy:'fallback'};
 }
 
 export async function decideStep(router:MetaRouter|null,merchantId:string,text:string,items:MenuItem[],ctx?:StepContext,deadlineMs=8000):Promise<AgentStep>{
  if(!router||!items.length)return matchItem(text,items,ctx);
  const ids=['none',...items.map(i=>i.productId)] as [string,...string[]];
- const schema=z.object({action:z.enum(['quote','menu','book','help']),productId:z.enum(ids),quantity:z.number().int().min(1).max(10),bookingDate:z.string().max(10),bookingTime:z.string().max(5),partySize:z.number().int().min(0).max(12),replyTh:z.string().trim().min(1).max(200),replyEn:z.string().trim().min(1).max(200)}).strict();
- const jsonSchema={type:'object',additionalProperties:false,required:['action','productId','quantity','bookingDate','bookingTime','partySize','replyTh','replyEn'],properties:{action:{type:'string',enum:['quote','menu','book','help']},bookingDate:{type:'string',maxLength:10},bookingTime:{type:'string',maxLength:5},partySize:{type:'integer',minimum:0,maximum:12},productId:{type:'string',enum:ids},quantity:{type:'integer',minimum:1,maximum:10},replyTh:{type:'string',maxLength:200},replyEn:{type:'string',maxLength:200}}};
+ const schema=z.object({action:z.enum(['quote','cart','menu','book','help']),productId:z.enum(ids),quantity:z.number().int().min(1).max(10),lines:z.array(z.object({productId:z.enum(ids),quantity:z.number().int().min(1).max(10)}).strict()).max(5),bookingDate:z.string().max(10),bookingTime:z.string().max(5),partySize:z.number().int().min(0).max(12),replyTh:z.string().trim().min(1).max(200),replyEn:z.string().trim().min(1).max(200)}).strict();
+ const jsonSchema={type:'object',additionalProperties:false,required:['action','productId','quantity','lines','bookingDate','bookingTime','partySize','replyTh','replyEn'],properties:{action:{type:'string',enum:['quote','cart','menu','book','help']},lines:{type:'array',maxItems:5,items:{type:'object',additionalProperties:false,required:['productId','quantity'],properties:{productId:{type:'string',enum:ids},quantity:{type:'integer',minimum:1,maximum:10}}}},bookingDate:{type:'string',maxLength:10},bookingTime:{type:'string',maxLength:5},partySize:{type:'integer',minimum:0,maximum:12},productId:{type:'string',enum:ids},quantity:{type:'integer',minimum:1,maximum:10},replyTh:{type:'string',maxLength:200},replyEn:{type:'string',maxLength:200}}};
  const list=items.map(i=>({productId:i.productId,item:i.nameEn,itemTh:i.name,category:i.category,onOffer:!!i.offer}));
  try{
   const r=await router.invoke({task:'agent_order',merchantId,messages:[{role:'system',content:SYSTEM},{role:'user',content:JSON.stringify({customerMessage:text,today:ctx?.today??null,timeZone:TZ,pendingBooking:ctx?.pendingBooking??null,menu:list})}],
    output:{name:'order_step',schema,jsonSchema},maxOutputTokens:2000,reasoningEffort:'minimal',deadlineMs});
   const v=r.value;
   const safe=!NO_DIGITS.test(v.replyTh)&&!NO_DIGITS.test(v.replyEn)&&!FORBIDDEN.test(v.replyTh)&&!FORBIDDEN.test(v.replyEn);
-  const [th,en]=safe?[v.replyTh,v.replyEn]:v.action==='quote'?DEFAULT.quote:v.action==='menu'?DEFAULT.menu:DEFAULT.help;
+  const [th,en]=safe?[v.replyTh,v.replyEn]:v.action==='quote'||v.action==='cart'?DEFAULT.quote:v.action==='menu'?DEFAULT.menu:DEFAULT.help;
   const by={chosenBy:'model' as const,invocationId:r.invocation.id};
   if(v.action==='book')return {action:'book',booking:{date:v.bookingDate||null,time:v.bookingTime||null,partySize:v.partySize||null},replyTh:safe?v.replyTh:'รับทราบค่ะ',replyEn:safe?v.replyEn:'Got it.',...by};
+  if(v.action==='cart'){
+   const merged=new Map<string,number>();for(const l of v.lines)if(l.productId!=='none')merged.set(l.productId,Math.min(10,(merged.get(l.productId)??0)+l.quantity));
+   const lines=[...merged].map(([productId,quantity])=>({productId,quantity}));
+   if(lines.length>1)return {action:'cart',lines,replyTh:th,replyEn:en,...by};
+   if(lines.length===1)return {action:'quote',...lines[0],replyTh:th,replyEn:en,...by};
+  }
   if(v.action==='quote'&&v.productId!=='none')return {action:'quote',productId:v.productId,quantity:v.quantity,replyTh:th,replyEn:en,...by};
   return {action:v.action==='help'?'help':'menu',replyTh:v.action==='quote'?DEFAULT.menu[0]:th,replyEn:v.action==='quote'?DEFAULT.menu[1]:en,...by};
  }catch(e){if(e instanceof MetaRouterError)return matchItem(text,items,ctx);throw e;}
@@ -84,7 +105,40 @@ const ERRORS:Partial<Record<AgentOrderError['code'],string>>={OUT_OF_STOCK:'ข�
  NOT_FOUND:'ไม่พบรายการนี้ค่ะ / Order not found.',PAYMENTS_UNAVAILABLE:'ร้านยังไม่เปิดจ่ายผ่านแชทค่ะ / Chat payments are not available.'};
 const errorText=(e:unknown)=>e instanceof AgentOrderError?ERRORS[e.code]??'ระบบขัดข้อง ลองใหม่อีกครั้งค่ะ / Something went wrong, please try again.':null;
 
-export type ChatPlan={kind:'quote';reply:string;by:string;quoteId:string;line:string;total:string;quote:QuoteView;item:MenuItem}|{kind:'menu';reply:string;by:string;lines:string[];items:MenuItem[]}|{kind:'help';reply:string;by:string}|{kind:'book';reply:string;by:string;result:BookingResult}|{kind:'error';text:string};
+export type ChatPlan={kind:'cart';reply:string;by:string;lines:CartLine[]}|{kind:'quote';reply:string;by:string;quoteId:string;line:string;total:string;quote:QuoteView;item:MenuItem}|{kind:'menu';reply:string;by:string;lines:string[];items:MenuItem[]}|{kind:'help';reply:string;by:string}|{kind:'book';reply:string;by:string;result:BookingResult}|{kind:'error';text:string};
+
+const PHOTO_SYSTEM=`You help a cafe customer order from a photo (a drink or food they saw, or a menu picture).
+Pick the one item from the list that best matches what the photo shows, or "none" if nothing in the list matches.
+Also give up to two other close items (alternatives), never repeating the match. confidence is "high", "medium" or "low".
+Use only productIds from the list; never invent items. Write a short friendly reply in Thai (replyTh) and English (replyEn), each under 120 characters, saying what you see.
+Never write numbers, prices, currency symbols or links in the replies.`;
+export type PhotoPlan={kind:'photo';reply:string;by:string;match:MenuItem|null;alternatives:MenuItem[];confidence:'high'|'medium'|'low'}|{kind:'error';text:string};
+/** A photo (data: JPEG URL or a Messenger CDN https URL) → Muse Spark picks a listed item; the server prices it after. */
+export async function planPhotoOrder(deps:ChatAgentDeps,merchantId:string,linkId:string,imageUrl:string,deadlineMs=15000):Promise<PhotoPlan>{
+ const items=(await listMenu(deps,merchantId)).filter(i=>i.payable);
+ if(!items.length)return {kind:'error',text:'ตอนนี้ยังไม่มีเมนูที่สั่งได้ค่ะ / Nothing can be ordered right now.'};
+ if(!deps.router)return {kind:'error',text:'สั่งจากรูปต้องใช้ Muse Spark ซึ่งยังไม่ได้เปิดค่ะ พิมพ์ชื่อเมนูแทนได้เลย / Photo ordering needs Muse Spark.'};
+ if(!allowModelCall(linkId,deps.modelCallsPerHour??10))return {kind:'error',text:'ใช้ AI ถี่เกินไป รอสักครู่ หรือพิมพ์ชื่อเมนูแทนนะคะ / Too many AI requests; try later or type the item.'};
+ try{return await matchPhoto(deps.router,merchantId,items,imageUrl,deadlineMs);}
+ catch(e){if(e instanceof MetaRouterError)return {kind:'error',text:'Muse Spark ดูรูปไม่ได้ตอนนี้ ลองใหม่ หรือพิมพ์ชื่อเมนูแทนนะคะ / Could not read the photo; try again or type the item.'};throw e;}
+}
+/** The model part of a photo order: one Muse Spark call over the listed items only. Throws MetaRouterError. */
+export async function matchPhoto(router:MetaRouter,merchantId:string,items:MenuItem[],imageUrl:string,deadlineMs=15000):Promise<PhotoPlan>{
+ const ids=['none',...items.map(i=>i.productId)] as [string,...string[]];
+ const schema=z.object({productId:z.enum(ids),alternatives:z.array(z.enum(ids)).max(2),confidence:z.enum(['high','medium','low']),replyTh:z.string().trim().min(1).max(200),replyEn:z.string().trim().min(1).max(200)}).strict();
+ const jsonSchema={type:'object',additionalProperties:false,required:['productId','alternatives','confidence','replyTh','replyEn'],properties:{productId:{type:'string',enum:ids},alternatives:{type:'array',maxItems:2,items:{type:'string',enum:ids}},confidence:{type:'string',enum:['high','medium','low']},replyTh:{type:'string',maxLength:200},replyEn:{type:'string',maxLength:200}}};
+ const list=items.map(i=>({productId:i.productId,item:i.nameEn,itemTh:i.name,category:i.category}));
+ {
+  const r=await router.invoke({task:'agent_order',merchantId,messages:[{role:'system',content:PHOTO_SYSTEM},{role:'user',content:[{type:'text',text:JSON.stringify({menu:list})},{type:'image_url',image_url:{url:imageUrl}}]}],
+   output:{name:'photo_match',schema,jsonSchema},maxOutputTokens:1500,reasoningEffort:'minimal',deadlineMs});
+  const v=r.value,find=(id:string)=>items.find(i=>i.productId===id)??null;
+  const safe=!NO_DIGITS.test(v.replyTh)&&!NO_DIGITS.test(v.replyEn)&&!FORBIDDEN.test(v.replyTh)&&!FORBIDDEN.test(v.replyEn);
+  const match=v.productId==='none'?null:find(v.productId);
+  const alternatives=[...new Set(v.alternatives)].filter(id=>id!=='none'&&id!==v.productId).map(find).filter((i):i is MenuItem=>!!i);
+  const reply=safe?`${v.replyTh}\n${v.replyEn}`:match?'เจอเมนูที่ใกล้เคียงค่ะ 👇\nHere is the closest item.':'ยังไม่เจอเมนูที่ตรงกับรูปค่ะ ลองเลือกจากเมนูนะคะ\nNo close match; pick from the menu.';
+  return {kind:'photo',reply,by:'Muse Spark',match,alternatives,confidence:v.confidence};
+ }
+}
 
 /** One customer message → one step (Muse Spark or the free matcher) → a server-priced quote or the menu. */
 export async function planChatOrder(deps:ChatAgentDeps,merchantId:string,linkId:string,text:string):Promise<ChatPlan>{
@@ -100,6 +154,7 @@ export async function planChatOrder(deps:ChatAgentDeps,merchantId:string,linkId:
    const item=items.find(i=>i.productId===q.productId)!;
    return {kind:'quote',reply,by,quoteId:q.quoteId,total:q.total,quote:q,item,line:`${item.emoji} ${q.name} / ${q.nameEn} ×${q.quantity} = ${q.total}${item.offer?` (โปร −${item.offer.discountPercent}%)`:''}`};
   }
+  if(step.action==='cart')return {kind:'cart',reply,by,lines:step.lines.filter(l=>CART_ID.test(l.productId))};
   if(step.action==='book')return {kind:'book',reply,by,result:await requestBooking(deps.db,merchantId,linkId,step.booking,{chosenBy:step.chosenBy,invocationId:step.invocationId??null})};
   if(step.action==='menu')return {kind:'menu',reply,by,items,lines:items.slice(0,8).map(i=>`${i.emoji} ${i.name} / ${i.nameEn} ${i.price.display}${i.offer?` (−${i.offer.discountPercent}%)`:''}`)};
   return {kind:'help',reply,by};
@@ -210,6 +265,13 @@ async function agentReplies(deps:ChatAgentDeps,req:AgentRequest):Promise<Outgoin
     return [{kind:'buttons',psid,text:`ยอดรวมจากร้าน · จ่ายทีเดียวบนหน้า Stripe Checkout\nPay the whole cart on Stripe Checkout.\n${LABEL}`,buttons:[{type:'web_url',title:'จ่าย / Pay',url:r.checkoutUrl}]}];
    }catch(e){if(e instanceof CartError)return [{kind:'text',psid,text:CART_ERR[e.code]}];throw e;}
   }
+  if(req.kind==='photo'){
+   const p=await planPhotoOrder(deps,merchantId,linkId,req.url);
+   if(p.kind==='error')return [{kind:'text',psid,text:p.text}];
+   const shown=[...(p.match?[p.match]:[]),...p.alternatives];
+   if(!shown.length)return [{kind:'text',psid,text:`${p.reply} · ${p.by}`},menuCards(deps,psid,(await listMenu(deps,merchantId)).filter(i=>i.payable),[],merchantId)];
+   return [{kind:'text',psid,text:`${p.reply} · ${p.by}${p.match&&p.confidence!=='high'?'\nไม่แน่ใจ 100% ตรวจก่อนใส่ตะกร้านะคะ':''}`},menuCards(deps,psid,shown,[],merchantId)];
+  }
   if(req.kind==='welcome'){
    // Get Started / Help for a connected customer: a picture menu of what the chat can do (no model call).
    const items=(await listMenu(deps,merchantId)).filter(i=>i.payable),pic=(n:number)=>items[n]?imageFor(deps,items[n]):undefined;
@@ -251,6 +313,7 @@ async function agentReplies(deps:ChatAgentDeps,req:AgentRequest):Promise<Outgoin
   const plan=await planChatOrder(deps,merchantId,linkId,req.text);
   const by=plan.kind!=='error'&&plan.by?` · ${plan.by}`:'';
   if(plan.kind==='quote')return [{kind:'text',psid,text:`${plan.reply}${by}`},quoteCard(deps,psid,plan.quote,plan.item,plan.by)];
+  if(plan.kind==='cart'){try{return await cartMessages(deps,merchantId,psid,plan.lines,`${plan.reply}${by}`);}catch(e){if(e instanceof CartError)return [{kind:'text',psid,text:CART_ERR[e.code]}];throw e;}}
   if(plan.kind==='menu')return [{kind:'text',psid,text:`${plan.reply}${by}`},menuCards(deps,psid,plan.items,[],merchantId)];
   if(plan.kind==='book')return bookingMessages(psid,plan.result,`${plan.reply}${by}`);
   if(plan.kind==='help')return [{kind:'buttons',psid,text:`${plan.reply}${by}`,buttons:[{type:'postback',title:'ดูเมนู / Menu',payload:'BITPOS_MENU'},{type:'postback',title:'ออเดอร์ของฉัน',payload:'BITPOS_MY_ORDERS'}]}];
