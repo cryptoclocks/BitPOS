@@ -113,3 +113,21 @@ build APK ลูกค้า/ไรเดอร์ → ติดตั้งเ�
 ## ลำดับและงานขนาน
 A → (B ∥ C ∥ D1–D3) → D4–D8 → E → F
 ห้ามชน: B แตะ apps/web; C แตะ apps/mobile-*, packages/mobile_shared; D แตะ apps/api, apps/worker, migrations — D ใช้เลข migration ต่อจาก 173 โดยจองเลขล่วงหน้า (D=174–180) กันซ้ำ
+
+## ฉบับ 3.1 — ปรับตามผลตรวจ (ใช้ฉบับนี้เป็นหลัก)
+1. **ครอบช่องที่ตกหล่น:** DS38 → D-pay (backend allocation; UI P41 = BLOCKED ตามคำตัดสินเดิม); DS40 → D-pay (HTTP route + หน้าจอ statements); DS50 → D-grp (ต่อ ops/หน้าจอ, ส่วน payment ต่อ child = BLOCKED จนกว่า DS49); DS54 → เงินสด/void/Mini = **BLOCKED (เจ้าของขอเลื่อน; ต้องออกแบบ settlement ใหม่)**, PromptPay = BLOCKED; DS23/DS20 ส่วนงานสร้าง → D-web; DS03/DS04 → เฟส C (UI) + D-web ไม่มี
+2. **BLOCKED ตั้งแต่ต้น (ระบุเหตุผลในเช็กลิสต์/CHECKPOINT):** DS49 (ใหญ่ ไม่จำเป็นต่อ Demo → ทำเป็นท้ายสุดถ้ามีเวลา), DS51 ส่วนผู้ให้บริการสมาชิก/กันโกงแนะนำเพื่อน, DS37 ผู้ให้บริการแผนที่/ETA (ทำเฉพาะพิกัดฉีดใน AVD), DS43 โทรปิดเบอร์, DS55 iOS จริง
+3. **เกณฑ์ตรวจ AVD ก่อนเฟส C/E:** รัน `adb devices`/boot emulator Pixel_10a, build APK ลูกค้า 1 ครั้ง และเปิดแอปถึงหน้าแรกได้ ถ้าไม่ได้ ให้ช่อง AVD ทั้งหมดเป็น BLOCKED พร้อมเหตุผล และเปลี่ยนไปใช้ widget/integration test แทน (ไม่ใช้เป็นหลักฐาน "เครื่องจริง")
+4. **ลำดับใหม่ (แก้ขัดกัน):**
+   - A (harness) → B (เทียบภาพ+แก้ CSS/คอมโพเนนต์ที่มีอยู่เท่านั้น ไม่แตะ API/migration)
+   - D-web (งานสร้างฝั่งเว็บที่ต้อง API: DS21, DS22, DS24, DS25, DS23, D1 หน้าสร้างคูปอง/slot) ทำ **หลัง B ของหน้านั้น** และใช้ migration ช่วงของตัวเอง
+   - D-pay (DS38–DS42, D2 ยกเลิก/SCHEDULE_DUE, DS40) **ต่อกันเป็นสายเดียว ห้ามขนาน** เพราะแตะ payments/orders/refund
+   - D-safe (DS35–DS37, DS43–DS48, DS50 ops) ขนานกับ D-pay ได้ (ไฟล์คนละส่วน)
+   - ช่อง "UI ตรงแบบ" ของ DS35–DS52 ติ๊กตอน**ท้ายชุดนั้น**หลัง render หลัง D (ไม่ใช่ใน B)
+   - C (AVD) หลังเกณฑ์ข้อ 3; E: เริ่ม DS56 (backup drill พร้อมข้อมูลออเดอร์ทดสอบ, observability) และ DS57/58 ที่ไม่ต้อง AVD ก่อน
+5. **จองทรัพยากรกันชน:**
+   - migration: D-web 174–176, D-pay 177–180, D-safe 181–184, E 185–186
+   - DB ทดสอบ: A ใช้ 55440 (หลัก); ชุดที่ทำพร้อมกันและเขียน DB สร้าง database ชื่อแยกบน cluster เดิม (เช่น `bitpos_<ชุด>_fixture`) หรือคนละพอร์ต
+   - พอร์ต: เว็บทดสอบ 4482 (A/B), API fixture 3043 (C), 4483/4484 สำรองสำหรับชุดอื่น
+   - ไฟล์ร่วม (`apps/api/src/index.ts`, openapi/contracts ที่ generate, CHECKPOINT, เช็กลิสต์): แก้เฉพาะจุดและ generate ทีละชุด; **บันทึก CHECKPOINT และติ๊กเช็กลิสต์โดย coordinator เมื่อรับงาน** ไม่ให้ subagent ชนกัน
+6. **3 งานแรกที่คุ้มสุด:** (1) A+B (ปิดช่อง actual render ได้ราว 40) (2) D-safe DS35–DS37 (เพิ่มเทส recovery + ต่อ UI) (3) E: DS56 backup drill แบบมีข้อมูล + DS57/58 รายงาน
