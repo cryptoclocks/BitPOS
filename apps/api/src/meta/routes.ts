@@ -12,7 +12,8 @@ import {serveMcp} from './mcp';
 import {cancelReservation,screenTags,staffReservations,sweepLapsed,tableScreen} from './reservations';
 import {screenHtml,screenKey,screenKeyValid} from './screen';
 import {approveDraft,draftOffer,listOffersOverview,rejectDraft,revokePolicy,stopOffer,OfferPolicyError,type DraftView,type OfferPolicyDeps,type PolicyView} from './offer-policy';
-import {bookingMessages,handleAgentRequest,planChatOrder,QUICK,type ChatAgentDeps} from './agent';
+import {allowModelCall,bookingMessages,handleAgentRequest,planChatOrder,QUICK,type ChatAgentDeps} from './agent';
+import {AsrError,asrConfigFromEnv,MAX_WAV_BYTES,transcribe,type AsrConfig,type AsrFetch} from './voice';
 import {randomBytes} from 'node:crypto';
 import {AsyncLocalStorage} from 'node:async_hooks';
 import {aiHtml,customerHtml,photo,staffHtml} from './ui';
@@ -26,7 +27,9 @@ import {MessengerError,messengerConfigFromEnv,parseMessengerWebhook,sendMessenge
 
 export interface MetaRouteDeps {identity:IdentityDeps;messenger:MessengerConfig|null;offers:OfferDeps|null;stripe?:StripeDeps|null;staff?:StaffDeps|null;fetch?:MessengerFetch;log?:(msg:string)=>void;
  /** The Meta demo shop served at the meta-pay root (META_DEMO_MERCHANT). */
- demoMerchant?:string|null}
+ demoMerchant?:string|null;
+ /** Muse Voice Transcribe for voice ordering; null → the browser's own speech recognition only. */
+ asr?:AsrConfig|null;asrFetch?:AsrFetch}
 export const COOKIE='bitpos_meta',STAFF_COOKIE='bitpos_meta_staff';
 const STAFF_SESSION_SECONDS=8*3600,MAX_FORM=4096;
 const MAX_WEBHOOK=65536;
@@ -47,7 +50,7 @@ export function metaRouteDepsFromEnv(env:Record<string,string|undefined>,db:Iden
  // The staff page needs the shop's Supabase Auth; without it /meta/staff answers 503.
  let staff:StaffDeps|null=null;try{const c=staffConfigFromEnv(env,u.origin);staff=c?{db,config:c}:null;}catch{staff=null;}
  const demo=env.META_DEMO_MERCHANT;const demoMerchant=demo&&/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(demo)?demo:null;
- return {identity:{db,masterKey:Buffer.from(master,'hex'),publicOrigin:u.origin},messenger,offers,stripe,staff,demoMerchant};
+ return {identity:{db,masterKey:Buffer.from(master,'hex'),publicOrigin:u.origin},messenger,offers,stripe,staff,demoMerchant,asr:asrConfigFromEnv(env)};
 }
 
 const esc=(s:string)=>s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]!));
@@ -247,7 +250,7 @@ export async function serveMeta(req:http.IncomingMessage,res:http.ServerResponse
   if(o?.status==='CONFIRMED'){page(res,200,'จ่ายแล้ว ✓',['ร้านได้รับออเดอร์แล้ว รับที่เคาน์เตอร์ได้เลย','Paid — pick it up at the counter.',`รหัสรับสินค้า / Pickup code: <strong>${esc(o.pickupCode)}</strong>`,'กลับไปที่ Messenger ได้เลย / You can go back to Messenger.','<small>Stripe sandbox · test mode · no real money</small>']);return true;}
   page(res,202,'กำลังตรวจสอบการชำระเงิน',['ยังไม่ได้รับการยืนยันจาก Stripe ลองรีเฟรชอีกครั้ง','Waiting for Stripe to confirm. Refresh in a moment.']);return true;
  }
- if(path==='/meta/order'||path==='/meta/order/pay'||path==='/meta/order/add')return serveWebOrder(req,res,deps,url,log);
+ if(path==='/meta/order'||path==='/meta/order/pay'||path==='/meta/order/add'||path==='/meta/order/voice')return serveWebOrder(req,res,deps,url,log);
  if(path==='/meta/staff'||path.startsWith('/meta/staff/'))return STAFF_CTX.run({active:path.replace(/^(\/meta\/staff\/[a-z]+).*$/,'$1'),me:null,shop:''},()=>serveStaff(req,res,deps,url,log));
  const mcp=path.match(/^\/meta\/mcp\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[89ab][0-9a-f]{3}-[0-9a-f]{12})$/);
  if(mcp){
@@ -460,7 +463,7 @@ async function serveWebOrder(req:http.IncomingMessage,res:http.ServerResponse,de
  if(method==='POST'&&!allowAttempt(req,Date.now(),orderPosts,30,60_000)){page(res,429,'ลองใหม่ภายหลัง',['ส่งคำสั่งถี่เกินไป รอสักครู่แล้วลองใหม่','Too many requests. Wait a moment and try again.']);return true;}
  const nonce=randomBytes(16).toString('base64');
  const headers={'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store','Referrer-Policy':'same-origin','X-Content-Type-Options':'nosniff','Permissions-Policy':'microphone=(self)',
-  'Content-Security-Policy':`default-src 'none'; style-src 'unsafe-inline'; img-src 'self' https: data:; script-src 'nonce-${nonce}'; form-action 'self' https://checkout.stripe.com`};
+  'Content-Security-Policy':`default-src 'none'; style-src 'unsafe-inline'; img-src 'self' https: data:; connect-src 'self'; script-src 'nonce-${nonce}'; form-action 'self' https://checkout.stripe.com`};
  const menu=(await listMenu(chat,me.merchantId)).filter(i=>i.payable);
  const hint=menu.slice(0,3).map(i=>`ขอ${i.name} 1 แก้ว`);
  // Design C11 as a modern assistant: dark thread, glowing orb that follows the mic level, glass dock with input and chips.
@@ -476,24 +479,50 @@ ${hint.length?`<div class="sugg">${hint.map(h=>`<form method="post" action="/met
    'network':'บริการแปลงเสียงของเบราว์เซอร์ต่อไม่ได้ (Chrome ใช้เซิร์ฟเวอร์ Google) ลองใหม่ หรือใช้ Safari / พิมพ์แทน',
    'no-speech':'ไม่ได้ยินเสียง ลองพูดใกล้ไมค์อีกครั้ง','audio-capture':'ไม่พบไมโครโฟนในเครื่องนี้',
    'language-not-supported':'เบราว์เซอร์นี้ยังไม่รองรับภาษานี้ ลอง English หรือพิมพ์แทน','aborted':'หยุดฟังแล้ว'};
-  const script=`(()=>{const R=window.SpeechRecognition||window.webkitSpeechRecognition,b=document.getElementById('mic'),st=document.getElementById('st'),live=document.getElementById('live'),q=document.getElementById('q'),f=document.getElementById('f');let lang='th-TH',r=null,said='',audio=null;
+  const script=`(()=>{const SR=window.SpeechRecognition||window.webkitSpeechRecognition,b=document.getElementById('mic'),st=document.getElementById('st'),live=document.getElementById('live'),q=document.getElementById('q'),f=document.getElementById('f');
+const MUSE=${deps.asr?'true':'false'};let lang='th-TH',busy=false,rec=null,sr=null,said='';
 window.scrollTo(0,document.body.scrollHeight);
 const msg=${JSON.stringify(errs)};
+const say=t=>{st.textContent=t;};
 document.querySelectorAll('[data-l]').forEach(a=>a.onclick=e=>{e.preventDefault();lang=a.dataset.l;document.querySelectorAll('[data-l]').forEach(x=>x.classList.toggle('on',x===a));});
-if(!R){b.disabled=true;b.classList.add('off');st.textContent='เบราว์เซอร์นี้พูดสั่งไม่ได้ (ใช้ Chrome หรือ Safari) · พิมพ์แทนได้';return;}
-if(!window.isSecureContext){b.disabled=true;b.classList.add('off');st.textContent='ต้องเปิดผ่าน https เพื่อใช้ไมค์';return;}
-// The orb follows the voice level (Web Audio, local only; nothing is recorded or sent).
-const level=async()=>{try{const s=await navigator.mediaDevices.getUserMedia({audio:true}),c=new AudioContext(),a=c.createAnalyser();a.fftSize=256;c.createMediaStreamSource(s).connect(a);const d=new Uint8Array(a.frequencyBinCount);
- audio={s,c};const tick=()=>{if(!audio)return;a.getByteFrequencyData(d);let m=0;for(const v of d)m+=v;b.style.setProperty('--lvl',Math.min(1,m/d.length/90).toFixed(3));requestAnimationFrame(tick);};tick();}catch(e){}};
-const stopLevel=()=>{if(audio){audio.s.getTracks().forEach(t=>t.stop());audio.c.close();audio=null;}b.style.setProperty('--lvl','0');};
-const idle=()=>{b.classList.remove('on');stopLevel();if(!said)st.textContent=st.dataset.err||'แตะเพื่อพูด';};
-b.onclick=()=>{if(r){r.stop();return;}said='';st.dataset.err='';live.textContent='';r=new R();r.lang=lang;r.interimResults=true;r.continuous=false;r.maxAlternatives=1;
- r.onstart=()=>{b.classList.add('on');st.textContent='กำลังฟัง… แตะอีกครั้งเพื่อหยุด';level();};
- r.onresult=e=>{let t='',fin=false;for(const x of e.results){t+=x[0].transcript;fin=fin||x.isFinal;}live.textContent=t;if(fin)said=t.trim();};
- r.onerror=e=>{st.dataset.err=msg[e.error]||('ไมค์ใช้ไม่ได้ ('+e.error+') · พิมพ์แทนได้');st.textContent=st.dataset.err;};
- r.onend=()=>{r=null;idle();if(said){q.value=said;st.textContent='Muse Spark กำลังคิด…';b.classList.add('on');f.submit();}};
- try{r.start();}catch(err){r=null;st.textContent='เริ่มฟังไม่ได้ ลองอีกครั้ง';}};
-f.addEventListener('submit',()=>{st.textContent='Muse Spark กำลังคิด…';});})();`;
+if(!window.isSecureContext){b.disabled=true;b.classList.add('off');say('ต้องเปิดผ่าน https เพื่อใช้ไมค์');return;}
+const canRecord=MUSE&&navigator.mediaDevices&&navigator.mediaDevices.getUserMedia&&(window.AudioContext||window.webkitAudioContext);
+if(!canRecord&&!SR){b.disabled=true;b.classList.add('off');say('เบราว์เซอร์นี้พูดสั่งไม่ได้ · พิมพ์แทนได้');return;}
+const send=t=>{q.value=t;live.textContent=t;say('Muse Spark กำลังคิด…');b.classList.add('on');f.submit();};
+// 16 kHz mono 16-bit PCM WAV, the format Muse Voice Transcribe takes.
+const wav=(chunks,rate)=>{let n=0;for(const c of chunks)n+=c.length;const ratio=rate/16000,len=Math.floor(n/ratio),pcm=new Int16Array(len);const all=new Float32Array(n);let o=0;for(const c of chunks){all.set(c,o);o+=c.length;}
+ for(let i=0;i<len;i++){const v=Math.max(-1,Math.min(1,all[Math.floor(i*ratio)]));pcm[i]=v<0?v*32768:v*32767;}
+ const h=new DataView(new ArrayBuffer(44)),w=(p,s)=>{for(let i=0;i<s.length;i++)h.setUint8(p+i,s.charCodeAt(i));};
+ w(0,'RIFF');h.setUint32(4,36+pcm.byteLength,true);w(8,'WAVE');w(12,'fmt ');h.setUint32(16,16,true);h.setUint16(20,1,true);h.setUint16(22,1,true);h.setUint32(24,16000,true);h.setUint32(28,32000,true);h.setUint16(32,2,true);h.setUint16(34,16,true);w(36,'data');h.setUint32(40,pcm.byteLength,true);
+ return new Blob([h.buffer,pcm.buffer],{type:'audio/wav'});};
+// Push-to-talk recorder: the orb follows the level; stops after ~1.2 s of quiet once speech was heard, or 15 s.
+const start=async()=>{let s;try{s=await navigator.mediaDevices.getUserMedia({audio:{channelCount:1,echoCancellation:true,noiseSuppression:true}});}
+ catch(e){say(e&&e.name==='NotFoundError'?msg['audio-capture']:msg['not-allowed']);return;}
+ const C=window.AudioContext||window.webkitAudioContext;let c;try{c=new C({sampleRate:16000});}catch(e){c=new C();}
+ const src=c.createMediaStreamSource(s),p=c.createScriptProcessor(4096,1,1),chunks=[],t0=performance.now();let heard=false,quiet=0;
+ p.onaudioprocess=e=>{const d=e.inputBuffer.getChannelData(0);chunks.push(new Float32Array(d));let m=0;for(let i=0;i<d.length;i+=8)m=Math.max(m,Math.abs(d[i]));
+  b.style.setProperty('--lvl',Math.min(1,m*2.2).toFixed(3));if(m>0.06){heard=true;quiet=0;}else if(heard)quiet+=d.length/c.sampleRate;
+  if((heard&&quiet>1.2)||performance.now()-t0>15000)stop();};
+ src.connect(p);p.connect(c.destination);rec={s,c,p,chunks};b.classList.add('on');say('กำลังฟัง… พูดจบแล้วรอสักครู่ หรือแตะเพื่อหยุด');};
+const stop=async()=>{if(!rec)return;const {s,c,p,chunks}=rec;rec=null;p.disconnect();s.getTracks().forEach(t=>t.stop());const rate=c.sampleRate;c.close();b.style.setProperty('--lvl','0');
+ if(chunks.length<3){b.classList.remove('on');say('สั้นเกินไป แตะแล้วพูดอีกครั้ง');return;}
+ busy=true;say('Muse กำลังฟังเสียงของคุณ…');
+ try{const r=await fetch('/meta/order/voice',{method:'POST',headers:{'Content-Type':'audio/wav'},body:wav(chunks,rate),credentials:'same-origin'});
+  const j=await r.json().catch(()=>({}));busy=false;
+  if(r.ok&&j.transcript){send(j.transcript);return;}
+  b.classList.remove('on');
+  if(r.ok)say('ไม่ได้ยินคำสั่ง ลองพูดอีกครั้งนะคะ');else if(r.status===429)say('ใช้เสียงถี่เกินไป รอสักครู่ หรือพิมพ์แทน');else if(SR){say('Muse ฟังไม่ได้ตอนนี้ ลองใช้เสียงของเบราว์เซอร์แทน… แตะอีกครั้ง');fallback=true;}else say('แปลงเสียงไม่ได้ ลองอีกครั้ง หรือพิมพ์แทน');}
+ catch(e){busy=false;b.classList.remove('on');say('ส่งเสียงไม่สำเร็จ ลองอีกครั้ง');}};
+let fallback=!canRecord;
+// Browser speech recognition, used only when Muse is not available.
+const browser=()=>{said='';st.dataset.err='';live.textContent='';sr=new SR();sr.lang=lang;sr.interimResults=true;sr.continuous=false;
+ sr.onstart=()=>{b.classList.add('on');say('กำลังฟัง (เบราว์เซอร์)… แตะอีกครั้งเพื่อหยุด');};
+ sr.onresult=e=>{let t='',fin=false;for(const x of e.results){t+=x[0].transcript;fin=fin||x.isFinal;}live.textContent=t;if(fin)said=t.trim();};
+ sr.onerror=e=>{st.dataset.err=msg[e.error]||('ไมค์ใช้ไม่ได้ ('+e.error+') · พิมพ์แทนได้');say(st.dataset.err);};
+ sr.onend=()=>{sr=null;b.classList.remove('on');if(said)send(said);else if(!st.dataset.err)say('แตะเพื่อพูด');};
+ try{sr.start();}catch(err){sr=null;say('เริ่มฟังไม่ได้ ลองอีกครั้ง');}};
+b.onclick=()=>{if(busy)return;if(rec){stop();return;}if(sr){sr.stop();return;}if(fallback&&SR)browser();else start();};
+f.addEventListener('submit',()=>say('Muse Spark กำลังคิด…'));})();`;
   res.writeHead(status,headers);res.end(aiHtml({title:'สั่งด้วยเสียง',back:'/menu',nonce,script,dock},thread));return true as const;
  };
  const quoteCard=(q:{quoteId:string;total:string;quantity:number;name:string;nameEn:string},item?:MenuItem)=>{const img=photo(item?.imageUrl);
@@ -502,6 +531,17 @@ f.addEventListener('submit',()=>{st.textContent='Muse Spark กำลังค�
  const menuRows=(items:MenuItem[])=>`<div class="lst">${items.slice(0,8).map(i=>`<form method="post" action="/meta/order/add"><input type="hidden" name="id" value="${esc(i.productId)}"><button class="row" style="width:100%;text-align:left;font-weight:400;background:#fff">${photo(i.imageUrl)?`<img src="${esc(photo(i.imageUrl)!)}" alt="">`:`<span class="ic">${esc(i.emoji)}</span>`}<span class="t"><b>${esc(i.name)} · ${esc(i.nameEn)}</b><small>${i.offer?`โปร −${i.offer.discountPercent}% · `:''}กดเพื่อสั่ง 1 ชิ้น</small></span><span class="r">${esc(i.price.display)}</span></button></form>`).join('')}</div>`;
  try{
   if(url.pathname==='/meta/order'&&method==='GET')return show(200,{});
+  if(url.pathname==='/meta/order/voice'&&method==='POST'){
+   // One push-to-talk clip → Muse Voice Transcribe → transcript only. Counts against the customer's model-call cap.
+   if(!deps.asr){json(res,503,{error:'ASR_UNAVAILABLE'});return true;}
+   if(!/^audio\/(wav|x-wav)$/.test(String(req.headers['content-type']??''))){json(res,415,{error:'WAV_REQUIRED'});return true;}
+   const wav=await rawBody(req,MAX_WAV_BYTES);
+   if(!wav){json(res,413,{error:'AUDIO_TOO_LONG'});return true;}
+   if(!allowModelCall(me.linkId,10)){json(res,429,{error:'RATE_LIMITED'});return true;}
+   try{const t=await transcribe(deps.asr,wav,menu.flatMap(i=>[i.name,i.nameEn]),deps.asrFetch);log(`Voice transcribed (${t.durationMs} ms audio)`);json(res,200,{transcript:t.transcript});}
+   catch(e){const code=e instanceof AsrError?e.code:'FAILED';log(`Voice transcribe failed: ${code}`);json(res,code==='AUDIO_INVALID'?400:code==='RATE_LIMITED'?429:502,{error:code});}
+   return true;
+  }
   const body=await formBody(req);
   if(!body){page(res,413,'คำขอใหญ่เกินไป',['Request too large.']);return true;}
   if(url.pathname==='/meta/order/add'&&method==='POST'){

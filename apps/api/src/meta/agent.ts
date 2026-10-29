@@ -38,7 +38,7 @@ Use only productIds from the list; never invent items. Write a short friendly re
 Never write numbers, prices, quantities, currency symbols or links in the replies; the shop adds the order details and the price itself.`;
 
 const calls=new Map<string,number[]>();
-function allowModelCall(linkId:string,perHour:number,now=Date.now()):boolean{
+export function allowModelCall(linkId:string,perHour:number,now=Date.now()):boolean{
  const recent=(calls.get(linkId)??[]).filter(t=>now-t<3_600_000);
  if(recent.length>=perHour){calls.set(linkId,recent);return false;}
  recent.push(now);calls.set(linkId,recent);

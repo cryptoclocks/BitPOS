@@ -14,6 +14,7 @@ import type {EffectiveMenu} from '../apps/api/src/offers';
 import {decideStep,handleAgentRequest,matchItem,type ChatAgentDeps} from '../apps/api/src/meta/agent';
 import {agentReceipt,listMenu,reconcileAgentCheckout} from '../apps/api/src/meta/agent-orders';
 import {cartChatReceipt} from '../apps/api/src/meta/cart';
+import {wavValid} from '../apps/api/src/meta/voice';
 import {handleRpc} from '../apps/api/src/meta/mcp';
 import {applyStripeWebhook} from '../apps/api/src/meta/tap-checkout';
 import {serveMeta,type MetaRouteDeps} from '../apps/api/src/meta/routes';
@@ -155,7 +156,10 @@ test('return page: Stripe lookup confirms once; a redirect alone proves nothing'
 test('web order page: signed-in customers only, nonce CSP for browser speech, same quote and Checkout as chat',{skip},async()=>{
  const token=randomBytes(32).toString('base64url');
  await admin.query("INSERT INTO meta_customer_sessions(merchant_id,link_id,token_sha256,expires_at) VALUES($1,$2,$3,clock_timestamp()+interval '1 day')",[A,linkId,createHash('sha256').update(token).digest()]);
- const routeDeps:MetaRouteDeps={identity,messenger:null,offers:{menu:deps.offers.menu,router:null},stripe:deps.stripe};
+ const asrCalls:{url:string;request:any;audio:number}[]=[];
+ const asrFetch=async(u:string,init:RequestInit)=>{const f=init.body as FormData;asrCalls.push({url:u,request:JSON.parse(await (f.get('request') as Blob).text()),audio:(f.get('audio') as Blob).size});
+  return new Response(JSON.stringify({sessionId:'s',transcript:'ขอ Latte 1 แก้ว',audioDurationMs:1200,turns:[]}),{status:200});};
+ const routeDeps:MetaRouteDeps={identity,messenger:null,offers:{menu:deps.offers.menu,router:null},stripe:deps.stripe,asr:{baseUrl:'https://api.meta.example/v1',apiKey:'k',model:'muse-voice-transcribe-1.0'},asrFetch};
  const server=http.createServer(async(req,res)=>{if(!(await serveMeta(req,res,routeDeps))){res.writeHead(404);res.end();}});
  await new Promise<void>(r=>server.listen(0,'127.0.0.1',r));
  const base=`http://127.0.0.1:${(server.address() as AddressInfo).port}`;
@@ -169,6 +173,15 @@ test('web order page: signed-in customers only, nonce CSP for browser speech, sa
   const nonce=csp.match(/script-src 'nonce-([A-Za-z0-9+/=]+)'/)?.[1];
   assert.ok(nonce);assert.ok(html.includes(`<script nonce="${nonce}">`));assert.match(html,/th-TH/);
   assert.equal((await post('/meta/order',{q:'Latte'},{origin:'https://evil.example'})).status,403);
+  // Muse Voice Transcribe: WAV in, transcript out; the menu names bias recognition; junk audio never reaches Muse.
+  const voice=(body:Buffer,type='audio/wav',o=origin)=>fetch(base+'/meta/order/voice',{method:'POST',body,headers:{'content-type':type,cookie,origin:o}});
+  const v=await voice(testWav());assert.equal(v.status,200);assert.deepEqual(await v.json(),{transcript:'ขอ Latte 1 แก้ว'});
+  assert.match(asrCalls[0].url,/^https:\/\/api\.meta\.example\/v1\/asr\/transcribe\?sessionId=/);assert.deepEqual([asrCalls[0].request.audioEncoding,asrCalls[0].request.mode],['WAV','PUSH_TO_TALK']);
+  assert.ok(asrCalls[0].request.keywords.includes('Latte'),'menu names as keywords');
+  assert.equal((await voice(Buffer.from('not a wav at all, just some bytes......................'))).status,400);
+  assert.equal((await voice(testWav(),'text/plain')).status,415);assert.equal((await voice(testWav(),'audio/wav','https://evil.example')).status,403);
+  assert.equal((await fetch(base+'/meta/order/voice',{method:'POST',body:testWav(),headers:{'content-type':'audio/wav',origin}})).status,401,'signed-in customers only');
+  assert.equal(asrCalls.length,1,'only the valid clip was sent to Muse');
   const quote=await post('/meta/order',{q:'ขอ Latte 1 แก้ว'});
   assert.equal(quote.status,200);const qh=await quote.text();
   assert.match(qh,/\$4\.00/);
@@ -241,4 +254,15 @@ test('Get Started: a connected customer gets the picture menu; a stranger gets h
  assert.equal(s.agent.length,0,'a stranger never reaches the agent');
  const g=s.outbox[0] as any;assert.equal(g.kind,'cards');assert.match(g.cards[0].buttons[0].url,/\/help#tap$/);
  assert.equal(routerCalls,calls0);
+});
+
+/** A short 16 kHz mono 16-bit PCM WAV of silence. */
+function testWav(rate=16000,channels=1,ms=500):Buffer{
+ const n=Math.floor(rate*ms/1000)*channels*2,b=Buffer.alloc(44+n);
+ b.write('RIFF',0);b.writeUInt32LE(36+n,4);b.write('WAVE',8);b.write('fmt ',12);b.writeUInt32LE(16,16);b.writeUInt16LE(1,20);b.writeUInt16LE(channels,22);
+ b.writeUInt32LE(rate,24);b.writeUInt32LE(rate*channels*2,28);b.writeUInt16LE(channels*2,32);b.writeUInt16LE(16,34);b.write('data',36);b.writeUInt32LE(n,40);return b;
+}
+test('WAV check: RIFF/WAVE integer PCM mono 16 or 24 kHz only',()=>{
+ assert.ok(wavValid(testWav()));assert.ok(wavValid(testWav(24000)));
+ assert.ok(!wavValid(testWav(44100)),'44.1 kHz');assert.ok(!wavValid(testWav(16000,2)),'stereo');assert.ok(!wavValid(Buffer.alloc(100)));
 });
