@@ -82,6 +82,11 @@ export async function tickOnlineAcceptance(){
  }
 }
 /** Local migration candidate: TTL reads still fail closed when maintenance is down. */
+/** DS42: scheduled orders whose server-published kitchen release time has arrived. SQL is once-only (SKIP LOCKED + state CAS). */
+export async function tickScheduledOrders(){
+ try{await pool.query('SELECT bitpos.schedule168_release_due(50)');}
+ catch{console.error('Scheduled order release unavailable; durable bookings retained');}
+}
 export async function tickRidePrivacy(){
  if((await pool.query("SELECT to_regprocedure('bitpos.ride_privacy_purge()') IS NOT NULL AS ready")).rows[0].ready)
   await pool.query('SELECT bitpos.ride_privacy_purge()');
@@ -107,6 +112,7 @@ export async function runWorker(signal:AbortSignal,fixture?:PromotionJobFixture)
   {tick,unavailable:'Reconciliation unavailable; durable state retained'},
   {tick:tickRidePrivacy,unavailable:'Ride privacy maintenance unavailable; expired location/text remain hidden by TTL reads'},
   {tick:tickOnlineAcceptance,unavailable:'Online acceptance unavailable; durable state retained'},
+  {tick:tickScheduledOrders,unavailable:'Scheduled order release unavailable; durable state retained'},
   {tick:tickDelegatedGrants,unavailable:'Delegated lifecycle unavailable; durable state retained'},
   {tick:tickPromotions,unavailable:'Promotion lifecycle unavailable; durable state retained'},
   {tick:tickTableOccupancies,unavailable:'Table inactivity reconciliation unavailable; durable state retained'},

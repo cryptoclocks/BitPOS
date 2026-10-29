@@ -1,7 +1,7 @@
 import type pg from'pg';import{z}from'zod';import{RequestError}from'./authority';import type{QuoteRow}from'./types';
 const uuid=z.string().uuid(),reference=z.object({quoteId:uuid,sourceQuoteId:uuid,holdId:uuid,checkoutReady:z.literal(false)}).strict();
 const facts=z.object({id:uuid,merchant_id:uuid,source_account_id:uuid,source_branch_id:uuid,origin_kind:z.literal('online'),coupon098_version:z.literal(1),total_minor:z.string().regex(/^[1-9][0-9]{0,17}$/),usdg_minor:z.string().regex(/^[1-9][0-9]{0,17}$/),request_hash:z.string().regex(/^[a-f0-9]{64}$/)}).passthrough();
-function boundary(error:unknown):never{
+export function boundary(error:unknown):never{
  if(error instanceof Error){const code=(error as{code?:string}).code,message=error.message;
   if(message==='AUTH_REQUIRED')throw new RequestError(401,'AUTH_REQUIRED');if(message==='RESOURCE_NOT_FOUND')throw new RequestError(404,'RESOURCE_NOT_FOUND');if(message==='IDEMPOTENCY_CONFLICT')throw new RequestError(409,'IDEMPOTENCY_CONFLICT');
   if(['55P03','57014','40001','40P01'].includes(code??''))throw new RequestError(409,'DISPATCH_AUTH_RETRY');
