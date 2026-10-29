@@ -3598,3 +3598,9 @@ Method: the real debug apps (`flutter build apk --debug` with `BITPOS_FIXTURE` a
 - Flutter customer: `MerchantBranchCard` closed chip; menu shows shared `BitPosStateView(closed)` with the server next-open time; menu and cart stay usable and nothing is cleared.
 - Tests: `tests/backend-branch-open-now.test.ts` 2 PASS 0 skipped (DB); mobile-wire 38 PASS; mobile-customer flutter 311 PASS (1 pre-existing skip); mobile_shared 187 PASS.
 - Not done: orders are not refused outside hours; per-branch hours; out-of-zone BLOCKED (no zone field in branch discovery; delivery eligibility is only in the delivery quote); no real-device/AVD run; not applied to any shared or actual-use DB.
+
+## 2026-10-29 WP1 real-render comparison, POS / Pay / Platform web
+- Rendered the built `apps/web` (HOST=127.0.0.1 PORT=4482, PUBLIC_URL baked) against a synthetic mock API at 1440 and 390, EN and TH: 39 POS frames (156 shots), 9 Pay/table states (40 shots), platform hub + 8 signed-out pages (36 shots). Report and scripts: `design/figcraft/handoff/comparison-20261029/pos-web-render.md` and `render/` (`serve.sh`, `mock-api.mjs`, `capture-*.mjs`). Fixture data only; not a live stack.
+- Fixed: `.catalog-table{position:relative}` (390 page-level horizontal scroll on Products/Stock/Suppliers/Users); TableMenu and PayMenu now default Thai and share `bitpos.pay.language` with the pay page.
+- Findings: POS all minor; PL01 (hub is a table, design cards) and PL11 (inline sign-in, design centred card) are structural differences kept as the app, FigCraft redraw not done. Not rendered: P40, Pay cart/approval/consent/refund/ready, platform signed-in pages (need wallet/session/schema-valid fixtures). No checklist boxes ticked.
+- Validation: tsc 0 errors in apps/web; `tests/web-*.test.ts` 86 pass, 0 fail; `astro build` PASS.

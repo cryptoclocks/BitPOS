@@ -35,7 +35,7 @@ export default function TableMenu({entry}:{entry:string}){
  useEffect(()=>{if(detailId&&!products.some(p=>p.id===detailId)){setDetailId(null);menuSearch.current?.focus({preventScroll:true});}},[detailId,products]);
  const [desktop,setDesktop]=useState(false);
  useEffect(()=>{const media=window.matchMedia('(min-width: 1100px)');const update=()=>setDesktop(media.matches);update();media.addEventListener('change',update);return()=>media.removeEventListener('change',update);},[]);
- const [cartOpen,setCartOpen]=useState(false);const [language,setLanguage]=useState<'en'|'th'>('en');const [search,setSearch]=useState('');
+ const [cartOpen,setCartOpen]=useState(false);const [language,setLanguageState]=useState<'en'|'th'>('th');const setLanguage=(next:'en'|'th')=>{setLanguageState(next);try{localStorage.setItem('bitpos.pay.language',next);}catch{/* keep the choice for this visit only */}};useEffect(()=>{try{if(localStorage.getItem('bitpos.pay.language')==='en')setLanguageState('en');}catch{/* default stays Thai */}},[]);const [search,setSearch]=useState('');
  const [permission,setPermission]=useState<DelegatedPermission|null>(null);const permissionCurrent=useRef(permission);permissionCurrent.current=permission;
  const [visitCleared,setVisitCleared]=useState(false);const editing=useRef(false);
  const choosePermission=useCallback((p:DelegatedPermission|null)=>{setPermission(p);const v=current.current;if(v?.phase==='review'&&v.quote.delegationGrantId!==p?.grantId){editing.current=true;persist({phase:'draft',items:v.items,collection:v.collection,requestId:v.requestId,visitToken:v.visitToken,offer:v.offer});}},[]);
