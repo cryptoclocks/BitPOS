@@ -16,6 +16,8 @@ import {agentReceipt,listMenu,reconcileAgentCheckout} from '../apps/api/src/meta
 import {cartChatReceipt} from '../apps/api/src/meta/cart';
 import {wavValid} from '../apps/api/src/meta/voice';
 import {kitchenStages,setKitchenStage} from '../apps/api/src/meta/kitchen';
+import {chatCart,saveChatCart,talkCart} from '../apps/api/src/meta/cart-agent';
+import {postsByDraft,publishPost} from '../apps/api/src/meta/social';
 import {handleRpc} from '../apps/api/src/meta/mcp';
 import {applyStripeWebhook} from '../apps/api/src/meta/tap-checkout';
 import {serveMeta,type MetaRouteDeps} from '../apps/api/src/meta/routes';
@@ -324,4 +326,36 @@ test('table order: one cart per speaker; model output limited to listed items an
  assert.equal(r.by,'Muse Spark');assert.deepEqual(r.people.map(p=>[p.speaker,p.lines[0].quantity]),[['A',2],['B',1]],'duplicate speaker dropped');
  const f=await splitTableOrder({...deps,router:null},A,linkId,turns);
  assert.deepEqual(f.people.map(p=>[p.labelEn,p.lines[0].quantity]),[['Person 1',2],['Person 2',1]]);
+});
+
+test('cart conversation: tools edit the stored cart step by step; no prices from the model; pay; booking handed back',{skip},async()=>{
+ const runTools=(script:(call:(name:string,args:unknown)=>Promise<unknown>)=>Promise<string>)=>({invoke:async()=>{throw Error('unused');},invokeTools:async(req:any)=>{const calls:any[]=[];
+  const call=async(name:string,args:unknown)=>{const t=req.tools.find((x:any)=>x.name===name);const a=t.args.parse(args);calls.push({name,args:a,ok:true});return t.run(a);};
+  const text=await script(call);return {text,calls,invocations:[],model:'muse-spark-1.3'};}}) as any;
+ await saveChatCart(db,A,linkId,[]);
+ const one=await talkCart({...deps,router:runTools(async call=>{await call('add_item',{productId:latte,quantity:2});return 'ใส่ลาเต้ให้แล้วค่ะ ราคา $8';})},A,linkId,'ขอลาเต้สองแก้ว');
+ assert.deepEqual(one.cart,[{productId:latte,quantity:2}]);assert.doesNotMatch(one.reply,/\$|8/,'model prices removed');
+ assert.deepEqual(await chatCart(db,A,linkId),[{productId:latte,quantity:2}],'cart stored');
+ const two=await talkCart({...deps,router:runTools(async call=>{const v:any=await call('view_cart',{});assert.equal(v.lines[0].quantity,2);await call('set_quantity',{productId:latte,quantity:1});return 'เหลือแก้วเดียวค่ะ';})},A,linkId,'เอาแก้วเดียวพอ');
+ assert.equal(two.cart[0].quantity,1);
+ await assert.rejects(talkCart({...deps,router:runTools(async call=>{await call('add_item',{productId:randomUUID(),quantity:1});return '';})},A,linkId,'x'),'unknown products refused');
+ const pay=await talkCart({...deps,router:runTools(async call=>{await call('checkout',{});return 'ไปจ่ายกันค่ะ';})},A,linkId,'จ่ายเลย');assert.ok(pay.checkout);
+ const book=await talkCart({...deps,router:runTools(async call=>{await call('booking',{});return '';})},A,linkId,'จองโต๊ะ');assert.ok(book.booking);
+ await saveChatCart(db,A,linkId,[]);
+});
+
+test('Facebook post drafts: published only on request, Graph errors kept, never twice',{skip},async()=>{
+ const img=Buffer.concat([Buffer.from([0x89,0x50,0x4e,0x47]),Buffer.alloc(200)]);
+ const ins=async()=>(await admin.query<{id:string}>("INSERT INTO meta_social_posts(merchant_id,draft_id,caption,mime,image,created_by) VALUES($1,$2,'ลองเลย #MuseCafe','image/png',$3,$4) RETURNING id",[A,randomUUID(),img,randomUUID()])).rows[0].id;
+ const cfg={appSecret:'s',verifyToken:'v',pageToken:'pt',graphVersion:'v24.0',graphBase:'https://graph.example'};
+ const seen:any[]=[];
+ const ok=async(u:string,i:RequestInit)=>{seen.push({u,caption:(i.body as FormData).get('caption'),auth:(i.headers as any).Authorization});return new Response(JSON.stringify({id:'1',post_id:'123_456'}),{status:200});};
+ const id=await ins();
+ const r=await publishPost(db,cfg,A,randomUUID(),id,'แก้ข้อความแล้ว',ok);
+ assert.deepEqual(r,{ok:true,detail:'123_456'});assert.match(seen[0].u,/^https:\/\/graph\.example\/v24\.0\/\d+\/photos$/);assert.equal(seen[0].caption,'แก้ข้อความแล้ว');assert.equal(seen[0].auth,'Bearer pt');
+ await assert.rejects(publishPost(db,cfg,A,randomUUID(),id,null,ok),'never twice');
+ const id2=await ins();
+ const denied=await publishPost(db,cfg,A,randomUUID(),id2,null,async()=>new Response(JSON.stringify({error:{code:200,error_subcode:1}}),{status:403}));
+ assert.deepEqual(denied,{ok:false,detail:'403/200/1'});
+ const p=(await postsByDraft(db,A));assert.ok([...p.values()].flat().some(x=>x.id===id2&&x.state==='FAILED'&&x.failure==='403/200/1'),'failure kept for the owner');
 });

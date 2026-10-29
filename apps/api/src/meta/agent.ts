@@ -13,6 +13,7 @@ import type {AgentRequest} from './identity';
 import {cancelReservation,customerReservations,openBookingRequest,parseBooking,requestBooking,resetBookingRequest,bangkokToday,TZ,CHECKIN_MINUTES,type BookingFields,type BookingResult,type ReservationView} from './reservations';
 import type {Card,Outgoing,QuickReply} from './messenger';
 import {kitchenStages} from './kitchen';
+import {saveChatCart,talkCart} from './cart-agent';
 import {CartError,customerCartOrders,formatCart,parseCart,quoteCart,startCart,type CartLine} from './cart';
 
 /** shopMerchant: the shop served at the root of publicOrigin (meta-pay), so menu cards can link to its item pages. */
@@ -315,7 +316,7 @@ async function agentReplies(deps:ChatAgentDeps,req:AgentRequest):Promise<Outgoin
      const items=(await listMenu(deps,merchantId)).filter(i=>i.payable);
      return [{kind:'text',psid,text:'เลือกเพิ่มได้เลยค่ะ กด "ใส่ตะกร้า" แล้วจ่ายทีเดียว\nAdd more, then pay once.'},menuCards(deps,psid,items,cart,merchantId)];
     }
-    if(req.kind==='cart_add')return await cartMessages(deps,merchantId,psid,cart,'ใส่ตะกร้าแล้ว ✓ / Added to cart');
+    if(req.kind==='cart_add'){await saveChatCart(deps.db,merchantId,linkId,cart);return await cartMessages(deps,merchantId,psid,cart,'ใส่ตะกร้าแล้ว ✓ / Added to cart');}
     const r=await startCart(deps,merchantId,cart,{channel:'chat',linkId,publicOrigin:deps.publicOrigin});
     return [{kind:'buttons',psid,text:`ยอดรวมจากร้าน · จ่ายทีเดียวบนหน้า Stripe Checkout\nPay the whole cart on Stripe Checkout.\n${LABEL}`,buttons:[{type:'web_url',title:'จ่าย / Pay',url:r.checkoutUrl}]}];
    }catch(e){if(e instanceof CartError)return [{kind:'text',psid,text:CART_ERR[e.code]}];throw e;}
@@ -374,6 +375,20 @@ How about these?`},cards];
    if(!item)return [{kind:'text',psid,text:'เมนูนี้สั่งผ่านแชทไม่ได้ตอนนี้ค่ะ / This item cannot be ordered by chat now.'}];
    const q=await createQuote(deps,merchantId,'messenger',item.productId,1,linkId);
    return [quoteCard(deps,psid,q,item,'')];
+  }
+  // Conversation first: Muse Spark with tool calls edits the stored cart; booking and no-model cases use the one-step path.
+  if(deps.router&&'invokeTools' in deps.router&&allowModelCall(linkId,deps.modelCallsPerHour??10)){
+   try{
+    const t=await talkCart(deps,merchantId,linkId,req.text);
+    if(!t.booking){
+     if(t.checkout){
+      const r=await startCart(deps,merchantId,t.cart,{channel:'chat',linkId,publicOrigin:deps.publicOrigin});await saveChatCart(deps.db,merchantId,linkId,[]);
+      return [{kind:'text',psid,text:`${t.reply}\n✦ ${t.by}`},{kind:'buttons',psid,text:`ยอดรวมจากร้าน · จ่ายทีเดียวบนหน้า Stripe Checkout\nPay the whole cart on Stripe Checkout.\n${LABEL}`,buttons:[{type:'web_url',title:'จ่าย / Pay',url:r.checkoutUrl}]}];
+     }
+     if(t.cart.length)return await cartMessages(deps,merchantId,psid,t.cart,`${t.reply}\n✦ ${t.by}`);
+     return [{kind:'text',psid,text:`${t.reply}\n✦ ${t.by}`},menuCards(deps,psid,(await listMenu(deps,merchantId)).filter(i=>i.payable),[],merchantId)];
+    }
+   }catch(e){if(e instanceof CartError)return [{kind:'text',psid,text:CART_ERR[e.code]}];/* model or tool failure: one-step path below */}
   }
   const plan=await planChatOrder(deps,merchantId,linkId,req.text);
   const by=plan.kind!=='error'&&plan.by?` · ${plan.by}`:'';

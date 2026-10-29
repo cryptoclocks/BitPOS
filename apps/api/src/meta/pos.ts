@@ -9,6 +9,7 @@ import QRCode from 'qrcode';
 import type {MetaRouteDeps} from './routes';
 import {formatTapAmount,listTapOrders,pickupCode,type StaffDeps,type StaffOrder,type StaffView} from './staff';
 import {samCount} from './vision';
+import {askOwnerAssistant} from './owner-assistant';
 import {floorPlan,screenTags,staffReservations,type FloorTable} from './reservations';
 import {screenKey} from './screen';
 import {listMenu} from './agent-orders';
@@ -40,7 +41,7 @@ const handover=(o:StaffOrder)=>o.status==='PAID'&&!o.handedOverAt?`<form method=
 /** Returns true when it answered the request. */
 export async function servePos(req:http.IncomingMessage,res:http.ServerResponse,deps:MetaRouteDeps,staff:StaffDeps,whoami:()=>Promise<StaffView|null>,url:URL,log:(m:string)=>void):Promise<boolean>{
  const path=url.pathname,method=req.method??'GET';
- const known=path==='/meta/staff'||/^\/meta\/staff\/(overview|counter|kitchen|bookings|menu|customers|connector|reports|payouts|users|settings|order|stockcount)(\/|$)/.test(path);
+ const known=path==='/meta/staff'||/^\/meta\/staff\/(overview|counter|kitchen|bookings|menu|customers|connector|reports|payouts|users|settings|order|stockcount|assistant)(\/|$)/.test(path);
  if(!known)return false;
  const me=await whoami();
  if(!me){go(res,'/meta/staff');return true;}
@@ -169,6 +170,28 @@ ${row({href:'/meta/staff/offers',icon:'✨',title:`${r.drafts} ร่างโ�
    await c.query("INSERT INTO meta_stock_movements(merchant_id,product_id,delta,reason,order_kind,order_id) VALUES(current_setting('bitpos.merchant')::uuid,$1,$2,'staff_adjust','staff',$3)",[stock[1],n-cur.stock,randomUUID()]);
   });
   log('Stock counted');go(res,'/meta/staff/menu?saved=1');return true;
+ }
+ if(path==='/meta/staff/assistant'){
+  // Owner's assistant: Muse Wonder with read-only tools over the shop's own numbers; the data behind every answer is shown.
+  if(!boss)return ownerOnly();
+  const ask=[L('วันนี้ขายดีกว่าเมื่อวานไหม','Did we sell more today than yesterday?'),L('เมนูไหนควรทำโปรสัปดาห์นี้','Which item should get an offer this week?'),L('ช่วงไหนคนเยอะ ควรเพิ่มคนกี่โมง','When are we busiest, and when do we need more staff?'),L('ช่องทางไหนขายดีที่สุด 7 วันนี้','Which channel sold best in the last 7 days?'),L('ของอะไรใกล้หมด','What is running low?')];
+  const form=(qv='')=>`<form method="post" action="/meta/staff/assistant"><textarea name="q" rows="2" maxlength="500" placeholder="${esc(L('ถามเรื่องยอดขาย เมนู โปร คิว หรือสต็อก','Ask about sales, items, offers, busy hours or stock'))}" required>${esc(qv)}</textarea><button>✨ ${L('ถามผู้ช่วย','Ask the assistant')}</button></form>
+<div class="chips" style="flex-wrap:wrap">${ask.map(a=>`<form method="post" action="/meta/staff/assistant"><input type="hidden" name="q" value="${esc(a)}"><button class="g inline">${esc(a)}</button></form>`).join('')}</div>`;
+  const sub=L('Muse Wonder + tool calling · อ่านข้อมูลอย่างเดียว · ตัวเลขทุกตัวมาจากข้อมูลร้าน (แสดงด้านล่าง)','Muse Wonder + tool calling · read only · every number comes from the shop data shown below');
+  if(method==='GET')return send(200,path,L('ผู้ช่วยเจ้าของร้าน','Owner assistant'),`<div class="card">${form()}</div>`,{sub});
+  const f=await body(req);const qv=(f?.get('q')??'').trim().slice(0,500);
+  if(!qv)return send(400,path,L('ผู้ช่วยเจ้าของร้าน','Owner assistant'),`<div class="card">${form()}</div>`,{sub});
+  const router=deps.offers?.router;
+  if(!router)return send(503,path,L('ผู้ช่วยเจ้าของร้าน','Owner assistant'),`<div class="card">${L('ยังไม่ได้ตั้งค่าโมเดล','No model configured')}</div>`,{sub});
+  const table=(v:unknown):string=>Array.isArray(v)?(v.length?`<table><tr>${Object.keys(v[0]??{}).map(k=>`<th>${esc(k)}</th>`).join('')}</tr>${v.map(r=>`<tr>${Object.values(r??{}).map(x=>`<td>${esc(typeof x==='object'?JSON.stringify(x):String(x))}</td>`).join('')}</tr>`).join('')}</table>`:`<p class="mu">${L('ไม่มีข้อมูล','No data')}</p>`)
+   :v&&typeof v==='object'?Object.entries(v).map(([k,x])=>`<h3 style="margin:10px 0 4px">${esc(k)}</h3>${table(x)}`).join(''):`<p>${esc(String(v))}</p>`;
+  try{
+   const a=await askOwnerAssistant(db,router,me.merchantId,qv);log(`Owner assistant answered (${a.model}, ${a.data.length} tools)`);
+   const text=esc(a.text||L('ยังตอบไม่ได้','No answer')).replace(/\n/g,'<br>').replace(/\*\*(.+?)\*\*/g,'<b>$1</b>');
+   return send(200,path,L('ผู้ช่วยเจ้าของร้าน','Owner assistant'),`<div class="card"><p class="mu">${esc(qv)}</p><div style="font-size:1.05rem;line-height:1.7">${text}</div><p>${pill(a.model,'vi')} ${pill(`${a.data.length} ${L('เครื่องมือ','tools')}`,'mu')}</p></div>
+<div class="card"><h2>${L('ข้อมูลที่ผู้ช่วยใช้ (จากระบบ)','Data the assistant used (from the system)')}</h2>${a.data.map(d=>`<details open><summary><b>${esc(d.tool)}</b> <small>${esc(JSON.stringify(d.args))}</small></summary>${table(d.result)}</details>`).join('')||`<p class="mu">${L('ไม่ได้เรียกเครื่องมือ','No tools called')}</p>`}</div>
+<div class="card">${form()}</div>`,{sub});
+  }catch{log('Owner assistant failed');return send(502,path,L('ผู้ช่วยเจ้าของร้าน','Owner assistant'),`<div class="card">${L('ผู้ช่วยตอบไม่ได้ตอนนี้ ลองอีกครั้ง','The assistant could not answer; try again')}</div><div class="card">${form(qv)}</div>`,{sub});}
  }
  if(path==='/meta/staff/stockcount'){
   // Count stock from a photo of the display case with SAM 3.1; staff see the boxes and an owner/manager confirms.

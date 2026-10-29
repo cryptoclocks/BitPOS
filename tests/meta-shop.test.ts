@@ -2,6 +2,7 @@
 // meta-pay shop and cart orders (migration 313) and the meta-pos pages, against a disposable PostgreSQL with
 // migrations 001–313 applied; Stripe and Supabase Auth are stubbed. Queries run as `bitpos_app` under RLS.
 import {menuNames} from '../apps/api/src/meta/translate';
+import {ownerTools} from '../apps/api/src/meta/owner-assistant';
 import {listMenu} from '../apps/api/src/meta/agent-orders';
 import {test,before,after} from 'node:test';
 import assert from 'node:assert/strict';
@@ -133,7 +134,7 @@ test('HTTP: shop pages always offer a way on; same-origin POSTs; staff pages nee
   assert.match(await (await fetch(base+'/meta/staff/overview',{redirect:'follow'})).text(),/name="password"/);
   const login=await fetch(base+'/meta/staff/login',{method:'POST',body:'email=owner@shop.test&password=x',redirect:'manual',headers:{'content-type':'application/x-www-form-urlencoded',origin:'https://pos.example.test'}});
   assert.equal(login.status,303);const sc=login.headers.get('set-cookie')!.split(';')[0];
-  for(const p of ['/meta/staff','/meta/staff/overview','/meta/staff/counter','/meta/staff/kitchen','/meta/staff/bookings','/meta/staff/menu','/meta/staff/customers','/meta/staff/connector','/meta/staff/reports','/meta/staff/settings','/meta/staff/users','/meta/staff/payouts','/meta/staff/stockcount','/meta/staff/offers','/meta/staff/ledger']){
+  for(const p of ['/meta/staff','/meta/staff/overview','/meta/staff/counter','/meta/staff/kitchen','/meta/staff/bookings','/meta/staff/menu','/meta/staff/customers','/meta/staff/connector','/meta/staff/reports','/meta/staff/settings','/meta/staff/users','/meta/staff/payouts','/meta/staff/stockcount','/meta/staff/assistant','/meta/staff/offers','/meta/staff/ledger']){
    const r=await fetch(base+p,{headers:{cookie:sc}});assert.equal(r.status,200,p);const h=await r.text();assert.match(h,/class="side"/,`${p} has the meta-pos sidebar`);assert.doesNotMatch(h,/USDG|USDC|Solana|devnet/i,p);
    // English by default with nothing Thai left (menu names in English too); Thai when chosen.
    const thai=h.match(/[\u0e00-\u0e7f][\u0e00-\u0e7f ]*/g)?.filter(x=>x!=='ไทย')??[];assert.deepEqual(thai,[],`${p} has Thai left in English`);assert.match(h,/<html lang="en">/);
@@ -182,4 +183,13 @@ test('tourist mode: names translated once per language and cached; renamed items
  const again=await menuNames(db,router,M,'ja',menu);assert.equal(again.get(latte),'ラテ');
  const before=calls;await menuNames(db,router,M,'ja',menu.map(i=>i.productId===latte?{...i,nameEn:'Caffe Latte'}:i));assert.ok(calls>before,'renamed item is translated again');
  assert.equal((await menuNames(db,null,M,'fr',menu)).size,0,'no model: English names stay');
+});
+
+test('owner assistant tools: read-only, this shop only, numbers from the database',{skip},async()=>{
+ const log:any[]=[];const tools=ownerTools(db,M,log);
+ for(const t of tools){const r=await t.run(t.name.startsWith('stock')||t.name.startsWith('offers')?{}:{days:7});assert.ok(r!==undefined,t.name);}
+ assert.equal(log.length,tools.length,'every tool call is kept for the page');
+ const stock=log.find(x=>x.tool==='stock_levels').result as any[];assert.ok(stock.some(s=>s.item==='Latte'),'own products');
+ assert.ok(!stock.some(s=>s.item==='Other shop item'));
+ assert.throws(()=>tools[0].args.parse({days:400}),'day range bounded');
 });

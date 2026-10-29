@@ -7,6 +7,7 @@ import MerchantIcon from './MerchantIcon';
 import { metaApi } from './MetaCounterBill';
 
 const PAGES = [
+ ['assistant', '/meta/staff/assistant', 'ผู้ช่วยเจ้าของร้าน', 'Owner assistant', 'help'],
  ['bookings', '/meta/staff/bookings', 'จองโต๊ะ', 'Table bookings', 'chart'],
  ['stockcount', '/meta/staff/stockcount', 'นับสต็อกจากรูป (SAM)', 'Count stock (SAM)', 'box'],
  ['offers', '/meta/staff/offers', 'โปร Muse Spark', 'Muse Spark offers', 'card'],
@@ -20,11 +21,11 @@ const PAGES = [
 export default function MetaHub({ session, language, only }: { session: { token: string; role: string }; language: 'th' | 'en'; only?: (typeof PAGES)[number][0] }) {
  const text = (th: string, en: string) => language === 'th' ? th : en;
  const [ready, setReady] = useState<'wait' | 'ok' | 'error'>('wait');
- const [page, setPage] = useState<(typeof PAGES)[number][0]>(only ?? 'bookings');
+ const [page, setPage] = useState<(typeof PAGES)[number][0]>(only ?? 'assistant');
  useEffect(() => { let on = true; setReady('wait'); void metaApi('/sso', session.token, {}).then(() => on && setReady('ok')).catch(() => on && setReady('error')); return () => { on = false; }; }, [session.token]);
  const boss = session.role !== 'staff';
  // Promotions has its own POS tab (Muse Spark offers); the Muse tab lists the rest.
- const shown = only ? PAGES.filter(p => p[0] === only) : PAGES.filter(p => p[0] !== 'offers' && (boss || !['ledger', 'payouts'].includes(p[0])));
+ const shown = only ? PAGES.filter(p => p[0] === only) : PAGES.filter(p => p[0] !== 'offers' && (boss || !['ledger', 'payouts', 'assistant'].includes(p[0])));
  const current = shown.find(p => p[0] === page) ?? shown[0];
  return <section className="panel meta-hub">
   {!only && <div className="meta-hub-head"><div><span className="floor-eyebrow">MUSE · META</span><h2>{only === 'offers' ? text('โปรโมชัน', 'Promotions') : text('ฟีเจอร์ของ Meta', 'Meta features')}</h2><p>{only === 'offers' ? text('Muse Spark ร่างโปร · เจ้าของอนุมัติ หรือตั้ง Allow All · ราคาคิดโดยเซิร์ฟเวอร์', 'Muse Spark drafts · the owner approves or sets Allow All · the server prices') : text('จองโต๊ะ · ลูกค้า Messenger · Muse Connector · หลักฐาน AI · ยอดโอน Stripe · อุปกรณ์', 'Table bookings · Messenger customers · Muse Connector · AI evidence · Stripe payouts · devices')}</p></div></div>}

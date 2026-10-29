@@ -2,7 +2,7 @@
 import type {z} from 'zod';
 
 export type MetaProviderId='meta_api'|'baseten'|'modal'|'local_mac'|'local_v100';
-export type MetaTask='counter_reasoning'|'tray_reasoning'|'promotion_copy'|'poster_direction'|'offer_selection'|'agent_order';
+export type MetaTask='counter_reasoning'|'tray_reasoning'|'promotion_copy'|'poster_direction'|'offer_selection'|'agent_order'|'agent_tools'|'owner_insights';
 export type MetaWeights='closed'|'open';
 export type MetaLocation='cloud'|'self_hosted';
 export type MetaOutcome='OK'|'PROVIDER_TIMEOUT'|'PROVIDER_UNREACHABLE'|'PROVIDER_RATE_LIMITED'|'PROVIDER_AUTH_REJECTED'|'PROVIDER_UNAVAILABLE'|'PROVIDER_REJECTED'|'PROVIDER_RESPONSE_TOO_LARGE'|'PROVIDER_RESPONSE_INVALID'|'OUTPUT_SCHEMA_INVALID';
@@ -67,3 +67,10 @@ export interface MetaInvokeResult<T> {value:T;invocation:MetaInvocation;attempts
 export class MetaRouterError extends Error {
  constructor(readonly code:'NO_PROVIDER_AVAILABLE'|'ALL_PROVIDERS_FAILED'|'DEADLINE_EXCEEDED'|'ABORTED',readonly attempts:MetaInvocation[]=[]){super(code);}
 }
+
+/** A function the model may call; arguments are checked with the schema and run on the server, never trusted as facts. */
+export interface MetaTool<A=any> {name:string;description:string;parameters:Record<string,unknown>;args:z.ZodType<A>;run:(args:A)=>Promise<unknown>;}
+export interface MetaToolsRequest {task:MetaTask;merchantId:string;messages:MetaMessage[];tools:MetaTool[];
+ /** Model id on the Meta Model API (e.g. muse-wonder-1.0); default is the provider's model. */
+ model?:string;maxRounds?:number;maxOutputTokens?:number;reasoningEffort?:'minimal'|'low'|'medium'|'high';deadlineMs?:number;}
+export interface MetaToolsResult {text:string;calls:{name:string;args:unknown;ok:boolean}[];invocations:MetaInvocation[];model:string}

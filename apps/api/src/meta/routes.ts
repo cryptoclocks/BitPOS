@@ -21,6 +21,8 @@ import {AsyncLocalStorage} from 'node:async_hooks';
 import {aiHtml,customerHtml,photo,staffHtml} from './ui';
 import {FRAME,L,LANG,LANG_COOKIE,langFromCookie,nm} from './staff-i18n';
 import {servePosApi} from './pos-api';
+import {saveChatCart,talkCart} from './cart-agent';
+import {discardPost,draftPost,postImage,postsByDraft,publishPost,SocialError,type PostView} from './social';
 import {BannerError,bannerImage,bannersByDraft,createBanner,decideBanner,type BannerView} from './banners';
 import {servePos} from './pos';
 import {CartError,cartChatReceipt,cartOrderMerchant,formatCart,handOverCart,parseCart,quoteCart,startCart,type CartLine} from './cart';
@@ -406,7 +408,7 @@ async function serveStaff(req:http.IncomingMessage,res:http.ServerResponse,deps:
   if(r==='HANDED_OVER'||r==='ALREADY'){res.writeHead(303,{Location:`/meta/staff?done=${pickupCode(hand[1])}`,'Cache-Control':'no-store'});res.end();return true;}
   page(res,r==='NOT_FOUND'?404:409,'ส่งมอบไม่ได้',[r==='NOT_PAID'?'ออเดอร์นี้ยังไม่ได้จ่าย / This order is not paid.':'ไม่พบออเดอร์ / Order not found.','<a href="/meta/staff">← กลับ / Back</a>']);return true;
  }
- if(path==='/meta/staff/offers'||path.startsWith('/meta/staff/offers/')||path.startsWith('/meta/staff/policies/')||path.startsWith('/meta/staff/banners/'))return serveOffers(req,res,deps,staff,cookie,url,log);
+ if(path==='/meta/staff/offers'||path.startsWith('/meta/staff/offers/')||path.startsWith('/meta/staff/policies/')||path.startsWith('/meta/staff/banners/')||path.startsWith('/meta/staff/posts/'))return serveOffers(req,res,deps,staff,cookie,url,log);
  if(path==='/meta/staff/ledger'&&method==='GET')return serveLedger(res,deps,staff,cookie);
  const resCancel=path.match(/^\/meta\/staff\/reservations\/([0-9a-f-]{36})\/cancel$/);
  if(resCancel&&method==='POST'){
@@ -425,14 +427,14 @@ async function serveStaff(req:http.IncomingMessage,res:http.ServerResponse,deps:
 
 const OFFER_ERRORS:Record<OfferPolicyError['code'],string>={ROLE_REQUIRED:'ต้องเป็นเจ้าของหรือผู้จัดการ / Owner or manager only.',OWNER_REQUIRED:'Allow All ตั้งได้เฉพาะเจ้าของ / Only the owner can set Allow All.',
  NOT_FOUND:'ไม่พบรายการ / Not found.',NOT_OPEN:'รายการนี้ปิดแล้วหรือมีร่างค้างอยู่ / Already decided, expired, or a draft is already open.',NO_CANDIDATES:'ไม่มีสินค้าที่ร่างโปรได้ตอนนี้ / No product can take a new offer now.',INVALID_INPUT:'ข้อมูลไม่ถูกต้อง / Invalid input.'};
-function draftLine(d:DraftView,isOwner:boolean,banners:BannerView[]=[],boss=isOwner):string{
+function draftLine(d:DraftView,isOwner:boolean,banners:BannerView[]=[],boss=isOwner,posts:PostView[]=[]):string{
  const head=`<strong>${esc(d.emoji)} ${esc(nm(d.name,d.nameEn))}</strong> · ${L('ลด','−')}${d.discountPercent}% · ${d.durationHours} ${L('ชม.','h')}${d.chosenBy==='model'?' <small>· Muse Spark</small>':' <small>· fallback</small>'}<br><small>${esc(L(d.reasonTh,d.reasonEn))}</small>`;
  const at=(iso:string)=>new Date(iso).toLocaleString('en-GB',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit',timeZone:'Asia/Bangkok'});
  if(d.state==='DRAFT'){
   const allow=isOwner?`<form method="post" action="/meta/staff/offers/${d.id}/approve"><input type="hidden" name="allow_all" value="1"><select name="scope" style="font:inherit"><option value="product">สินค้านี้ / this product</option>${d.category?`<option value="category">หมวด ${esc(d.category)} / this category</option>`:''}</select> <select name="daily_limit" style="font:inherit">${[1,2,3,5].map(n=>`<option value="${n}"${n===3?' selected':''}>${n}/วัน day</option>`).join('')}</select><br><button>อนุมัติ + Allow All แบบนี้ / Approve + Allow All like this</button></form>`:'';
   return `${head}<form method="post" action="/meta/staff/offers/${d.id}/approve"><button>อนุมัติครั้งนี้ / Approve once</button></form>${allow}<form method="post" action="/meta/staff/offers/${d.id}/reject"><button>ไม่อนุมัติ / Reject</button></form>`;
  }
- if(d.state==='APPLIED')return `${head}${bannerBlock(d,banners,boss)}<br>${d.approvalKind==='policy'?L('🤖 อนุมัติอัตโนมัติด้วย Allow All','🤖 Auto-approved by Allow All'):L('✅ เจ้าของอนุมัติ','✅ Approved by owner')} · ${L('ถึง','until')} ${at(d.offerExpiresAt!)}<form method="post" action="/meta/staff/offers/${d.id}/stop"><button>หยุดโปรนี้ / Stop this offer</button></form>`;
+ if(d.state==='APPLIED')return `${head}${bannerBlock(d,banners,boss)}${postBlock(d,posts,boss)}<br>${d.approvalKind==='policy'?L('🤖 อนุมัติอัตโนมัติด้วย Allow All','🤖 Auto-approved by Allow All'):L('✅ เจ้าของอนุมัติ','✅ Approved by owner')} · ${L('ถึง','until')} ${at(d.offerExpiresAt!)}<form method="post" action="/meta/staff/offers/${d.id}/stop"><button>หยุดโปรนี้ / Stop this offer</button></form>`;
  const label:Record<string,string>={REJECTED:'ไม่อนุมัติ / Rejected',EXPIRED:'ร่างหมดเวลา / Draft expired',FAILED:`ใช้ไม่ได้ / Not applied (${esc(d.failure??'')})`,STOPPED:'หยุดแล้ว / Stopped'};
  return `${head}<br><small>${label[d.state]??esc(d.state)}</small>`;
 }
@@ -443,6 +445,16 @@ function bannerBlock(d:DraftView,banners:BannerView[],boss:boolean):string{
 ${b.state==='PENDING'&&boss?`<form method="post" action="/meta/staff/banners/${b.id}/approve"><button class="inline">${L('ใช้ป้ายนี้','Use this banner')}</button></form><form method="post" action="/meta/staff/banners/${b.id}/reject"><button class="g inline">${L('ไม่ใช้','Reject')}</button></form>`:''}</div>`).join('');
  const make=boss&&d.offerExpiresAt&&Date.parse(d.offerExpiresAt)>Date.now()?`<form method="post" action="/meta/staff/offers/${d.id}/banner"><button class="s inline">🎨 ${L('สร้างป้ายโปรด้วย Muse Image','Make an offer banner with Muse Image')}</button></form>`:'';
  return `<div>${list}</div>${make}`;
+}
+/** Facebook Page post drafts of a live offer: review the picture and words, then Post (owner/manager) or discard. */
+function postBlock(d:DraftView,posts:PostView[],boss:boolean):string{
+ const live=!!d.offerExpiresAt&&Date.parse(d.offerExpiresAt)>Date.now();
+ const one=(p:PostView)=>`<div class="card" style="margin:10px 0;padding:12px"><div style="display:flex;gap:12px;flex-wrap:wrap"><img src="/meta/staff/posts/${p.id}" alt="" style="width:160px;height:160px;object-fit:cover;border-radius:12px;border:1px solid var(--ln)">
+<div style="flex:1;min-width:220px">${p.state==='POSTED'?`<p>✅ ${L('โพสต์บน Facebook แล้ว','Posted on Facebook')} · <a href="https://www.facebook.com/${esc(p.fbPostId??'')}" target="_blank" rel="noopener">${L('ดูโพสต์','See the post')} →</a></p><pre style="white-space:pre-wrap;font:inherit;font-size:13px">${esc(p.caption)}</pre>`
+ :boss?`<form method="post" action="/meta/staff/posts/${p.id}/publish"><textarea name="caption" rows="7" maxlength="2200" style="font-size:13px">${esc(p.caption)}</textarea>${p.state==='FAILED'?`<p class="note">${L('โพสต์ไม่สำเร็จ','Posting failed')} (${esc(p.failure??'')}) · ${L('เพจอาจยังไม่ได้ให้สิทธิ์โพสต์ (pages_manage_posts) คัดลอกข้อความและรูปไปโพสต์เองได้','the Page token may lack pages_manage_posts; you can copy the words and picture and post by hand')}</p>`:''}<button class="inline">📣 ${L('โพสต์ลงเพจ','Post to the Page')}</button></form><form method="post" action="/meta/staff/posts/${p.id}/discard"><button class="g inline">${L('ทิ้งร่างนี้','Discard')}</button></form><a href="/meta/staff/posts/${p.id}" download>${L('ดาวน์โหลดรูป','Download picture')}</a>`
+ :`<pre style="white-space:pre-wrap;font:inherit;font-size:13px">${esc(p.caption)}</pre>`}</div></div></div>`;
+ const make=boss&&live?`<form method="post" action="/meta/staff/offers/${d.id}/post"><button class="s inline">📣 ${L('ร่างโพสต์ Facebook Page (Muse Image + Muse Spark)','Draft a Facebook Page post (Muse Image + Muse Spark)')}</button></form>`:'';
+ return `${posts.map(one).join('')}${make}`;
 }
 function policyLine(p:PolicyView):string{
  return `🛡️ <strong>Allow All</strong> · ${p.scopeKind==='product'?'สินค้า':'หมวด'} ${esc(p.label)} · ลดไม่เกิน ${p.maxDiscountPercent}% · ไม่เกิน ${p.maxDurationHours} ชม. · ${p.usedToday}/${p.dailyLimit} วันนี้<form method="post" action="/meta/staff/policies/${p.id}/revoke"><button>ยกเลิก Allow All / Revoke</button></form>`;
@@ -457,17 +469,20 @@ async function serveOffers(req:http.IncomingMessage,res:http.ServerResponse,deps
  const back=(note?:string)=>{res.writeHead(303,{Location:`/meta/staff/offers${note?`?n=${note}`:''}`,'Cache-Control':'no-store'});res.end();return true as const;};
  try{
   if(path==='/meta/staff/offers'&&method==='GET'){
-   const {drafts,policies}=await listOffersOverview(od,me);const banners=await bannersByDraft(deps.identity.db,me.merchantId);
-   const notes:Record<string,string>={drafted:'ร่างโปรใหม่แล้ว / New draft ready.',banner:'🎨 Muse Image ทำป้ายแล้ว รออนุมัติ / Banner ready for approval.',bannerok:'ใช้ป้ายนี้บน meta-pay แล้ว / Banner is live on meta-pay.',bannerno:'ไม่ใช้ป้ายนี้ / Banner rejected.',bannerfail:'Muse Image ทำป้ายไม่สำเร็จ ลองใหม่ / Could not make the banner; try again.',auto:'🤖 อยู่ในกรอบ Allow All จึงอนุมัติอัตโนมัติแล้ว / Inside Allow All: approved automatically.',approved:'อนุมัติแล้ว / Approved.',rejected:'ไม่อนุมัติแล้ว / Rejected.',stopped:'หยุดโปรแล้ว / Offer stopped.',revoked:'ยกเลิก Allow All แล้ว / Allow All revoked.'};
+   const {drafts,policies}=await listOffersOverview(od,me);const banners=await bannersByDraft(deps.identity.db,me.merchantId),posts=await postsByDraft(deps.identity.db,me.merchantId);
+   const notes:Record<string,string>={drafted:'ร่างโปรใหม่แล้ว / New draft ready.',banner:'🎨 Muse Image ทำป้ายแล้ว รออนุมัติ / Banner ready for approval.',bannerok:'ใช้ป้ายนี้บน meta-pay แล้ว / Banner is live on meta-pay.',bannerno:'ไม่ใช้ป้ายนี้ / Banner rejected.',bannerfail:'Muse Image ทำป้ายไม่สำเร็จ ลองใหม่ / Could not make the banner; try again.',post:'📣 ร่างโพสต์พร้อมให้ตรวจ / Post draft ready for review.',posted:'✅ โพสต์ลงเพจแล้ว / Posted to the Page.',postfail:'โพสต์ไม่สำเร็จ ดูรายละเอียดที่ร่าง / Posting failed; see the draft.',postdraftfail:'ร่างโพสต์ไม่สำเร็จ ลองใหม่ / Could not draft the post; try again.',discarded:'ทิ้งร่างแล้ว / Draft discarded.',auto:'🤖 อยู่ในกรอบ Allow All จึงอนุมัติอัตโนมัติแล้ว / Inside Allow All: approved automatically.',approved:'อนุมัติแล้ว / Approved.',rejected:'ไม่อนุมัติแล้ว / Rejected.',stopped:'หยุดโปรแล้ว / Offer stopped.',revoked:'ยกเลิก Allow All แล้ว / Allow All revoked.'};
    const n=url.searchParams.get('n');
    page(res,200,'โปรโมชัน / Promotions',[`<small>${esc(me.role)} · Muse Spark ร่าง เจ้าของอนุมัติ ราคาคิดโดยระบบ / Muse Spark drafts, the owner approves, the server prices</small>`,
     ...(n&&notes[n]?[`<strong>${notes[n]}</strong>`]:[]),
     '<form method="post" action="/meta/staff/offers/draft"><button>✨ ให้ Muse Spark ร่างโปร / Draft an offer with Muse Spark</button></form>',
     ...(policies.length?policies.map(policyLine):['<small>ยังไม่มี Allow All / No Allow All policy yet.</small>']),
-    ...(drafts.length?drafts.map(d=>draftLine(d,me.role==='owner',banners.get(d.id)??[],me.role!=='staff')):['<small>ยังไม่มีร่างโปร / No drafts yet.</small>']),
+    ...(drafts.length?drafts.map(d=>draftLine(d,me.role==='owner',banners.get(d.id)??[],me.role!=='staff',posts.get(d.id)??[])):['<small>ยังไม่มีร่างโปร / No drafts yet.</small>']),
     '<a href="/meta/staff">← ออเดอร์ / Orders</a>']);
    return true;
   }
+  const pimg=path.match(/^\/meta\/staff\/posts\/([0-9a-f-]{36})$/);
+  if(pimg&&method==='GET'){const b=await postImage(deps.identity.db,me.merchantId,pimg[1]);if(!b){json(res,404,{error:'RESOURCE_NOT_FOUND'});return true;}
+   res.writeHead(200,{'Content-Type':b.mime,'Cache-Control':'private, max-age=300','X-Content-Type-Options':'nosniff'});res.end(b.image);return true;}
   const bimg=path.match(/^\/meta\/staff\/banners\/([0-9a-f-]{36})$/);
   if(bimg&&method==='GET'){const b=await bannerImage(deps.identity.db,me.merchantId,bimg[1],false);if(!b){json(res,404,{error:'RESOURCE_NOT_FOUND'});return true;}
    res.writeHead(200,{'Content-Type':b.mime,'Cache-Control':'private, max-age=300','X-Content-Type-Options':'nosniff'});res.end(b.image);return true;}
@@ -478,6 +493,22 @@ async function serveOffers(req:http.IncomingMessage,res:http.ServerResponse,deps
    if(!deps.asr)return back('bannerfail');
    try{await createBanner(deps.identity.db,deps.asr,me.merchantId,me.userId,mk[1]);log('Offer banner made with Muse Image');return back('banner');}
    catch(e){if(e instanceof BannerError){log(`Offer banner failed: ${e.code}`);return back('bannerfail');}throw e;}
+  }
+  const mkp=path.match(/^\/meta\/staff\/offers\/([0-9a-f-]{36})\/post$/);
+  if(mkp){
+   if(me.role==='staff'){page(res,403,'ทำรายการไม่ได้',[OFFER_ERRORS.ROLE_REQUIRED,'<a href="/meta/staff/offers">← กลับ / Back</a>']);return true;}
+   if(!deps.asr)return back('postdraftfail');
+   try{await draftPost(deps.identity.db,deps.offers?.router??null,deps.asr,me.merchantId,me.userId,mkp[1]);log('Facebook post drafted (Muse Image + Muse Spark)');return back('post');}
+   catch(e){if(e instanceof SocialError){log(`Post draft failed: ${e.code}`);return back('postdraftfail');}throw e;}
+  }
+  const pa=path.match(/^\/meta\/staff\/posts\/([0-9a-f-]{36})\/(publish|discard)$/);
+  if(pa){
+   if(me.role==='staff'){page(res,403,'ทำรายการไม่ได้',[OFFER_ERRORS.ROLE_REQUIRED,'<a href="/meta/staff/offers">← กลับ / Back</a>']);return true;}
+   if(pa[2]==='discard'){await discardPost(deps.identity.db,me.merchantId,me.userId,pa[1]);return back('discarded');}
+   if(!deps.messenger)return back('postfail');
+   const form=await rawBody(req,16384);const caption=form?new URLSearchParams(form.toString('utf8')).get('caption'):null;
+   try{const r=await publishPost(deps.identity.db,deps.messenger,me.merchantId,me.userId,pa[1],caption,deps.fetch);log(`Facebook post ${r.ok?'published':`failed ${r.detail}`}`);return back(r.ok?'posted':'postfail');}
+   catch(e){if(e instanceof SocialError)return back('postfail');throw e;}
   }
   const bd=path.match(/^\/meta\/staff\/banners\/([0-9a-f-]{36})\/(approve|reject)$/);
   if(bd){
@@ -681,6 +712,17 @@ ${q.lines.map(l=>`<div class="tot"><span>${esc(l.name)} × ${l.quantity}${l.offe
   if(url.pathname==='/meta/order'&&method==='POST'){
    const text=(body.get('q')??'').trim().slice(0,300);
    if(!text)return show(400,{note:'พิมพ์หรือพูดก่อนนะคะ / Please say or type something.'});
+   // Conversation first (tool calls edit the stored cart, shared with Messenger); one-step path when no model or for bookings.
+   if(chat.router&&'invokeTools' in chat.router&&allowModelCall(me.linkId,10)){
+    try{
+     const t=await talkCart(chat,me.merchantId,me.linkId,text);
+     if(!t.booking){
+      if(t.checkout&&t.cart.length){const r=await startCart(chat,me.merchantId,t.cart,{channel:'web',linkId:me.linkId,publicOrigin:deps.identity.publicOrigin});await saveChatCart(deps.identity.db,me.merchantId,me.linkId,[]);
+       res.writeHead(303,{Location:r.checkoutUrl,'Cache-Control':'no-store','Referrer-Policy':'no-referrer'});res.end();return true;}
+      return show(200,{you:text,reply:t.reply,by:t.by,result:t.cart.length?cartCard(await quoteCart(chat,me.merchantId,t.cart),t.cart):menuRows(menu)});
+     }
+    }catch(e){if(e instanceof CartError)return show(409,{you:text,note:esc(CART_NOTE[e.code]??'ตรวจรายการอีกครั้งนะคะ'),result:menuRows(menu)});}
+   }
    const plan=await planChatOrder(chat,me.merchantId,me.linkId,text);
    if(plan.kind==='quote')return show(200,{you:text,reply:plan.reply,by:plan.by,result:quoteCard(plan.quote,plan.item)});
    if(plan.kind==='cart'){

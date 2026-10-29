@@ -1,7 +1,7 @@
 // Meta hackathon work (2026-10-26..11-04). See meta-hackathon/PROVENANCE.md.
 import {createHash,randomUUID} from 'node:crypto';
 import {z} from 'zod';
-import {MetaRouterError,type MetaInvocation,type MetaInvokeRequest,type MetaInvokeResult,type MetaLocation,type MetaOutcome,type MetaProviderConfig,type MetaProviderId,type MetaTask} from './types';
+import {MetaRouterError,type MetaToolsRequest,type MetaToolsResult,type MetaInvocation,type MetaInvokeRequest,type MetaInvokeResult,type MetaLocation,type MetaOutcome,type MetaProviderConfig,type MetaProviderId,type MetaTask} from './types';
 
 const sha256=(v:string)=>createHash('sha256').update(v).digest('hex');
 const PROVIDERS:MetaProviderId[]=['meta_api','baseten','modal','local_mac','local_v100'];
@@ -37,6 +37,8 @@ export const DEFAULT_ROUTES:Record<MetaTask,MetaProviderId[]>={
  poster_direction:['meta_api','baseten','local_mac','modal'],
  offer_selection:['meta_api','baseten','modal','local_mac'],
  agent_order:['meta_api','baseten','modal','local_mac'],
+ agent_tools:['meta_api'],
+ owner_insights:['meta_api'],
 };
 
 export interface MetaRouterOptions {
@@ -125,8 +127,54 @@ export function createMetaRouter(options:MetaRouterOptions){
   throw new MetaRouterError(attempts.length||!skipped?'ALL_PROVIDERS_FAILED':'NO_PROVIDER_AVAILABLE',attempts);
  }
 
+ /** Tool calling on the Meta Model API (chat completions with tools, parallel tool calls): the model asks, the server runs
+  * the named tools with checked arguments, and the results go back until the model answers in text (max rounds). Every
+  * round is recorded like invoke(). Tool arguments that fail their schema are answered with an error, not run. */
+ async function invokeTools(req:MetaToolsRequest):Promise<MetaToolsResult>{
+  const p=options.providers.find(x=>x.id==='meta_api');
+  if(!p)throw new MetaRouterError('NO_PROVIDER_AVAILABLE');
+  const model=req.model??p.model,started=now(),deadline=started+(req.deadlineMs??45000);
+  const messages:any[]=[...req.messages],calls:MetaToolsResult['calls']=[],invocations:MetaInvocation[]=[];
+  const tools=req.tools.map(t=>({type:'function',function:{name:t.name,description:t.description,parameters:t.parameters}}));
+  for(let round=0;round<(req.maxRounds??4);round++){
+   const remaining=deadline-now();if(remaining<1000)throw new MetaRouterError('DEADLINE_EXCEEDED',invocations);
+   const at=now(),base={id:randomUUID(),merchantId:req.merchantId,runId:null,task:req.task,provider:p.id,weights:p.weights,location:p.location,inputSha256:sha256(JSON.stringify([req.task,model,messages])),startedAt:new Date(at).toISOString()};
+   let body:any;
+   try{
+    const r=await doFetch(p.baseUrl+'/chat/completions',{method:'POST',redirect:'error',signal:AbortSignal.timeout(Math.min(remaining,p.timeoutMs*2)),headers:{'Content-Type':'application/json',...(p.apiKey?{Authorization:'Bearer '+p.apiKey}:{})},
+     body:JSON.stringify({model,messages,tools,tool_choice:'auto',parallel_tool_calls:true,temperature:0,max_completion_tokens:req.maxOutputTokens??1500,...(req.reasoningEffort?{reasoning_effort:req.reasoningEffort}:{})})});
+    if(!r.ok){await r.body?.cancel();throw new Attempt(r.status===429?'PROVIDER_RATE_LIMITED':r.status>=500?'PROVIDER_UNAVAILABLE':'PROVIDER_REJECTED');}
+    const text=await r.text();if(text.length>limit*4)throw new Attempt('PROVIDER_RESPONSE_TOO_LARGE');
+    body=JSON.parse(text);if(!body?.choices?.[0]?.message)throw new Attempt('PROVIDER_RESPONSE_INVALID');
+   }catch(e){
+    const outcome=e instanceof Attempt?e.outcome:(e as Error)?.name==='TimeoutError'?'PROVIDER_TIMEOUT':'PROVIDER_UNREACHABLE';
+    const inv:MetaInvocation={...base,model,outcome,latencyMs:now()-at,outputSha256:null,output:null,promptTokens:null,completionTokens:null,reasoningTokens:null};
+    invocations.push(inv);await persist(inv);throw new MetaRouterError('ALL_PROVIDERS_FAILED',invocations);
+   }
+   const msg=body.choices[0].message,asked=Array.isArray(msg.tool_calls)?msg.tool_calls.slice(0,8):[];
+   const out={round,toolCalls:asked.map((c:any)=>c?.function?.name),text:typeof msg.content==='string'?msg.content.slice(0,2000):null};
+   const inv:MetaInvocation={...base,model:typeof body.model==='string'?body.model:model,outcome:'OK',latencyMs:now()-at,outputSha256:sha256(JSON.stringify(out)),output:out,promptTokens:body.usage?.prompt_tokens??null,completionTokens:body.usage?.completion_tokens??null,reasoningTokens:body.usage?.completion_tokens_details?.reasoning_tokens??null};
+   invocations.push(inv);await persist(inv);
+   if(!asked.length)return {text:typeof msg.content==='string'?msg.content:'',calls,invocations,model:inv.model};
+   messages.push({role:'assistant',content:msg.content??null,tool_calls:asked});
+   // Parallel tool calls run together; each result (or a refusal) goes back with its call id.
+   const results=await Promise.all(asked.map(async(c:any)=>{
+    const tool=req.tools.find(t=>t.name===c?.function?.name);let args:unknown;
+    try{args=JSON.parse(c?.function?.arguments||'{}');}catch{args=null;}
+    const ok=tool?tool.args.safeParse(args):null;
+    if(!tool||!ok?.success)return {call:{name:String(c?.function?.name),args,ok:false},msg:{role:'tool',tool_call_id:c.id,content:JSON.stringify({error:'INVALID_ARGUMENTS'})}};
+    try{const result=await tool.run(ok.data);return {call:{name:tool.name,args:ok.data,ok:true},msg:{role:'tool',tool_call_id:c.id,content:JSON.stringify(result).slice(0,20000)}};}
+    catch(e){return {call:{name:tool.name,args:ok.data,ok:false},msg:{role:'tool',tool_call_id:c.id,content:JSON.stringify({error:(e as Error)?.message?.slice(0,100)??'FAILED'})}};}
+   }));
+   // Kept in the order the model asked, whatever order they finished in.
+   for(const r of results){calls.push(r.call);messages.push(r.msg);}
+  }
+  throw new MetaRouterError('DEADLINE_EXCEEDED',invocations);
+ }
+
  return {
   invoke,
+  invokeTools,
   /** Dashboard view: configured providers, breaker state and evidence-sink failures. No keys. */
   status:()=>({sinkFailures,providers:options.providers.map(p=>({id:p.id,model:p.model,weights:p.weights,location:p.location,breakerOpen:(health.get(p.id)?.openUntil??0)>now(),consecutiveFailures:health.get(p.id)?.failures??0}))}),
  };

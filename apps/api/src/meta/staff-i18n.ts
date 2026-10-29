@@ -312,6 +312,10 @@ const pick=(t:string,lang:StaffLang)=>{
 /** The page in the current staff language: English maps text nodes and a few attributes; Thai is as written. */
 export function localizeStaff(html:string):string{
  const lang=staffLang(),f=(t:string)=>{const p=pick(t,lang);return lang==='th'?p:tr(p);};
- const out=html.replace(/>([^<]+)</g,(_,t:string)=>`>${f(t)}<`).replace(/\b(placeholder|title|aria-label)="([^"]*)"/g,(_,a:string,v:string)=>`${a}="${f(v)}"`);
- return lang==='th'?out:out.replace('<html lang="th">','<html lang="en">');
+ // Text the user edits or sends on (captions in <textarea>, quoted <pre>) is data, never translated.
+ const keep:string[]=[];
+ const held=html.replace(/<(textarea|pre)\b[^>]*>[\s\S]*?<\/\1>/g,m=>{keep.push(m);return `\u0000${keep.length-1}\u0000`;});
+ const out=held.replace(/>([^<]+)</g,(_,t:string)=>`>${f(t)}<`).replace(/\b(placeholder|title|aria-label)="([^"]*)"/g,(_,a:string,v:string)=>`${a}="${f(v)}"`);
+ const done=out.replace(/\u0000(\d+)\u0000/g,(_,i:string)=>keep[Number(i)]);
+ return lang==='th'?done:done.replace('<html lang="th">','<html lang="en">');
 }
