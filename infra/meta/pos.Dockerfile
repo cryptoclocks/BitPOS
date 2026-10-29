@@ -15,7 +15,10 @@ COPY device/firmware/fonts ./device/firmware/fonts
 COPY tsconfig.json ./
 COPY tools/meta/meta-pos-theme.mjs ./tools/meta/meta-pos-theme.mjs
 RUN node tools/meta/meta-pos-theme.mjs apps/web/src \
- && grep -rl '/images/bitpos-logo.png' apps/web/src | xargs sed -i 's#/images/bitpos-logo.png#/images/meta/bitpos-muse-logo.png#g'
+ && grep -rl '/images/bitpos-logo.png' apps/web/src | xargs sed -i 's#/images/bitpos-logo.png#/images/meta/bitpos-muse-logo.png#g' \
+ && sed -i 's#<meta name="viewport" content="width=device-width, initial-scale=1" />#<meta name="viewport" content="width=device-width, initial-scale=1" /><link rel="icon" href="/images/meta/icon.svg" type="image/svg+xml" /><link rel="icon" href="/images/meta/icon-32.png" sizes="32x32" /><link rel="apple-touch-icon" href="/images/meta/icon-180.png" /><meta name="theme-color" content="\#0866FF" />#' apps/web/src/pages/index.astro \
+ && grep -q 'images/meta/icon.svg' apps/web/src/pages/index.astro \
+ && cp apps/web/public/images/meta/icon-32.png apps/web/public/favicon.ico
 ENV PUBLIC_URL=https://meta-pos.cashlessthailand.com PUBLIC_BITPOS_EDITION=meta BITPOS_EDITION=meta
 RUN pnpm build
 CMD ["node", "apps/web/dist/server/entry.mjs"]

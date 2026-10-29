@@ -42,6 +42,7 @@ const STAFF_SESSION_SECONDS=8*3600,MAX_FORM=4096;
 const MAX_WEBHOOK=65536;
 // The shop's existing menu photos (inherited), served by this container so Messenger cards do not depend on the POS host.
 const MENU_IMAGES=new URL('../../../web/public/images/menu/',import.meta.url);
+const META_ICONS=new URL('../../../web/public/images/meta/',import.meta.url);
 
 export function metaRouteDepsFromEnv(env:Record<string,string|undefined>,db:IdentityDeps['db'],menu?:OfferDeps['menu']):MetaRouteDeps|null{
  const master=env.META_TAP_MASTER_KEY,origin=env.META_PUBLIC_URL;
@@ -103,16 +104,23 @@ async function rawBody(req:http.IncomingMessage,limit:number):Promise<Buffer|nul
 /** Returns true when the request was a /meta/ route and has been answered. */
 export async function serveMeta(req:http.IncomingMessage,res:http.ServerResponse,deps:MetaRouteDeps|null):Promise<boolean>{
  const url=new URL(req.url??'/','http://local'),path=url.pathname,method=req.method??'GET';
- if(!path.startsWith('/meta/'))return false;
+ if(!path.startsWith('/meta/')&&path!=='/favicon.ico'&&path!=='/apple-touch-icon.png')return false;
  if(!deps){page(res,503,'ยังไม่พร้อมใช้งาน',['Meta features are not configured on this server.']);return true;}
  const log=deps.log??(()=>{});
  // Customer pages live on META_PUBLIC_URL's host, staff pages on META_STAFF_URL's host. On the staff host only
  // /meta/staff (and the menu photos its pages show) answers; elsewhere (customer host or the legacy pay.… /meta/ route) staff pages redirect there.
  // Direct loopback requests (host health checks, tests) are not redirected.
- const staffOrigin=deps.staff?.config.origin,host=(req.headers.host??'').toLowerCase(),isStaffPath=path==='/meta/staff'||path.startsWith('/meta/staff/'),isMenuImage=/^\/meta\/images\/menu\/[a-z0-9-]{1,64}\.jpg$/.test(path);
+ const staffOrigin=deps.staff?.config.origin,host=(req.headers.host??'').toLowerCase(),isStaffPath=path==='/meta/staff'||path.startsWith('/meta/staff/'),isMenuImage=/^\/meta\/images\/menu\/[a-z0-9-]{1,64}\.jpg$|^\/meta\/icons\//.test(path);
  if(staffOrigin&&staffOrigin!==deps.identity.publicOrigin&&!/^(127\.0\.0\.1|localhost)(:\d+)?$/.test(host)){
   if(host===new URL(staffOrigin).host){if(!isStaffPath&&!isMenuImage){res.writeHead(404,{'Content-Type':'text/plain'});res.end('not found');return true;}}
   else if(isStaffPath&&method==='GET'){res.writeHead(302,{Location:staffOrigin+path,'Cache-Control':'no-store'});res.end();return true;}
+ }
+ // Site icons (browser tab, home screen): the Meta "B" mark.
+ const icon=path==='/favicon.ico'?'icon-32.png':path==='/apple-touch-icon.png'?'icon-180.png':path.match(/^\/meta\/icons\/(icon(?:-(?:32|180|192|512))?\.(?:png|svg))$/)?.[1];
+ if(icon&&method==='GET'){
+  try{const body=await readFile(new URL(icon,META_ICONS));res.writeHead(200,{'Content-Type':icon.endsWith('.svg')?'image/svg+xml':'image/png','Cache-Control':'public, max-age=86400','X-Content-Type-Options':'nosniff'});res.end(body);}
+  catch{res.writeHead(404,{'Content-Type':'text/plain'});res.end('not found');}
+  return true;
  }
  const banner=path.match(/^\/meta\/banner\/([0-9a-f-]{36})$/);
  if(banner&&method==='GET'&&deps.demoMerchant){

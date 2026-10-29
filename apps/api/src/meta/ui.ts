@@ -79,7 +79,7 @@ tr:target{background:var(--ti)}
 export interface PageOpts {title:string;back?:string|null;nav?:[string,string][];refresh?:number;nonce?:string;script?:string;csp?:string;
  /** false when the page already has its own primary action: then every nav button is secondary. */
  navPrimary?:boolean}
-const head=(o:PageOpts)=>`<!doctype html><html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">${o.refresh?`<meta http-equiv="refresh" content="${o.refresh}">`:''}<title>${esc(o.title)} · BitPOS × Muse</title><style>${CSS}</style></head>`;
+const head=(o:PageOpts)=>`<!doctype html><html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="icon" href="/meta/icons/icon.svg" type="image/svg+xml"><link rel="icon" href="/meta/icons/icon-32.png" sizes="32x32"><link rel="apple-touch-icon" href="/meta/icons/icon-180.png"><meta name="theme-color" content="#0866FF">${o.refresh?`<meta http-equiv="refresh" content="${o.refresh}">`:''}<title>${esc(o.title)} · BitPOS × Muse</title><style>${CSS}</style></head>`;
 
 /** Customer page (meta-pay, mobile first). `nav` are the onward buttons; a page always gets at least "back to the shop". */
 const AI_CSS=`body.ai{background:#070B18;color:#EEF2FF;min-height:100vh;background-image:radial-gradient(60% 40% at 15% 0%,rgba(8,102,255,.35),transparent 70%),radial-gradient(50% 40% at 100% 20%,rgba(122,63,242,.35),transparent 70%),radial-gradient(60% 50% at 50% 110%,rgba(0,200,255,.18),transparent 70%);background-attachment:fixed}
