@@ -27,7 +27,8 @@ test('staff pages redirect to the staff host; the staff host answers nothing els
   assert.equal(fromPay.status,302);assert.equal(fromPay.location,'https://meta-pos.example.test/meta/staff/offers');
   assert.equal((await get('/meta/staff','pay.example.test')).location,'https://meta-pos.example.test/meta/staff','legacy shared host');
   assert.equal((await get('/meta/staff','meta-pos.example.test')).status,200);
-  for(const p of ['/meta/order','/meta/messenger/webhook','/meta/images/menu/latte.jpg','/meta/t/abcd'])assert.equal((await get(p,'meta-pos.example.test')).status,404,p);
+  for(const p of ['/meta/order','/meta/messenger/webhook','/meta/t/abcd'])assert.equal((await get(p,'meta-pos.example.test')).status,404,p);
+  assert.equal((await get('/meta/images/menu/latte.jpg','meta-pos.example.test')).status,200,'staff pages show menu photos');
   assert.equal((await get('/meta/staff',`127.0.0.1`)).status,200,'loopback health check is not redirected');
  });
 });

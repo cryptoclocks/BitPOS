@@ -102,11 +102,11 @@ export async function serveMeta(req:http.IncomingMessage,res:http.ServerResponse
  if(!deps){page(res,503,'ยังไม่พร้อมใช้งาน',['Meta features are not configured on this server.']);return true;}
  const log=deps.log??(()=>{});
  // Customer pages live on META_PUBLIC_URL's host, staff pages on META_STAFF_URL's host. On the staff host only
- // /meta/staff answers; elsewhere (customer host or the legacy pay.… /meta/ route) staff pages redirect there.
+ // /meta/staff (and the menu photos its pages show) answers; elsewhere (customer host or the legacy pay.… /meta/ route) staff pages redirect there.
  // Direct loopback requests (host health checks, tests) are not redirected.
- const staffOrigin=deps.staff?.config.origin,host=(req.headers.host??'').toLowerCase(),isStaffPath=path==='/meta/staff'||path.startsWith('/meta/staff/');
+ const staffOrigin=deps.staff?.config.origin,host=(req.headers.host??'').toLowerCase(),isStaffPath=path==='/meta/staff'||path.startsWith('/meta/staff/'),isMenuImage=/^\/meta\/images\/menu\/[a-z0-9-]{1,64}\.jpg$/.test(path);
  if(staffOrigin&&staffOrigin!==deps.identity.publicOrigin&&!/^(127\.0\.0\.1|localhost)(:\d+)?$/.test(host)){
-  if(host===new URL(staffOrigin).host){if(!isStaffPath){res.writeHead(404,{'Content-Type':'text/plain'});res.end('not found');return true;}}
+  if(host===new URL(staffOrigin).host){if(!isStaffPath&&!isMenuImage){res.writeHead(404,{'Content-Type':'text/plain'});res.end('not found');return true;}}
   else if(isStaffPath&&method==='GET'){res.writeHead(302,{Location:staffOrigin+path,'Cache-Control':'no-store'});res.end();return true;}
  }
  const image=path.match(/^\/meta\/images\/menu\/([a-z0-9-]{1,64}\.jpg)$/);
