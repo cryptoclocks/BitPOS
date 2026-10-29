@@ -1,3 +1,4 @@
+import 'package:mobile_shared/presentation/bitpos_info.dart';
 import 'package:mobile_shared/presentation/ui_catalog.dart';
 
 import 'presentation/driver_welcome.dart';
@@ -509,11 +510,16 @@ class _DriverSessionPageState extends State<DriverSessionPage>
             style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 8),
-          Text(
-            t(
-              'งานเสนอและงานที่รับแล้วมาจากเซิร์ฟเวอร์ การออนไลน์อย่างเดียวไม่ใช่การรับงาน',
-              'Offers and accepted assignments come from the server. Going online alone does not accept a job.',
-            ),
+          BitPosInfoLine(
+            thai: _thai,
+            summary: t('งานเสนอมาจากเซิร์ฟเวอร์', 'Offers come from the server'),
+            title: t('เกี่ยวกับงานส่งอาหาร', 'About food deliveries'),
+            paragraphs: [
+              t(
+                'งานเสนอและงานที่รับแล้วมาจากเซิร์ฟเวอร์ การออนไลน์อย่างเดียวไม่ใช่การรับงาน',
+                'Offers and accepted assignments come from the server. Going online alone does not accept a job.',
+              ),
+            ],
           ),
           FilledButton(
             onPressed: _busy || _pending != null
@@ -1155,11 +1161,17 @@ class _DriverSessionPageState extends State<DriverSessionPage>
                         ),
                       ),
                     const SizedBox(height: BitPosDesignTokens.s12),
-                    Text(
-                      t(
-                        'การออนไลน์มีอายุ 90 วินาที ต้องต่ออายุ ไม่ใช่การรับงานหรือการติดตามตำแหน่ง',
-                        'Online availability expires after90seconds and needs renewal. It is not an assignment or location tracking.',
-                      ),
+                    BitPosInfoLine(
+                      key: const ValueKey('driver-online-info'),
+                      thai: _thai,
+                      summary: t('ออนไลน์มีอายุ 90 วินาที', 'Online status lasts 90 seconds'),
+                      title: t('เกี่ยวกับการออนไลน์', 'About going online'),
+                      paragraphs: [
+                        t(
+                          'การออนไลน์มีอายุ 90 วินาที ต้องต่ออายุ ไม่ใช่การรับงานหรือการติดตามตำแหน่ง',
+                          'Online availability expires after 90 seconds and needs renewal. It is not an assignment or location tracking.',
+                        ),
+                      ],
                     ),
                     const SizedBox(height: BitPosDesignTokens.s20),
                     FilledButton(

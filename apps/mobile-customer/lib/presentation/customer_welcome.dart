@@ -129,20 +129,6 @@ class CustomerWelcome extends StatelessWidget {
                   ),
                   child: Text(t('เริ่มต้นใช้งาน', 'Get started')),
                 ),
-                const SizedBox(height: 24),
-                Text(
-                  t(
-                    'อาหารดี ๆ และร้านใกล้บ้านคุณ',
-                    'Good food from the merchants you choose',
-                  ),
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: dark
-                        ? colors.onSurfaceVariant
-                        : const Color(0xFF7B7088),
-                  ),
-                ),
               ],
             ),
           ),

@@ -61,4 +61,17 @@ void main() {
     expect(find.text('Your reward vouchers at this shop'), findsNothing);
     expect(find.byKey(const ValueKey('coupon-code-field')), findsOneWidget);
   });
+  for (final thai in [true, false]) {
+    testWidgets('applied coupon keeps one short line; the server-calculation detail sits behind the info button (${thai ? 'th' : 'en'})', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(home: CartCouponPage(thai: thai, appliedCode: 'TRY50')),
+      );
+      expect(find.byKey(const ValueKey('coupon-applied-title')), findsOneWidget);
+      expect(find.byKey(const ValueKey('coupon-remove')), findsOneWidget);
+      expect(find.textContaining(thai ? 'สิทธิ์ของคูปองเดิมจะคืน' : 'released when that price expires'), findsNothing);
+      await tester.tap(find.descendant(of: find.byKey(const ValueKey('coupon-applied-info')), matching: find.byType(IconButton)));
+      await tester.pumpAndSettle();
+      expect(find.textContaining(thai ? 'สิทธิ์ของคูปองเดิมจะคืน' : 'released when that price expires'), findsOneWidget);
+    });
+  }
 }

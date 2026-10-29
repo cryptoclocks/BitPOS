@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:mobile_shared/presentation/bitpos_info.dart';
 import 'package:mobile_shared/mobile_api.dart';
 import 'package:mobile_shared/mobile_v1.generated.dart';
 import 'package:mobile_shared/driver_mutation.dart';
@@ -173,12 +174,18 @@ class _WorkAvailabilityState extends State<WorkAvailability>
                 ),
         ),
         const SizedBox(height: 12),
-        Text(
-          t(
-            'ออนไลน์ไม่ใช่การรับงานหรือเปิดแชร์ตำแหน่ง ต้องยินยอมแยกต่างหาก',
-            'Going online does not accept work or share location. Location consent is separate.',
-          ),
-          style: const TextStyle(fontSize: 12),
+        BitPosInfoLine(
+          key: const ValueKey('availability-info'),
+          thai: widget.thai,
+          summary: t('ออนไลน์ไม่ใช่การรับงาน', 'Online is not accepting work'),
+          title: t('เกี่ยวกับการออนไลน์', 'About going online'),
+          paragraphs: [
+            t(
+              'ออนไลน์ไม่ใช่การรับงานหรือเปิดแชร์ตำแหน่ง ต้องยินยอมแยกต่างหาก',
+              'Going online does not accept work or share location. Location consent is separate.',
+            ),
+          ],
+          style: const TextStyle(fontSize: 13),
         ),
         if (pending != null)
           FilledButton(

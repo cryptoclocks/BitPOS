@@ -113,7 +113,13 @@ void main() {
     expect(find.text('40 points'), findsOneWidget);
     expect(find.byKey(const ValueKey('rewards-offers-empty')), findsOneWidget);
     expect(find.byKey(const ValueKey('vouchers-empty')), findsOneWidget);
+    expect(find.textContaining('not refunded'), findsNothing, reason: 'long explanation sits behind the info button');
+    await tester.tap(find.descendant(of: find.byKey(const ValueKey('rewards-info')), matching: find.byType(IconButton)));
+    await tester.pumpAndSettle();
     expect(find.textContaining('not refunded'), findsOneWidget);
+    expect(find.textContaining('1 point per whole currency unit'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('bitpos-info-close')));
+    await tester.pumpAndSettle();
     expect(find.byType(FilledButton), findsNothing);
     expect(tester.takeException(), isNull);
   });

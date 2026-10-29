@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:mobile_shared/presentation/bitpos_info.dart';
 import 'package:mobile_shared/mobile_api.dart';
 import 'package:mobile_shared/mobile_v1.generated.dart';
 import 'package:mobile_shared/owned_route.dart';
@@ -151,18 +152,21 @@ class _OrderAgainPageState extends State<OrderAgainPage> {
             style: Theme.of(context).textTheme.headlineSmall,
           ),
           const SizedBox(height: 12),
-          Text(
-            t(
-              'ดูย้อนหลังอย่างเดียว จาก 30 ออเดอร์ล่าสุดของคุณ แสดงสูงสุด 10 ออเดอร์ที่จ่ายแล้วและร้านรับแล้ว ไม่รวมออเดอร์ที่มีรายการคืนเงิน',
-              'Read-only suggestions from your latest 30 orders, showing up to 10 paid and accepted orders. Orders with refund records are excluded.',
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            t(
-              'ตรวจเมนู ตัวเลือก สต็อก และราคาปัจจุบันที่ร้านก่อนสั่งใหม่ หน้านี้ไม่สร้างออเดอร์หรือชำระเงิน',
-              'Check the branch menu, options, stock and current prices before ordering again. This page creates no order or payment.',
-            ),
+          BitPosInfoLine(
+            key: const ValueKey('order-again-info'),
+            thai: widget.thai,
+            summary: t('ดูย้อนหลังอย่างเดียว ไม่สร้างออเดอร์', 'Read-only. Creates no order.'),
+            title: t('เกี่ยวกับรายการนี้', 'About this list'),
+            paragraphs: [
+              t(
+                'ดูย้อนหลังอย่างเดียว จาก 30 ออเดอร์ล่าสุดของคุณ แสดงสูงสุด 10 ออเดอร์ที่จ่ายแล้วและร้านรับแล้ว ไม่รวมออเดอร์ที่มีรายการคืนเงิน',
+                'Read-only suggestions from your latest 30 orders, showing up to 10 paid and accepted orders. Orders with refund records are excluded.',
+              ),
+              t(
+                'ตรวจเมนู ตัวเลือก สต็อก และราคาปัจจุบันที่ร้านก่อนสั่งใหม่ หน้านี้ไม่สร้างออเดอร์หรือชำระเงิน',
+                'Check the branch menu, options, stock and current prices before ordering again. This page creates no order or payment.',
+              ),
+            ],
           ),
           const SizedBox(height: 20),
           if (_loading)

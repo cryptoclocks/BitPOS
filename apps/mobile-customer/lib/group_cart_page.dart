@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:mobile_shared/presentation/bitpos_info.dart';
 import 'package:mobile_shared/mobile_api.dart';
 import 'package:mobile_shared/mobile_v1.generated.dart';
 
@@ -553,11 +554,16 @@ class _GroupCartPageState extends State<GroupCartPage> {
         t('สั่งรายการของคุณ', 'Order your items'),
         style: const TextStyle(fontWeight: FontWeight.w600, color: _ink),
       ),
-      Text(
-        t(
-          'เลือกรับที่ร้านหรือจัดส่ง ราคามาจากร้านโดยตรง แต่ละร้านแยกกัน ไม่มีการเก็บเงินตอนสั่ง ชำระจากหน้าออเดอร์',
-          'Choose pickup or delivery. The branch prices your items; each branch is separate. Placing the order takes no payment: pay from your Orders.',
-        ),
+      BitPosInfoLine(
+        thai: widget.thai,
+        summary: t('เลือกรับที่ร้านหรือจัดส่ง ยังไม่เก็บเงินตอนสั่ง', 'Pickup or delivery. No payment when ordering'),
+        title: t('เกี่ยวกับการสั่ง', 'About ordering'),
+        paragraphs: [
+          t(
+            'เลือกรับที่ร้านหรือจัดส่ง ราคามาจากร้านโดยตรง แต่ละร้านแยกกัน ไม่มีการเก็บเงินตอนสั่ง ชำระจากหน้าออเดอร์',
+            'Choose pickup or delivery. The branch prices your items; each branch is separate. Placing the order takes no payment: pay from your Orders.',
+          ),
+        ],
         style: const TextStyle(fontSize: 12, color: _muted),
       ),
       for (final b in branchIds) ...[
@@ -702,11 +708,16 @@ class _GroupCartPageState extends State<GroupCartPage> {
             style: const TextStyle(fontWeight: FontWeight.w600, color: _purple),
           ),
           const SizedBox(height: 6),
-          Text(
-            t(
-              'กลุ่มเก็บเฉพาะรายการที่เลือก ไม่มีราคารวมหรือการชำระเงินของกลุ่ม แต่ละคนสั่งรายการของตัวเองจากร้านตามปกติ',
-              'A group keeps selections only. There is no group price or payment: each member orders their own items from the branch as usual.',
-            ),
+          BitPosInfoLine(
+            thai: widget.thai,
+            summary: t('กลุ่มไม่มีราคารวมหรือการชำระเงิน', 'No group price or payment'),
+            title: t('เกี่ยวกับกลุ่ม', 'About groups'),
+            paragraphs: [
+              t(
+                'กลุ่มเก็บเฉพาะรายการที่เลือก ไม่มีราคารวมหรือการชำระเงินของกลุ่ม แต่ละคนสั่งรายการของตัวเองจากร้านตามปกติ',
+                'A group keeps selections only. There is no group price or payment: each member orders their own items from the branch as usual.',
+              ),
+            ],
             style: const TextStyle(fontSize: 12, color: _muted),
           ),
           if (g.state == 'LOCKED')

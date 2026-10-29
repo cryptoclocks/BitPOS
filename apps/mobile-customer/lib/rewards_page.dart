@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:mobile_shared/mobile_api.dart';
 import 'package:mobile_shared/mobile_v1.generated.dart';
 import 'package:mobile_shared/owned_route.dart';
+import 'package:mobile_shared/presentation/bitpos_info.dart';
 
 /// Derived loyalty points and demo-grade reward vouchers. The server recomputes points from
 /// paid online orders on every read (one point per whole currency unit, refunded orders
@@ -221,7 +222,10 @@ class _RewardsPageState extends State<RewardsPage> {
                 '${minorText(o.discountMinor, o.decimals, o.currency)} off food orders of at least ${minorText(o.minimumSpendMinor, o.decimals, o.currency)} · ${o.pointsCost} points · valid ${o.validityDays} days',
               ),
             ),
-            Text(t('คุณมี ${o.balance} แต้มที่ร้านนี้', 'You have ${o.balance} points at this shop')),
+            Text(
+              t('คุณมี ${o.balance} แต้มที่ร้านนี้', 'You have ${o.balance} points at this shop'),
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
             const SizedBox(height: 8),
             FilledButton(
               key: ValueKey('redeem-${o.id}'),
@@ -266,8 +270,8 @@ class _RewardsPageState extends State<RewardsPage> {
             ),
             Text(
               t(
-                'ใช้ได้ที่ตะกร้า > คูปองส่วนลด ของร้านนี้ เซิร์ฟเวอร์เป็นผู้คิดส่วนลด',
-                'Use it in your cart under Discount coupons for this shop. The server works out the discount.',
+                'ใช้ที่ตะกร้า > คูปองส่วนลด ของร้านนี้',
+                'Use in your cart under Discount coupons.',
               ),
               style: Theme.of(context).textTheme.bodySmall,
             ),
@@ -311,11 +315,25 @@ class _RewardsPageState extends State<RewardsPage> {
       body: ListView(
         padding: const EdgeInsets.all(24),
         children: [
-          Text(
-            t(
-              'แต้มคำนวณจากออเดอร์อาหารที่ชำระแล้วของคุณ 1 แต้มต่อเงิน 1 หน่วยเต็ม ไม่นับออเดอร์ที่มีการคืนเงิน หักด้วยแต้มที่แลกไปแล้ว แต้มนับแยกตามร้าน ร้านที่เปิดรางวัลเท่านั้นที่แลกได้ (เดโม) คูปองที่หมดอายุโดยไม่ได้ใช้จะไม่คืนแต้ม',
-              'Points are worked out from your paid food orders: 1 point per whole currency unit, excluding orders with a refund, minus points you already redeemed. Points are counted per shop and only shops that offer a reward can be redeemed (demo). A voucher that expires unused is not refunded.',
-            ),
+          BitPosInfoLine(
+            key: const ValueKey('rewards-info'),
+            thai: widget.thai,
+            summary: t('สะสมแต้มจากออเดอร์ที่ชำระแล้ว', 'Earn points from paid orders'),
+            title: t('วิธีคิดแต้ม', 'How points work'),
+            paragraphs: [
+              t(
+                'แต้มคำนวณจากออเดอร์อาหารที่ชำระแล้วของคุณ 1 แต้มต่อเงิน 1 หน่วยเต็ม ไม่นับออเดอร์ที่มีการคืนเงิน หักด้วยแต้มที่แลกไปแล้ว',
+                'Points are worked out from your paid food orders: 1 point per whole currency unit, excluding orders with a refund, minus points you already redeemed.',
+              ),
+              t(
+                'แต้มนับแยกตามร้าน ร้านที่เปิดรางวัลเท่านั้นที่แลกได้ (เดโม)',
+                'Points are counted per shop and only shops that offer a reward can be redeemed (demo).',
+              ),
+              t(
+                'คูปองที่หมดอายุโดยไม่ได้ใช้จะไม่คืนแต้ม',
+                'A voucher that expires unused is not refunded.',
+              ),
+            ],
           ),
           const SizedBox(height: 16),
           if (loading) const LinearProgressIndicator(),

@@ -13,6 +13,7 @@ import 'order_again_page.dart';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:mobile_shared/presentation/bitpos_info.dart';
 import 'package:mobile_shared/mobile_api.dart';
 import 'package:mobile_shared/mobile_v1.generated.dart';
 import 'package:mobile_shared/account_mutation.dart';
@@ -788,11 +789,16 @@ class _AccountPageState extends State<AccountPage> {
                   onTap: _busy ? null : _help,
                 ),
               if (detail && _section != _AccountSection.addresses)
-                Text(
-                  t(
-                    'ข้อมูลนี้เป็นของบัญชีคุณ ไม่ได้รวมกับรายชื่อลูกค้าของร้านโดยอัตโนมัติ',
-                    'These details belong to your account. They are not automatically merged with merchant customer records.',
-                  ),
+                BitPosInfoLine(
+                  thai: widget.thai,
+                  summary: t('ข้อมูลของบัญชีคุณ', 'Your account details'),
+                  title: t('เกี่ยวกับข้อมูลนี้', 'About these details'),
+                  paragraphs: [
+                    t(
+                      'ข้อมูลนี้เป็นของบัญชีคุณ ไม่ได้รวมกับรายชื่อลูกค้าของร้านโดยอัตโนมัติ',
+                      'These details belong to your account. They are not automatically merged with merchant customer records.',
+                    ),
+                  ],
                 ),
               if (_busy) const LinearProgressIndicator(),
               if (_error != null)
@@ -1009,18 +1015,21 @@ class _AccountPageState extends State<AccountPage> {
                       ),
                     ),
                   if (_section == _AccountSection.addresses)
-                    Text(
-                      t(
-                        'ข้อมูลนี้เป็นของบัญชีคุณ ไม่ได้รวมกับรายชื่อลูกค้าของร้านโดยอัตโนมัติ',
-                        'These details belong to your account. They are not automatically merged with merchant customer records.',
-                      ),
+                    BitPosInfoLine(
+                      thai: widget.thai,
+                      summary: t('ไม่ต้องเปิด GPS ที่อยู่ไม่ถูกส่งให้ใครโดยอัตโนมัติ', 'No GPS needed. Addresses are not shared automatically'),
+                      title: t('เกี่ยวกับที่อยู่ของคุณ', 'About your addresses'),
+                      paragraphs: [
+                        t(
+                          'ข้อมูลนี้เป็นของบัญชีคุณ ไม่ได้รวมกับรายชื่อลูกค้าของร้านโดยอัตโนมัติ',
+                          'These details belong to your account. They are not automatically merged with merchant customer records.',
+                        ),
+                        t(
+                          'เพิ่มที่อยู่ด้วยตนเอง ไม่บังคับเปิด GPS ที่อยู่ยังไม่ถูกส่งให้ร้านหรือไรเดอร์จนกว่าจะใช้ในงานที่อนุญาต',
+                          'Enter an address manually; GPS is not required. Saving it does not share it with a merchant or driver.',
+                        ),
+                      ],
                     ),
-                  Text(
-                    t(
-                      'เพิ่มที่อยู่ด้วยตนเอง ไม่บังคับเปิด GPS ที่อยู่ยังไม่ถูกส่งให้ร้านหรือไรเดอร์จนกว่าจะใช้ในงานที่อนุญาต',
-                      'Enter an address manually; GPS is not required. Saving it does not share it with a merchant or driver.',
-                    ),
-                  ),
                 ],
                 if (_showEditor)
                   Form(

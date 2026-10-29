@@ -3,6 +3,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:mobile_shared/presentation/bitpos_info.dart';
 import 'package:mobile_shared/mobile_api.dart';
 import 'package:mobile_shared/mobile_v1.generated.dart';
 
@@ -464,11 +465,19 @@ class _RideRequestPageState extends State<RideRequestPage> {
             color: _ink,
           ),
         ),
-        Text(
-          t(
-            'ประมาณจากระยะเส้นตรง ~${(_estimate!.distanceMetres / 1000).toStringAsFixed(1)} กม. เส้นทางจริงอาจต่างไป ยังไม่มีการเก็บเงินในแอป',
-            'Estimated from straight-line distance, ~${(_estimate!.distanceMetres / 1000).toStringAsFixed(1)} km; the real route may differ. No payment is taken in the app.',
+        BitPosInfoLine(
+          thai: widget.thai,
+          summary: t(
+            'ประมาณ ~${(_estimate!.distanceMetres / 1000).toStringAsFixed(1)} กม. ยังไม่มีการเก็บเงินในแอป',
+            'About ~${(_estimate!.distanceMetres / 1000).toStringAsFixed(1)} km. No payment is taken in the app',
           ),
+          title: t('เกี่ยวกับค่าประมาณ', 'About this estimate'),
+          paragraphs: [
+            t(
+              'ประมาณจากระยะเส้นตรง ~${(_estimate!.distanceMetres / 1000).toStringAsFixed(1)} กม. เส้นทางจริงอาจต่างไป ยังไม่มีการเก็บเงินในแอป',
+              'Estimated from straight-line distance, ~${(_estimate!.distanceMetres / 1000).toStringAsFixed(1)} km; the real route may differ. No payment is taken in the app.',
+            ),
+          ],
           style: const TextStyle(fontSize: 12, color: _muted),
         ),
         const SizedBox(height: 10),

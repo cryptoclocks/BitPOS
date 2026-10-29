@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_shared/mobile_api.dart';
 import 'package:mobile_shared/mobile_v1.generated.dart';
+import 'package:mobile_shared/presentation/bitpos_info.dart';
 
 import '../food_labels.dart';
 
@@ -121,12 +122,17 @@ class _CartCouponPageState extends State<CartCouponPage> {
                       style: Theme.of(context).textTheme.titleLarge,
                     ),
                     const SizedBox(height: 12),
-                    Text(
-                      t(
-                        'ยอดส่วนลดและยอดสุทธิในตะกร้าคำนวณโดยเซิร์ฟเวอร์ หากต้องการเปลี่ยนคูปอง ให้อัปเดตราคาก่อน (สิทธิ์ของคูปองเดิมจะคืนเมื่อราคาหมดอายุ)',
-                        'The discount and total in your cart are computed by the server. To change the coupon, refresh the price first (the earlier coupon is released when that price expires).',
-                      ),
-                      textAlign: TextAlign.center,
+                    BitPosInfoLine(
+                      key: const ValueKey('coupon-applied-info'),
+                      thai: widget.thai,
+                      summary: t('เซิร์ฟเวอร์คำนวณส่วนลดและยอดสุทธิ', 'The server calculates the discount and total'),
+                      title: t('เกี่ยวกับคูปอง', 'About this coupon'),
+                      paragraphs: [
+                        t(
+                          'ยอดส่วนลดและยอดสุทธิในตะกร้าคำนวณโดยเซิร์ฟเวอร์ หากต้องการเปลี่ยนคูปอง ให้อัปเดตราคาก่อน (สิทธิ์ของคูปองเดิมจะคืนเมื่อราคาหมดอายุ)',
+                          'The discount and total in your cart are computed by the server. To change the coupon, refresh the price first (the earlier coupon is released when that price expires).',
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 24),
                     OutlinedButton(
@@ -211,15 +217,6 @@ class _CartCouponPageState extends State<CartCouponPage> {
                               child: CircularProgressIndicator(strokeWidth: 2),
                             )
                           : Text(t('ใช้คูปอง', 'Apply coupon')),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      t(
-                        'ส่วนลดคำนวณโดยเซิร์ฟเวอร์จากราคาที่เสนอ ไม่ใช่จากแอป',
-                        'The discount is calculated by the server from the quoted price, not by the app.',
-                      ),
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.bodySmall,
                     ),
                   ],
                   const SizedBox(height: 24),

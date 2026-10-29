@@ -5,6 +5,7 @@ import 'dart:async';
 
 import 'food_review_page.dart';
 import 'presentation/merchant_search_empty.dart';
+import 'package:mobile_shared/presentation/bitpos_info.dart';
 import 'package:mobile_shared/presentation/bitpos_state_view.dart';
 import 'presentation/merchant_search_controls.dart';
 import 'presentation/merchant_branch_card.dart';
@@ -1528,11 +1529,16 @@ class _FoodPageState extends State<FoodPage> with WidgetsBindingObserver {
           ),
         ),
       ),
-      Text(
-        t(
-          'กลับจากหน้าชำระแล้วระบบตรวจสอบสถานะออเดอร์เดิม ไม่สร้างการชำระใหม่จากผล callback',
-          'On return, the app checks the original order. A callback never creates or confirms a payment.',
-        ),
+      BitPosInfoLine(
+        thai: widget.thai,
+        summary: t('ระบบตรวจสถานะออเดอร์เดิมเมื่อกลับมา', 'We re-check this order when you return'),
+        title: t('เกี่ยวกับการชำระ', 'About payment'),
+        paragraphs: [
+          t(
+            'กลับจากหน้าชำระแล้วระบบตรวจสอบสถานะออเดอร์เดิม ไม่สร้างการชำระใหม่จากผล callback',
+            'On return, the app checks the original order. A callback never creates or confirms a payment.',
+          ),
+        ],
       ),
     ],
   );
@@ -2011,16 +2017,23 @@ class _FoodPageState extends State<FoodPage> with WidgetsBindingObserver {
                               'REJECTED',
                               'TIMED_OUT',
                             ].contains(o.acceptanceStatus))
-                              Text(
-                                o.delivery == null
-                                    ? t(
-                                        'รับอาหารที่ร้าน การรับจากร้านไม่ใช่การส่งถึงลูกค้า',
-                                        'Collect at the merchant. Store collection is not delivery to a customer.',
-                                      )
-                                    : t(
-                                        'จัดส่งไปยังที่อยู่ที่ยืนยันไว้ การส่งมอบที่ร้านให้ไรเดอร์ไม่ใช่การส่งถึงลูกค้า',
-                                        'Delivery to the confirmed address. Merchant handoff to a driver is not delivery to the customer.',
-                                      ),
+                              BitPosInfoLine(
+                                thai: widget.thai,
+                                summary: o.delivery == null
+                                    ? t('รับอาหารที่ร้าน', 'Collect at the merchant')
+                                    : t('จัดส่งไปยังที่อยู่ที่ยืนยันไว้', 'Delivery to the confirmed address'),
+                                title: t('เกี่ยวกับการรับอาหาร', 'About receiving your order'),
+                                paragraphs: [
+                                  o.delivery == null
+                                      ? t(
+                                          'รับอาหารที่ร้าน การรับจากร้านไม่ใช่การส่งถึงลูกค้า',
+                                          'Collect at the merchant. Store collection is not delivery to a customer.',
+                                        )
+                                      : t(
+                                          'จัดส่งไปยังที่อยู่ที่ยืนยันไว้ การส่งมอบที่ร้านให้ไรเดอร์ไม่ใช่การส่งถึงลูกค้า',
+                                          'Delivery to the confirmed address. Merchant handoff to a driver is not delivery to the customer.',
+                                        ),
+                                ],
                               ),
                             const SizedBox(height: BitPosDesignTokens.s12),
                             if (o.delivery != null && !widget.rootOwnsHeader)
@@ -2053,11 +2066,16 @@ class _FoodPageState extends State<FoodPage> with WidgetsBindingObserver {
                                 ),
                               ),
                             if (!['PAID', 'RECOVERY'].contains(o.status))
-                              Text(
-                                t(
-                                  'ยังไม่มีหลักฐานชำระเงินที่ยืนยันแล้ว หน้านี้ไม่ใช้ลายเซ็นหรือการกดปุ่มเป็นหลักฐานชำระ',
-                                  'No verified payment yet. A signature or UI action cannot confirm payment.',
-                                ),
+                              BitPosInfoLine(
+                                thai: widget.thai,
+                                summary: t('ยังไม่มีหลักฐานชำระเงินที่ยืนยัน', 'No verified payment yet'),
+                                title: t('เกี่ยวกับการยืนยันชำระ', 'About payment confirmation'),
+                                paragraphs: [
+                                  t(
+                                    'ยังไม่มีหลักฐานชำระเงินที่ยืนยันแล้ว หน้านี้ไม่ใช้ลายเซ็นหรือการกดปุ่มเป็นหลักฐานชำระ',
+                                    'No verified payment yet. A signature or UI action cannot confirm payment.',
+                                  ),
+                                ],
                               ),
                             if (!widget.rootOwnsHeader)
                               OutlinedButton.icon(
