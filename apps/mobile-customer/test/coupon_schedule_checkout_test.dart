@@ -97,13 +97,13 @@ MobileScheduleSlot slot(int n, {int hours = 3}) {
   );
 }
 
-Future<void> openCart(WidgetTester tester, CheckoutApi api, {bool thai = false}) async {
+Future<void> openCart(WidgetTester tester, CheckoutApi api, {bool thai = false, DateTime Function()? clock}) async {
   addTearDown(api.close);
   await tester.pumpWidget(
     MaterialApp(
       home: Scaffold(
         body: SingleChildScrollView(
-          child: FoodPage(api: api, thai: thai, onAuthenticationRequired: () {}),
+          child: FoodPage(api: api, thai: thai, onAuthenticationRequired: () {}, clock: clock ?? DateTime.now),
         ),
       ),
     ),

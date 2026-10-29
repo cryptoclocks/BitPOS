@@ -14,7 +14,7 @@ const sha=(v:string)=>createHash('sha256').update(v).digest('hex');
 test('coupon, schedule slots and schedule hold authenticate with a real session and refuse business errors as non-401',integration,async()=>{
  const admin=new pg.Client({connectionString:process.env.ADMIN_DATABASE_URL});await admin.connect();
  try{
-  assert.equal((await admin.query('SELECT current_database() n')).rows[0].n,'bitpos_fix_fixture');
+  assert.ok(['bitpos_fix_fixture','bitpos_fix2_fixture'].includes((await admin.query('SELECT current_database() n')).rows[0].n));
   const merchant=(await admin.query('SELECT merchant_id,id FROM bitpos.marketplace_branches ORDER BY id LIMIT 1')).rows[0];
   assert.ok(merchant,'run the seed setup against bitpos_fix_fixture first');
   const product=(await admin.query("SELECT id FROM bitpos.products WHERE merchant_id=$1 AND name='ครัวซองต์เนยสด'",[merchant.merchant_id])).rows[0].id;
@@ -35,6 +35,11 @@ test('coupon, schedule slots and schedule hold authenticate with a real session 
   assert.equal(BigInt(applied.quote.total.amountMinor),BigInt(base.total.amountMinor)-50n);
   const replay=await call('POST',`/food/quotes/${base.id}/coupon`,{code:'TRY50',idempotencyKey:key});
   assert.equal(replay.quote.id,applied.quote.id);
+  // Regression (try-apps demo): the coupon-bearing quote must be orderable. The configured-quote freshness
+  // check used to compare the discounted frozen snapshot with an undiscounted recomputation and refuse
+  // every coupon order with QUOTE_CHANGED/CONFIGURED_QUOTE_CHANGED.
+  const placed=await call('POST','/food/orders',{branchId:merchant.id,quoteId:applied.quote.id,priceVersion:applied.quote.priceVersion,idempotencyKey:randomUUID()});
+  assert.equal(placed.order.total.amountMinor,applied.quote.total.amountMinor,'order is placed at the discounted server total');
   // invalid code: a business refusal (409 QUOTE_CHANGED/COUPON_NOT_FOUND), never 401 that signs the customer out.
   await refused(call('POST',`/food/quotes/${(await quote()).id}/coupon`,{code:'NOPE-CODE',idempotencyKey:randomUUID()}),409);
   // a genuinely bad token is still 401.

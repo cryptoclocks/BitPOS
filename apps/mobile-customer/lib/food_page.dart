@@ -271,6 +271,9 @@ class FoodPage extends StatefulWidget {
   final PaymentHandoff? paymentHandoff;
   final Widget? sessionTools;
   final String? initialOrderId;
+  /// Test seam for the quote lease clock; production always uses the device clock.
+  @visibleForTesting
+  final DateTime Function() clock;
   const FoodPage({
     super.key,
     required this.api,
@@ -283,6 +286,7 @@ class FoodPage extends StatefulWidget {
     this.navigation,
     this.rootOwnsHeader = false,
     this.onAccount,
+    this.clock = DateTime.now,
   });
   @override
   State<FoodPage> createState() => _FoodPageState();
@@ -302,6 +306,14 @@ class _FoodPageState extends State<FoodPage> with WidgetsBindingObserver {
   MobileFoodQuote? _quote;
   // The quote that carries a server-applied coupon; a refreshed quote never inherits it.
   String? _couponQuoteId, _couponCode;
+  // One-line explanation after the app replaced the quote on its own (new totals,
+  // or a coupon the server would not re-apply). Cleared by the next manual action.
+  String? _quoteNotice;
+  // Quote lease: refresh shortly before the server lease ends so the customer never
+  // reads an expired price. Only the server decides the new totals.
+  static const _leaseMargin = Duration(seconds: 12);
+  Timer? _leaseTimer;
+  DateTime? _lastLeaseAttempt;
   ScheduleAvailability _scheduleAvailability = ScheduleAvailability.loading;
   List<MobileScheduleSlot> _slots = const [];
   MobileScheduleSlot? _selectedSlot;
@@ -480,6 +492,18 @@ class _FoodPageState extends State<FoodPage> with WidgetsBindingObserver {
     _syncOrderDetailNavigation();
   }
 
+  void _syncOrderReview() {
+    final q = _quote;
+    if (q == null) return;
+    widget.navigation?.setOrderReview(
+      this,
+      true,
+      validUntil: q.validUntil,
+      total: money(q.total),
+      delivery: q.delivery != null,
+    );
+  }
+
   void _setCartReview(bool active) {
     _cartReview = active;
     widget.navigation?.setOrderReview(this, false);
@@ -522,13 +546,7 @@ class _FoodPageState extends State<FoodPage> with WidgetsBindingObserver {
         if (!_current || _busy || _quote == null) return;
         setState(() {
           _setCartReview(false);
-          widget.navigation?.setOrderReview(
-            this,
-            true,
-            validUntil: _quote!.validUntil,
-            total: money(_quote!.total),
-            delivery: _quote!.delivery != null,
-          );
+          _syncOrderReview();
         });
       },
       () {
@@ -568,6 +586,7 @@ class _FoodPageState extends State<FoodPage> with WidgetsBindingObserver {
     _closeDelivery();
     _closeSupport();
     _closeReview();
+    _leaseTimer?.cancel();
     _searchController.dispose();
     _branchSearchController.dispose();
     WidgetsBinding.instance.removeObserver(this);
@@ -576,6 +595,7 @@ class _FoodPageState extends State<FoodPage> with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) _leaseTick();
     if (state == AppLifecycleState.resumed && _order != null) {
       if (_busy) {
         _refreshOnResume = true;
@@ -915,6 +935,11 @@ class _FoodPageState extends State<FoodPage> with WidgetsBindingObserver {
       products.addAll(page.products);
       cursor = page.nextCursor;
     }
+    if (_cartBranchId != branch.id) {
+      _couponCode = null;
+      _couponQuoteId = null;
+      _quoteNotice = null;
+    }
     _menu = first;
     _products = products;
     _cartBranchId = branch.id;
@@ -938,6 +963,103 @@ class _FoodPageState extends State<FoodPage> with WidgetsBindingObserver {
   }
 
   Future<void> _review() async {
+    final menu = _menu!;
+    _quoteNotice = null;
+    await _requestQuote();
+    await _reapplyCoupon();
+    _setCartReview(true);
+    unawaited(_loadSlots(menu.branch.id, _delivery ? 'delivery' : 'pickup'));
+  }
+
+  /// Automatic or on-resume replacement of the quote. Keeps the stage the customer
+  /// is on, re-applies the chosen coupon on the new server quote and shows the
+  /// new server totals. The picked slot is held against whichever quote is ordered.
+  Future<void> _refreshQuote() async {
+    if (_menu == null || _quote == null) return;
+    final orderStage = !_cartReview;
+    final before = _quote!.total.amountMinor;
+    _quoteNotice = null;
+    await _requestQuote();
+    await _reapplyCoupon();
+    if (_quoteNotice == null && _quote!.total.amountMinor != before) {
+      _quoteNotice = t(
+        'ราคาถูกอัปเดตจากเซิร์ฟเวอร์ ยอดใหม่ ${money(_quote!.total)}',
+        'Price refreshed by the server. New total ${money(_quote!.total)}',
+      );
+    }
+    if (orderStage) {
+      _syncOrderReview();
+    } else {
+      _setCartReview(true);
+    }
+  }
+
+  /// Re-attaches the coupon the customer had applied to the replacement quote.
+  /// A server refusal drops it with a one-line reason; a network failure keeps
+  /// the code so the next refresh tries again.
+  Future<void> _reapplyCoupon() async {
+    final code = _couponCode, q = _quote;
+    if (code == null || q == null) return;
+    try {
+      final result = await widget.api.applyFoodCoupon(
+        q.id,
+        MobileCouponApplyRequest(
+          code: code,
+          idempotencyKey: widget.api.newCommandKey(),
+        ),
+      );
+      _quote = result.quote;
+      _couponQuoteId = result.quote.id;
+      _couponCode = result.couponCode;
+    } catch (error) {
+      if (error is MobileApiException && error.code == 'AUTH_REQUIRED') {
+        rethrow;
+      }
+      _couponQuoteId = null;
+      if (error is MobileApiException && error.status < 500) {
+        _couponCode = null;
+        _quoteNotice = t(
+          'ใส่คูปอง $code กลับไม่ได้: ${checkoutRefusalMessage(error, true)}',
+          'Coupon $code could not be re-applied: ${checkoutRefusalMessage(error, false)}',
+        );
+      } else {
+        _quoteNotice = t(
+          'ยังใส่คูปอง $code กลับไม่สำเร็จ แตะที่คูปองเพื่อลองอีกครั้ง',
+          'Coupon $code was not re-applied yet. Tap the coupon to try again.',
+        );
+      }
+    }
+  }
+
+  void _leaseTick() {
+    final q = _quote;
+    if (!_current || q == null || _order != null) {
+      _leaseTimer?.cancel();
+      _leaseTimer = null;
+      return;
+    }
+    if (_busy || _pending != null) return;
+    final until = DateTime.tryParse(q.validUntil);
+    if (until == null || until.difference(widget.clock()) > _leaseMargin) {
+      return;
+    }
+    final last = _lastLeaseAttempt;
+    if (last != null &&
+        DateTime.now().difference(last) < const Duration(seconds: 5)) {
+      return;
+    }
+    _lastLeaseAttempt = DateTime.now();
+    unawaited(_run(_refreshQuote));
+  }
+
+  void _startLeaseTimer() {
+    _leaseTimer ??= Timer.periodic(
+      const Duration(seconds: 1),
+      (_) => _leaseTick(),
+    );
+  }
+
+  Future<void> _requestQuote() async {
     final menu = _menu!;
     if (_cart.values.any(
       (item) => !_products.any(
@@ -971,8 +1093,7 @@ class _FoodPageState extends State<FoodPage> with WidgetsBindingObserver {
         ),
       );
     }
-    _setCartReview(true);
-    unawaited(_loadSlots(menu.branch.id, _delivery ? 'delivery' : 'pickup'));
+    _startLeaseTimer();
   }
 
   /// Slots are optional: any failure leaves the order immediate and says so.
@@ -1030,6 +1151,7 @@ class _FoodPageState extends State<FoodPage> with WidgetsBindingObserver {
         _couponQuoteId = result.quote.id;
         _couponCode = result.couponCode;
         _error = null;
+        _quoteNotice = null;
       });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -1042,6 +1164,8 @@ class _FoodPageState extends State<FoodPage> with WidgetsBindingObserver {
         ),
       );
     } else if (result is CouponRemoveRequest) {
+      _couponCode = null;
+      _couponQuoteId = null;
       await _run(_review);
     }
   }
@@ -1049,8 +1173,16 @@ class _FoodPageState extends State<FoodPage> with WidgetsBindingObserver {
   Future<void> _submit() async {
     final q = _quote;
     if (_pending == null) {
-      if (q == null || !DateTime.parse(q.validUntil).isAfter(DateTime.now()))
-        throw const MobileApiException('QUOTE_EXPIRED', 409);
+      if (q == null) throw const MobileApiException('QUOTE_EXPIRED', 409);
+      if (!DateTime.parse(q.validUntil).isAfter(widget.clock())) {
+        // Never order on a stale price: fetch the new server quote and ask again.
+        await _refreshQuote();
+        _quoteNotice = t(
+          'ราคาหมดอายุ จึงอัปเดตเป็น ${money(_quote!.total)} ตรวจยอดแล้วกดยืนยันอีกครั้ง',
+          'The price expired and was refreshed to ${money(_quote!.total)}. Check it and confirm again.',
+        );
+        return;
+      }
       final slot = _selectedSlot;
       if (slot != null) {
         var command = _slotCommand;
@@ -1087,6 +1219,9 @@ class _FoodPageState extends State<FoodPage> with WidgetsBindingObserver {
       _scheduledSlot = _selectedSlot;
       _selectedSlot = null;
       _slotCommand = null;
+      _couponCode = null;
+      _couponQuoteId = null;
+      _quoteNotice = null;
       _order = result.order;
       _timeline = null;
       _quote = null;
@@ -1412,8 +1547,11 @@ class _FoodPageState extends State<FoodPage> with WidgetsBindingObserver {
 
   Widget _amount(String label, MobileMoney value, {bool total = false}) =>
       FoodAmountRow(label: label, amount: money(value), total: total);
+  // No "−0.00" line when the order has no discount.
   Widget _discountAmount(String label, MobileMoney value) =>
-      FoodAmountRow(label: label, amount: '−${money(value)}');
+      BigInt.parse(value.amountMinor) == BigInt.zero
+      ? const SizedBox.shrink()
+      : FoodAmountRow(label: label, amount: '−${money(value)}');
   Widget _orderNotice(String message) => Container(
     margin: const EdgeInsets.only(top: 10),
     padding: const EdgeInsets.all(12),
@@ -2153,6 +2291,18 @@ class _FoodPageState extends State<FoodPage> with WidgetsBindingObserver {
                   child: Text(t('กลับไปร้านอาหาร', 'Back to merchants')),
                 ),
             ] else if (q != null) ...[
+              if (_quoteNotice != null)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Text(
+                    _quoteNotice!,
+                    key: const ValueKey('quote-notice'),
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                  ),
+                ),
               if (_cartReview) ...[
                 ConfiguredFoodLines(
                   lines: q.configured.lines,

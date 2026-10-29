@@ -45,6 +45,17 @@ class _DriverAssignedNavigationCardState extends State<DriverAssignedNavigationC
 
   String _t(String th, String en) => widget.thai ? th : en;
 
+  /// Real pickup data from the assignment: shop name, address and how many items to collect.
+  String _pickupSummary() {
+    final a = widget.assignment;
+    final count = a.items.fold<int>(0, (sum, item) => sum + item.qty);
+    return [
+      a.pickupName,
+      if (a.pickupAddress.isNotEmpty) a.pickupAddress,
+      if (count > 0) _t('$count รายการ', count == 1 ? '1 item' : '$count items'),
+    ].join('\n');
+  }
+
   @override
   Widget build(BuildContext context) => widget.mapBuilder(456, _cameraBottomInset, _compose);
 
@@ -74,7 +85,8 @@ class _DriverAssignedNavigationCardState extends State<DriverAssignedNavigationC
           ),
           const SizedBox(height: 8),
           Text(
-            pickup ? _t('ข้อมูลจุดรับอาหารยังไม่พร้อม', 'Pickup details unavailable') : widget.assignment.addressText,
+            pickup ? _pickupSummary() : widget.assignment.addressText,
+            key: const ValueKey('food-assigned-destination'),
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.w400, color: colors.onSurfaceVariant, height: 1.5),
           ),
           const SizedBox(height: 26),

@@ -52,6 +52,24 @@ void main() {
     expect(sent, ['RW0123456789']);
     expect(find.textContaining('needs an unused reward voucher'), findsOneWidget);
   });
+  testWidgets('editing the code clears the previous refusal message', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: CartCouponPage(
+          thai: false,
+          newKey: () => 'k',
+          onApply: (c, k) async => throw const MobileApiException('QUOTE_CHANGED', 409, 'COUPON_NOT_FOUND'),
+        ),
+      ),
+    );
+    await tester.enterText(find.byKey(const ValueKey('coupon-code-field')), 'ABC123');
+    await tester.tap(find.byKey(const ValueKey('coupon-apply-button')));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Coupon code not found'), findsOneWidget);
+    await tester.enterText(find.byKey(const ValueKey('coupon-code-field')), 'ABC1234');
+    await tester.pump();
+    expect(find.textContaining('Coupon code not found'), findsNothing);
+  });
   testWidgets('without vouchers the entry looks exactly as before', (tester) async {
     await tester.pumpWidget(
       MaterialApp(

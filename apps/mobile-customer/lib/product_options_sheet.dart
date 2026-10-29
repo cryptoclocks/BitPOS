@@ -59,6 +59,18 @@ class _ProductOptionsSheetState extends State<ProductOptionsSheet> {
     super.dispose();
   }
 
+  /// Plain-language rule for a group, with how many are picked so far.
+  String _selectionRule(MobileOptionGroup g, int picked) {
+    final lo = g.minSelections, hi = g.maxSelections;
+    if (lo == hi) {
+      return t('เลือก $hi อย่าง · จำเป็น · เลือกแล้ว $picked', 'Choose $hi · required · $picked chosen');
+    }
+    if (lo == 0) {
+      return t('เลือกได้สูงสุด $hi อย่าง · ไม่บังคับ · เลือกแล้ว $picked', 'Choose up to $hi · optional · $picked chosen');
+    }
+    return t('เลือก $lo–$hi อย่าง · จำเป็น · เลือกแล้ว $picked', 'Choose $lo–$hi · required · $picked chosen');
+  }
+
   int count(MobileOptionGroup group) => group.choices.fold(
     0,
     (sum, c) => sum + (_selected[key(group.id, c.id)] ?? 0),
@@ -490,7 +502,7 @@ class _ProductOptionsSheetState extends State<ProductOptionsSheet> {
                                       ?.copyWith(fontSize: 16),
                                 ),
                                 Text(
-                                  '${t('เลือกต่อชิ้น', 'Selections per item')}: ${count(g)} / ${g.minSelections}–${g.maxSelections}',
+                                  _selectionRule(g, count(g)),
                                   style: Theme.of(context).textTheme.bodySmall,
                                 ),
                                 const SizedBox(height: 12),

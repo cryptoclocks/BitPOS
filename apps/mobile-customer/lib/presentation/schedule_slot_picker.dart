@@ -24,17 +24,27 @@ class ScheduleSlotTile extends StatelessWidget {
   final ValueChanged<MobileScheduleSlot?> onChanged;
   final bool enabled;
 
-  static String clock(String iso) {
-    final v = DateTime.parse(iso).toLocal();
+  /// Wall-clock time in the shop's zone. Thailand has no daylight saving, so a fixed
+  /// UTC+7 is exact for Asia/Bangkok whatever zone the phone is set to; any other
+  /// zone falls back to the phone's local time.
+  static DateTime wall(String iso, [String timezone = 'Asia/Bangkok']) {
+    final utc = DateTime.parse(iso).toUtc();
+    return timezone == 'Asia/Bangkok' ? utc.add(const Duration(hours: 7)) : utc.toLocal();
+  }
+
+  static String clock(String iso, [String timezone = 'Asia/Bangkok']) {
+    final v = wall(iso, timezone);
     return '${v.hour.toString().padLeft(2, '0')}:${v.minute.toString().padLeft(2, '0')}';
   }
 
-  static String format(MobileScheduleSlot slot, bool thai) {
-    final start = DateTime.parse(slot.startsAt).toLocal();
-    final end = DateTime.parse(slot.endsAt).toLocal();
+  static String format(MobileScheduleSlot slot, bool thai, {DateTime? now}) {
+    final start = wall(slot.startsAt, slot.timezone);
+    final end = wall(slot.endsAt, slot.timezone);
     String two(int v) => v.toString().padLeft(2, '0');
-    final now = DateTime.now();
-    final sameDay = start.year == now.year && start.month == now.month && start.day == now.day;
+    final today = slot.timezone == 'Asia/Bangkok'
+        ? (now ?? DateTime.now()).toUtc().add(const Duration(hours: 7))
+        : (now ?? DateTime.now()).toLocal();
+    final sameDay = start.year == today.year && start.month == today.month && start.day == today.day;
     final day = sameDay ? (thai ? 'วันนี้' : 'Today') : '${two(start.day)}/${two(start.month)}';
     return '$day ${two(start.hour)}:${two(start.minute)}–${two(end.hour)}:${two(end.minute)}';
   }
@@ -121,8 +131,8 @@ class _SlotSheet extends StatelessWidget {
                 title: Text(ScheduleSlotTile.format(slot, thai)),
                 subtitle: Text(
                   t(
-                    'จองได้ก่อน ${ScheduleSlotTile.clock(slot.bookingClosesAt)}',
-                    'Bookable until ${ScheduleSlotTile.clock(slot.bookingClosesAt)}',
+                    'จองได้ก่อน ${ScheduleSlotTile.clock(slot.bookingClosesAt, slot.timezone)}',
+                    'Bookable until ${ScheduleSlotTile.clock(slot.bookingClosesAt, slot.timezone)}',
                   ),
                 ),
                 onTap: () => Navigator.of(context).pop(_Choice(slot)),

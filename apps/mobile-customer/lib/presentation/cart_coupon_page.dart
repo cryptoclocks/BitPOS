@@ -178,6 +178,9 @@ class _CartCouponPageState extends State<CartCouponPage> {
                         labelText: t('รหัสคูปอง', 'Coupon code'),
                         border: const OutlineInputBorder(),
                       ),
+                      onChanged: (_) {
+                        if (_error != null && !_busy) setState(() => _error = null);
+                      },
                       onSubmitted: (_) => _apply(),
                     ),
                     if (widget.vouchers.isNotEmpty) ...[
