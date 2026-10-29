@@ -12,6 +12,7 @@ import {AgentOrderError,createQuote,listCustomerOrders,listMenu,startAgentChecko
 import type {AgentRequest} from './identity';
 import {cancelReservation,customerReservations,openBookingRequest,parseBooking,requestBooking,resetBookingRequest,bangkokToday,TZ,CHECKIN_MINUTES,type BookingFields,type BookingResult,type ReservationView} from './reservations';
 import type {Card,Outgoing,QuickReply} from './messenger';
+import {kitchenStages} from './kitchen';
 import {CartError,customerCartOrders,formatCart,parseCart,quoteCart,startCart,type CartLine} from './cart';
 
 /** shopMerchant: the shop served at the root of publicOrigin (meta-pay), so menu cards can link to its item pages. */
@@ -284,13 +285,14 @@ async function agentReplies(deps:ChatAgentDeps,req:AgentRequest):Promise<Outgoin
      {title:'🧾 ออเดอร์และการจองของฉัน',subtitle:'ดูสถานะ รหัสรับสินค้า หรือยกเลิกการจอง',imageUrl:pic(2),buttons:[{type:'postback',title:'ออเดอร์ของฉัน',payload:'BITPOS_MY_ORDERS'}]}]}];
   }
   if(req.kind==='my_orders'){
+   const stages=await kitchenStages(deps.db,merchantId);
    const carts=await customerCartOrders(deps.db,merchantId,linkId),orders=await listCustomerOrders(deps,merchantId,linkId),bookings=await customerReservations(deps.db,merchantId,linkId);
    if(!carts.length&&!orders.length&&!bookings.length)return [{kind:'text',psid,text:'ยังไม่มีออเดอร์หรือการจองค่ะ / No orders or bookings yet.'}];
    const CS:Record<string,string>={PENDING:'⏳ รอจ่าย / waiting',PAID:'✅ จ่ายแล้ว / paid',CANCELLED:'↩️ คืนเงินแล้ว / refunded',EXPIRED:'⌛ หมดเวลา / expired'};
    const cards:Card[]=[
     ...bookings.map(b=>({title:`🗓️ #${b.code} โต๊ะ ${b.tableLabel} · ${when(b.startsAt)}`,subtitle:`${b.partySize} คน · ${RES_STATUS[b.status]}${b.status==='HELD'?` · เช็กอิน ${hhmm(b.checkInFrom)}–${hhmm(b.checkInUntil)}`:''}`,
      buttons:b.status==='HELD'?[{type:'postback' as const,title:'ยกเลิกการจอง / Cancel',payload:`BITPOS_BOOK_CANCEL:${b.id}`}]:[]})),
-    ...carts.map(c=>({title:`🧾 #${c.code} ${c.lines.map(l=>`${l.emoji} ${l.name} ×${l.quantity}`).join(', ')}`,subtitle:`${c.total} · ${c.handedOverAt?'🤝 รับแล้ว / picked up':CS[c.status]??c.status}${c.status==='PAID'&&!c.handedOverAt?' · รับที่เคาน์เตอร์':''}`,
+    ...carts.map(c=>({title:`🧾 #${c.code} ${c.lines.map(l=>`${l.emoji} ${l.name} ×${l.quantity}`).join(', ')}`,subtitle:`${c.total} · ${c.handedOverAt?'🤝 รับแล้ว / picked up':CS[c.status]??c.status}${c.status==='PAID'&&!c.handedOverAt?(stages.get(c.orderId)==='READY'?' · ✅ พร้อมรับที่เคาน์เตอร์ / ready':' · 👩‍🍳 กำลังเตรียม / preparing'):''}`,
      buttons:c.checkoutUrl?[{type:'web_url' as const,title:'จ่าย / Pay',url:c.checkoutUrl}]:[]})),
     ...orders.map(o=>({title:`🧾 #${o.code} ${o.line}`,subtitle:o.handedOver?'🤝 รับแล้ว / picked up':STATUS[o.status],buttons:[]}))].slice(0,10);
    return [{kind:'text',psid,text:'รายการล่าสุดของคุณค่ะ / Your latest orders and bookings'},{kind:'cards',psid,cards}];

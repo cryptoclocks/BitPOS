@@ -215,7 +215,7 @@ export async function serveMeta(req:http.IncomingMessage,res:http.ServerResponse
   if(!deps.stripe){page(res,503,'ยังรับชำระไม่ได้',['Payments are not configured.']);return true;}
   let o;try{o=await reconcileTapOrder(deps.identity,deps.stripe,cookieValue(req.headers.cookie),url.searchParams.get('o')??'');}catch{o=undefined;}
   if(o===null){page(res,404,'ไม่พบรายการ',['Order not found for this browser.']);return true;}
-  if(o?.status==='PAID'){page(res,200,'จ่ายแล้ว ✓',['ร้านได้รับออเดอร์แล้ว รับที่เคาน์เตอร์ได้เลย','Paid — pick it up at the counter.',`รหัสรับสินค้า / Pickup code: <strong>${esc(pickupCode(url.searchParams.get('o')??''))}</strong>`,'<small>Stripe sandbox · test mode · no real money</small>']);return true;}
+  if(o?.status==='PAID'){page(res,200,'จ่ายแล้ว ✓',['ร้านได้รับออเดอร์แล้ว กำลังเตรียม จะแจ้งใน Messenger เมื่อพร้อมรับ','Paid — we are preparing it and will tell you in Messenger when it is ready.',`รหัสรับสินค้า / Pickup code: <strong>${esc(pickupCode(url.searchParams.get('o')??''))}</strong>`,'<small>Stripe sandbox · test mode · no real money</small>']);return true;}
   page(res,202,'กำลังตรวจสอบการชำระเงิน',['ยังไม่ได้รับการยืนยันจาก Stripe ลองรีเฟรชอีกครั้ง','Waiting for Stripe to confirm. Refresh in a moment.']);return true;
  }
  const pic=path.match(/^\/meta\/receipt\/([0-9a-f-]{36})\.png$/);
@@ -252,7 +252,7 @@ export async function serveMeta(req:http.IncomingMessage,res:http.ServerResponse
   let o;try{o=await reconcileAgentCheckout(chat,url.searchParams.get('o'));}catch{o=undefined;}
   if(o===null){page(res,404,'ไม่พบรายการ',['Order not found.']);return true;}
   if(o?.confirmedNow)await sendReceipt(deps,o.merchantId,o.orderId,log);
-  if(o?.status==='CONFIRMED'){page(res,200,'จ่ายแล้ว ✓',['ร้านได้รับออเดอร์แล้ว รับที่เคาน์เตอร์ได้เลย','Paid — pick it up at the counter.',`รหัสรับสินค้า / Pickup code: <strong>${esc(o.pickupCode)}</strong>`,'กลับไปที่ Messenger ได้เลย / You can go back to Messenger.','<small>Stripe sandbox · test mode · no real money</small>']);return true;}
+  if(o?.status==='CONFIRMED'){page(res,200,'จ่ายแล้ว ✓',['ร้านได้รับออเดอร์แล้ว กำลังเตรียม จะแจ้งใน Messenger เมื่อพร้อมรับ','Paid — we are preparing it and will tell you in Messenger when it is ready.',`รหัสรับสินค้า / Pickup code: <strong>${esc(o.pickupCode)}</strong>`,'กลับไปที่ Messenger ได้เลย / You can go back to Messenger.','<small>Stripe sandbox · test mode · no real money</small>']);return true;}
   page(res,202,'กำลังตรวจสอบการชำระเงิน',['ยังไม่ได้รับการยืนยันจาก Stripe ลองรีเฟรชอีกครั้ง','Waiting for Stripe to confirm. Refresh in a moment.']);return true;
  }
  if(path==='/meta/order'||path==='/meta/order/pay'||path==='/meta/order/add'||path==='/meta/order/voice'||path==='/meta/order/cartpay'||path==='/meta/order/photo')return serveWebOrder(req,res,deps,url,log);
@@ -292,7 +292,7 @@ async function sendReceipt(deps:MetaRouteDeps,merchantId:string,orderId:string,l
   const msg=deps.messenger,f=deps.fetch;
   if(await receiptAvailable()){
    const ok=await sendMessenger(msg,{kind:'image',psid:r.psid,url:receiptImageUrl(deps.identity.publicOrigin,deps.identity.masterKey,orderId)},f).then(()=>true,()=>false);
-   if(ok){await sendMessenger(msg,{kind:'text',psid:r.psid,text:`จ่ายแล้ว ✓ รหัสรับสินค้า #${r.receipt.orderNumber} · รับที่เคาน์เตอร์ได้เลยค่ะ\nPaid — pickup code #${r.receipt.orderNumber}.`,quick:QUICK},f);return;}
+   if(ok){await sendMessenger(msg,{kind:'text',psid:r.psid,text:`จ่ายแล้ว ✓ รหัสออเดอร์ #${r.receipt.orderNumber} · ร้านกำลังเตรียมให้ เราจะแจ้งในแชทนี้เมื่อพร้อมรับค่ะ\nPaid — order #${r.receipt.orderNumber}. We are preparing it and will message you here when it is ready.`,quick:QUICK},f);return;}
    log('Receipt picture refused; sending the template');
   }
   await sendMessenger(msg,{kind:'receipt',psid:r.psid,receipt:r.receipt,fallbackText:r.text,quick:QUICK},f);

@@ -61,7 +61,7 @@ ${rows}${disc}
 <text x="56" y="${y+62}" font-size="32" font-weight="600" fill="#1C2B33">รวม</text>
 <text x="${W-56}" y="${y+62}" font-size="40" font-weight="600" fill="#0866FF" text-anchor="end">${x(money(r.total,r.currency))}</text>
 <rect x="56" y="${y+96}" width="${W-112}" height="56" rx="16" fill="#E6F4EA"/>
-<text x="${W/2}" y="${y+133}" font-size="22" fill="#1E8E3E" text-anchor="middle">รับที่เคาน์เตอร์ · แสดงรหัสนี้กับพนักงาน</text>
+<text x="${W/2}" y="${y+133}" font-size="22" fill="#1E8E3E" text-anchor="middle">ร้านกำลังเตรียม · จะแจ้งในแชทเมื่อพร้อมรับ</text>
 <text x="${W/2}" y="${y+190}" font-size="18" fill="#65676B" text-anchor="middle">Stripe sandbox · ไม่ใช่เงินจริง · ยืนยันโดยเซิร์ฟเวอร์ของร้าน</text>
 </svg>`;
 }
