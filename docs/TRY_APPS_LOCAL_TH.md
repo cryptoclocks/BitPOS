@@ -4,7 +4,7 @@
 
 ## สิ่งที่รันอยู่
 - ฐานข้อมูล `bitpos_try_fixture` บน Postgres 55440 (สร้างใหม่ ใช้ migration ทั้ง 173 ไฟล์; 029 ตัด guard ตาม RUNBOOK_BACKUP_RESTORE_TH.md)
-- API `0.0.0.0:3043` (`tools/runtime/try-apps-server.ts`, `BITPOS_MOBILE_ENABLED=1`) + ผู้ให้บริการ OTP จำลอง `127.0.0.1:3044` (ผูกกับ launcher นี้เท่านั้น ไม่แตะ path auth ของ production) + worker (`tools/runtime/try-apps-worker.sh`)
+- API `0.0.0.0:3043` (`tools/runtime/try-apps-server.ts`, `BITPOS_MOBILE_ENABLED=1`) + ผู้ให้บริการ OTP จำลอง `127.0.0.1:3044` (ผูกกับ launcher นี้เท่านั้น ไม่แตะ path auth ของ production) ; worker (`tools/runtime/try-apps-worker.sh`) ถูกตรวจแล้วว่าจบการทำงานทันที เพราะ lane เฉพาะทาง (ค้นหาคนขับอัตโนมัติ, push, คืนเงิน, settlement) ไม่ได้ตั้งค่า จึงไม่ได้รันอยู่ — ข้อเสนองานที่ใช้ทดลองเป็นแบบ dispatcher ด้วยมือผ่าน API ไม่ต้องใช้ worker
 - แอปที่ติดตั้ง (debug APK, `BITPOS_FIXTURE=true`, มีแถบ "FIXTURE" ในแอปลูกค้า): `com.bitpos.bitpos_customer`, `com.bitpos.bitpos_driver`
 - อีมูเลเตอร์ `emulator-5554` (Pixel_10a) ใช้ `http://10.0.2.2:3043/api/mobile/v1/`
 - มือถือจริง USB `R5CY50MEVBN` (SM-S938B) ใช้ `adb reverse tcp:3043 tcp:3043` แล้วชี้ `http://127.0.0.1:3043/api/mobile/v1/` (แอปยอมรับ HTTP เฉพาะ loopback/10.0.2.2 ในโหมด fixture จึงไม่ใช้ IP LAN และไม่เปิด cleartext ใน release) ถ้าถอดสาย/รีสตาร์ต adb ต้องรัน `adb -s R5CY50MEVBN reverse tcp:3043 tcp:3043` ใหม่
