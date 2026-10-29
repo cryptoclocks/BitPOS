@@ -26,7 +26,7 @@ const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$
 const hhmm=(d:string|Date)=>new Date(d).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Bangkok'});
 
 /** The device font has ASCII and Thai only: map the few other symbols we use, drop the rest. */
-const glyphs=(s:string)=>s.replace(/×/g,'x').replace(/·/g,'-').replace(/✓/g,'').replace(/[^\x20-\x7e\u0e00-\u0e7f]/g,'').replace(/\s+/g,' ').trim();
+const glyphs=(s:string)=>s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/×/g,'x').replace(/·/g,'-').replace(/✓/g,'').replace(/[^\x20-\x7e\u0e00-\u0e7f]/g,'').replace(/\s+/g,' ').trim();
 /** What device `deviceId` should show now, or null when it is not an active device. */
 export async function deviceView(db:MetaDb,deviceId:string,publicOrigin:string,animFor?:AnimFor):Promise<DeviceView|null>{
  const v=await view(db,deviceId,publicOrigin,animFor);
@@ -53,7 +53,7 @@ async function view(db:MetaDb,deviceId:string,publicOrigin:string,animFor?:AnimF
  const anim=async(productId:string|null)=>animFor?(await animFor(merchantId,productId).catch(()=>'')).slice(0,120):'';
  if(r.bill&&r.bill.paid_recent||r.tapPaid){const id=r.bill?.paid_recent?r.bill.id:r.tapPaid!.id;return {...v,screen:'paid',tone:'green',title:'จ่ายแล้ว ✓ · ขอบคุณค่ะ',big:`#${cartCode(id)}`,line1:'รหัสรับสินค้า · Stripe ยืนยันแล้ว',poll_ms:3000};}
  if(r.bill?.status==='PENDING')return {...v,screen:'pay_qr',title:'สแกนเพื่อจ่าย',big:formatTapAmount(r.bill.amount_minor,r.bill.currency),line1:r.bill.items??'',line2:'Stripe sandbox · ไม่ใช่เงินจริง',qr:`${publicOrigin}/pay/${r.bill.id}`,poll_ms:1500};
- if(r.tap)return r.tap.known?{...v,screen:'welcome',tone:'blue',title:'สวัสดีค่ะ ร้านจำคุณได้',line1:'ดูโปรของคุณบนมือถือได้เลย',line2:'Muse Spark เลือกจากโปรที่ร้านอนุมัติ',anim:await anim(r.tap.product_id)}
+ if(r.tap)return r.tap.known?{...v,screen:'welcome',tone:'blue',title:'สวัสดีค่ะ ร้านจำคุณได้',line1:'ส่งโปรนี้ไปที่ Messenger แล้ว',line2:'ดูบนมือถือ',anim:await anim(r.tap.product_id)}
   :{...v,screen:'tap_new',title:'ไปต่อในมือถือนะคะ',line1:'กดยินยอมใน Messenger เพื่อให้ร้านจำคุณได้',line2:'ไม่ยินยอมก็สั่งจาก QR บนโต๊ะได้'};
  const t=await tableScreen(db,merchantId,deviceId);
  if(t){
@@ -63,5 +63,7 @@ async function view(db:MetaDb,deviceId:string,publicOrigin:string,animFor?:AnimF
   if(t.state==='seated')return {...v,screen:'seated',tone:'blue',title:'เช็กอินแล้ว ✓ ยินดีต้อนรับ',line1:`โต๊ะนี้ของคุณถึง ${hhmm(t.seatedUntil!)}`,line2:'สั่งจากมือถือหรือสแกน QR บนโต๊ะ'};
  }
  const idle=await anim(null);
- return {...v,title:r.dev?.shop??'BitPOS × Muse',line1:idle?'แตะมือถือตรงนี้ · รับโปรนี้ผ่าน Messenger':'แตะมือถือตรงนี้ · รับโปรและสั่งผ่าน Messenger',line2:'หรือสแกน QR บนโต๊ะ · จ่ายด้วย Stripe',anim:idle,poll_ms:idle?4000:2000};
+ // With an animation the device shows a short card beside it: line2 is the call to action on its button.
+ return idle?{...v,title:r.dev?.shop??'BitPOS × Muse',line1:'รับโปรนี้ผ่าน Messenger',line2:'แตะมือถือที่นี่',anim:idle,poll_ms:4000}
+  :{...v,title:r.dev?.shop??'BitPOS × Muse',line1:'แตะมือถือตรงนี้ · รับโปรและสั่งผ่าน Messenger',line2:'หรือสแกน QR บนโต๊ะ · จ่ายด้วย Stripe'};
 }
