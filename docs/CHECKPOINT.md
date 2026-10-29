@@ -3540,6 +3540,11 @@ Method: the real debug apps (`flutter build apk --debug` with `BITPOS_FIXTURE` a
 - Rollback: previous image tagged `bitpos-runtime:rollback-20261029i` (a329f13bca64); replaced files in `/home/ubuntu/bitpos-runtime.rollback11-20261029`. Rollback command: `docker tag bitpos-runtime:rollback-20261029i bitpos-runtime:current && cd /home/ubuntu/bitpos-runtime/infra/oci && docker compose -p bitpos-runtime up -d --no-deps --no-build web`.
 - Verified: `https://pos.cashlessthailand.com/` 200, `/api/returns` without session 401, host `127.0.0.1:4321/platform` 200. Disk 88% (25 GB free).
 
+### Deploy #12 on OCI: merchant sidebar label alignment (web only, 2026-10-29)
+- Commit `ef44996`: only `apps/web/src/styles/merchant-shell.css` synced; no migration. Only `web` rebuilt/recreated (`bitpos-runtime:current` = 9e72cc25ad84); api, worker, customer, merchant, guide, tunnel and other stacks untouched.
+- Rollback: previous image tagged `bitpos-runtime:rollback-20261029j` (3dca36895cd6); replaced file in `/home/ubuntu/bitpos-runtime.rollback12-20261029`. Rollback command: `docker tag bitpos-runtime:rollback-20261029j bitpos-runtime:current && cd /home/ubuntu/bitpos-runtime/infra/oci && docker compose -p bitpos-runtime up -d --no-deps --no-build web`.
+- Verified: `https://pos.cashlessthailand.com/` 200, `/api/returns` without session 401, host `127.0.0.1:4321/platform` 200. Disk 88% (25 GB free).
+
 ## 2026-10-29 checklist verification (4 subagents + focused run)
 - Subagents reviewed all 188 unticked DIRECT_SESSION_CHECKLIST_TH boxes; most KEEP (unbuilt, fixture-only, or needs pixel diff/real device/API).
 - Ticked 6 with test evidence: DS50 1172/1173 (group-cart + backend-mobile-groups), DS40 973/974 (driver-settlement-worker), DS43 1032 (support/review/chat-image), DS47 1115 (passenger-trip PIN). Focused run: 44 pass, 0 fail, 2 skipped (DB-backed).
