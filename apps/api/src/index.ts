@@ -34,6 +34,7 @@ import {FoodMerchantWorkSchema,FoodMerchantProofIssueCommandSchema,FoodProofIssu
 import {productOptions,publishProductOptions} from './online-options';
 import {promotionsRequest} from './promotions';
 import {servePromotionMedia} from './promotion-assets';
+import {serveProductImage,uploadProductImage,readRaw,maxProductImageBytes} from './product-images';
 import {currentScreen} from './device-commands';
 import {avatar,hash,challengeMessage,liveOrder} from '../../../packages/domain/src/index';
 import {build,validateSigned,assertPaymentMessage} from './payments';
@@ -120,7 +121,7 @@ async function login(credentials:z.infer<typeof credentialsSchema>,demoRole?:Dem
  return {token,userId:auth.user.id,merchantId:membership.merchant_id,role:membership.role};
 }
 export async function handle(req:http.IncomingMessage){
- const url=new URL(req.url??'/',config.PUBLIC_URL),path=url.pathname,method=req.method;let input:unknown;if(['POST','PUT','PATCH'].includes(method??''))input=await body(req,method==='POST'&&path==='/api/mobile/v1/food/quotes'?2*1024*1024:/^\/api\/table\/[A-Za-z0-9_-]{43}\/visit\/[A-Za-z0-9_-]{43}\/transcribe$/.test(path)?2900000:/^\/api\/customers(?:\/[0-9a-f-]{36})?$/.test(path)||/^\/api\/products\/[0-9a-f-]{36}\/online-options$/.test(path)?160000:16384);
+ const url=new URL(req.url??'/',config.PUBLIC_URL),path=url.pathname,method=req.method;let input:unknown;if(['POST','PUT','PATCH'].includes(method??'')&&path!=='/api/product-images')input=await body(req,method==='POST'&&path==='/api/mobile/v1/food/quotes'?2*1024*1024:/^\/api\/table\/[A-Za-z0-9_-]{43}\/visit\/[A-Za-z0-9_-]{43}\/transcribe$/.test(path)?2900000:/^\/api\/customers(?:\/[0-9a-f-]{36})?$/.test(path)||/^\/api\/products\/[0-9a-f-]{36}\/online-options$/.test(path)?160000:16384);
  if(path.startsWith('/api/mobile/v1/')){
   const result=await mobileAuthRequest(path,method??'GET',input,req.headers.authorization,mobileClientAddress(req));
   if(result!==undefined)return result;
@@ -233,6 +234,7 @@ export async function handle(req:http.IncomingMessage){
  });}
  const token=req.headers.authorization?.match(/^Bearer (.+)$/)?.[1];if(!token)fail('AUTH_REQUIRED',401);
  const session=(await pool.query('SELECT s.*,m.role AS current_role FROM sessions s JOIN members m ON m.user_id=s.user_id AND m.merchant_id=s.merchant_id WHERE token_hash=$1 AND expires_at>now()',[hash(token)])).rows[0];if(!session)fail('AUTH_REQUIRED',401);const merchant=session.merchant_id;
+ if(path==='/api/product-images'&&method==='POST'){const bytes=await readRaw(req,maxProductImageBytes);return tenant(merchant,db=>uploadProductImage(db,merchant,session.user_id,session.current_role,bytes));}
  return tenant(merchant,async db=>{
  const returned=await merchantFoodReturnRequest(db,url,method??'GET',input,session.current_role,hash(token));if(returned!==undefined)return returned;
  if(path==='/api/session'){if(method==='DELETE'){await db.query('DELETE FROM sessions WHERE token_hash=$1',[hash(token)]);await audit(db,merchant,session.user_id,'session.logout',session.user_id);return {ok:true};}if(method==='GET')return {userId:session.user_id,merchantId:merchant,role:session.current_role};}
@@ -298,5 +300,5 @@ export async function handle(req:http.IncomingMessage){
  });
 }
 import {foodRealtime,attachFoodRealtime} from './food-realtime';
-export const server=http.createServer(async(req,res)=>{try{if(await foodRealtime(req,res)||await foodChatImages(req,res)||await servePromotionMedia(req,res)||await serveX402(req,res))return;const stream=(req.url??'').match(/^\/api\/pay\/([A-Za-z0-9_-]+)\/events$/);if(req.method==='GET'&&stream){await paymentStream(req,res,stream[1]);return;}const result=await handle(req);const created=req.method==='POST'&&/^\/api\/registers\/[^/]+\/orders$/.test(new URL(req.url??'/',config.PUBLIC_URL).pathname)&&!('replayed' in result&&result.replayed);res.writeHead(created?201:200,{'Content-Type':'application/json','Cache-Control':'no-store'});res.end(JSON.stringify(result));}catch(error){const e=errorView(error);res.writeHead(e.status,{'Content-Type':'application/json','Cache-Control':'no-store'});res.end(JSON.stringify({error:e.view}));}});
+export const server=http.createServer(async(req,res)=>{try{if(await foodRealtime(req,res)||await foodChatImages(req,res)||await servePromotionMedia(req,res)||await serveProductImage(req,res)||await serveX402(req,res))return;const stream=(req.url??'').match(/^\/api\/pay\/([A-Za-z0-9_-]+)\/events$/);if(req.method==='GET'&&stream){await paymentStream(req,res,stream[1]);return;}const result=await handle(req);const created=req.method==='POST'&&/^\/api\/registers\/[^/]+\/orders$/.test(new URL(req.url??'/',config.PUBLIC_URL).pathname)&&!('replayed' in result&&result.replayed);res.writeHead(created?201:200,{'Content-Type':'application/json','Cache-Control':'no-store'});res.end(JSON.stringify(result));}catch(error){const e=errorView(error);res.writeHead(e.status,{'Content-Type':'application/json','Cache-Control':'no-store'});res.end(JSON.stringify({error:e.view}));}});
 attachDevices(server);attachFoodRealtime(server);if(process.argv[1]?.endsWith('/api/src/index.ts'))server.listen(3001,process.env.BITPOS_BIND_HOST==='127.0.0.1'?'127.0.0.1':'0.0.0.0');

@@ -5,25 +5,42 @@ import {audit} from './db';
 
 const uuid=z.string().uuid();
 const text=(max:number,min=0)=>z.string().trim().min(min).max(max);
-const fields=z.object({name:text(80,1),nameEn:text(80,1),category:text(40),description:text(200)}).strict();
-const edit=z.object({...fields.shape,expected:fields}).strict();
+const base={name:text(80,1),nameEn:text(80,1),category:text(40),description:text(200)};
+// imageUrl is optional: absent means "leave the photo alone". A new value must be an uploaded /images/products/<id>.
+const imagePath=/^\/images\/products\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/;
+const fields=z.object({...base,imageUrl:z.string().regex(imagePath).nullable().optional()}).strict();
+const expectedFields=z.object({...base,imageUrl:z.string().max(300).nullable().optional()}).strict();
+const edit=z.object({...fields.shape,expected:expectedFields}).strict();
+/** The photo must be one this merchant uploaded; null clears it. */
+async function checkImage(db:pg.PoolClient,merchant:string,value:string|null|undefined,keep?:string|null){
+ if(value==null||value===keep)return;
+ const m=imagePath.exec(value);
+ if(!m||!(await db.query('SELECT 1 FROM product_images WHERE merchant_id=$1 AND id=$2',[merchant,m[1]])).rowCount)fail('INVALID_REQUEST',422);
+}
 const rename=z.object({from:text(40),to:text(40),expectedCount:z.number().int().min(1).max(10000)}).strict().refine(v=>v.from!==v.to);
 export type ProductDetails=z.infer<typeof fields>;
-const current=(r:{name:string;name_en:string;category:string;description:string}):ProductDetails=>({name:r.name,nameEn:r.name_en,category:r.category,description:r.description});
+type Details=Omit<ProductDetails,'imageUrl'>;
+const current=(r:{name:string;name_en:string;category:string;description:string}):Details=>({name:r.name,nameEn:r.name_en,category:r.category,description:r.description});
 /** Owner/manager only. Edits descriptive fields only: price, stock, offers and options keep their own authorities.
  * `expected` must equal the stored values, so a concurrent edit is refused instead of overwritten. */
-export async function editProduct(db:pg.PoolClient,merchant:string,actor:string,role:string,productId:string,input:unknown):Promise<ProductDetails>{
+export async function editProduct(db:pg.PoolClient,merchant:string,actor:string,role:string,productId:string,input:unknown):Promise<ProductDetails|Details>{
  requireRole(role);
  const id=uuid.safeParse(productId);if(!id.success)fail('INVALID_REQUEST',422);
  const data=edit.safeParse(input);if(!data.success)fail('INVALID_REQUEST',422);
- const row=(await db.query<{name:string;name_en:string;category:string;description:string}>('SELECT name,name_en,category,description FROM products WHERE merchant_id=$1 AND id=$2 FOR UPDATE',[merchant,id.data])).rows[0];
+ const row=(await db.query<{name:string;name_en:string;category:string;description:string}>('SELECT name,name_en,category,description,image_url FROM products WHERE merchant_id=$1 AND id=$2 FOR UPDATE',[merchant,id.data])).rows[0];
  if(!row)fail('RESOURCE_NOT_FOUND',404);
- const now=current(row),{expected,...next}=data.data;
+ const now=current(row),{expected:{imageUrl:expectedImage,...expected},imageUrl:nextImage,...next}=data.data;
  if(JSON.stringify(now)!==JSON.stringify(expected))fail('PRODUCT_CHANGED');
- if(JSON.stringify(now)===JSON.stringify(next))return now;
- await db.query('UPDATE products SET name=$3,name_en=$4,category=$5,description=$6 WHERE merchant_id=$1 AND id=$2',[merchant,id.data,next.name,next.nameEn,next.category,next.description]);
- await audit(db,merchant,actor,'catalog.product.update',id.data);
- return next;
+ // Expected-version rule for the photo: when the caller names one it must be what is stored, and changing it requires naming it.
+ if(expectedImage!==undefined&&expectedImage!==row.image_url)fail('PRODUCT_CHANGED');
+ if(nextImage!==undefined&&expectedImage===undefined)fail('INVALID_REQUEST',422);
+ const imageChanged=nextImage!==undefined&&nextImage!==row.image_url;
+ if(imageChanged)await checkImage(db,merchant,nextImage,row.image_url);
+ const out=nextImage===undefined?next:{...next,imageUrl:nextImage};
+ if(JSON.stringify(now)===JSON.stringify(next)&&!imageChanged)return out;
+ await db.query('UPDATE products SET name=$3,name_en=$4,category=$5,description=$6,image_url=CASE WHEN $7::boolean THEN $8 ELSE image_url END WHERE merchant_id=$1 AND id=$2',[merchant,id.data,next.name,next.nameEn,next.category,next.description,imageChanged,nextImage??null]);
+ await audit(db,merchant,actor,imageChanged?'catalog.product.update+image':'catalog.product.update',id.data);
+ return out;
 }
 /** Renames (or merges into an existing) category across this merchant's products. */
 export async function renameCategory(db:pg.PoolClient,merchant:string,actor:string,role:string,input:unknown):Promise<{updated:number}>{
@@ -47,7 +64,8 @@ export async function createProduct(db:pg.PoolClient,merchant:string,actor:strin
  if(state.n>=maxProducts)fail('INVALID_REQUEST',422);
  if(state.dup)fail('PRODUCT_CHANGED');
  const d=data.data;
- const row=(await db.query<{id:string}>("INSERT INTO products(merchant_id,name,name_en,emoji,price_minor,stock,category,description,sort_order) VALUES($1,$2,$3,'',1,0,$4,$5,$6) RETURNING id",[merchant,d.name,d.nameEn,d.category,d.description,state.next])).rows[0];
+ await checkImage(db,merchant,d.imageUrl);
+ const row=(await db.query<{id:string}>("INSERT INTO products(merchant_id,name,name_en,emoji,price_minor,stock,category,description,sort_order,image_url) VALUES($1,$2,$3,'',1,0,$4,$5,$6,$7) RETURNING id",[merchant,d.name,d.nameEn,d.category,d.description,state.next,d.imageUrl??null])).rows[0];
  await audit(db,merchant,actor,'catalog.product.create',row.id);
  return {id:row.id,...d};
 }
