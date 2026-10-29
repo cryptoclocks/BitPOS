@@ -111,7 +111,8 @@ export interface Receipt {recipientName:string;orderNumber:string;currency:strin
 export type QuickReply={title:string;payload:string};
 export type Outgoing=(
  /** eventUpdate: a booking notice that may arrive after the 24-hour window (CONFIRMED_EVENT_UPDATE tag). */
- {kind:'text';psid:string;text:string;eventUpdate?:boolean}|
+ /** orderUpdate: a notice about the customer's own paid order (POST_PURCHASE_UPDATE tag), e.g. "ready". */
+ {kind:'text';psid:string;text:string;eventUpdate?:boolean;orderUpdate?:boolean}|
  {kind:'buttons';psid:string;text:string;buttons:MessengerButton[]}|
  {kind:'cards';psid:string;cards:Card[]}|
  {kind:'receipt';psid:string;receipt:Receipt;fallbackText:string}|
@@ -140,7 +141,7 @@ export async function sendMessenger(config:MessengerConfig,message:Outgoing,fetc
  let res:Response;
  try{res=await fetchImpl(`${config.graphBase??'https://graph.facebook.com'}/${config.graphVersion}/me/messages`,{method:'POST',redirect:'error',signal:AbortSignal.timeout(config.timeoutMs??10000),
   headers:{Authorization:`Bearer ${config.pageToken}`,'Content-Type':'application/json'},
-  body:JSON.stringify({recipient:{id:message.psid},...(message.kind==='text'&&message.eventUpdate?{messaging_type:'MESSAGE_TAG',tag:'CONFIRMED_EVENT_UPDATE'}:{messaging_type:'RESPONSE'}),message:payload})});}
+  body:JSON.stringify({recipient:{id:message.psid},...(message.kind==='text'&&message.eventUpdate?{messaging_type:'MESSAGE_TAG',tag:'CONFIRMED_EVENT_UPDATE'}:message.kind==='text'&&message.orderUpdate?{messaging_type:'MESSAGE_TAG',tag:'POST_PURCHASE_UPDATE'}:{messaging_type:'RESPONSE'}),message:payload})});}
  catch{throw new MessengerError('SEND_FAILED');}
  // A receipt Messenger will not render still reaches the customer as plain text.
  if(!res.ok&&message.kind==='receipt')return sendMessenger(config,{kind:'text',psid:message.psid,text:message.fallbackText,quick:message.quick},fetchImpl);

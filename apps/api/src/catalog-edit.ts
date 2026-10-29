@@ -27,7 +27,7 @@ export async function editProduct(db:pg.PoolClient,merchant:string,actor:string,
  requireRole(role);
  const id=uuid.safeParse(productId);if(!id.success)fail('INVALID_REQUEST',422);
  const data=edit.safeParse(input);if(!data.success)fail('INVALID_REQUEST',422);
- const row=(await db.query<{name:string;name_en:string;category:string;description:string}>('SELECT name,name_en,category,description,image_url FROM products WHERE merchant_id=$1 AND id=$2 FOR UPDATE',[merchant,id.data])).rows[0];
+ const row=(await db.query<{name:string;name_en:string;category:string;description:string;image_url:string|null}>('SELECT name,name_en,category,description,image_url FROM products WHERE merchant_id=$1 AND id=$2 FOR UPDATE',[merchant,id.data])).rows[0];
  if(!row)fail('RESOURCE_NOT_FOUND',404);
  const now=current(row),{expected:{imageUrl:expectedImage,...expected},imageUrl:nextImage,...next}=data.data;
  if(JSON.stringify(now)!==JSON.stringify(expected))fail('PRODUCT_CHANGED');

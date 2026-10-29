@@ -15,6 +15,7 @@ import {decideStep,handleAgentRequest,matchItem,planPhotoOrder,type ChatAgentDep
 import {agentReceipt,listMenu,reconcileAgentCheckout} from '../apps/api/src/meta/agent-orders';
 import {cartChatReceipt} from '../apps/api/src/meta/cart';
 import {wavValid} from '../apps/api/src/meta/voice';
+import {kitchenStages,setKitchenStage} from '../apps/api/src/meta/kitchen';
 import {handleRpc} from '../apps/api/src/meta/mcp';
 import {applyStripeWebhook} from '../apps/api/src/meta/tap-checkout';
 import {serveMeta,type MetaRouteDeps} from '../apps/api/src/meta/routes';
@@ -238,6 +239,12 @@ test('chat cart: the cart rides in the payload, the server re-prices it, one Che
  await admin.query("UPDATE meta_cart_orders SET status='PAID',paid_at=now(),paid_source='webhook',stripe_payment_intent_id='pi_testchat1' WHERE id=$1",[o.id]);
  const r=(await cartChatReceipt(db,A,o.id,'https://pay.example.test'))!;
  assert.deepEqual([r.psid,r.receipt.total,r.receipt.subtotal,r.receipt.discount,r.receipt.elements[0].quantity],[PSID,8,10,2,2]);assert.match(r.text,/ส่วนลด −\$2\.00/);
+ // Kitchen stages (migration 316): Ready tells the customer once; nothing moves after hand-over.
+ const staffUser=(await admin.query<{user_id:string}>('SELECT user_id FROM members WHERE merchant_id=$1 LIMIT 1',[A])).rows[0]?.user_id??randomUUID();
+ assert.equal((await setKitchenStage(db,A,staffUser,o.id,'PREPARING')).notify,null);
+ assert.deepEqual((await setKitchenStage(db,A,staffUser,o.id,'READY')).notify,{psid:PSID,code:o.id.replace(/-/g,'').slice(0,4).toUpperCase()});
+ assert.equal((await setKitchenStage(db,A,staffUser,o.id,'READY')).notify,null,'ready notice once');
+ assert.equal((await kitchenStages(db,A)).get(o.id),'READY');
  const [,mine]=await handleAgentRequest(deps,{merchantId:A,linkId,psid:PSID,kind:'my_orders'}) as any[];
  assert.ok(mine.cards.some((c:any)=>c.title.includes('×2')&&/จ่ายแล้ว/.test(c.subtitle)),'cart order in My orders');
  const bad=await handleAgentRequest(deps,{merchantId:A,linkId,psid:PSID,kind:'cart_add',cart:`${latte}:20`}) as any[];assert.match(bad[0].text,/ของไม่พอ/);

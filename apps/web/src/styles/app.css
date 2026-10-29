@@ -50,3 +50,4 @@ input:not([type="checkbox"]):not([type="radio"]),select{border-color:var(--bp-li
 .meta-frame{width:100%;height:calc(100vh - 260px);min-height:520px;border:0;border-radius:16px;background:transparent}
 /* Meta edition: Meta orders above the POS order center (MetaOrders.tsx). */
 .meta-orders{margin-bottom:16px}.meta-orders .order-row{cursor:default;display:grid;gap:8px}.meta-orders .order-row-end{display:flex;flex-wrap:wrap;align-items:center;gap:8px}.meta-orders .order-row-end button{width:auto}
+.meta-other{margin-top:12px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}.meta-other h3{width:100%;margin:0;font-size:14px}.meta-chip{font-size:12px;padding:4px 10px;border-radius:999px;background:var(--surface-soft,#eef2fb);color:var(--muted)}

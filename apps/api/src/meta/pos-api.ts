@@ -10,6 +10,9 @@ import type {MetaRouteDeps} from './routes';
 import {agentDepsOf} from './shop';
 import {cartForStaff,CartError,handOverCart,refundCart,startCart,type CartLine} from './cart';
 import {handOver,listTapOrders,type StaffView} from './staff';
+import {KitchenError,kitchenStages,setKitchenStage} from './kitchen';
+import {sendMessenger} from './messenger';
+import {QUICK} from './agent';
 import {staffSessionFor} from './staff';
 import {staffCookie} from './routes';
 
@@ -67,7 +70,20 @@ export async function servePosApi(req:http.IncomingMessage,res:http.ServerRespon
  const view:StaffView={merchantId:me.merchantId,userId:me.userId,role:me.role,sessionId:''};
  if(path==='/meta/staff/api/orders'&&method==='GET'){
   if(!deps.staff)return json(res,503,{error:'UNAVAILABLE'});
-  return json(res,200,{orders:await listTapOrders(deps.staff,view),canRefund:me.role!=='staff'});
+  const stages=await kitchenStages(deps.identity.db,me.merchantId);
+  return json(res,200,{orders:(await listTapOrders(deps.staff,view)).map(o=>({...o,stage:o.handedOverAt?'COLLECTED':stages.get(o.id)??'RECEIVED'})),canRefund:me.role!=='staff'});
+ }
+ const stage=path.match(/^\/meta\/staff\/api\/orders\/([0-9a-f-]{36})\/stage$/);
+ if(stage&&method==='POST'){
+  const b=await body(req) as {stage?:unknown}|null;
+  if(b?.stage!=='PREPARING'&&b?.stage!=='READY')return json(res,400,{error:'INVALID_INPUT'});
+  try{
+   const r=await setKitchenStage(deps.identity.db,me.merchantId,me.userId,stage[1],b.stage);
+   // After commit: tell the customer once, in Messenger, that the order is ready.
+   if(r.notify&&deps.messenger)await sendMessenger(deps.messenger,{kind:'text',psid:r.notify.psid,orderUpdate:true,text:`อาหารพร้อมแล้วค่ะ 🎉 รหัสรับสินค้า #${r.notify.code} รับที่เคาน์เตอร์ได้เลย\nYour order is ready — pickup code #${r.notify.code}.`,quick:QUICK},deps.fetch).catch(()=>log('Ready notice failed'));
+   log(`Meta order ${b.stage.toLowerCase()}${r.notify?' (customer told)':''}`);
+   return json(res,200,{ok:true,notified:!!r.notify});
+  }catch(e){if(e instanceof KitchenError)return json(res,e.code==='NOT_FOUND'?404:409,{error:e.code});throw e;}
  }
  const act=path.match(/^\/meta\/staff\/api\/orders\/([0-9a-f-]{36})\/(handover|refund)$/);
  if(act&&method==='POST'){

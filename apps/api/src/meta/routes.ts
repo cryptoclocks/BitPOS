@@ -32,7 +32,9 @@ export interface MetaRouteDeps {identity:IdentityDeps;messenger:MessengerConfig|
  /** The Meta demo shop served at the meta-pay root (META_DEMO_MERCHANT). */
  demoMerchant?:string|null;
  /** Muse Voice Transcribe for voice ordering; null → the browser's own speech recognition only. */
- asr?:AsrConfig|null;asrFetch?:AsrFetch}
+ asr?:AsrConfig|null;asrFetch?:AsrFetch;
+ /** meta-pos runs the POS screens (META_POS_WEB_ORIGIN): the Meta staff pages are shown only inside its Muse tab. */
+ posScreens?:boolean}
 export const COOKIE='bitpos_meta',STAFF_COOKIE='bitpos_meta_staff';
 const STAFF_SESSION_SECONDS=8*3600,MAX_FORM=4096;
 const MAX_WEBHOOK=65536;
@@ -53,7 +55,7 @@ export function metaRouteDepsFromEnv(env:Record<string,string|undefined>,db:Iden
  // The staff page needs the shop's Supabase Auth; without it /meta/staff answers 503.
  let staff:StaffDeps|null=null;try{const c=staffConfigFromEnv(env,u.origin);staff=c?{db,config:c}:null;}catch{staff=null;}
  const demo=env.META_DEMO_MERCHANT;const demoMerchant=demo&&/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(demo)?demo:null;
- return {identity:{db,masterKey:Buffer.from(master,'hex'),publicOrigin:u.origin},messenger,offers,stripe,staff,demoMerchant,asr:asrConfigFromEnv(env)};
+ return {identity:{db,masterKey:Buffer.from(master,'hex'),publicOrigin:u.origin},messenger,offers,stripe,staff,demoMerchant,asr:asrConfigFromEnv(env),posScreens:!!env.META_POS_WEB_ORIGIN};
 }
 
 const esc=(s:string)=>s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]!));
@@ -255,6 +257,8 @@ export async function serveMeta(req:http.IncomingMessage,res:http.ServerResponse
  }
  if(path==='/meta/order'||path==='/meta/order/pay'||path==='/meta/order/add'||path==='/meta/order/voice'||path==='/meta/order/cartpay'||path==='/meta/order/photo')return serveWebOrder(req,res,deps,url,log);
  if(path.startsWith('/meta/staff/api/'))return servePosApi(req,res,deps,path,log);
+ // The POS screens are meta-pos now: a staff page opened directly (not in the Muse tab's frame) goes there.
+ if(deps.posScreens&&method==='GET'&&isStaffPath&&path!=='/meta/staff/lang'&&req.headers['sec-fetch-dest']==='document'){res.writeHead(302,{Location:'/','Cache-Control':'no-store'});res.end();return true;}
  if(path==='/meta/staff/lang'&&method==='GET'){
   // TH/EN switch for meta-pos (English by default); only a meta-pos path can be the way back.
   const l=url.searchParams.get('l')==='th'?'th':'en',b=url.searchParams.get('b')??'';
