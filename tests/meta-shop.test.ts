@@ -133,12 +133,15 @@ test('HTTP: shop pages always offer a way on; same-origin POSTs; staff pages nee
   assert.equal(login.status,303);const sc=login.headers.get('set-cookie')!.split(';')[0];
   for(const p of ['/meta/staff','/meta/staff/overview','/meta/staff/counter','/meta/staff/kitchen','/meta/staff/bookings','/meta/staff/menu','/meta/staff/customers','/meta/staff/connector','/meta/staff/reports','/meta/staff/settings','/meta/staff/users','/meta/staff/payouts','/meta/staff/offers','/meta/staff/ledger']){
    const r=await fetch(base+p,{headers:{cookie:sc}});assert.equal(r.status,200,p);const h=await r.text();assert.match(h,/class="side"/,`${p} has the meta-pos sidebar`);assert.doesNotMatch(h,/USDG|USDC|Solana|devnet/i,p);
+   // English by default with nothing Thai left (menu names in English too); Thai when chosen.
+   const thai=h.match(/[\u0e00-\u0e7f][\u0e00-\u0e7f ]*/g)?.filter(x=>x!=='ไทย')??[];assert.deepEqual(thai,[],`${p} has Thai left in English`);assert.match(h,/<html lang="en">/);
+   assert.match(await (await fetch(base+p,{headers:{cookie:`${sc}; bitpos_lang=th`}})).text(),/[\u0e00-\u0e7f]{3}/,`${p} in Thai`);
   }
-  const po=await (await fetch(base+'/meta/staff/payouts',{headers:{cookie:sc}})).text();assert.match(po,/\$10\.50/,'available balance');assert.match(po,/\$20\.00/);assert.match(po,/โอนแล้ว/);
-  assert.match(await (await fetch(base+'/meta/staff/users',{headers:{cookie:sc}})).text(),/สิทธิ์ตามบทบาท/);
+  const po=await (await fetch(base+'/meta/staff/payouts',{headers:{cookie:sc}})).text();assert.match(po,/\$10\.50/,'available balance');assert.match(po,/\$20\.00/);assert.match(po,/Paid out/);
+  assert.match(await (await fetch(base+'/meta/staff/users',{headers:{cookie:sc}})).text(),/Permissions by role/);
   assert.match(await (await fetch(base+'/menu')).text(),/class="lst"/,'desktop two-column menu');
   const bill=await fetch(base+'/meta/staff/counter',{method:'POST',body:`q_${latte}=1&q_${cake}=1`,redirect:'manual',headers:{cookie:sc,'content-type':'application/x-www-form-urlencoded',origin:'https://pos.example.test'}});
-  assert.equal(bill.status,303);const qr=await (await fetch(base+bill.headers.get('location')!,{headers:{cookie:sc}})).text();assert.match(qr,/<svg/,'Stripe QR');assert.match(qr,/\$10\.50/);
+  assert.equal(bill.status,303);const qr=await (await fetch(base+bill.headers.get('location')!,{headers:{cookie:sc}})).text();assert.match(qr,/<svg/,'Stripe QR');assert.deepEqual(qr.match(/[\u0e00-\u0e7f][\u0e00-\u0e7f ]*/g)?.filter(x=>x!=='ไทย')??[],[],'bill page in English');assert.match(qr,/\$10\.50/);
   const billId=bill.headers.get('location')!.split('/').pop()!;
   const short=await fetch(`${base}/pay/${billId}`,{redirect:'manual'});assert.equal(short.status,303);assert.match(short.headers.get('location')!,/^https:\/\/checkout\.stripe\.com\//,'short QR link forwards to Stripe');
   assert.equal((await fetch(`${base}/pay/${randomUUID()}`,{redirect:'manual'})).status,410,'unknown or closed bill');

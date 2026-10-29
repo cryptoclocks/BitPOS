@@ -3,6 +3,7 @@
 // Server-rendered HTML with inline CSS only (the pages' CSP allows inline styles and no scripts unless nonced).
 // Every page built here ends with at least one way onward, so no page is a dead end (design link audit rule).
 
+import {localizeStaff,staffLang} from './staff-i18n';
 export const esc=(s:unknown)=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]!));
 
 const CSS=`:root{--p:#0866FF;--pd:#0450C8;--ink:#1C2B33;--mu:#65676B;--bg:#F0F2F5;--ln:#DADDE1;--ti:#E7F0FF;--gr:#1E8E3E;--grb:#E6F4EA;--rd:#D3203A;--rdb:#FDECEF;--am:#8A5A00;--amb:#FFF4D6;--vi:#7A3FF2;--vib:#F1EAFF}
@@ -52,16 +53,28 @@ tr.click:hover td{background:#F8FAFF}.tile{background:#fff;border:1px solid var(
 .ftab{position:relative;display:flex;flex-direction:column;gap:6px;background:#fff;border:2px solid #CDEBD6;border-radius:22px;padding:22px 16px 14px;color:var(--ink);box-shadow:0 6px 16px rgba(28,43,51,.06);transition:transform .12s,box-shadow .12s}
 .ftab:hover{text-decoration:none;transform:translateY(-2px);box-shadow:0 10px 24px rgba(28,43,51,.12)}
 .ftab .seats{position:absolute;top:-9px;left:16px;right:16px;display:flex;justify-content:space-around}.ftab .seats i{width:22px;height:12px;border-radius:6px;background:#CDEBD6;display:block}
-.ftab .top{display:flex;justify-content:space-between;align-items:center;gap:8px}.ftab .top b{font-size:18px}.fst{border-radius:999px;padding:3px 10px;font-size:12px;font-weight:700;background:var(--grb);color:var(--gr)}
+.ftab .ftop{display:flex;justify-content:space-between;align-items:center;gap:8px}.ftab .ftop b{font-size:18px}.fst{border-radius:999px;padding:3px 10px;font-size:12px;font-weight:700;background:var(--grb);color:var(--gr)}
 .fl{font-size:14px}.fmeta{display:flex;gap:8px;flex-wrap:wrap;font-size:12px;color:var(--mu)}.fo{color:var(--am);font-weight:600}
 .ftab.up{border-color:#D9C8FA;background:#FBF8FF}.ftab.up .seats i{background:#D9C8FA}.ftab.up .fst{background:var(--vib);color:var(--vi)}
 .ftab.ci{border-color:#F6B9C2;background:#FFF7F8;animation:ci 1.6s ease-in-out infinite}.ftab.ci .seats i{background:#F6B9C2}.ftab.ci .fst{background:var(--rdb);color:var(--rd)}
 .ftab.seat{border-color:#A9C8FF;background:#F4F8FF}.ftab.seat .seats i{background:var(--p)}.ftab.seat .fst{background:var(--p);color:#fff}
 @keyframes ci{0%,100%{box-shadow:0 0 0 0 rgba(211,32,58,.25)}50%{box-shadow:0 0 0 8px rgba(211,32,58,0)}}
 tr:target{background:var(--ti)}
-@media (max-width:700px){.room{padding:56px 14px 52px}.fbar{position:static;width:auto;flex-direction:row;height:44px;margin:0 0 16px}.fbar i{width:20px;height:20px}.fwin{left:14px;right:14px}.fplant.b{display:none}}
+@media (max-width:700px){.fgrid{grid-template-columns:repeat(2,minmax(0,1fr));gap:16px 10px}.ftab{padding:18px 10px 10px;border-radius:18px}.ftab .ftop{flex-direction:column;align-items:flex-start;gap:4px}.ftab .ftop b{font-size:16px}.fl{font-size:12px}.room{padding:56px 14px 52px}.fbar{position:static;width:auto;flex-direction:row;height:44px;margin:0 0 16px}.fbar i{width:20px;height:20px}.fwin{left:14px;right:14px}.fplant.b{display:none}}
 @media (min-width:1000px){.m{max-width:1000px;padding:24px 28px 40px}.lst{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 14px}.cols{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:24px;align-items:start}.cols>div:last-child{position:sticky;top:76px}.hero{height:340px}}
-@media (max-width:860px){.desk{grid-template-columns:1fr}.side{position:static;height:auto;display:flex;flex-wrap:wrap;gap:4px;padding:10px}.side a{padding:8px 10px;font-size:13px}.side .who,.side .brandbox{display:none}.g3,.g4{grid-template-columns:repeat(2,minmax(0,1fr))}.pg,.hd{padding-left:16px;padding-right:16px}}`;
+/* meta-pos on phones and tablets: the sidebar becomes a top bar with a menu; wide tables scroll inside their card. */
+.mtop{display:none}.lang a{font-size:12px;font-weight:600;padding:4px 9px;border-radius:9px;color:var(--mu);border:1px solid var(--ln)}.lang a.on{background:var(--p);border-color:var(--p);color:#fff}.lang{display:inline-flex;gap:4px}
+.side .lang{margin:12px 12px 0}.tw{overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:14px}.tw table{min-width:560px}
+@media (max-width:1100px){.g4{grid-template-columns:repeat(2,minmax(0,1fr))}.g3{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:860px){.desk{display:block}.side,.hd{display:none}
+ .mtop{display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:20;background:#fff;border-bottom:1px solid var(--ln);padding:10px 14px}.mtop .sp{flex:1}.mtop .shop{font-size:13px;color:var(--mu);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:34vw}
+ .mnav{cursor:pointer;width:40px;height:40px;border-radius:12px;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:20px;user-select:none}
+ .mnck:checked+.mnav{background:var(--ti);color:var(--p)}.mgrid{display:none}.mnck:checked~.mgrid{display:grid}.mgrid{position:fixed;left:0;right:0;top:61px;bottom:0;background:rgba(240,242,245,.98);padding:14px;overflow:auto;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;align-content:start}
+ .mgrid a{display:flex;flex-direction:column;align-items:center;gap:6px;background:#fff;border:1px solid var(--ln);border-radius:16px;padding:14px 6px;color:var(--ink);font-size:13px;text-align:center}.mgrid a span{font-size:22px}.mgrid a.on{border-color:var(--p);color:var(--p);font-weight:600}
+ .mgrid .who{grid-column:1/-1;display:flex;align-items:center;gap:10px;background:#fff;border:1px solid var(--ln);border-radius:16px;padding:12px}.mgrid .who form{margin-left:auto}
+ .pg{padding:14px 14px 32px}.pgt h1{font-size:22px}.pgt .btn{width:100%}.g2,.g3{grid-template-columns:1fr}.met b{font-size:22px}table{font-size:14px}th,td{padding:10px}
+ .card{padding:14px}.chips{flex-wrap:nowrap}}
+@media (max-width:480px){.g4{grid-template-columns:repeat(2,minmax(0,1fr))}.mgrid{grid-template-columns:repeat(2,minmax(0,1fr))}}`;
 
 export interface PageOpts {title:string;back?:string|null;nav?:[string,string][];refresh?:number;nonce?:string;script?:string;csp?:string;
  /** false when the page already has its own primary action: then every nav button is secondary. */
@@ -108,16 +121,22 @@ export function customerHtml(o:PageOpts,body:string):string{
 
 export const STAFF_NAV:[string,string,string][]=[['📊','ภาพรวม','/meta/staff/overview'],['🛒','ขายหน้าร้าน','/meta/staff/counter'],['🧾','ออเดอร์','/meta/staff'],['☕','คิวครัว','/meta/staff/kitchen'],
  ['🗓️','การจองโต๊ะ','/meta/staff/bookings'],['📦','เมนูและสต็อก','/meta/staff/menu'],['✨','โปรโมชัน','/meta/staff/offers'],['👥','ลูกค้า','/meta/staff/customers'],
- ['🤖','Muse Connector','/meta/staff/connector'],['🔎','หลักฐาน AI','/meta/staff/ledger'],['📈','รายงาน','/meta/staff/reports'],['⚙️','ตั้งค่า','/meta/staff/settings']];
+ ['🤖','Muse Connector','/meta/staff/connector'],['🔎','หลักฐาน AI|AI evidence','/meta/staff/ledger'],['📈','รายงาน','/meta/staff/reports'],['⚙️','ตั้งค่า','/meta/staff/settings']];
 const ROLE_TH:Record<string,string>={owner:'เจ้าของร้าน',manager:'ผู้จัดการ',staff:'พนักงาน'};
 
 /** Staff page (meta-pos): sidebar on desktop, wrapping top menu on phones. */
 export function staffHtml(o:PageOpts&{active:string;role:string;shop:string;sub?:string;actions?:string},body:string):string{
- const side=STAFF_NAV.map(([ic,label,href])=>`<a href="${href}"${o.active===href?' class="on"':''}><span>${ic}</span>${esc(label)}</a>`).join('');
- return `${head(o)}<body><div class="desk"><nav class="side"><div class="brandbox" style="padding:6px 12px 16px"><span class="brand">BitPOS <b>× Muse</b></span></div>${side}
-<div class="who"><b>${esc(ROLE_TH[o.role]??o.role)}</b><br><small>${esc(o.shop)}</small><form method="post" action="/meta/staff/logout"><button class="g inline">ออกจากระบบ</button></form></div></nav>
+ const nav=(cls:string)=>STAFF_NAV.map(([ic,label,href])=>{const [th,en]=label.split('|');return `<a href="${href}"${o.active===href?` class="on"`:''}><span>${ic}</span>${esc(en&&staffLang()==='en'?en:th)}</a>`;}).join('');
+ const lang=`<span class="lang">${(['en','th'] as const).map(l=>`<a href="/meta/staff/lang?l=${l}&amp;b=${encodeURIComponent(o.active)}"${staffLang()===l?' class="on"':''}>${l==='en'?'EN':'ไทย'}</a>`).join('')}</span>`;
+ const out=`<form method="post" action="/meta/staff/logout"><button class="g inline">ออกจากระบบ</button></form>`;
+ // Wide tables scroll inside their own box instead of the page.
+ const wrapped=body.replace(/<table>/g,'<div class="tw"><table>').replace(/<\/table>/g,'</table></div>');
+ return localizeStaff(`${head(o)}<body><header class="mtop"><span class="brand">BitPOS <b>× Muse</b></span><span class="shop">${esc(o.shop)}</span><span class="sp"></span>${lang}
+<input type="checkbox" id="mn" class="mnck" hidden><label for="mn" class="mnav" aria-label="เมนู">☰</label><nav class="mgrid">${nav('m')}<div class="who"><b>${esc(ROLE_TH[o.role]??o.role)}</b><small>${esc(o.shop)}</small>${out}</div></nav></header>
+<div class="desk"><nav class="side"><div class="brandbox" style="padding:6px 12px 16px"><span class="brand">BitPOS <b>× Muse</b></span></div>${nav('s')}
+<div class="who"><b>${esc(ROLE_TH[o.role]??o.role)}</b><br><small>${esc(o.shop)}</small>${out}</div>${lang}</nav>
 <div class="main"><div class="hd"><b>${esc(o.shop)}</b><span class="pill am">Stripe sandbox</span><span class="pill vi">Muse Spark</span></div>
-<div class="pg"><div class="pgt"><div><h1>${esc(o.title)}</h1>${o.sub?`<small>${esc(o.sub)}</small>`:''}</div><span class="sp"></span>${o.actions??''}</div>${body}</div></div></div>${o.script&&o.nonce?`<script nonce="${o.nonce}">${o.script}</script>`:''}</body></html>`;
+<div class="pg"><div class="pgt"><div><h1>${esc(o.title)}</h1>${o.sub?`<small>${esc(o.sub)}</small>`:''}</div><span class="sp"></span>${o.actions??''}</div>${wrapped}</div></div></div>${o.script&&o.nonce?`<script nonce="${o.nonce}">${o.script}</script>`:''}</body></html>`);
 }
 
 export const pill=(t:string,tone='')=>`<span class="pill ${tone}">${esc(t)}</span>`;

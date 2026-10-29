@@ -18,6 +18,7 @@ import {AsrError,asrConfigFromEnv,MAX_WAV_BYTES,transcribe,type AsrConfig,type A
 import {randomBytes} from 'node:crypto';
 import {AsyncLocalStorage} from 'node:async_hooks';
 import {aiHtml,customerHtml,photo,staffHtml} from './ui';
+import {L,LANG,LANG_COOKIE,langFromCookie,nm} from './staff-i18n';
 import {servePos} from './pos';
 import {CartError,cartChatReceipt,cartOrderMerchant,formatCart,handOverCart,parseCart,quoteCart,startCart,type CartLine} from './cart';
 import {receiptAvailable,receiptImageKeyValid,receiptImageUrl,receiptPng} from './receipt-image';
@@ -252,7 +253,12 @@ export async function serveMeta(req:http.IncomingMessage,res:http.ServerResponse
   page(res,202,'กำลังตรวจสอบการชำระเงิน',['ยังไม่ได้รับการยืนยันจาก Stripe ลองรีเฟรชอีกครั้ง','Waiting for Stripe to confirm. Refresh in a moment.']);return true;
  }
  if(path==='/meta/order'||path==='/meta/order/pay'||path==='/meta/order/add'||path==='/meta/order/voice'||path==='/meta/order/cartpay'||path==='/meta/order/photo')return serveWebOrder(req,res,deps,url,log);
- if(path==='/meta/staff'||path.startsWith('/meta/staff/'))return STAFF_CTX.run({active:path.replace(/^(\/meta\/staff\/[a-z]+).*$/,'$1'),me:null,shop:''},()=>serveStaff(req,res,deps,url,log));
+ if(path==='/meta/staff/lang'&&method==='GET'){
+  // TH/EN switch for meta-pos (English by default); only a meta-pos path can be the way back.
+  const l=url.searchParams.get('l')==='th'?'th':'en',b=url.searchParams.get('b')??'';
+  res.writeHead(303,{Location:/^\/meta\/staff(\/[a-z-]{1,30})*$/.test(b)?b:'/meta/staff','Set-Cookie':`${LANG_COOKIE}=${l}; Path=/meta/staff; Max-Age=31536000; SameSite=Lax; Secure`,'Cache-Control':'no-store'});res.end();return true;
+ }
+ if(path==='/meta/staff'||path.startsWith('/meta/staff/'))return LANG.run(langFromCookie(req.headers.cookie),()=>STAFF_CTX.run({active:path.replace(/^(\/meta\/staff\/[a-z]+).*$/,'$1'),me:null,shop:''},()=>serveStaff(req,res,deps,url,log)));
  const mcp=path.match(/^\/meta\/mcp\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[89ab][0-9a-f]{3}-[0-9a-f]{12})$/);
  if(mcp){
   if(!deps.offers){json(res,503,{error:'NOT_CONFIGURED'});return true;}
@@ -397,13 +403,13 @@ async function serveStaff(req:http.IncomingMessage,res:http.ServerResponse,deps:
 const OFFER_ERRORS:Record<OfferPolicyError['code'],string>={ROLE_REQUIRED:'ต้องเป็นเจ้าของหรือผู้จัดการ / Owner or manager only.',OWNER_REQUIRED:'Allow All ตั้งได้เฉพาะเจ้าของ / Only the owner can set Allow All.',
  NOT_FOUND:'ไม่พบรายการ / Not found.',NOT_OPEN:'รายการนี้ปิดแล้วหรือมีร่างค้างอยู่ / Already decided, expired, or a draft is already open.',NO_CANDIDATES:'ไม่มีสินค้าที่ร่างโปรได้ตอนนี้ / No product can take a new offer now.',INVALID_INPUT:'ข้อมูลไม่ถูกต้อง / Invalid input.'};
 function draftLine(d:DraftView,isOwner:boolean):string{
- const head=`<strong>${esc(d.emoji)} ${esc(d.name)}</strong> <small>${esc(d.nameEn)}</small> · ลด ${d.discountPercent}% · ${d.durationHours} ชม./h${d.chosenBy==='model'?' <small>· Muse Spark</small>':' <small>· fallback</small>'}<br><small>${esc(d.reasonTh)} — ${esc(d.reasonEn)}</small>`;
+ const head=`<strong>${esc(d.emoji)} ${esc(nm(d.name,d.nameEn))}</strong> · ${L('ลด','−')}${d.discountPercent}% · ${d.durationHours} ${L('ชม.','h')}${d.chosenBy==='model'?' <small>· Muse Spark</small>':' <small>· fallback</small>'}<br><small>${esc(L(d.reasonTh,d.reasonEn))}</small>`;
  const at=(iso:string)=>new Date(iso).toLocaleString('en-GB',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit',timeZone:'Asia/Bangkok'});
  if(d.state==='DRAFT'){
   const allow=isOwner?`<form method="post" action="/meta/staff/offers/${d.id}/approve"><input type="hidden" name="allow_all" value="1"><select name="scope" style="font:inherit"><option value="product">สินค้านี้ / this product</option>${d.category?`<option value="category">หมวด ${esc(d.category)} / this category</option>`:''}</select> <select name="daily_limit" style="font:inherit">${[1,2,3,5].map(n=>`<option value="${n}"${n===3?' selected':''}>${n}/วัน day</option>`).join('')}</select><br><button>อนุมัติ + Allow All แบบนี้ / Approve + Allow All like this</button></form>`:'';
   return `${head}<form method="post" action="/meta/staff/offers/${d.id}/approve"><button>อนุมัติครั้งนี้ / Approve once</button></form>${allow}<form method="post" action="/meta/staff/offers/${d.id}/reject"><button>ไม่อนุมัติ / Reject</button></form>`;
  }
- if(d.state==='APPLIED')return `${head}<br>${d.approvalKind==='policy'?'🤖 อนุมัติอัตโนมัติด้วย Allow All / Auto-approved by Allow All':'✅ เจ้าของอนุมัติ / Approved by owner'} · ถึง ${at(d.offerExpiresAt!)}<form method="post" action="/meta/staff/offers/${d.id}/stop"><button>หยุดโปรนี้ / Stop this offer</button></form>`;
+ if(d.state==='APPLIED')return `${head}<br>${d.approvalKind==='policy'?L('🤖 อนุมัติอัตโนมัติด้วย Allow All','🤖 Auto-approved by Allow All'):L('✅ เจ้าของอนุมัติ','✅ Approved by owner')} · ${L('ถึง','until')} ${at(d.offerExpiresAt!)}<form method="post" action="/meta/staff/offers/${d.id}/stop"><button>หยุดโปรนี้ / Stop this offer</button></form>`;
  const label:Record<string,string>={REJECTED:'ไม่อนุมัติ / Rejected',EXPIRED:'ร่างหมดเวลา / Draft expired',FAILED:`ใช้ไม่ได้ / Not applied (${esc(d.failure??'')})`,STOPPED:'หยุดแล้ว / Stopped'};
  return `${head}<br><small>${label[d.state]??esc(d.state)}</small>`;
 }
@@ -644,7 +650,7 @@ async function serveLedger(res:http.ServerResponse,deps:MetaRouteDeps,staff:Staf
   decisions:(await db.query<{decided_at:Date;state:string;approval_kind:string|null;discount_percent:number;chosen_by:string;name_en:string}>("SELECT d.decided_at,d.state,d.approval_kind,d.discount_percent,d.chosen_by,coalesce(p.name_en,'') AS name_en FROM meta_offer_drafts d LEFT JOIN products p ON p.merchant_id=d.merchant_id AND p.id=d.product_id WHERE d.decided_at>clock_timestamp()-interval '24 hours' ORDER BY d.decided_at DESC LIMIT 20")).rows,
  }));
  const section=(title:string,rows:string[])=>[`<strong>${title}</strong>`,...(rows.length?rows:['<small>— none in the last 24 h —</small>'])];
- page(res,200,'หลักฐาน / Evidence ledger',[`<small>${esc(me.role)} · 24 ชั่วโมงล่าสุด / last 24 hours · ไม่แสดงตัวตนลูกค้า / no customer identity shown</small>`,
+ page(res,200,'หลักฐาน / Evidence ledger',[`<small>${esc(me.role)} · ${L('24 ชั่วโมงล่าสุด · ไม่แสดงตัวตนลูกค้า','last 24 hours · no customer identity shown')}</small>`,
   ...section('🧠 AI calls (Meta Model API)',data.ai.map(r=>`<small>${t(r.started_at)} · ${esc(r.task)} · ${esc(r.model)} (${esc(r.provider)}) · ${esc(r.outcome)} · ${r.latency_ms} ms · ${r.prompt_tokens??'?'}/${r.completion_tokens??'?'} tokens</small>`)),
   ...section('📱 Taps (NTAG424 SUN verified)',data.taps.map(r=>`<small>${t(r.created_at)} · ${esc(r.tag_id)} · counter ${r.counter} · ${r.bound?'customer known':'not linked'}</small>`)),
   ...section('💳 Stripe events (signature verified, once each)',data.pay.map(r=>`<small>${t(r.at)} · ${esc(r.event_id)} · order #${code(r.order_id)} · ${r.kind}</small>`)),

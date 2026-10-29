@@ -14,6 +14,7 @@ import {listMenu} from './agent-orders';
 import {cartForStaff,CartError,refundCart,startCart,type CartLine} from './cart';
 import {agentDepsOf} from './shop';
 import {CHANNEL,esc,photo,pill,row,staffHtml} from './ui';
+import {L,nm,staffLang} from './staff-i18n';
 import {listPayouts} from './stripe';
 
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
@@ -31,7 +32,7 @@ const go=(res:http.ServerResponse,to:string)=>{res.writeHead(303,{Location:to,'C
 function orderTable(orders:StaffOrder[],empty='ยังไม่มีออเดอร์ใน 24 ชั่วโมง'):string{
  if(!orders.length)return `<div class="card mu">${empty}</div>`;
  return `<table><tr><th>รหัส</th><th>รายการ</th><th>ช่องทาง</th><th>ยอด</th><th>สถานะ</th><th>เวลา</th></tr>${orders.map(o=>`<tr class="click"><td><a href="/meta/staff/order/${o.id}"><b>#${esc(o.code)}</b></a></td>
-<td>${esc(o.emoji)} ${esc(o.name)}${o.stockShort?' '+pill('สต็อกไม่พอ','rd'):''}</td><td>${chan(o.channel)}</td><td>${esc(money(o.amountMinor,o.currency))}</td><td>${st(o.status,o.handedOverAt)}</td><td>${t(o.paidAt??o.createdAt)}</td></tr>`).join('')}</table>`;
+<td>${esc(o.emoji)} ${esc(nm(o.name,o.nameEn))}${o.stockShort?' '+pill('สต็อกไม่พอ','rd'):''}</td><td>${chan(o.channel)}</td><td>${esc(money(o.amountMinor,o.currency))}</td><td>${st(o.status,o.handedOverAt)}</td><td>${t(o.paidAt??o.createdAt)}</td></tr>`).join('')}</table>`;
 }
 const handover=(o:StaffOrder)=>o.status==='PAID'&&!o.handedOverAt?`<form method="post" action="/meta/staff/orders/${o.id}/handover"><button class="inline">ส่งมอบแล้ว #${esc(o.code)}</button></form>`:'';
 
@@ -68,7 +69,7 @@ async function pages(req:http.IncomingMessage,res:http.ServerResponse,deps:MetaR
   const shown=all.filter(o=>!ch||o.channel===ch),waiting=shown.filter(o=>o.status==='PAID'&&!o.handedOverAt);
   return send(200,'/meta/staff','ศูนย์ออเดอร์',`${done&&/^[0-9A-F]{4}$/.test(done)?`<div class="note" style="background:var(--grb);color:var(--gr)">ส่งมอบ #${esc(done)} แล้ว ✓</div>`:''}${chips}
 ${waiting.length?`<div class="card"><h2>รอส่งมอบ ${waiting.length}</h2>${waiting.map(handover).join('')}</div>`:''}${orderTable(shown)}`,
-   {sub:'ทุกช่องทาง 24 ชม. · รีเฟรชทุก 10 วินาที · จ่ายแล้วจาก Stripe เท่านั้น · ไม่แสดงรหัส Messenger',refresh:10,actions:'<a class="btn" href="/meta/staff/counter">ขายหน้าร้าน</a>'});
+   {sub:L('ทุกช่องทาง 24 ชม. · รีเฟรชทุก 10 วินาที · จ่ายแล้วจาก Stripe เท่านั้น · ไม่แสดงรหัส Messenger','All channels, last 24 h · refreshes every 10 s · paid only when Stripe confirms · no Messenger IDs shown'),refresh:10,actions:'<a class="btn" href="/meta/staff/counter">ขายหน้าร้าน</a>'});
  }
  if(path==='/meta/staff/overview'){
   const today=`date_trunc('day',clock_timestamp() AT TIME ZONE 'Asia/Bangkok') AT TIME ZONE 'Asia/Bangkok'`;
@@ -82,7 +83,7 @@ ${waiting.length?`<div class="card"><h2>รอส่งมอบ ${waiting.lengt
   const sum=r.ch.reduce((a,x)=>a+BigInt(x.sum??'0'),0n),paid=r.ch.reduce((a,x)=>a+Number(x.paid),0),max=Math.max(1,...r.ch.map(x=>Number(x.paid)));
   const b=Object.fromEntries(r.bookings.map(x=>[x.status,Number(x.n)])),waiting=orders.filter(o=>o.status==='PAID'&&!o.handedOverAt);
   const html=`<div class="grid g4">${[['ยอดขายวันนี้ (Stripe)',money(sum),`${paid} ออเดอร์ที่จ่ายแล้ว`,'p'],['แตะ NFC',r.ch.find(x=>x.channel==='tap')?.n??'0','ออเดอร์จากการแตะ',''],
-   ['แชท / AI',String(Number(r.ch.find(x=>x.channel==='chat')?.n??0)+Number(r.ch.find(x=>x.channel==='mcp')?.n??0)),`Muse Spark วันนี้ ${r.ai} ครั้ง`,''],['การจองวันนี้',String(Object.values(b).reduce((a,n)=>a+n,0)),`เช็กอิน ${b.CHECKED_IN??0} · หลุดคิว ${b.NO_SHOW??0}`,'']]
+   [L('แชท และ AI','Chat & AI'),String(Number(r.ch.find(x=>x.channel==='chat')?.n??0)+Number(r.ch.find(x=>x.channel==='mcp')?.n??0)),L(`Muse Spark วันนี้ ${r.ai} ครั้ง`,`Muse Spark calls today: ${r.ai}`),''],['การจองวันนี้',String(Object.values(b).reduce((a,n)=>a+n,0)),`เช็กอิน ${b.CHECKED_IN??0} · หลุดคิว ${b.NO_SHOW??0}`,'']]
    .map(([a,v,s,c])=>`<div class="met ${c}"><small>${a}</small><b>${esc(v)}</b><small>${esc(s)}</small></div>`).join('')}</div>
 <div class="grid g2" style="margin-top:14px"><div class="card"><h2>ยอดที่จ่ายแล้วตามช่องทาง</h2>${['tap','chat','mcp','table','counter','web'].map(k=>{const n=Number(r.ch.find(x=>x.channel===k)?.paid??0);return `<div style="display:flex;gap:10px;align-items:center;margin:10px 0"><span style="width:130px">${chan(k)}</span><span class="barh" style="flex:1"><i style="width:${Math.round(n/max*100)}%"></i></span><b>${n}</b></div>`;}).join('')}
 <a href="/meta/staff/reports">ดูรายงานเต็ม →</a></div><div class="card"><h2>ต้องจัดการตอนนี้</h2>
@@ -96,10 +97,10 @@ ${row({href:'/meta/staff/offers',icon:'✨',title:`${r.drafts} ร่างโ�
   if(!agent)return send(503,path,'ขายหน้าร้าน','<div class="card">ระบบเมนูยังไม่พร้อม</div>');
   const menu=await listMenu(agent,me.merchantId);
   const devices=(await db.tenant(me.merchantId,c=>c.query<{id:string;label:string}>('SELECT id,label FROM devices WHERE revoked_at IS NULL ORDER BY label'))).rows;
-  const tiles=menu.map(m=>`<label class="tile">${photo(m.imageUrl)?`<img src="${esc(photo(m.imageUrl)!)}" alt="">`:''}<div><b>${esc(m.name)}</b><br><small>${esc(m.nameEn)} · ${esc(m.price.display)}${m.offer?` · −${m.offer.discountPercent}%`:''}</small>
+  const tiles=menu.map(m=>`<label class="tile">${photo(m.imageUrl)?`<img src="${esc(photo(m.imageUrl)!)}" alt="">`:''}<div><b>${esc(nm(m.name,m.nameEn))}</b><br><small>${esc(m.price.display)}${m.offer?` · −${m.offer.discountPercent}%`:''}</small>
 <select name="q_${m.productId}"${m.payable?'':' disabled'}>${[0,1,2,3,4,5].map(n=>`<option value="${n}">${n?`× ${n}`:'—'}</option>`).join('')}</select></div></label>`).join('');
   return send(200,path,'ขายหน้าร้าน',`<form method="post" action="/meta/staff/counter"><div class="grid g4">${tiles}</div><div class="card"><label>แสดง QR บนเครื่อง BitPOS Mini</label><select name="device"><option value="">ไม่แสดง (ใช้จอนี้)</option>${devices.map((d,i)=>`<option value="${d.id}"${i===0?' selected':''}>${esc(d.label)}</option>`).join('')}</select>
-<div class="note">ลูกค้าสแกน QR เพื่อจ่ายบน Stripe Checkout (sandbox) · ราคาจากเซิร์ฟเวอร์ · จ่ายแล้วจาก webhook เท่านั้น</div><button>สร้างบิลและแสดง QR ของ Stripe</button></div></form>`,
+<div class="note">ลูกค้าสแกน QR เพื่อจ่ายบน Stripe Checkout (sandbox) · ราคาจากเซิร์ฟเวอร์ · จ่ายแล้วจาก webhook เท่านั้น</div><button>${L('สร้างบิลและแสดง QR ของ Stripe','Create the bill and show the Stripe QR')}</button></div></form>`,
    {sub:'เลือกจำนวน → สร้างบิล → ลูกค้าสแกน QR บนจอ (หรือบน BitPOS Mini)'});
  }
  if(path==='/meta/staff/counter'&&method==='POST'){
@@ -115,7 +116,7 @@ ${row({href:'/meta/staff/offers',icon:'✨',title:`${r.drafts} ร่างโ�
  if(bill){
   const v=await cartForStaff(db,me.merchantId,bill[1]);
   if(!v)return send(404,'/meta/staff/counter','ไม่พบบิล','<div class="card">ไม่พบบิลนี้</div><a class="btn g inline" href="/meta/staff/counter">← ขายหน้าร้าน</a>');
-  const lines=v.lines.map(l=>`<div class="tot"><span>${esc(l.emoji)} ${esc(l.name)} × ${l.quantity}</span><span>${esc(l.amount)}</span></div>`).join('');
+  const lines=v.lines.map(l=>`<div class="tot"><span>${esc(l.emoji)} ${esc(nm(l.name,l.nameEn))} × ${l.quantity}</span><span>${esc(l.amount)}</span></div>`).join('');
   const qr=v.status==='PENDING'&&v.checkoutUrl?await QRCode.toString(`${deps.identity.publicOrigin}/pay/${v.orderId}`,{type:'svg',margin:1,errorCorrectionLevel:'M'}):'';
   const left=v.status==='PAID'?`<div class="qrbox"><div class="icon" style="background:var(--grb);margin:30px auto">✓</div><h1>จ่ายแล้ว</h1><div class="big">#${esc(v.code)}</div><small>Stripe webhook ยืนยันแล้ว</small></div>`
    :v.status==='PENDING'?`<div class="qrbox">${qr}<p><b>ลูกค้าสแกนเพื่อจ่ายบน Stripe Checkout</b></p><small>ลิงก์ใช้ได้ 30 นาที · ราคาล็อกตามบิล · หน้านี้รีเฟรชเอง</small></div>`
@@ -126,9 +127,9 @@ ${row({href:'/meta/staff/offers',icon:'✨',title:`${r.drafts} ร่างโ�
 
  if(path==='/meta/staff/kitchen'){
   const orders=await listTapOrders(staff,me),todo=orders.filter(o=>o.status==='PAID'&&!o.handedOverAt),done=orders.filter(o=>o.handedOverAt).slice(0,8);
-  const card=(o:StaffOrder)=>`<div class="row"><span class="ic">${esc(o.emoji||'☕')}</span><span class="t"><b>#${esc(o.code)} · ${esc(o.name)}</b><small>${chan(o.channel)} จ่าย ${t(o.paidAt)}${o.stockShort?' · '+pill('สต็อกไม่พอ','rd'):''}</small></span>${handover(o)}</div>`;
+  const card=(o:StaffOrder)=>`<div class="row"><span class="ic">${esc(o.emoji||'☕')}</span><span class="t"><b>#${esc(o.code)} · ${esc(nm(o.name,o.nameEn))}</b><small>${chan(o.channel)} จ่าย ${t(o.paidAt)}${o.stockShort?' · '+pill('สต็อกไม่พอ','rd'):''}</small></span>${handover(o)}</div>`;
   return send(200,path,'คิวครัว',`<div class="grid g2"><div class="card"><h2>${pill('ต้องทำ / รอส่งมอบ','am')} ${todo.length}</h2>${todo.map(card).join('')||'<p class="mu">ไม่มีออเดอร์ค้าง</p>'}</div>
-<div class="card"><h2>${pill('ส่งมอบแล้ว','gr')}</h2>${done.map(o=>row({href:`/meta/staff/order/${o.id}`,icon:'✓',title:`#${o.code} · ${o.name}`,sub:`${CHANNEL[o.channel]?.[0]??o.channel} · ${t(o.handedOverAt)}`})).join('')||'<p class="mu">ยังไม่มี</p>'}</div></div>`,{sub:'เรียงตามเวลาที่จ่าย · ทุกช่องทาง · รีเฟรชทุก 10 วินาที',refresh:10});
+<div class="card"><h2>${pill('ส่งมอบแล้ว','gr')}</h2>${done.map(o=>row({href:`/meta/staff/order/${o.id}`,icon:'✓',title:`#${o.code} · ${nm(o.name,o.nameEn)}`,sub:`${CHANNEL[o.channel]?.[0]??o.channel} · ${t(o.handedOverAt)}`})).join('')||'<p class="mu">ยังไม่มี</p>'}</div></div>`,{sub:'เรียงตามเวลาที่จ่าย · ทุกช่องทาง · รีเฟรชทุก 10 วินาที',refresh:10});
  }
 
  if(path==='/meta/staff/bookings'){
@@ -139,7 +140,7 @@ ${row({href:'/meta/staff/offers',icon:'✨',title:`${r.drafts} ร่างโ�
    const line=f.state==='free'?(f.laterToday?`จองต่อวันนี้ ${f.laterToday}`:'พร้อมรับลูกค้า')
     :f.state==='seated'?`${f.partySize} คน · ถึง ${t(f.seatedUntil)}`:f.state==='check_in'?`${f.partySize} คน · เช็กอินภายใน ${t(f.checkInUntil)}`:`${t(f.startsAt)} · ${f.partySize} คน`;
    const seats=Math.min(6,Math.max(2,f.partySize??2));
-   return `<a class="ftab ${cls}" href="#t-${f.id}" title="${esc(f.label)}"><span class="seats">${'<i></i>'.repeat(seats)}</span><span class="top"><b>${esc(f.label)}</b><span class="fst">${lbl}</span></span>
+   return `<a class="ftab ${cls}" href="#t-${f.id}" title="${esc(f.label)}"><span class="seats">${'<i></i>'.repeat(seats)}</span><span class="ftop"><b>${esc(f.label)}</b><span class="fst">${lbl}</span></span>
 <span class="fl">${f.code?`#${esc(f.code)} · `:''}${esc(line)}</span><span class="fmeta">${f.devices.length?`<span>📟 ${esc(f.devices.join(', '))}</span>`:''}${f.openOrders?`<span class="fo">🧾 ${f.openOrders} ออเดอร์</span>`:''}${f.state!=='free'&&f.laterToday?`<span>+${f.laterToday} วันนี้</span>`:''}</span></a>`;};
   const count=(st:string)=>floor.filter(f=>f.state===st).length;
   const plan=`<div class="floorwrap"><div class="flegend">${(['free','upcoming','check_in','seated'] as const).map(k=>`<span class="lg ${FS[k][1]}"><i></i>${FS[k][0]} ${count(k)}</span>`).join('')}<span class="sp"></span><small class="mu">อัปเดตทุก 20 วินาที</small></div>
@@ -148,7 +149,7 @@ ${row({href:'/meta/staff/offers',icon:'✨',title:`${r.drafts} ร่างโ�
   const label:Record<string,[string,string]>={HELD:['รอเช็กอิน','am'],CHECKED_IN:['เช็กอินแล้ว','gr'],NO_SHOW:['หลุดคิว','rd'],CANCELLED:['ยกเลิก','mu']};
   const dt=(iso:string)=>new Date(iso).toLocaleString('en-GB',{weekday:'short',day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit',timeZone:'Asia/Bangkok'});
   const table=rows.length?`<table><tr><th>รหัส</th><th>โต๊ะ</th><th>เวลา</th><th>คน</th><th>สถานะ</th><th></th></tr>${rows.map(r=>`<tr id="t-${esc(floor.find(f=>f.label===r.tableLabel)?.id??'')}"><td><b>#${esc(r.code)}</b></td><td>${esc(r.tableLabel)}</td><td>${dt(r.startsAt)}</td><td>${r.partySize}</td>
-<td>${pill(...(label[r.status]??[r.status,'mu']))}${r.status==='HELD'&&r.minutesToDeadline!==null?` <small>${r.minutesToDeadline} นาที</small>`:''}</td><td>${r.status==='HELD'?`<form method="post" action="/meta/staff/reservations/${r.id}/cancel"><button class="d inline">ยกเลิก</button></form>`:''}</td></tr>`).join('')}</table>`:'<div class="card mu">ยังไม่มีการจองใน 2 วันนี้ · ลูกค้าจองผ่านแชทได้ด้วยคำว่า “จองโต๊ะ”</div>';
+<td>${pill(...(label[r.status]??[r.status,'mu']))}${r.status==='HELD'&&r.minutesToDeadline!==null?` <small>${r.minutesToDeadline} นาที</small>`:''}</td><td>${r.status==='HELD'?`<form method="post" action="/meta/staff/reservations/${r.id}/cancel"><button class="d inline">ยกเลิก</button></form>`:''}</td></tr>`).join('')}</table>`:`<div class="card mu">${L('ยังไม่มีการจองใน 2 วันนี้ · ลูกค้าจองผ่านแชทได้ด้วยคำว่า “จองโต๊ะ”','No bookings in the next 2 days · customers book in Messenger by saying “book a table”')}</div>`;
   const screens=tags.map(g=>`<a class="btn s inline" target="_blank" rel="noopener" href="${esc(`${deps.identity.publicOrigin}/meta/screen/${g.tagId}?k=${screenKey(deps.identity.masterKey,g.tagId)}`)}">🖥️ ${esc(g.tableLabel)}</a>`).join('');
   return send(200,path,'การจองโต๊ะ',`${plan}<h2 style="margin-top:20px">รายการจอง 2 วัน</h2>${table}<div class="card" style="margin-top:16px"><h2>จอโต๊ะ (นับถอยหลัง)</h2><small>เปิดบนแท็บเล็ตหรือมือถือที่ตั้งบนโต๊ะ · ลิงก์มีกุญแจของแต่ละโต๊ะ · ไม่มีข้อมูลส่วนตัว</small><p>${screens||'<span class="mu">ยังไม่มีโต๊ะที่มีสติกเกอร์</span>'}</p></div>`,
    {sub:'จองผ่านแชท · เช็กอินด้วยการแตะ ±15 นาที · หลุดคิวอัตโนมัติ',refresh:20});
@@ -170,12 +171,12 @@ ${row({href:'/meta/staff/offers',icon:'✨',title:`${r.drafts} ร่างโ�
  if(path==='/meta/staff/menu'){
   if(!agent)return send(503,path,'เมนูและสต็อก','<div class="card">ระบบเมนูยังไม่พร้อม</div>');
   const menu=await listMenu(agent,me.merchantId);
-  const moves=await db.tenant(me.merchantId,c=>c.query<{created_at:Date;name:string;delta:number;reason:string;order_kind:string;order_id:string}>(
-   'SELECT m.created_at,p.name,m.delta,m.reason,m.order_kind,m.order_id FROM meta_stock_movements m JOIN products p ON p.merchant_id=m.merchant_id AND p.id=m.product_id ORDER BY m.created_at DESC LIMIT 12'));
-  const html=`${url.searchParams.get('saved')?'<div class="note" style="background:var(--grb);color:var(--gr)">บันทึกสต็อกแล้ว ✓</div>':''}<table><tr><th>เมนู</th><th>ราคา</th><th>โปร</th><th>สต็อก</th></tr>${menu.map(m=>`<tr><td><div style="display:flex;gap:10px;align-items:center">${photo(m.imageUrl)?`<img src="${esc(photo(m.imageUrl)!)}" alt="" style="width:44px;height:44px;border-radius:10px;object-fit:cover">`:''}<span><b>${esc(m.name)}</b><br><small>${esc(m.nameEn)} · ${esc(m.category??'')}</small></span></div></td>
+  const moves=await db.tenant(me.merchantId,c=>c.query<{created_at:Date;name:string;name_en:string;delta:number;reason:string;order_kind:string;order_id:string}>(
+   'SELECT m.created_at,p.name,p.name_en,m.delta,m.reason,m.order_kind,m.order_id FROM meta_stock_movements m JOIN products p ON p.merchant_id=m.merchant_id AND p.id=m.product_id ORDER BY m.created_at DESC LIMIT 12'));
+  const html=`${url.searchParams.get('saved')?'<div class="note" style="background:var(--grb);color:var(--gr)">บันทึกสต็อกแล้ว ✓</div>':''}<table><tr><th>เมนู</th><th>ราคา</th><th>โปร</th><th>สต็อก</th></tr>${menu.map(m=>`<tr><td><div style="display:flex;gap:10px;align-items:center">${photo(m.imageUrl)?`<img src="${esc(photo(m.imageUrl)!)}" alt="" style="width:44px;height:44px;border-radius:10px;object-fit:cover">`:''}<span><b>${esc(nm(m.name,m.nameEn))}</b><br><small>${esc(m.category??'')}</small></span></div></td>
 <td>${esc(m.price.display)}${m.offer?` <small><s>${esc(m.basePrice.display)}</s></small>`:''}</td><td>${m.offer?pill(`−${m.offer.discountPercent}%`,'rd'):pill('ปกติ','mu')}</td>
 <td>${boss?`<form method="post" action="/meta/staff/menu/${m.productId}/stock" style="display:flex;gap:6px;align-items:center"><input name="stock" value="${m.available}" inputmode="numeric" style="width:90px;margin:0"><button class="s inline" style="margin:0">บันทึก</button></form>`:m.available}</td></tr>`).join('')}</table>
-<h2 style="margin-top:20px">ความเคลื่อนไหวสต็อก (Meta)</h2>${moves.rows.length?`<table><tr><th>เวลา</th><th>เมนู</th><th>จำนวน</th><th>เหตุผล</th><th>อ้างอิง</th></tr>${moves.rows.map(m=>`<tr><td>${t(m.created_at.toISOString())}</td><td>${esc(m.name)}</td><td>${m.delta>0?'+':''}${m.delta}</td><td>${pill(m.reason,m.delta>0?'gr':'')}</td><td>${m.order_kind==='staff'?'นับสต็อก':`<a href="/meta/staff/order/${m.order_id}">#${pickupCode(m.order_id)}</a>`}</td></tr>`).join('')}</table>`:'<div class="card mu">ยังไม่มี</div>'}`;
+<h2 style="margin-top:20px">ความเคลื่อนไหวสต็อก (Meta)</h2>${moves.rows.length?`<table><tr><th>เวลา</th><th>เมนู</th><th>จำนวน</th><th>เหตุผล</th><th>อ้างอิง</th></tr>${moves.rows.map(m=>`<tr><td>${t(m.created_at.toISOString())}</td><td>${esc(nm(m.name,m.name_en))}</td><td>${m.delta>0?'+':''}${m.delta}</td><td>${pill(m.reason,m.delta>0?'gr':'')}</td><td>${m.order_kind==='staff'?'นับสต็อก':`<a href="/meta/staff/order/${m.order_id}">#${pickupCode(m.order_id)}</a>`}</td></tr>`).join('')}</table>`:'<div class="card mu">ยังไม่มี</div>'}`;
   return send(200,path,'เมนูและสต็อก',html,{sub:'ราคาเป็น USD หน่วยย่อยจากเวอร์ชันราคาที่ใช้งาน (เปลี่ยนราคาจะทำให้โปรเดิมหมด จึงไม่เปิดให้แก้ที่นี่) · ทุกการเปลี่ยนสต็อกมีบันทึก'});
  }
 
@@ -208,13 +209,13 @@ ${row({href:'/meta/staff/offers',icon:'✨',title:`${r.drafts} ร่างโ�
  }
 
  if(path==='/meta/staff/connector'){
-  const recent=await db.tenant(me.merchantId,c=>c.query<{id:string;status:string;amount_minor:string;currency:string;created_at:Date;name:string}>(
-   `SELECT a.id,a.status,a.amount_minor::text,a.currency,a.created_at,coalesce(p.name,'') AS name FROM meta_agent_orders a LEFT JOIN products p ON p.merchant_id=a.merchant_id AND p.id=a.product_id WHERE a.link_id IS NULL ORDER BY a.created_at DESC LIMIT 6`));
+  const recent=await db.tenant(me.merchantId,c=>c.query<{id:string;status:string;amount_minor:string;currency:string;created_at:Date;name:string;name_en:string}>(
+   `SELECT a.id,a.status,a.amount_minor::text,a.currency,a.created_at,coalesce(p.name,'') AS name,coalesce(p.name_en,'') AS name_en FROM meta_agent_orders a LEFT JOIN products p ON p.merchant_id=a.merchant_id AND p.id=a.product_id WHERE a.link_id IS NULL ORDER BY a.created_at DESC LIMIT 6`));
   const endpoint=`${deps.identity.publicOrigin}/meta/mcp/${me.merchantId}`;
   const tools=[['list_menu','เมนูและราคาจากเซิร์ฟเวอร์'],['get_quote','quote หน่วยย่อย อายุ 10 นาที'],['complete_checkout','Stripe Shared Payment Token'],['order_status','สถานะและรหัสรับ'],['cancel_order','คืนเงินก่อนส่งมอบ']];
   return send(200,path,'Muse Connector (MCP)',`<div class="card"><small>ปลายทาง (JSON-RPC, POST)</small><input readonly value="${esc(endpoint)}"></div><div class="grid g3">${tools.map(([a,b])=>row({icon:'🤖',title:a,sub:b})).join('')}</div>
-<h2 style="margin-top:20px">ออเดอร์จาก AI agent ล่าสุด</h2>${recent.rows.length?recent.rows.map(o=>row({href:`/meta/staff/order/${o.id}`,icon:'🤖',title:`#${pickupCode(o.id)} ${o.name} · ${money(o.amount_minor,o.currency)}`,sub:t(o.created_at.toISOString()),right:pill(o.status==='CONFIRMED'?'จ่ายแล้ว':o.status==='CANCELLED'?'คืนเงิน':o.status,o.status==='CONFIRMED'?'gr':o.status==='CANCELLED'?'rd':'am')})).join(''):'<div class="card mu">ยังไม่มี</div>'}`,
-   {sub:'ให้ AI agent สั่งจากร้านได้ · agent ส่งแค่ id ไม่เห็นเลขบัตร และตั้งราคาเองไม่ได้'});
+<h2 style="margin-top:20px">${L('ออเดอร์จาก AI agent ล่าสุด','Latest AI agent orders')}</h2>${recent.rows.length?recent.rows.map(o=>row({href:`/meta/staff/order/${o.id}`,icon:'🤖',title:`#${pickupCode(o.id)} ${nm(o.name,o.name_en)} · ${money(o.amount_minor,o.currency)}`,sub:t(o.created_at.toISOString()),right:pill(o.status==='CONFIRMED'?'จ่ายแล้ว':o.status==='CANCELLED'?'คืนเงิน':o.status,o.status==='CONFIRMED'?'gr':o.status==='CANCELLED'?'rd':'am')})).join(''):'<div class="card mu">ยังไม่มี</div>'}`,
+   {sub:L('ให้ AI agent สั่งจากร้านได้ · agent ส่งแค่ id ไม่เห็นเลขบัตร และตั้งราคาเองไม่ได้','AI agents can order from the shop · an agent sends only ids, never sees card numbers and cannot set prices')});
  }
 
  if(path==='/meta/staff/reports'){
@@ -222,15 +223,15 @@ ${row({href:'/meta/staff/offers',icon:'✨',title:`${r.drafts} ร่างโ�
    days:(await c.query<{day:string;channel:string;sum:string}>(`SELECT to_char(coalesce(paid_at,created_at) AT TIME ZONE 'Asia/Bangkok','DD Mon') AS day,channel,sum(amount_minor)::text AS sum FROM bitpos.meta_order_feed(clock_timestamp()-interval '7 days')
      WHERE platform='meta' AND status IN ('PAID','CONFIRMED') GROUP BY 1,2 ORDER BY min(coalesce(paid_at,created_at))`)).rows,
    refunds:(await c.query<{n:string;sum:string|null}>(`SELECT count(*)::text AS n,sum(amount_minor)::text AS sum FROM bitpos.meta_order_feed(clock_timestamp()-interval '7 days') WHERE platform='meta' AND status='CANCELLED'`)).rows[0],
-   top:(await c.query<{name:string;n:string}>(`SELECT name,sum(q)::text AS n FROM (SELECT i.name,i.quantity AS q FROM meta_cart_items i JOIN meta_cart_orders o ON o.merchant_id=i.merchant_id AND o.id=i.order_id WHERE o.status='PAID'
-     UNION ALL SELECT p.name,a.quantity FROM meta_agent_orders a JOIN products p ON p.merchant_id=a.merchant_id AND p.id=a.product_id WHERE a.status='CONFIRMED'
-     UNION ALL SELECT p.name,t.quantity FROM meta_tap_orders t JOIN products p ON p.merchant_id=t.merchant_id AND p.id=t.product_id WHERE t.status='PAID') x GROUP BY name ORDER BY 2 DESC LIMIT 5`)).rows}));
+   top:(await c.query<{name:string;n:string}>(`SELECT name,sum(q)::text AS n FROM (SELECT ${staffLang()==='th'?'i.name':'i.name_en'} AS name,i.quantity AS q FROM meta_cart_items i JOIN meta_cart_orders o ON o.merchant_id=i.merchant_id AND o.id=i.order_id WHERE o.status='PAID'
+     UNION ALL SELECT ${staffLang()==='th'?'p.name':'p.name_en'},a.quantity FROM meta_agent_orders a JOIN products p ON p.merchant_id=a.merchant_id AND p.id=a.product_id WHERE a.status='CONFIRMED'
+     UNION ALL SELECT ${staffLang()==='th'?'p.name':'p.name_en'},t.quantity FROM meta_tap_orders t JOIN products p ON p.merchant_id=t.merchant_id AND p.id=t.product_id WHERE t.status='PAID') x GROUP BY name ORDER BY 2 DESC LIMIT 5`)).rows}));
   const total=r.days.reduce((a,x)=>a+BigInt(x.sum),0n),days=[...new Set(r.days.map(x=>x.day))],peak=Math.max(1,...days.map(d=>r.days.filter(x=>x.day===d).reduce((a,x)=>a+Number(x.sum),0)));
   const bars=days.map(d=>{const items=r.days.filter(x=>x.day===d);const sum=items.reduce((a,x)=>a+Number(x.sum),0);return `<div style="display:flex;gap:10px;align-items:center;margin:8px 0"><span style="width:70px">${esc(d)}</span><span class="barh" style="flex:1"><i style="width:${Math.round(sum/peak*100)}%"></i></span><b style="width:90px;text-align:right">${money(sum)}</b></div>`;}).join('');
-  return send(200,path,'รายงาน 7 วัน',`<div class="grid g3"><div class="met p"><small>ยอดที่จ่ายแล้ว (Stripe)</small><b>${money(total)}</b><small>ทุกช่องทางของ Meta</small></div><div class="met"><small>คืนเงิน</small><b>${money(r.refunds.sum??'0')}</b><small>${r.refunds.n} รายการ</small></div>
+  return send(200,path,L('รายงาน 7 วัน','Reports · last 7 days'),`<div class="grid g3"><div class="met p"><small>ยอดที่จ่ายแล้ว (Stripe)</small><b>${money(total)}</b><small>ทุกช่องทางของ Meta</small></div><div class="met"><small>คืนเงิน</small><b>${money(r.refunds.sum??'0')}</b><small>${L(`${r.refunds.n} รายการ`,`${r.refunds.n} orders`)}</small></div>
 <div class="met"><small>ยอดโอนจาก Stripe</small><b>sandbox</b><small><a href="/meta/staff/payouts">ดูยอดคงเหลือและรอบโอน →</a></small></div></div>
 <div class="grid g2" style="margin-top:14px"><div class="card"><h2>ยอดรายวัน</h2>${bars||'<p class="mu">ยังไม่มีข้อมูล</p>'}</div><div class="card"><h2>เมนูขายดี</h2>${r.top.map((x,i)=>row({icon:String(i+1),title:x.name,right:`${x.n} ชิ้น`})).join('')||'<p class="mu">ยังไม่มีข้อมูล</p>'}</div></div>`,
-   {sub:'จาก meta_order_feed() · เฉพาะช่องทาง Meta · ไม่รวมคริปโต',actions:'<a class="btn g" href="/meta/staff/ledger">หลักฐาน AI →</a>'});
+   {sub:L('จาก meta_order_feed() · เฉพาะช่องทาง Meta · ไม่รวมคริปโต','From meta_order_feed() · Meta channels only · no crypto'),actions:`<a class="btn g" href="/meta/staff/ledger">${L('หลักฐาน AI →','AI evidence →')}</a>`});
  }
 
  if(path==='/meta/staff/payouts'){
@@ -264,10 +265,10 @@ ${row({href:'/meta/staff/offers',icon:'✨',title:`${r.drafts} ร่างโ�
    roles:(await c.query<{role:string;n:string}>('SELECT role,count(*)::text AS n FROM members WHERE merchant_id=$1 GROUP BY role',[me.merchantId])).rows,
    page:(await c.query<{page_username:string}>('SELECT page_username FROM meta_messenger_pages WHERE retired_at IS NULL')).rows[0]?.page_username??null}));
   const screen=(tag:string)=>`${deps.identity.publicOrigin}/meta/screen/${tag}?k=${screenKey(deps.identity.masterKey,tag)}`;
-  return send(200,path,'ตั้งค่า',`<h2>โต๊ะ อุปกรณ์ และสติกเกอร์</h2><table><tr><th>อุปกรณ์</th><th>โต๊ะ</th><th>สติกเกอร์ NTAG 424</th><th>จอโต๊ะ</th></tr>${r.devices.map(d=>`<tr><td>${esc(d.label)}</td><td>${esc(d.table??'—')}</td><td>${d.tag?`${esc(d.tag)} <small>· ตัวนับ ${d.counter}</small>`:'<span class="mu">ยังไม่มี</span>'}</td><td>${d.tag?`<a target="_blank" rel="noopener" href="${esc(screen(d.tag))}">เปิด →</a>`:''}</td></tr>`).join('')}</table>
+  return send(200,path,'ตั้งค่า',`<h2>โต๊ะ อุปกรณ์ และสติกเกอร์</h2><table><tr><th>อุปกรณ์</th><th>โต๊ะ</th><th>${L('สติกเกอร์ NTAG 424','NTAG 424 sticker')}</th><th>จอโต๊ะ</th></tr>${r.devices.map(d=>`<tr><td>${esc(d.label)}</td><td>${esc(d.table??'—')}</td><td>${d.tag?`${esc(d.tag)} <small>· ตัวนับ ${d.counter}</small>`:'<span class="mu">ยังไม่มี</span>'}</td><td>${d.tag?`<a target="_blank" rel="noopener" href="${esc(screen(d.tag))}">เปิด →</a>`:''}</td></tr>`).join('')}</table>
 <div class="grid g2" style="margin-top:16px">${[['👥','ผู้ใช้และสิทธิ์',r.roles.map(x=>`${({owner:'เจ้าของ',manager:'ผู้จัดการ',staff:'พนักงาน'} as Record<string,string>)[x.role]??x.role} ${x.n}`).join(' · ')+' · ตรวจสิทธิ์ทุกคำขอ'],
  ['💬','Messenger',r.page?`เพจ ${r.page} · เชื่อมต่อแล้ว · ข้อความยินยอม v1`:'ยังไม่ได้เชื่อมเพจ'],['💳','Stripe',deps.stripe?'Sandbox · webhook ตรวจลายเซ็น · ห้ามคีย์จริง':'ยังไม่ได้ตั้งค่า'],
- ['✨','Muse Spark',deps.offers?.router?'muse-spark-1.3 · จำกัด 10 ครั้ง/ชม./ลูกค้า · มีตัวสำรอง':'ใช้ตัวสำรอง (ไม่มีโมเดล)'],['🤖','Muse Connector (MCP)','ดูปลายทางและเครื่องมือ'],['🖥️','เฟิร์มแวร์ BitPOS Mini','รุ่น Meta แยกจาก sol- · ดูรายละเอียดใน README ของเฟิร์มแวร์']]
+ ['✨','Muse Spark',deps.offers?.router?L('muse-spark-1.3 · จำกัด 10 ครั้ง/ชม./ลูกค้า · มีตัวสำรอง','muse-spark-1.3 · up to 10 calls per customer per hour · with fallback'):'ใช้ตัวสำรอง (ไม่มีโมเดล)'],['🤖','Muse Connector (MCP)','ดูปลายทางและเครื่องมือ'],['🖥️',L('เฟิร์มแวร์ BitPOS Mini','BitPOS Mini firmware'),L('รุ่น Meta แยกจาก sol- · ดูรายละเอียดใน README ของเฟิร์มแวร์','Meta edition, separate from sol- · see the firmware README')]]
  .map(([i,a,b],n)=>row({icon:i,title:a,sub:esc(b),href:n===0?'/meta/staff/users':n===4?'/meta/staff/connector':n===3?'/meta/staff/ledger':undefined})).join('')}</div>`,{sub:shop});
  }
 
@@ -285,8 +286,8 @@ ${row({href:'/meta/staff/offers',icon:'✨',title:`${r.drafts} ร่างโ�
   const o=(await listTapOrders(staff,me)).find(x=>x.id===detail[1]);
   if(!cart&&!o)return send(404,'/meta/staff','ไม่พบออเดอร์','<div class="card">ไม่พบออเดอร์นี้ใน 24 ชั่วโมงล่าสุด</div><a class="btn g inline" href="/meta/staff">← ออเดอร์</a>');
   const code=cart?.code??o!.code,status=cart?(cart.status==='PENDING'?'CREATED':cart.status):o!.status,handed=cart?.handedOverAt??o?.handedOverAt??null,channel=cart?.channel??o!.channel;
-  const lines=cart?cart.lines.map(l=>`<div class="tot"><span>${esc(l.emoji)} ${esc(l.name)} × ${l.quantity}${l.offer?' '+pill('โปร','rd'):''}</span><span>${esc(l.amount)}</span></div>`).join('')+`<hr style="border:0;border-top:1px solid var(--ln)"><div class="tot"><span class="mu">ส่วนลด</span><span>−${esc(cart.discount)}</span></div><div class="tot b"><span>รวม</span><span>${esc(cart.total)}</span></div>`
-   :`<div class="tot b"><span>${esc(o!.emoji)} ${esc(o!.name)}</span><span>${esc(money(o!.amountMinor,o!.currency))}</span></div>`;
+  const lines=cart?cart.lines.map(l=>`<div class="tot"><span>${esc(l.emoji)} ${esc(nm(l.name,l.nameEn))} × ${l.quantity}${l.offer?' '+pill('โปร','rd'):''}</span><span>${esc(l.amount)}</span></div>`).join('')+`<hr style="border:0;border-top:1px solid var(--ln)"><div class="tot"><span class="mu">ส่วนลด</span><span>−${esc(cart.discount)}</span></div><div class="tot b"><span>รวม</span><span>${esc(cart.total)}</span></div>`
+   :`<div class="tot b"><span>${esc(o!.emoji)} ${esc(nm(o!.name,o!.nameEn))}</span><span>${esc(money(o!.amountMinor,o!.currency))}</span></div>`;
   const actions=status==='PAID'&&!handed?`<form method="post" action="/meta/staff/orders/${detail[1]}/handover"><button>ส่งมอบแล้ว</button></form>${cart&&boss?`<form method="post" action="/meta/staff/order/${detail[1]}/refund"><button class="d">คืนเงินเต็มจำนวนผ่าน Stripe</button></form>`:''}`
    :status==='CREATED'&&cart?`<a class="btn s" href="/meta/staff/counter/${detail[1]}">แสดง QR ให้ลูกค้าสแกน</a>`:'';
   return send(200,'/meta/staff',`ออเดอร์ #${code}`,`<div class="grid g2"><div class="card"><h2>รายการ ${chan(channel)} ${st(status,handed)}</h2>${lines}${o?.stockShort||cart?.stockShort?'<div class="note">สต็อกไม่พอตอนจ่าย · คืนเงินหรือแจ้งลูกค้า</div>':''}
