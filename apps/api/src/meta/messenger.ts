@@ -106,7 +106,8 @@ export type Outgoing=(
  {kind:'text';psid:string;text:string;eventUpdate?:boolean}|
  {kind:'buttons';psid:string;text:string;buttons:MessengerButton[]}|
  {kind:'cards';psid:string;cards:Card[]}|
- {kind:'receipt';psid:string;receipt:Receipt;fallbackText:string})&{quick?:QuickReply[]};
+ {kind:'receipt';psid:string;receipt:Receipt;fallbackText:string}|
+ {kind:'image';psid:string;url:string})&{quick?:QuickReply[]};
 
 const cut=(s:string,n:number)=>s.length<=n?s:s.slice(0,n-1)+'…';
 function messagePayload(m:Outgoing):unknown{
@@ -115,6 +116,7 @@ function messagePayload(m:Outgoing):unknown{
 }
 function basePayload(m:Outgoing):unknown{
  if(m.kind==='text')return {text:m.text};
+ if(m.kind==='image')return {attachment:{type:'image',payload:{url:m.url,is_reusable:false}}};
  if(m.kind==='buttons')return {attachment:{type:'template',payload:{template_type:'button',text:cut(m.text,640),buttons:m.buttons.slice(0,3)}}};
  if(m.kind==='cards')return {attachment:{type:'template',payload:{template_type:'generic',image_aspect_ratio:'square',elements:m.cards.slice(0,10).map(c=>({title:cut(c.title,80),
   ...(c.subtitle?{subtitle:cut(c.subtitle,80)}:{}),...(c.imageUrl?{image_url:c.imageUrl}:{}),buttons:c.buttons.slice(0,3)}))}}};

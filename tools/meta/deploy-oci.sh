@@ -12,9 +12,9 @@ cd "$(git rev-parse --show-toplevel)"
 SSH=(ssh -i "$OCI_SSH_KEY" -o BatchMode=yes "$OCI_HOST")
 TMP=$(mktemp -d); trap 'rm -rf "$TMP"' EXIT
 COPYFILE_DISABLE=1 tar --exclude node_modules --exclude '*.test.ts' --no-xattrs -czf "$TMP/meta-src.tgz" \
-  apps/api/src apps/web/public/images/menu packages/contracts/src packages/domain/src packages/meta-ai/src packages/openapi tools/meta tsconfig.json package.json 2>/dev/null \
+  apps/api/src apps/web/public/images/menu apps/web/public/fonts/bitpos-sarabun-regular.ttf apps/web/public/fonts/bitpos-sarabun-semibold.ttf packages/contracts/src packages/domain/src packages/meta-ai/src packages/openapi tools/meta tsconfig.json package.json 2>/dev/null \
   || COPYFILE_DISABLE=1 tar --exclude node_modules --exclude '*.test.ts' -czf "$TMP/meta-src.tgz" \
-  apps/api/src apps/web/public/images/menu packages/contracts/src packages/domain/src packages/meta-ai/src packages/openapi tools/meta tsconfig.json package.json
+  apps/api/src apps/web/public/images/menu apps/web/public/fonts/bitpos-sarabun-regular.ttf apps/web/public/fonts/bitpos-sarabun-semibold.ttf packages/contracts/src packages/domain/src packages/meta-ai/src packages/openapi tools/meta tsconfig.json package.json
 if tar -tzf "$TMP/meta-src.tgz" | grep -Eiq '(^|/)\.env|\.pem$|\.key$|private'; then echo "refusing: archive contains a secret-looking path" >&2; exit 1; fi
 echo "source $(git rev-parse --short HEAD)$(git diff --quiet || echo '+dirty'), $(du -h "$TMP/meta-src.tgz" | cut -f1)"
 "${SSH[@]}" 'set -e; rm -rf ~/bitpos-meta/src.new; mkdir -p ~/bitpos-meta/src.new; tar -xzf - -C ~/bitpos-meta/src.new 2>/dev/null' < "$TMP/meta-src.tgz"

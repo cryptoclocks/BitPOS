@@ -17,10 +17,11 @@ import {randomBytes} from 'node:crypto';
 import {AsyncLocalStorage} from 'node:async_hooks';
 import {customerHtml,photo,staffHtml} from './ui';
 import {servePos} from './pos';
-import {cartChatReceipt,handOverCart} from './cart';
+import {cartChatReceipt,cartOrderMerchant,handOverCart} from './cart';
+import {receiptAvailable,receiptImageKeyValid,receiptImageUrl,receiptPng} from './receipt-image';
 import {deviceKeyValid,deviceView} from './device';
 import {readFile} from 'node:fs/promises';
-import {AgentOrderError,agentReceipt,createQuote,listMenu,reconcileAgentCheckout,startAgentCheckout,type MenuItem} from './agent-orders';
+import {AgentOrderError,agentOrderMerchant,agentReceipt,createQuote,listMenu,reconcileAgentCheckout,startAgentCheckout,type MenuItem} from './agent-orders';
 import {MessengerError,messengerConfigFromEnv,parseMessengerWebhook,sendMessenger,verifyMessengerSignature,verifySubscription,type MessengerConfig,type MessengerFetch} from './messenger';
 
 export interface MetaRouteDeps {identity:IdentityDeps;messenger:MessengerConfig|null;offers:OfferDeps|null;stripe?:StripeDeps|null;staff?:StaffDeps|null;fetch?:MessengerFetch;log?:(msg:string)=>void;
@@ -209,12 +210,22 @@ export async function serveMeta(req:http.IncomingMessage,res:http.ServerResponse
   if(o?.status==='PAID'){page(res,200,'จ่ายแล้ว ✓',['ร้านได้รับออเดอร์แล้ว รับที่เคาน์เตอร์ได้เลย','Paid — pick it up at the counter.',`รหัสรับสินค้า / Pickup code: <strong>${esc(pickupCode(url.searchParams.get('o')??''))}</strong>`,'<small>Stripe sandbox · test mode · no real money</small>']);return true;}
   page(res,202,'กำลังตรวจสอบการชำระเงิน',['ยังไม่ได้รับการยืนยันจาก Stripe ลองรีเฟรชอีกครั้ง','Waiting for Stripe to confirm. Refresh in a moment.']);return true;
  }
+ const pic=path.match(/^\/meta\/receipt\/([0-9a-f-]{36})\.png$/);
+ if(pic&&method==='GET'){
+  // Messenger fetches this; the HMAC in the URL is the only key. Paid chat orders only; no customer identity on it.
+  const id=pic[1],db=deps.identity.db;
+  if(!receiptImageKeyValid(deps.identity.masterKey,id,url.searchParams.get('k'))){json(res,404,{error:'RESOURCE_NOT_FOUND'});return true;}
+  const merchantId=await agentOrderMerchant(db,id)??await cartOrderMerchant(db,id);
+  const r=merchantId?await paidReceipt(deps,merchantId,id):null;
+  const png=r?await receiptPng({shop:r.shop,code:r.receipt.orderNumber,receipt:r.receipt}):null;
+  if(!png){json(res,404,{error:'RESOURCE_NOT_FOUND'});return true;}
+  res.writeHead(200,{'Content-Type':'image/png','Content-Length':png.length,'Cache-Control':'private, max-age=3600','X-Content-Type-Options':'nosniff'});res.end(png);return true;
+ }
  if(path==='/meta/stripe/webhook'&&method==='POST'){
   if(!deps.stripe){json(res,503,{error:'NOT_CONFIGURED'});return true;}
   const raw=await rawBody(req,MAX_WEBHOOK);
   if(!raw){json(res,413,{error:'REQUEST_TOO_LARGE'});return true;}
-  const receipt=async(merchantId:string,orderId:string)=>{const r=await agentReceipt(deps.identity.db,merchantId,orderId,deps.identity.publicOrigin)??await cartChatReceipt(deps.identity.db,merchantId,orderId,deps.identity.publicOrigin);
-   if(r&&deps.messenger)await sendMessenger(deps.messenger,{kind:'receipt',psid:r.psid,receipt:r.receipt,fallbackText:r.text,quick:QUICK},deps.fetch).catch(()=>log('Receipt send failed'));};
+  const receipt=(merchantId:string,orderId:string)=>sendReceipt(deps,merchantId,orderId,log);
   try{json(res,200,{result:await applyStripeWebhook(deps.identity,deps.stripe,raw.toString('utf8'),req.headers['stripe-signature'] as string|undefined,undefined,receipt)});}
   catch(e){json(res,e instanceof StripePaymentError?400:500,{error:e instanceof StripePaymentError?e.code:'INTERNAL'});}
   return true;
@@ -232,7 +243,7 @@ export async function serveMeta(req:http.IncomingMessage,res:http.ServerResponse
   if(!chat){page(res,503,'ยังรับชำระไม่ได้',['Payments are not configured.']);return true;}
   let o;try{o=await reconcileAgentCheckout(chat,url.searchParams.get('o'));}catch{o=undefined;}
   if(o===null){page(res,404,'ไม่พบรายการ',['Order not found.']);return true;}
-  if(o?.confirmedNow&&deps.messenger){const r=await agentReceipt(deps.identity.db,o.merchantId,o.orderId,deps.identity.publicOrigin);if(r)await sendMessenger(deps.messenger,{kind:'receipt',psid:r.psid,receipt:r.receipt,fallbackText:r.text,quick:QUICK},deps.fetch).catch(()=>log('Receipt send failed'));}
+  if(o?.confirmedNow)await sendReceipt(deps,o.merchantId,o.orderId,log);
   if(o?.status==='CONFIRMED'){page(res,200,'จ่ายแล้ว ✓',['ร้านได้รับออเดอร์แล้ว รับที่เคาน์เตอร์ได้เลย','Paid — pick it up at the counter.',`รหัสรับสินค้า / Pickup code: <strong>${esc(o.pickupCode)}</strong>`,'กลับไปที่ Messenger ได้เลย / You can go back to Messenger.','<small>Stripe sandbox · test mode · no real money</small>']);return true;}
   page(res,202,'กำลังตรวจสอบการชำระเงิน',['ยังไม่ได้รับการยืนยันจาก Stripe ลองรีเฟรชอีกครั้ง','Waiting for Stripe to confirm. Refresh in a moment.']);return true;
  }
@@ -248,6 +259,29 @@ export async function serveMeta(req:http.IncomingMessage,res:http.ServerResponse
  json(res,404,{error:'RESOURCE_NOT_FOUND'});return true;
 }
 
+/** A paid chat order (agent or cart) as receipt facts, with the shop's name for the picture. */
+async function paidReceipt(deps:MetaRouteDeps,merchantId:string,orderId:string){
+ const db=deps.identity.db,o=deps.identity.publicOrigin;
+ const r=await agentReceipt(db,merchantId,orderId,o)??await cartChatReceipt(db,merchantId,orderId,o);
+ if(!r)return null;
+ const shop=(await db.tenant(merchantId,c=>c.query<{name:string}>('SELECT name FROM merchants WHERE id=$1',[merchantId]))).rows[0]?.name??'';
+ return {...r,shop};
+}
+/** Paid receipt to the customer's chat: the receipt picture plus a short text with chips; if Messenger refuses the
+ * picture or the renderer is missing, the receipt template (and its text fallback) instead. Runs after commit. */
+async function sendReceipt(deps:MetaRouteDeps,merchantId:string,orderId:string,log:(m:string)=>void):Promise<void>{
+ if(!deps.messenger)return;
+ try{
+  const r=await paidReceipt(deps,merchantId,orderId);if(!r)return;
+  const msg=deps.messenger,f=deps.fetch;
+  if(await receiptAvailable()){
+   const ok=await sendMessenger(msg,{kind:'image',psid:r.psid,url:receiptImageUrl(deps.identity.publicOrigin,deps.identity.masterKey,orderId)},f).then(()=>true,()=>false);
+   if(ok){await sendMessenger(msg,{kind:'text',psid:r.psid,text:`จ่ายแล้ว ✓ รหัสรับสินค้า #${r.receipt.orderNumber} · รับที่เคาน์เตอร์ได้เลยค่ะ\nPaid — pickup code #${r.receipt.orderNumber}.`,quick:QUICK},f);return;}
+   log('Receipt picture refused; sending the template');
+  }
+  await sendMessenger(msg,{kind:'receipt',psid:r.psid,receipt:r.receipt,fallbackText:r.text,quick:QUICK},f);
+ }catch{log('Receipt send failed');}
+}
 function chatDeps(deps:MetaRouteDeps):ChatAgentDeps|null{
  return deps.offers?{db:deps.identity.db,offers:deps.offers,stripe:deps.stripe??null,router:deps.offers.router,publicOrigin:deps.identity.publicOrigin,shopMerchant:deps.demoMerchant??null}:null;
 }

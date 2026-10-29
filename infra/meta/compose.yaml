@@ -1,6 +1,6 @@
 # Meta hackathon work (2026-10-26..11-04). See meta-hackathon/PROVENANCE.md.
 # The /meta-only server on the OCI host, as its own compose project beside bitpos-runtime.
-# It reuses the existing runtime image, pinned under its own tag bitpos-meta-base:20261029 (same image id as
+# It runs bitpos-meta-base:20261029-r1 (infra/meta/Dockerfile: the pinned base below plus resvg for receipt pictures). The base is the runtime image, pinned under its own tag bitpos-meta-base:20261029 (same image id as
 # bitpos-runtime:current on 2026-10-29, so a retag by the Solana stream cannot change it), and mounts the
 # hackathon source read-only at /app/meta-src, so modules resolve from the image's /app/node_modules.
 # Listens on 127.0.0.1:3102 only; the Cloudflare tunnel routes meta-pay.<domain> (customers) and meta-pos.<domain>
@@ -10,7 +10,7 @@
 name: bitpos-meta
 services:
   meta:
-    image: bitpos-meta-base:20261029
+    image: bitpos-meta-base:20261029-r1
     network_mode: host
     restart: unless-stopped
     user: "1001:1001"
