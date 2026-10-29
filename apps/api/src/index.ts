@@ -52,6 +52,7 @@ import {demoAccessEnabled,demoCredentials,demoRoles,type DemoRole} from './demo-
 import {assertOrderRepeatLimit,collectionSettings} from './coffee-order-constraints';
 import {openingHoursSettings} from './opening-hours';
 import {salesReport} from './reports';
+import {reportExport} from './report-exports';
 import {merchantReturns} from './merchant-returns';
 import {suppliersRequest} from './suppliers';
 import {shiftsRequest} from './shifts';
@@ -243,6 +244,7 @@ export async function handle(req:http.IncomingMessage){
  if(path==='/api/inventory/stock'||path==='/api/inventory/movements'||path==='/api/inventory/reorder')return inventoryRequest(db,merchant,session.user_id,session.current_role,url,method??'GET',input);
  if(path==='/api/activity'&&method==='GET')return activityHistory(db,merchant,session.current_role,url);
  if(path==='/api/reports/sales'&&method==='GET')return salesReport(db,merchant,session.current_role,url);
+ if(path==='/api/reports/export'&&method==='GET')return reportExport(db,merchant,session.user_id,session.current_role,url);
  if(path==='/api/returns'&&method==='GET')return merchantReturns(db,merchant,session.current_role,url);
  if(path==='/api/shifts'||path==='/api/shifts/close')return shiftsRequest(db,merchant,session.user_id,session.current_role,url,method??'GET',input);
  if(path==='/api/team'||/^\/api\/team\/[0-9a-f-]{36}$/.test(path))return teamRequest(db,merchant,session.user_id,session.current_role,url,method??'GET',input);
