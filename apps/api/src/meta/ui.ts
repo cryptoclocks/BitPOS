@@ -69,6 +69,35 @@ export interface PageOpts {title:string;back?:string|null;nav?:[string,string][]
 const head=(o:PageOpts)=>`<!doctype html><html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">${o.refresh?`<meta http-equiv="refresh" content="${o.refresh}">`:''}<title>${esc(o.title)} · BitPOS × Muse</title><style>${CSS}</style></head>`;
 
 /** Customer page (meta-pay, mobile first). `nav` are the onward buttons; a page always gets at least "back to the shop". */
+const AI_CSS=`body.ai{background:#070B18;color:#EEF2FF;min-height:100vh;background-image:radial-gradient(60% 40% at 15% 0%,rgba(8,102,255,.35),transparent 70%),radial-gradient(50% 40% at 100% 20%,rgba(122,63,242,.35),transparent 70%),radial-gradient(60% 50% at 50% 110%,rgba(0,200,255,.18),transparent 70%);background-attachment:fixed}
+.ai a{color:#9CC2FF}.ai .mu,.ai small{color:#9AA4BF}.aitop{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:12px;padding:14px 18px;backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);background:rgba(7,11,24,.55);border-bottom:1px solid rgba(255,255,255,.06)}
+.aitop .back{width:38px;height:38px;border-radius:19px;background:rgba(255,255,255,.08);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:22px}.aitop .sp{flex:1}
+.spark{display:inline-flex;align-items:center;gap:8px;font-weight:700;letter-spacing:.2px}.spark i{width:22px;height:22px;border-radius:11px;background:conic-gradient(from 0deg,#0866FF,#7A3FF2,#00C2FF,#0866FF);display:inline-block;box-shadow:0 0 14px rgba(122,63,242,.8)}
+.aim{max-width:720px;margin:0 auto;padding:18px 18px 380px}.hello{margin:8vh 0 18px;text-align:center}.hello h1{font-size:34px;line-height:1.2;margin:0 0 10px;background:linear-gradient(90deg,#FFFFFF,#B9C9FF 40%,#C9A8FF);-webkit-background-clip:text;background-clip:text;color:transparent}
+.msg{display:flex;gap:10px;margin:14px 0;animation:rise .35s ease-out both}.msg.me{justify-content:flex-end}.msg .av{flex:none;width:30px;height:30px;border-radius:15px;background:conic-gradient(from 0deg,#0866FF,#7A3FF2,#00C2FF,#0866FF);box-shadow:0 0 16px rgba(8,102,255,.6)}
+.msg .tx{max-width:82%;padding:12px 16px;border-radius:20px;line-height:1.5;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08)}.msg.me .tx{background:linear-gradient(135deg,#0866FF,#5B4BF5);border:0;color:#fff;border-bottom-right-radius:6px}.msg:not(.me) .tx{border-top-left-radius:6px}
+.glass{background:rgba(255,255,255,.96);color:#1C2B33;border-radius:22px;padding:14px;margin:10px 0 10px 40px;box-shadow:0 20px 50px rgba(0,0,0,.35);animation:rise .4s ease-out both}.glass small,.glass .mu{color:#65676B}
+.ai .row{background:transparent}.ai .glass .row{border-color:#ECEEF2}.ai .lst .row{background:rgba(255,255,255,.96)!important;color:#1C2B33}
+.dock{position:fixed;left:0;right:0;bottom:0;z-index:6;padding:12px 16px calc(16px + env(safe-area-inset-bottom));background:linear-gradient(180deg,rgba(7,11,24,0),rgba(7,11,24,.94) 46px)}
+.dock .in{max-width:720px;margin:0 auto}.orbw{display:flex;flex-direction:column;align-items:center;gap:6px;margin-bottom:10px}
+.orb{--lvl:0;position:relative;width:76px;height:76px;border-radius:38px;border:0;padding:0;margin:0;cursor:pointer;background:radial-gradient(circle at 35% 30%,#fff 0,#BFD6FF 12%,#0866FF 45%,#7A3FF2 75%,#2A0E6B 100%);box-shadow:0 0 calc(30px + var(--lvl)*60px) rgba(98,120,255,.75),inset 0 -8px 20px rgba(0,0,0,.35);transform:scale(calc(1 + var(--lvl)*.35));transition:transform .08s linear,box-shadow .08s linear;animation:breathe 3.2s ease-in-out infinite}
+.orb::before,.orb::after{content:'';position:absolute;inset:-10px;border-radius:50%;border:1px solid rgba(160,180,255,.35);animation:ring 2.8s ease-out infinite;pointer-events:none}.orb::after{animation-delay:1.4s}
+.orb.on{animation:spin 6s linear infinite;background:conic-gradient(from 0deg,#00C2FF,#0866FF,#7A3FF2,#FF4FD8,#00C2FF)}.orb.on::before,.orb.on::after{border-color:rgba(255,120,220,.5);animation-duration:1.2s}
+.orb.off{filter:grayscale(1) brightness(.6);cursor:not-allowed;animation:none}.orb span{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:30px}
+.ai .st{font-size:13px;color:#AEB8D6;text-align:center;min-height:18px}.ai .live{font-size:20px;font-weight:600;text-align:center;min-height:28px;color:#fff;margin:2px 0 6px}
+.aibar{display:flex;gap:8px;align-items:center;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);border-radius:28px;padding:6px 6px 6px 16px;backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}
+.aibar input{flex:1;border:0;background:transparent;color:#fff;font:inherit;padding:10px 0;margin:0;outline:none}.aibar input::placeholder{color:#8F9AB8}.aibar button{width:44px;height:44px;border-radius:22px;padding:0;margin:0;font-size:18px;background:linear-gradient(135deg,#0866FF,#7A3FF2)}
+.sugg{display:flex;gap:8px;overflow-x:auto;padding:10px 0 2px;scrollbar-width:none}.sugg form{flex:none}.sugg button{width:auto;margin:0;padding:8px 14px;border-radius:18px;font-size:13px;font-weight:500;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);color:#E3E9FF}
+.lang{display:flex;gap:6px;justify-content:center}.lang a{font-size:12px;padding:3px 10px;border-radius:12px;color:#9AA4BF;border:1px solid rgba(255,255,255,.12)}.lang a.on{color:#fff;background:rgba(255,255,255,.14)}
+.ai .note{background:rgba(255,190,70,.12);color:#FFD58A;border:1px solid rgba(255,190,70,.25);margin-left:40px}
+@keyframes breathe{0%,100%{filter:saturate(1)}50%{filter:saturate(1.4) brightness(1.08)}}@keyframes ring{0%{transform:scale(1);opacity:.8}100%{transform:scale(1.6);opacity:0}}@keyframes spin{to{filter:hue-rotate(360deg)}}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.orb,.orb::before,.orb::after,.msg,.glass{animation:none}}`;
+/** Full-screen AI assistant shell (voice ordering, design C11): dark, a chat thread and a bottom dock. */
+export function aiHtml(o:PageOpts&{dock:string},body:string):string{
+ return `${head(o)}<body class="ai"><style>${AI_CSS}</style><header class="aitop">${o.back?`<a class="back" href="${esc(o.back)}" aria-label="กลับ">‹</a>`:''}<span class="spark"><i></i>Muse Spark</span><span class="sp"></span><small>Muse Café · Stripe sandbox</small></header>
+<main class="aim">${body}</main><div class="dock"><div class="in">${o.dock}</div></div>${o.script&&o.nonce?`<script nonce="${o.nonce}">${o.script}</script>`:''}</body></html>`;
+}
 export function customerHtml(o:PageOpts,body:string):string{
  const nav=(o.nav&&o.nav.length?o.nav:[['หน้าร้าน / Shop','/']] as [string,string][]);
  const buttons=nav.map(([label,href],i)=>`<a class="btn${i===0&&o.navPrimary!==false?'':' g'}" href="${esc(href)}">${esc(label)}</a>`).join('');

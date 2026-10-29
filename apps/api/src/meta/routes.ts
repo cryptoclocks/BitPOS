@@ -15,7 +15,7 @@ import {approveDraft,draftOffer,listOffersOverview,rejectDraft,revokePolicy,stop
 import {bookingMessages,handleAgentRequest,planChatOrder,QUICK,type ChatAgentDeps} from './agent';
 import {randomBytes} from 'node:crypto';
 import {AsyncLocalStorage} from 'node:async_hooks';
-import {customerHtml,photo,staffHtml} from './ui';
+import {aiHtml,customerHtml,photo,staffHtml} from './ui';
 import {servePos} from './pos';
 import {cartChatReceipt,cartOrderMerchant,handOverCart} from './cart';
 import {receiptAvailable,receiptImageKeyValid,receiptImageUrl,receiptPng} from './receipt-image';
@@ -463,32 +463,41 @@ async function serveWebOrder(req:http.IncomingMessage,res:http.ServerResponse,de
   'Content-Security-Policy':`default-src 'none'; style-src 'unsafe-inline'; img-src 'self' https: data:; script-src 'nonce-${nonce}'; form-action 'self' https://checkout.stripe.com`};
  const menu=(await listMenu(chat,me.merchantId)).filter(i=>i.payable);
  const hint=menu.slice(0,3).map(i=>`ขอ${i.name} 1 แก้ว`);
- // Design C11: big mic, live transcript, typed fallback, suggestion chips, and the answer as a priced card.
+ // Design C11 as a modern assistant: dark thread, glowing orb that follows the mic level, glass dock with input and chips.
  const show=(status:number,o:{you?:string;reply?:string;by?:string;result?:string;note?:string})=>{
-  const mic=`<div class="center vo"><button type="button" id="mic" class="micb" aria-label="กดแล้วพูด / Tap to speak">🎙️</button>
-<div id="st" class="mu">กดแล้วพูด · ภาษาไทยหรืออังกฤษ</div><div id="live" class="live"></div>
-<div class="chips" style="justify-content:center"><a class="pill" href="#" data-l="th-TH">ไทย</a><a class="pill mu" href="#" data-l="en-US">English</a></div></div>`;
-  const chat_=o.you?`<div class="bub me">${esc(o.you)}</div>${o.reply?`<div class="bub">${esc(o.reply).replace(/\n/g,'<br>')}${o.by?`<div><span class="muse">${esc(o.by)}</span></div>`:''}</div>`:''}`:'';
-  const form=`<form method="post" action="/meta/order" id="f" class="say"><input name="q" id="q" maxlength="300" placeholder="หรือพิมพ์ เช่น ${esc(hint[0]??'ขอลาเต้ 1 แก้ว')}" required><button aria-label="ส่ง">ส่ง</button></form>`;
-  const chips=hint.length?`<div class="chips">${hint.map(h=>`<form method="post" action="/meta/order"><input type="hidden" name="q" value="${esc(h)}"><button class="pill mu" style="width:auto;margin:0;font-size:13px">${esc(h)}</button></form>`).join('')}</div>`:'';
-  const body=`<h1>สั่งด้วยเสียง</h1><p class="mu">พูดหรือพิมพ์สิ่งที่อยากสั่ง · Muse Spark ช่วยเลือก ร้านคิดราคา</p>${o.result?'':mic}${chat_}${o.result??''}${o.note?`<div class="note">${o.note}</div>`:''}${o.result?mic:''}${form}${chips}
-<small class="mu">เสียงแปลงเป็นข้อความด้วยเบราว์เซอร์ของคุณ (ร้านได้รับเฉพาะข้อความ) · Stripe sandbox ไม่ใช่เงินจริง</small>`;
-  const script=`(()=>{const R=window.SpeechRecognition||window.webkitSpeechRecognition,b=document.getElementById('mic'),st=document.getElementById('st'),live=document.getElementById('live'),q=document.getElementById('q'),f=document.getElementById('f');let lang='th-TH',r=null,said='';
-const msg={'not-allowed':'เบราว์เซอร์ไม่ได้รับสิทธิ์ใช้ไมค์ · กดอนุญาตที่ไอคอนไมค์ในแถบที่อยู่ และเปิดใน System Settings › Privacy & Security › Microphone','service-not-allowed':'Safari ต้องเปิด Dictation/Siri ก่อน (System Settings › Keyboard › Dictation) หรือใช้ Chrome','network':'บริการแปลงเสียงของเบราว์เซอร์ต่อไม่ได้ (Chrome ใช้เซิร์ฟเวอร์ Google) ลองใหม่ หรือใช้ Safari / พิมพ์แทน','no-speech':'ไม่ได้ยินเสียง ลองพูดใกล้ไมค์อีกครั้ง','audio-capture':'ไม่พบไมโครโฟนในเครื่องนี้','language-not-supported':'เบราว์เซอร์นี้ยังไม่รองรับภาษานี้ ลอง English หรือพิมพ์แทน','aborted':'หยุดฟังแล้ว'};
-document.querySelectorAll('[data-l]').forEach(a=>a.onclick=e=>{e.preventDefault();lang=a.dataset.l;document.querySelectorAll('[data-l]').forEach(x=>x.classList.toggle('mu',x!==a));});
-if(!R){b.disabled=true;b.classList.add('off');st.textContent='เบราว์เซอร์นี้พูดสั่งไม่ได้ (ใช้ Chrome หรือ Safari) · พิมพ์ด้านล่างแทนได้';return;}
-if(!window.isSecureContext){b.disabled=true;st.textContent='ต้องเปิดผ่าน https เพื่อใช้ไมค์';return;}
-const idle=()=>{b.classList.remove('on');if(!said)st.textContent=st.dataset.err||'กดแล้วพูด · ภาษาไทยหรืออังกฤษ';};
+  const thread=o.you||o.note||o.result?`${o.you?`<div class="msg me"><div class="tx">${esc(o.you)}</div></div>`:''}${o.reply?`<div class="msg"><span class="av"></span><div class="tx">${esc(o.reply).replace(/\n/g,'<br>')}${o.by?`<div><small>✦ ${esc(o.by)}</small></div>`:''}</div></div>`:''}${o.result?`<div class="glass">${o.result}</div>`:''}${o.note?`<div class="note">${o.note}</div>`:''}`
+   :`<div class="hello"><h1>อยากทานอะไรดีคะ?</h1><p class="mu">แตะลูกแก้วแล้วพูดได้เลย หรือพิมพ์ด้านล่าง<br>Muse Spark ช่วยเลือก ร้านคิดราคาเอง</p></div>`;
+  const dock=`<div class="orbw"><button type="button" id="mic" class="orb" aria-label="กดแล้วพูด / Tap to speak"><span>🎙️</span></button><div id="live" class="live"></div><div id="st" class="st">แตะเพื่อพูด</div>
+<div class="lang"><a class="on" href="#" data-l="th-TH">ไทย</a><a href="#" data-l="en-US">English</a></div></div>
+<form method="post" action="/meta/order" id="f" class="aibar"><input name="q" id="q" maxlength="300" placeholder="พิมพ์ เช่น ${esc(hint[0]??'ขอลาเต้ 1 แก้ว')}" required autocomplete="off"><button aria-label="ส่ง">↑</button></form>
+${hint.length?`<div class="sugg">${hint.map(h=>`<form method="post" action="/meta/order"><input type="hidden" name="q" value="${esc(h)}"><button>${esc(h)}</button></form>`).join('')}<form method="get" action="/menu"><button>☕ ดูเมนูทั้งหมด</button></form></div>`:''}`;
+  const errs={'not-allowed':'เบราว์เซอร์ไม่ได้รับสิทธิ์ใช้ไมค์ · กดอนุญาตที่ไอคอนไมค์ในแถบที่อยู่ และเปิดใน System Settings › Privacy & Security › Microphone',
+   'service-not-allowed':'Safari ต้องเปิด Dictation ก่อน (System Settings › Keyboard › Dictation) หรือใช้ Chrome',
+   'network':'บริการแปลงเสียงของเบราว์เซอร์ต่อไม่ได้ (Chrome ใช้เซิร์ฟเวอร์ Google) ลองใหม่ หรือใช้ Safari / พิมพ์แทน',
+   'no-speech':'ไม่ได้ยินเสียง ลองพูดใกล้ไมค์อีกครั้ง','audio-capture':'ไม่พบไมโครโฟนในเครื่องนี้',
+   'language-not-supported':'เบราว์เซอร์นี้ยังไม่รองรับภาษานี้ ลอง English หรือพิมพ์แทน','aborted':'หยุดฟังแล้ว'};
+  const script=`(()=>{const R=window.SpeechRecognition||window.webkitSpeechRecognition,b=document.getElementById('mic'),st=document.getElementById('st'),live=document.getElementById('live'),q=document.getElementById('q'),f=document.getElementById('f');let lang='th-TH',r=null,said='',audio=null;
+window.scrollTo(0,document.body.scrollHeight);
+const msg=${JSON.stringify(errs)};
+document.querySelectorAll('[data-l]').forEach(a=>a.onclick=e=>{e.preventDefault();lang=a.dataset.l;document.querySelectorAll('[data-l]').forEach(x=>x.classList.toggle('on',x===a));});
+if(!R){b.disabled=true;b.classList.add('off');st.textContent='เบราว์เซอร์นี้พูดสั่งไม่ได้ (ใช้ Chrome หรือ Safari) · พิมพ์แทนได้';return;}
+if(!window.isSecureContext){b.disabled=true;b.classList.add('off');st.textContent='ต้องเปิดผ่าน https เพื่อใช้ไมค์';return;}
+// The orb follows the voice level (Web Audio, local only; nothing is recorded or sent).
+const level=async()=>{try{const s=await navigator.mediaDevices.getUserMedia({audio:true}),c=new AudioContext(),a=c.createAnalyser();a.fftSize=256;c.createMediaStreamSource(s).connect(a);const d=new Uint8Array(a.frequencyBinCount);
+ audio={s,c};const tick=()=>{if(!audio)return;a.getByteFrequencyData(d);let m=0;for(const v of d)m+=v;b.style.setProperty('--lvl',Math.min(1,m/d.length/90).toFixed(3));requestAnimationFrame(tick);};tick();}catch(e){}};
+const stopLevel=()=>{if(audio){audio.s.getTracks().forEach(t=>t.stop());audio.c.close();audio=null;}b.style.setProperty('--lvl','0');};
+const idle=()=>{b.classList.remove('on');stopLevel();if(!said)st.textContent=st.dataset.err||'แตะเพื่อพูด';};
 b.onclick=()=>{if(r){r.stop();return;}said='';st.dataset.err='';live.textContent='';r=new R();r.lang=lang;r.interimResults=true;r.continuous=false;r.maxAlternatives=1;
- r.onstart=()=>{b.classList.add('on');st.textContent='กำลังฟัง… กดอีกครั้งเพื่อหยุด';};
- r.onresult=e=>{let t='',fin=false;for(const x of e.results){t+=x[0].transcript;fin=fin||x.isFinal;}live.textContent=t;if(fin){said=t.trim();}};
+ r.onstart=()=>{b.classList.add('on');st.textContent='กำลังฟัง… แตะอีกครั้งเพื่อหยุด';level();};
+ r.onresult=e=>{let t='',fin=false;for(const x of e.results){t+=x[0].transcript;fin=fin||x.isFinal;}live.textContent=t;if(fin)said=t.trim();};
  r.onerror=e=>{st.dataset.err=msg[e.error]||('ไมค์ใช้ไม่ได้ ('+e.error+') · พิมพ์แทนได้');st.textContent=st.dataset.err;};
- r.onend=()=>{r=null;idle();if(said){q.value=said;st.textContent='กำลังส่ง: '+said;f.submit();}};
- try{r.start();}catch(err){r=null;st.textContent='เริ่มฟังไม่ได้ ลองอีกครั้ง';}};})();`;
-  res.writeHead(status,headers);res.end(customerHtml({title:'สั่งด้วยเสียง',back:'/menu',nonce,script,nav:[['ดูเมนูทั้งหมด / Menu','/menu'],['ช่วยเหลือ / Help','/help']],navPrimary:false},body));return true as const;
+ r.onend=()=>{r=null;idle();if(said){q.value=said;st.textContent='Muse Spark กำลังคิด…';b.classList.add('on');f.submit();}};
+ try{r.start();}catch(err){r=null;st.textContent='เริ่มฟังไม่ได้ ลองอีกครั้ง';}};
+f.addEventListener('submit',()=>{st.textContent='Muse Spark กำลังคิด…';});})();`;
+  res.writeHead(status,headers);res.end(aiHtml({title:'สั่งด้วยเสียง',back:'/menu',nonce,script,dock},thread));return true as const;
  };
  const quoteCard=(q:{quoteId:string;total:string;quantity:number;name:string;nameEn:string},item?:MenuItem)=>{const img=photo(item?.imageUrl);
-  return `<div class="card"><div class="row" style="border:0;padding:0;margin:0">${img?`<img src="${esc(img)}" alt="">`:`<div class="ic">${esc(item?.emoji??'☕')}</div>`}<div class="t"><b>${esc(q.name)} × ${q.quantity}</b><small>${esc(q.nameEn)}${item?.offer?` · <span class="pill rd">โปร −${item.offer.discountPercent}%</span>`:''}</small></div><div class="r">${esc(q.total)}</div></div>
+  return `<div><div class="row" style="border:0;padding:0;margin:0">${img?`<img src="${esc(img)}" alt="">`:`<div class="ic">${esc(item?.emoji??'☕')}</div>`}<div class="t"><b>${esc(q.name)} × ${q.quantity}</b><small>${esc(q.nameEn)}${item?.offer?` · <span class="pill rd">โปร −${item.offer.discountPercent}%</span>`:''}</small></div><div class="r">${esc(q.total)}</div></div>
 <form method="post" action="/meta/order/pay"><input type="hidden" name="quote" value="${esc(q.quoteId)}"><button>จ่าย ${esc(q.total)} ด้วย Stripe</button></form><small class="mu">ราคาจากร้าน ล็อก 10 นาที · บัตรทดสอบ 4242 4242 4242 4242</small></div>`;};
  const menuRows=(items:MenuItem[])=>`<div class="lst">${items.slice(0,8).map(i=>`<form method="post" action="/meta/order/add"><input type="hidden" name="id" value="${esc(i.productId)}"><button class="row" style="width:100%;text-align:left;font-weight:400;background:#fff">${photo(i.imageUrl)?`<img src="${esc(photo(i.imageUrl)!)}" alt="">`:`<span class="ic">${esc(i.emoji)}</span>`}<span class="t"><b>${esc(i.name)} · ${esc(i.nameEn)}</b><small>${i.offer?`โปร −${i.offer.discountPercent}% · `:''}กดเพื่อสั่ง 1 ชิ้น</small></span><span class="r">${esc(i.price.display)}</span></button></form>`).join('')}</div>`;
  try{
