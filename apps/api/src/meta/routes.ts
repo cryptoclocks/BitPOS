@@ -168,7 +168,7 @@ export async function serveMeta(req:http.IncomingMessage,res:http.ServerResponse
    const send=async(message:Parameters<typeof sendMessenger>[1])=>{try{await sendMessenger(messenger,message,deps.fetch);}catch(e){log(`Messenger send failed: ${e instanceof MessengerError?e.code:'UNKNOWN'}`);}};
    for(const message of outbox)await send(message);
    // Offers are chosen after the webhook transaction committed, so the model call never holds a lock.
-   for(const o of offers){const view=await offerOrNull(deps,o.merchantId,o.linkId,o.tapSessionId);if(view)await send(offerMessage(o.psid,view));}
+   for(const o of offers){const view=await offerOrNull(deps,o.merchantId,o.linkId,o.tapSessionId);if(view)await send(offerMessage(o.psid,view,deps.identity.publicOrigin));}
    // Chat orders also run after commit, so the model and Stripe calls never hold a transaction.
    const chat=chatDeps(deps);
    for(const a of agent){

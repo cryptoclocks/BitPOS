@@ -209,13 +209,13 @@ export interface OfferDeps {
  menu:(db:pg.PoolClient,merchant:string)=>Promise<EffectiveMenu>;
  router:MetaRouter|null;deadlineMs?:number;timeZone?:string;
 }
-export interface OfferView {offerId:string;emoji:string;name:string;nameEn:string;price:string;basePrice:string;discountPercent:number;reasonTh:string;reasonEn:string;chosenBy:'model'|'fallback'}
+export interface OfferView {offerId:string;productId:string;imageUrl:string|null;emoji:string;name:string;nameEn:string;price:string;basePrice:string;discountPercent:number;reasonTh:string;reasonEn:string;chosenBy:'model'|'fallback'}
 
-interface ImpressionRow {offer_id:string;emoji:string;name:string;name_en:string;currency:string;decimals:number;base_price_minor:string;unit_price_minor:string;reason_th:string;reason_en:string;chosen_by:'model'|'fallback'}
-const IMPRESSION_SQL='SELECT i.offer_id,p.emoji,p.name,p.name_en,i.currency,i.decimals,i.base_price_minor::text,i.unit_price_minor::text,i.reason_th,i.reason_en,i.chosen_by FROM meta_offer_impressions i JOIN products p ON p.merchant_id=i.merchant_id AND p.id=i.product_id WHERE i.tap_session_id=$1';
+interface ImpressionRow {offer_id:string;product_id:string;image_url:string|null;emoji:string;name:string;name_en:string;currency:string;decimals:number;base_price_minor:string;unit_price_minor:string;reason_th:string;reason_en:string;chosen_by:'model'|'fallback'}
+const IMPRESSION_SQL='SELECT i.offer_id,p.id AS product_id,p.image_url,p.emoji,p.name,p.name_en,i.currency,i.decimals,i.base_price_minor::text,i.unit_price_minor::text,i.reason_th,i.reason_en,i.chosen_by FROM meta_offer_impressions i JOIN products p ON p.merchant_id=i.merchant_id AND p.id=i.product_id WHERE i.tap_session_id=$1';
 function view(r:ImpressionRow):OfferView{
  const m=(v:string)=>({currency:r.currency,decimals:r.decimals,amountMinor:v}) as Money,base=BigInt(r.base_price_minor),unit=BigInt(r.unit_price_minor);
- return {offerId:r.offer_id,emoji:r.emoji,name:r.name,nameEn:r.name_en,price:formatMoney(m(r.unit_price_minor)),basePrice:formatMoney(m(r.base_price_minor)),discountPercent:Number((base-unit)*100n/base),reasonTh:r.reason_th,reasonEn:r.reason_en,chosenBy:r.chosen_by};
+ return {offerId:r.offer_id,productId:r.product_id,imageUrl:r.image_url,emoji:r.emoji,name:r.name,nameEn:r.name_en,price:formatMoney(m(r.unit_price_minor)),basePrice:formatMoney(m(r.base_price_minor)),discountPercent:Number((base-unit)*100n/base),reasonTh:r.reason_th,reasonEn:r.reason_en,chosenBy:r.chosen_by};
 }
 
 /**
@@ -246,6 +246,13 @@ export async function offerForTap(deps:IdentityDeps,offers:OfferDeps,merchantId:
  });
 }
 
-export function offerMessage(psid:string,o:OfferView):Outgoing{
- return {kind:'text',psid,text:`${o.emoji} โปรสำหรับคุณ: ${o.name} ${o.price} (ปกติ ${o.basePrice})\n${o.reasonTh}\n\n${o.emoji} For you: ${o.nameEn} ${o.price} (was ${o.basePrice})\n${o.reasonEn}`};
+/** The offer as a card with its photo: add it to the chat cart (the server prices it with the approved offer) or see the menu. */
+export function offerMessage(psid:string,o:OfferView,publicOrigin?:string):Outgoing{
+ const text=`${o.emoji} โปรสำหรับคุณ: ${o.name} ${o.price} (ปกติ ${o.basePrice})\n${o.reasonTh}\n\n${o.emoji} For you: ${o.nameEn} ${o.price} (was ${o.basePrice})\n${o.reasonEn}`;
+ if(!publicOrigin||!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(o.productId))return {kind:'text',psid,text};
+ const image=o.imageUrl?.startsWith('/images/')?`${publicOrigin}/meta${o.imageUrl}`:o.imageUrl?.startsWith('https://')?o.imageUrl:undefined;
+ return {kind:'cards',psid,quick:QUICK_START,cards:[{title:`${o.emoji} โปรสำหรับคุณ: ${o.name} ${o.price} (ปกติ ${o.basePrice})`,subtitle:`ลด ${o.discountPercent}% · ${o.reasonTh} · ${o.reasonEn}`,imageUrl:image,
+  buttons:[{type:'postback',title:'ใส่ตะกร้า / Add',payload:`BITPOS_CART_ADD:${o.productId}:1`},{type:'postback',title:'ดูเมนู / Menu',payload:'BITPOS_MENU'}]}]};
 }
+/** Same chips as the chat agent (agent.ts QUICK), kept here to avoid an import cycle. */
+const QUICK_START=[{title:'เมนู',payload:'BITPOS_MENU'},{title:'ออเดอร์ของฉัน',payload:'BITPOS_MY_ORDERS'},{title:'จองโต๊ะ',payload:'BITPOS_BOOK'}];
