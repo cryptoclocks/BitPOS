@@ -11,7 +11,7 @@ import {agentDepsOf} from './shop';
 import {cartForStaff,CartError,handOverCart,refundCart,startCart,type CartLine} from './cart';
 import {handOver,listTapOrders,type StaffView} from './staff';
 import {KitchenError,kitchenStages,setKitchenStage} from './kitchen';
-import {sendMessenger} from './messenger';
+import {MessengerError,sendMessenger} from './messenger';
 import {QUICK} from './agent';
 import {staffSessionFor} from './staff';
 import {staffCookie} from './routes';
@@ -90,7 +90,7 @@ export async function servePosApi(req:http.IncomingMessage,res:http.ServerRespon
   try{
    const r=await setKitchenStage(deps.identity.db,me.merchantId,me.userId,stage[1],b.stage);
    // After commit: tell the customer once, in Messenger, that the order is ready.
-   if(r.notify&&deps.messenger)await sendMessenger(deps.messenger,{kind:'text',psid:r.notify.psid,orderUpdate:true,text:`อาหารพร้อมแล้วค่ะ 🎉 รหัสรับสินค้า #${r.notify.code} รับที่เคาน์เตอร์ได้เลย\nYour order is ready — pickup code #${r.notify.code}.`,quick:QUICK},deps.fetch).catch(()=>log('Ready notice failed'));
+   if(r.notify&&deps.messenger)await sendMessenger(deps.messenger,{kind:'text',psid:r.notify.psid,orderUpdate:true,text:`อาหารพร้อมแล้วค่ะ 🎉 รหัสรับสินค้า #${r.notify.code} รับที่เคาน์เตอร์ได้เลย\nYour order is ready — pickup code #${r.notify.code}.`,quick:QUICK},deps.fetch).catch(e=>log(`Ready notice failed ${e instanceof MessengerError?e.detail:''}`));
    log(`Meta order ${b.stage.toLowerCase()}${r.notify?' (customer told)':''}`);
    return json(res,200,{ok:true,notified:!!r.notify});
   }catch(e){if(e instanceof KitchenError)return json(res,e.code==='NOT_FOUND'?404:409,{error:e.code});throw e;}

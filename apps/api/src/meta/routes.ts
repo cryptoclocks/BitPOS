@@ -165,7 +165,7 @@ export async function serveMeta(req:http.IncomingMessage,res:http.ServerResponse
    let events;try{events=parseMessengerWebhook(JSON.parse(raw.toString('utf8')));}catch{json(res,400,{error:'PAYLOAD_INVALID'});return true;}
    const {outbox,offers,agent}=await handleMessengerEvents(deps.identity,events);
    json(res,200,{received:events.length});
-   const send=async(message:Parameters<typeof sendMessenger>[1])=>{try{await sendMessenger(messenger,message,deps.fetch);}catch(e){log(`Messenger send failed: ${e instanceof MessengerError?e.code:'UNKNOWN'}`);}};
+   const send=async(message:Parameters<typeof sendMessenger>[1])=>{try{await sendMessenger(messenger,message,deps.fetch);}catch(e){log(`Messenger send failed: ${e instanceof MessengerError?`${e.code} ${e.detail}`:'UNKNOWN'}`);}};
    for(const message of outbox)await send(message);
    // Offers are chosen after the webhook transaction committed, so the model call never holds a lock.
    for(const o of offers){const view=await offerOrNull(deps,o.merchantId,o.linkId,o.tapSessionId);if(view)await send(offerMessage(o.psid,view,deps.identity.publicOrigin));}
