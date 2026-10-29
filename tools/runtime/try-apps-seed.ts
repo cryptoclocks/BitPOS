@@ -2,6 +2,7 @@
 //   tsx tools/runtime/try-apps-seed.ts setup   one-time: accounts, merchant, menu, options, coupon, rewards, slots, hours, rider
 //   tsx tools/runtime/try-apps-seed.ts offer [--delay=S]   new paid delivery order + a fresh dispatch offer for the rider (repeatable)
 //   tsx tools/runtime/try-apps-seed.ts points  give the customer some reward points
+//   tsx tools/runtime/try-apps-seed.ts reset-rider   free the rider from a stuck assignment by finishing it through the real API (arrive, pickup proof, delivery proof) and show the rider as available again
 // Synthetic only: SQL-only payment seam (not chain proof), synthetic identities, no real KYC. Refuses any other database.
 import assert from 'node:assert/strict';
 import {randomUUID,randomBytes} from 'node:crypto';
@@ -116,6 +117,29 @@ async function offer(){
  }catch(e){await db.query('ROLLBACK').catch(()=>undefined);throw e;}
  finally{await call('/api/session','DELETE',undefined,merchantToken).catch(()=>undefined);}
 }
+async function resetRider(){
+ // Frees the fixture rider by driving the stuck assignment to DELIVERED with the same API calls the apps make
+ // (nothing is written to assignment/shipment tables directly). Only the rider's own active assignment is touched.
+ const s:State=JSON.parse(await readFile(statePath,'utf8')),customer=await login(CUSTOMER_PHONE),rider=await login(RIDER_PHONE);
+ const merchantToken=(await call('/api/session','POST',{email:'merchant@bitpos.invalid',password:'local-fixture-only',merchantId:s.merchant})).token;
+ try{
+  for(let step=0;step<8;step++){
+   const row=(await db.query("SELECT a.id,a.state,a.generation::text g,a.lease_generation::text l,sh.order_id FROM bitpos.food_assignments a JOIN bitpos.food_shipments sh ON sh.id=a.shipment_id WHERE a.driver_id=$1 AND a.closed_at IS NULL ORDER BY a.accepted_at DESC LIMIT 1",[s.driver])).rows[0];
+   if(!row){console.log(JSON.stringify({status:'RIDER_FREE'}));break;}
+   const base={generation:row.g,leaseGeneration:row.l},key=()=>randomUUID(),driverPath=`${M}/driver/food/assignments/${row.id}`;
+   console.log('assignment',row.id,row.state);
+   if(row.state==='ACCEPTED')await call(driverPath+'/arrive','POST',{idempotencyKey:key(),...base,stage:'PICKUP'},rider.accessToken);
+   else if(row.state==='AT_PICKUP'){
+    const proof=await call(`/api/orders/${row.order_id}/delivery/pickup-proof`,'POST',{assignmentId:row.id,idempotencyKey:key(),...base,rotate:true},merchantToken);
+    await call(driverPath+'/consume-proof','POST',{idempotencyKey:key(),proofId:proof.proofId,...base,secret:proof.secret},rider.accessToken);
+   }else if(row.state==='PICKED_UP')await call(driverPath+'/arrive','POST',{idempotencyKey:key(),...base,stage:'DROPOFF'},rider.accessToken);
+   else if(row.state==='AT_DROPOFF'){
+    const proof=await call(`${M}/food/assignments/${row.id}/delivery-proof`,'POST',{idempotencyKey:key(),...base,rotate:true},customer.accessToken);
+    await call(driverPath+'/consume-proof','POST',{idempotencyKey:key(),proofId:proof.proofId,...base,secret:proof.secret},rider.accessToken);
+   }else throw Error(`assignment ${row.id} is ${row.state}; finish or report it in the rider app (reset-rider handles ACCEPTED, AT_PICKUP, PICKED_UP, AT_DROPOFF)`);
+  }
+ }finally{await call('/api/session','DELETE',undefined,merchantToken).catch(()=>undefined);}
+}
 async function points(){
  const s:State=JSON.parse(await readFile(statePath,'utf8'));
  const cols=(await db.query("SELECT table_name FROM information_schema.tables WHERE table_schema='bitpos' AND table_name ILIKE '%reward%'")).rows.map(r=>r.table_name);
@@ -123,6 +147,6 @@ async function points(){
 }
 try{
  const mode=process.argv[2];
- if(mode==='setup')await setup();else if(mode==='offer')await offer();else if(mode==='points')await points();else throw Error('usage: setup|offer|points');
+ if(mode==='setup')await setup();else if(mode==='offer')await offer();else if(mode==='points')await points();else if(mode==='reset-rider')await resetRider();else throw Error('usage: setup|offer|points|reset-rider');
 }catch(e){await db.query('ROLLBACK').catch(()=>undefined);throw e;}
 finally{await db.end();await pool.end();}

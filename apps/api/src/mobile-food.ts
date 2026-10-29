@@ -59,6 +59,10 @@ export async function applyFoodCoupon(db:pg.PoolClient,actor:MobilePrincipal,bra
  const data=MobileCouponApplyRequestSchema.parse(input);await setMobile(db,actor,accessHash);
  const merchant=(await db.query<{m:string}>("SELECT current_setting('bitpos.merchant',true) m")).rows[0].m;
  await routingLock(db,merchant);
+ // A price older than its 60 s lease used to surface as the generic COUPON_INELIGIBLE (the 167 gate folds expiry,
+ // serving, price-version and branch checks into one code). Name the expiry so the app can renew instead of blaming the order.
+ const lease=(await db.query<{expired:boolean}>("SELECT valid_until<=clock_timestamp() expired FROM order_quotes WHERE merchant_id=$1 AND id=$2 AND origin_kind='online' AND source_account_id=$3",[merchant,quoteId,actor.accountId])).rows[0];
+ if(lease?.expired)couponBoundary(Error('COUPON_QUOTE_EXPIRED'));
  let receipt:z.infer<typeof couponReceipt>;
  try{
   // The replacement quote, its configured snapshot and its coupon evidence row are inserted together; checks run once complete.

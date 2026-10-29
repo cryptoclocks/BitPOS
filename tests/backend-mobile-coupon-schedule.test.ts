@@ -62,6 +62,10 @@ test('coupon route refusals: platform-funded and zero-payable return configurati
 test('schedule routes: only bookable published slots are listed; holds are server-bound, idempotent and capacity-safe; a coupon quote can also be scheduled',integration,async()=>withFixture(async({db,source,quote,policy,order,rejected})=>{
  const actor=await principal(db,source),branch=source.source_branch_id as string,client=db as unknown as pg.PoolClient;
  const list=(serving='pickup')=>asApp(db,()=>food.branchScheduleSlots(client,actor,branch,serving));
+ // Self-contained precondition: a seeded database (try-apps/fix fixtures) already publishes windows for this branch.
+ // Close them inside this rolled-back transaction so the test owns its slots whatever the database holds.
+ await db.query('UPDATE schedule107_windows SET enabled=false WHERE merchant_id=$1 AND branch_id=$2',[source.merchant_id,source.source_branch_id]);
+ await db.query('UPDATE marketplace_branches SET delivery_enabled=false WHERE merchant_id=$1 AND id=$2',[source.merchant_id,source.source_branch_id]);
  assert.deepEqual((await list()).slots,[],'no published slot: the app must show the honest disabled state');
  const slotId=await slot(db,source,1),other=await slot(db,source,5,'delivery');
  let slots=await list();assert.equal(slots.slots.length,1);assert.equal(slots.slots[0].id,slotId);assert.equal((await list('delivery')).slots.length,0,'delivery slot is unavailable while branch delivery is off');void other;

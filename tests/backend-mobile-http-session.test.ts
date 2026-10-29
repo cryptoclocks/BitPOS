@@ -14,7 +14,7 @@ const sha=(v:string)=>createHash('sha256').update(v).digest('hex');
 test('coupon, schedule slots and schedule hold authenticate with a real session and refuse business errors as non-401',integration,async()=>{
  const admin=new pg.Client({connectionString:process.env.ADMIN_DATABASE_URL});await admin.connect();
  try{
-  assert.ok(['bitpos_fix_fixture','bitpos_fix2_fixture'].includes((await admin.query('SELECT current_database() n')).rows[0].n));
+  assert.ok(['bitpos_fix_fixture','bitpos_fix2_fixture','bitpos_fix3_fixture'].includes((await admin.query('SELECT current_database() n')).rows[0].n));
   const merchant=(await admin.query('SELECT merchant_id,id FROM bitpos.marketplace_branches ORDER BY id LIMIT 1')).rows[0];
   assert.ok(merchant,'run the seed setup against bitpos_fix_fixture first');
   const product=(await admin.query("SELECT id FROM bitpos.products WHERE merchant_id=$1 AND name='ครัวซองต์เนยสด'",[merchant.merchant_id])).rows[0].id;
@@ -40,6 +40,24 @@ test('coupon, schedule slots and schedule hold authenticate with a real session 
   // every coupon order with QUOTE_CHANGED/CONFIGURED_QUOTE_CHANGED.
   const placed=await call('POST','/food/orders',{branchId:merchant.id,quoteId:applied.quote.id,priceVersion:applied.quote.priceVersion,idempotencyKey:randomUUID()});
   assert.equal(placed.order.total.amountMinor,applied.quote.total.amountMinor,'order is placed at the discounted server total');
+  // Regression (E2E section 9 note): TRY50 applied to a plain item but was refused for the iced latte with
+  // selected options (milk + topping). A configured line carries its option add-ons in the line total, so the
+  // coupon must price the same lines as the quote.
+  const menu=await call('GET',`/branches/${merchant.id}/menu`);
+  const configurable=menu.products.find((p:any)=>p.options?.groups?.some((g:any)=>g.minSelections>0));
+  assert.ok(configurable,'seeded menu has a product with required options');
+  const picks:any[]=[];
+  for(const g of configurable.options.groups){const need=Math.max(g.minSelections,g.id===configurable.options.groups[1]?.id?1:0);for(const c of g.choices.slice(0,need))picks.push({groupId:g.id,choiceId:c.id,qty:1});}
+  const configured=await call('POST','/food/quotes',{branchId:merchant.id,serving:'pickup',items:[{lineId:randomUUID(),productId:configurable.id,qty:1,optionVersion:configurable.options.version,selections:picks,allergyNote:null}]});
+  // The reported refusal was the 60 s quote lease running out (iced latte quoted, coupon typed ~30 s later):
+  // it must be named, not folded into the generic COUPON_INELIGIBLE.
+  const stale=await call('POST','/food/quotes',{branchId:merchant.id,serving:'pickup',items:[{lineId:randomUUID(),productId:configurable.id,qty:1,optionVersion:configurable.options.version,selections:picks,allergyNote:null}]});
+  await admin.query("ALTER TABLE bitpos.order_quotes DISABLE TRIGGER USER");
+  try{await admin.query("UPDATE bitpos.order_quotes SET quoted_at=clock_timestamp()-interval '61 seconds',valid_until=clock_timestamp()-interval '1 second' WHERE id=$1",[stale.id]);}finally{await admin.query("ALTER TABLE bitpos.order_quotes ENABLE TRIGGER USER");}
+  await assert.rejects(call('POST',`/food/quotes/${stale.id}/coupon`,{code:'TRY50',idempotencyKey:randomUUID()}),(e:any)=>{assert.equal(e.status,409);assert.equal(e.details?.reasonCode,'COUPON_QUOTE_EXPIRED');return true;});
+  const withOptions=await call('POST',`/food/quotes/${configured.id}/coupon`,{code:'TRY50',idempotencyKey:randomUUID()});
+  assert.equal(BigInt(withOptions.quote.discount.amountMinor),50n);
+  assert.equal(BigInt(withOptions.quote.total.amountMinor),BigInt(configured.total.amountMinor)-50n);
   // invalid code: a business refusal (409 QUOTE_CHANGED/COUPON_NOT_FOUND), never 401 that signs the customer out.
   await refused(call('POST',`/food/quotes/${(await quote()).id}/coupon`,{code:'NOPE-CODE',idempotencyKey:randomUUID()}),409);
   // a genuinely bad token is still 401.

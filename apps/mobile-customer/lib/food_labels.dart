@@ -141,7 +141,10 @@ String checkoutRefusalMessage(Object error, bool thai) {
   final code = error is MobileApiException ? error.code : 'NETWORK';
   final labels = switch (reason) {
     'COUPON_NOT_FOUND' => ('ไม่พบรหัสคูปองนี้ ตรวจตัวสะกดแล้วลองใหม่', 'Coupon code not found. Check it and try again.'),
-    'COUPON_INELIGIBLE' => ('ออเดอร์นี้ยังไม่เข้าเงื่อนไขคูปอง', 'This order does not meet the coupon conditions.'),
+    'COUPON_INELIGIBLE' => ('คูปองนี้ใช้กับออเดอร์นี้ไม่ได้ (ประเภทการรับ/ส่ง สาขา หรือช่วงเวลาของคูปองไม่ตรง)', 'This coupon cannot be used for this order (serving type, branch or validity window does not match).'),
+    'COUPON_QUOTE_EXPIRED' => ('ราคาหมดอายุ (ราคาใช้ได้ 60 วินาที) กรุณาอัปเดตราคาแล้วใส่คูปองอีกครั้ง', 'This price has expired (prices last 60 seconds). Refresh the price and apply the coupon again.'),
+    'COUPON_MINIMUM_NOT_MET' => ('ยอดอาหารยังไม่ถึงขั้นต่ำของคูปองนี้', 'The food total is below this coupon\'s minimum spend.'),
+    'COUPON_NO_DISCOUNTABLE_FOOD' || 'COUPON_DISCOUNT_ROUNDS_TO_ZERO' => ('ออเดอร์นี้ไม่มีรายการที่ลดได้ด้วยคูปองนี้', 'No item in this order can be discounted by this coupon.'),
     'COUPON_ACCOUNT_LIMIT' => ('คุณใช้สิทธิ์คูปองนี้ครบแล้ว', 'You have used all of your uses of this coupon.'),
     'COUPON_GLOBAL_LIMIT' || 'COUPON_BUDGET_LIMIT' => ('คูปองนี้ถูกใช้ครบแล้ว', 'This coupon has been fully redeemed.'),
     'COUPON_REWARD_VOUCHER_REQUIRED' => ('ต้องมีคูปองรางวัลที่ยังใช้ได้ของร้านนี้ แลกแต้มที่หน้ารางวัลก่อน หรือคูปองถูกใช้ไปแล้ว', 'This code needs an unused reward voucher from this shop. Redeem points on the Rewards page first, or your voucher is already in use.'),
