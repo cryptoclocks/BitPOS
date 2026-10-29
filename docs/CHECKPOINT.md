@@ -3579,6 +3579,11 @@ Method: the real debug apps (`flutter build apk --debug` with `BITPOS_FIXTURE` a
 - Rollback of code: `cd /home/ubuntu/bitpos-runtime/infra/oci && for s in api worker web; do docker tag bitpos-runtime:rollback-20261029q-$s bitpos-runtime:current && docker compose -p bitpos-runtime up -d --no-deps --no-build $s; done`; restore the 14 files from `/home/ubuntu/bitpos-runtime.rollback17-20261029` (the 8 new files can stay).
 - Rollback of DB: 171-173 are additive/replacing routines; old images run against them. A `pg_restore --clean` from the dump discards every order, payment and Meta-session write made after the dump, so use it only as a last resort with the Meta session coordinated; prefer a forward fix. Delete the three ledger rows only together with reverting their objects.
 
+### Deploy #18 on OCI: proxy allows GET /api/reports/export (web only, 2026-10-29)
+- Commit `51f7e28`: only `apps/web/src/lib/api-routes.ts` synced; no migration. Only `web` rebuilt/recreated (`--no-deps`; `bitpos-runtime:current` = c6eda6cb4a2c); api, worker, customer, merchant, guide, tunnel and other stacks untouched. Closes open finding (1) of deploy #17.
+- Rollback: previous web image (f11ad38abf8a) tagged `bitpos-runtime:rollback-20261029r`; replaced file in `/home/ubuntu/bitpos-runtime.rollback18-20261029`. Rollback command: `docker tag bitpos-runtime:rollback-20261029r bitpos-runtime:current && cd /home/ubuntu/bitpos-runtime/infra/oci && docker compose -p bitpos-runtime up -d --no-deps --no-build web` (and restore the file).
+- Verified: `https://pos.cashlessthailand.com/` 200, public `GET /api/reports/export` without session 401 (was 404), `/api/returns` 401, host `127.0.0.1:4321/platform` 200, disk 89% (22G free).
+
 ## 2026-10-29 checklist verification (4 subagents + focused run)
 - Subagents reviewed all 188 unticked DIRECT_SESSION_CHECKLIST_TH boxes; most KEEP (unbuilt, fixture-only, or needs pixel diff/real device/API).
 - Ticked 6 with test evidence: DS50 1172/1173 (group-cart + backend-mobile-groups), DS40 973/974 (driver-settlement-worker), DS43 1032 (support/review/chat-image), DS47 1115 (passenger-trip PIN). Focused run: 44 pass, 0 fail, 2 skipped (DB-backed).
