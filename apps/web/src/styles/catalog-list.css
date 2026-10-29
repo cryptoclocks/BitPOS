@@ -25,3 +25,29 @@
 .stock-views{display:flex;gap:8px;margin:10px 0}.stock-views button{min-height:36px;padding:0 16px;border-radius:99px;border:0;background:#eadff7;color:var(--bp-primary);font-weight:600}.stock-views button[aria-pressed=true]{background:var(--bp-primary);color:#fff}
 .stock-views button.secondary[aria-pressed=true]{background:var(--bp-primary);color:#fff}
 .supplier-tools{display:flex;flex-wrap:wrap;gap:10px;margin:12px 0}.supplier-tools input{flex:1 1 260px;min-height:44px;border:1px solid var(--bp-line);border-radius:14px;padding:0 14px;font:inherit}.stock-views small{margin-left:auto;color:var(--bp-muted);align-self:center}
+
+/* Products & inventory polish (P10–P13): aligned heading actions, middle-aligned rows, right-aligned action column, calmer spacing. */
+.catalog-list .section-heading{align-items:center}
+.catalog-list .section-heading>div:first-child{flex:1 1 320px;min-width:0}
+.catalog-list .section-heading>button{white-space:nowrap}
+.catalog-sub{margin:6px 0 12px;line-height:1.5}
+.catalog-list>section>.notice[data-blocked]{margin:0 0 12px;border-radius:14px}
+.catalog-views{margin:0}
+.catalog-table th,.catalog-table td{text-align:left}
+.catalog-table td{vertical-align:middle}
+.catalog-table tbody tr:hover td{background:#faf6fd}
+.catalog-table th:last-child,.catalog-table td:last-child{text-align:right;white-space:nowrap;width:1%}
+.catalog-table td:last-child button+button,.catalog-table td:last-child a+button{margin-left:8px}
+.stock-views{margin:0 0 14px}
+.supplier-tools{margin:0 0 14px}
+@media(max-width:700px){
+  .catalog-list{padding:16px 12px 28px}
+  .catalog-list .section-heading>div:first-child{flex:0 0 auto;width:100%}
+  .catalog-list .section-heading>button{flex:0 0 auto;width:100%;min-height:46px}
+  .catalog-table th,.catalog-table td{white-space:nowrap}
+  .catalog-table td:first-child{white-space:normal;min-width:150px}
+  .catalog-table th:last-child,.catalog-table td:last-child{width:auto}
+  .catalog-table td,.catalog-table th{padding:10px 10px}
+  .catalog-table td:first-child,.catalog-table th:first-child{min-width:130px}
+}
+.catalog-list>section>h2{margin:24px 0 10px}

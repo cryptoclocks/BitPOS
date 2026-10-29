@@ -158,3 +158,5 @@
 @media(prefers-reduced-motion:reduce){.customer-checkout button,.customer-checkout .button{transition:none;transform:none}}
 
 .checkout-state.is-expired .checkout-progress-mark{background:#fff0dc;color:#c2610c}
+
+.checkout-secondary { margin-top: 10px; width: 100%; min-height: 44px; border: 1px solid currentColor; border-radius: 12px; background: transparent; color: inherit; font: inherit; font-weight: 600; cursor: pointer; }
