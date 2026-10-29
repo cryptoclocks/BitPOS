@@ -6056,3 +6056,137 @@ class MobileScheduleHold {
  }
  Map<String,dynamic> toJson() => {"id": id, "slotId": slotId, "quoteId": quoteId, "state": state, "expiresAt": expiresAt, "startsAt": startsAt, "endsAt": endsAt, "replayed": replayed};
 }
+
+class MobileRewardOffer {
+ final String merchantId;
+ final String merchantName;
+ final String nameTh;
+ final String nameEn;
+ final String currency;
+ final int decimals;
+ final String discountMinor;
+ final String minimumSpendMinor;
+ final String id;
+ final int pointsCost;
+ final int validityDays;
+ final int balance;
+ final bool redeemable;
+ const MobileRewardOffer._({required this.merchantId, required this.merchantName, required this.nameTh, required this.nameEn, required this.currency, required this.decimals, required this.discountMinor, required this.minimumSpendMinor, required this.id, required this.pointsCost, required this.validityDays, required this.balance, required this.redeemable});
+ factory MobileRewardOffer({required String merchantId, required String merchantName, required String nameTh, required String nameEn, required String currency, required int decimals, required String discountMinor, required String minimumSpendMinor, required String id, required int pointsCost, required int validityDays, required int balance, required bool redeemable}) => MobileRewardOffer.fromJson({"merchantId": merchantId, "merchantName": merchantName, "nameTh": nameTh, "nameEn": nameEn, "currency": currency, "decimals": decimals, "discountMinor": discountMinor, "minimumSpendMinor": minimumSpendMinor, "id": id, "pointsCost": pointsCost, "validityDays": validityDays, "balance": balance, "redeemable": redeemable});
+ factory MobileRewardOffer.fromJson(Map<String,dynamic> json) {
+  if (json.length != 13 || !json.keys.every(["merchantId","merchantName","nameTh","nameEn","currency","decimals","discountMinor","minimumSpendMinor","id","pointsCost","validityDays","balance","redeemable"].contains)) throw const FormatException('Invalid MobileRewardOffer fields');
+  final merchantId=(() { final value=json["merchantId"]; const path="MobileRewardOffer.merchantId"; return _string(value, path, pattern: null, format: "uuid", min: 0, max: null); })();
+  final merchantName=(() { final value=json["merchantName"]; const path="MobileRewardOffer.merchantName"; return _string(value, path, pattern: null, format: null, min: 1, max: 200); })();
+  final nameTh=(() { final value=json["nameTh"]; const path="MobileRewardOffer.nameTh"; return _string(value, path, pattern: null, format: null, min: 1, max: 80); })();
+  final nameEn=(() { final value=json["nameEn"]; const path="MobileRewardOffer.nameEn"; return _string(value, path, pattern: null, format: null, min: 1, max: 80); })();
+  final currency=(() { final value=json["currency"]; const path="MobileRewardOffer.currency"; return _enum(_string(value, path, pattern: null, format: null, min: 0, max: null), ["THB","USD","USDG"], path); })();
+  final decimals=(() { final value=json["decimals"]; const path="MobileRewardOffer.decimals"; return _integer(value, path, min: 0, max: 6); })();
+  final discountMinor=(() { final value=json["discountMinor"]; const path="MobileRewardOffer.discountMinor"; return _string(value, path, pattern: "^[0-9]{1,18}\$", format: null, min: 0, max: null); })();
+  final minimumSpendMinor=(() { final value=json["minimumSpendMinor"]; const path="MobileRewardOffer.minimumSpendMinor"; return _string(value, path, pattern: "^[0-9]{1,18}\$", format: null, min: 0, max: null); })();
+  final id=(() { final value=json["id"]; const path="MobileRewardOffer.id"; return _string(value, path, pattern: null, format: "uuid", min: 0, max: null); })();
+  final pointsCost=(() { final value=json["pointsCost"]; const path="MobileRewardOffer.pointsCost"; return _integer(value, path, min: 1, max: 1000000); })();
+  final validityDays=(() { final value=json["validityDays"]; const path="MobileRewardOffer.validityDays"; return _integer(value, path, min: 1, max: 365); })();
+  final balance=(() { final value=json["balance"]; const path="MobileRewardOffer.balance"; return _integer(value, path, min: 0, max: null); })();
+  final redeemable=(() { final value=json["redeemable"]; const path="MobileRewardOffer.redeemable"; return _boolean(value, path); })();
+  return MobileRewardOffer._(merchantId: merchantId, merchantName: merchantName, nameTh: nameTh, nameEn: nameEn, currency: currency, decimals: decimals, discountMinor: discountMinor, minimumSpendMinor: minimumSpendMinor, id: id, pointsCost: pointsCost, validityDays: validityDays, balance: balance, redeemable: redeemable);
+ }
+ Map<String,dynamic> toJson() => {"merchantId": merchantId, "merchantName": merchantName, "nameTh": nameTh, "nameEn": nameEn, "currency": currency, "decimals": decimals, "discountMinor": discountMinor, "minimumSpendMinor": minimumSpendMinor, "id": id, "pointsCost": pointsCost, "validityDays": validityDays, "balance": balance, "redeemable": redeemable};
+}
+
+class MobileRewardCatalog {
+ final String generatedAt;
+ final List<MobileRewardOffer> rewards;
+ const MobileRewardCatalog._({required this.generatedAt, required this.rewards});
+ factory MobileRewardCatalog({required String generatedAt, required List<MobileRewardOffer> rewards}) => MobileRewardCatalog.fromJson({"generatedAt": generatedAt, "rewards": rewards.map((value) => value.toJson()).toList()});
+ factory MobileRewardCatalog.fromJson(Map<String,dynamic> json) {
+  if (json.length != 2 || !json.keys.every(["generatedAt","rewards"].contains)) throw const FormatException('Invalid MobileRewardCatalog fields');
+  final generatedAt=(() { final value=json["generatedAt"]; const path="MobileRewardCatalog.generatedAt"; return _string(value, path, pattern: null, format: "date-time", min: 0, max: null); })();
+  final rewards=(() { final value=json["rewards"]; const path="MobileRewardCatalog.rewards"; return List<MobileRewardOffer>.unmodifiable(_list(value, path, 0, 30).map((value) => MobileRewardOffer.fromJson(_object(value, path)))); })();
+  return MobileRewardCatalog._(generatedAt: generatedAt, rewards: rewards);
+ }
+ Map<String,dynamic> toJson() => {"generatedAt": generatedAt, "rewards": rewards.map((value) => value.toJson()).toList()};
+}
+
+class MobileRewardRedeemRequest {
+ final String rewardId;
+ final String idempotencyKey;
+ const MobileRewardRedeemRequest._({required this.rewardId, required this.idempotencyKey});
+ factory MobileRewardRedeemRequest({required String rewardId, required String idempotencyKey}) => MobileRewardRedeemRequest.fromJson({"rewardId": rewardId, "idempotencyKey": idempotencyKey});
+ factory MobileRewardRedeemRequest.fromJson(Map<String,dynamic> json) {
+  if (json.length != 2 || !json.keys.every(["rewardId","idempotencyKey"].contains)) throw const FormatException('Invalid MobileRewardRedeemRequest fields');
+  final rewardId=(() { final value=json["rewardId"]; const path="MobileRewardRedeemRequest.rewardId"; return _string(value, path, pattern: null, format: "uuid", min: 0, max: null); })();
+  final idempotencyKey=(() { final value=json["idempotencyKey"]; const path="MobileRewardRedeemRequest.idempotencyKey"; return _string(value, path, pattern: null, format: "uuid", min: 0, max: null); })();
+  return MobileRewardRedeemRequest._(rewardId: rewardId, idempotencyKey: idempotencyKey);
+ }
+ Map<String,dynamic> toJson() => {"rewardId": rewardId, "idempotencyKey": idempotencyKey};
+}
+
+class MobileVoucher {
+ final String merchantId;
+ final String merchantName;
+ final String nameTh;
+ final String nameEn;
+ final String currency;
+ final int decimals;
+ final String discountMinor;
+ final String minimumSpendMinor;
+ final String id;
+ final String rewardId;
+ final String code;
+ final String state;
+ final String expiresAt;
+ final String createdAt;
+ final int pointsSpent;
+ const MobileVoucher._({required this.merchantId, required this.merchantName, required this.nameTh, required this.nameEn, required this.currency, required this.decimals, required this.discountMinor, required this.minimumSpendMinor, required this.id, required this.rewardId, required this.code, required this.state, required this.expiresAt, required this.createdAt, required this.pointsSpent});
+ factory MobileVoucher({required String merchantId, required String merchantName, required String nameTh, required String nameEn, required String currency, required int decimals, required String discountMinor, required String minimumSpendMinor, required String id, required String rewardId, required String code, required String state, required String expiresAt, required String createdAt, required int pointsSpent}) => MobileVoucher.fromJson({"merchantId": merchantId, "merchantName": merchantName, "nameTh": nameTh, "nameEn": nameEn, "currency": currency, "decimals": decimals, "discountMinor": discountMinor, "minimumSpendMinor": minimumSpendMinor, "id": id, "rewardId": rewardId, "code": code, "state": state, "expiresAt": expiresAt, "createdAt": createdAt, "pointsSpent": pointsSpent});
+ factory MobileVoucher.fromJson(Map<String,dynamic> json) {
+  if (json.length != 15 || !json.keys.every(["merchantId","merchantName","nameTh","nameEn","currency","decimals","discountMinor","minimumSpendMinor","id","rewardId","code","state","expiresAt","createdAt","pointsSpent"].contains)) throw const FormatException('Invalid MobileVoucher fields');
+  final merchantId=(() { final value=json["merchantId"]; const path="MobileVoucher.merchantId"; return _string(value, path, pattern: null, format: "uuid", min: 0, max: null); })();
+  final merchantName=(() { final value=json["merchantName"]; const path="MobileVoucher.merchantName"; return _string(value, path, pattern: null, format: null, min: 1, max: 200); })();
+  final nameTh=(() { final value=json["nameTh"]; const path="MobileVoucher.nameTh"; return _string(value, path, pattern: null, format: null, min: 1, max: 80); })();
+  final nameEn=(() { final value=json["nameEn"]; const path="MobileVoucher.nameEn"; return _string(value, path, pattern: null, format: null, min: 1, max: 80); })();
+  final currency=(() { final value=json["currency"]; const path="MobileVoucher.currency"; return _enum(_string(value, path, pattern: null, format: null, min: 0, max: null), ["THB","USD","USDG"], path); })();
+  final decimals=(() { final value=json["decimals"]; const path="MobileVoucher.decimals"; return _integer(value, path, min: 0, max: 6); })();
+  final discountMinor=(() { final value=json["discountMinor"]; const path="MobileVoucher.discountMinor"; return _string(value, path, pattern: "^[0-9]{1,18}\$", format: null, min: 0, max: null); })();
+  final minimumSpendMinor=(() { final value=json["minimumSpendMinor"]; const path="MobileVoucher.minimumSpendMinor"; return _string(value, path, pattern: "^[0-9]{1,18}\$", format: null, min: 0, max: null); })();
+  final id=(() { final value=json["id"]; const path="MobileVoucher.id"; return _string(value, path, pattern: null, format: "uuid", min: 0, max: null); })();
+  final rewardId=(() { final value=json["rewardId"]; const path="MobileVoucher.rewardId"; return _string(value, path, pattern: null, format: "uuid", min: 0, max: null); })();
+  final code=(() { final value=json["code"]; const path="MobileVoucher.code"; return _string(value, path, pattern: "^[A-Z0-9][A-Z0-9_-]{2,31}\$", format: null, min: 0, max: null); })();
+  final state=(() { final value=json["state"]; const path="MobileVoucher.state"; return _enum(_string(value, path, pattern: null, format: null, min: 0, max: null), ["AVAILABLE","IN_USE","USED","EXPIRED"], path); })();
+  final expiresAt=(() { final value=json["expiresAt"]; const path="MobileVoucher.expiresAt"; return _string(value, path, pattern: null, format: "date-time", min: 0, max: null); })();
+  final createdAt=(() { final value=json["createdAt"]; const path="MobileVoucher.createdAt"; return _string(value, path, pattern: null, format: "date-time", min: 0, max: null); })();
+  final pointsSpent=(() { final value=json["pointsSpent"]; const path="MobileVoucher.pointsSpent"; return _integer(value, path, min: 1, max: null); })();
+  return MobileVoucher._(merchantId: merchantId, merchantName: merchantName, nameTh: nameTh, nameEn: nameEn, currency: currency, decimals: decimals, discountMinor: discountMinor, minimumSpendMinor: minimumSpendMinor, id: id, rewardId: rewardId, code: code, state: state, expiresAt: expiresAt, createdAt: createdAt, pointsSpent: pointsSpent);
+ }
+ Map<String,dynamic> toJson() => {"merchantId": merchantId, "merchantName": merchantName, "nameTh": nameTh, "nameEn": nameEn, "currency": currency, "decimals": decimals, "discountMinor": discountMinor, "minimumSpendMinor": minimumSpendMinor, "id": id, "rewardId": rewardId, "code": code, "state": state, "expiresAt": expiresAt, "createdAt": createdAt, "pointsSpent": pointsSpent};
+}
+
+class MobileVouchers {
+ final String generatedAt;
+ final List<MobileVoucher> vouchers;
+ const MobileVouchers._({required this.generatedAt, required this.vouchers});
+ factory MobileVouchers({required String generatedAt, required List<MobileVoucher> vouchers}) => MobileVouchers.fromJson({"generatedAt": generatedAt, "vouchers": vouchers.map((value) => value.toJson()).toList()});
+ factory MobileVouchers.fromJson(Map<String,dynamic> json) {
+  if (json.length != 2 || !json.keys.every(["generatedAt","vouchers"].contains)) throw const FormatException('Invalid MobileVouchers fields');
+  final generatedAt=(() { final value=json["generatedAt"]; const path="MobileVouchers.generatedAt"; return _string(value, path, pattern: null, format: "date-time", min: 0, max: null); })();
+  final vouchers=(() { final value=json["vouchers"]; const path="MobileVouchers.vouchers"; return List<MobileVoucher>.unmodifiable(_list(value, path, 0, 100).map((value) => MobileVoucher.fromJson(_object(value, path)))); })();
+  return MobileVouchers._(generatedAt: generatedAt, vouchers: vouchers);
+ }
+ Map<String,dynamic> toJson() => {"generatedAt": generatedAt, "vouchers": vouchers.map((value) => value.toJson()).toList()};
+}
+
+class MobileRewardRedemption {
+ final MobileVoucher voucher;
+ final int balance;
+ final bool replayed;
+ const MobileRewardRedemption._({required this.voucher, required this.balance, required this.replayed});
+ factory MobileRewardRedemption({required MobileVoucher voucher, required int balance, required bool replayed}) => MobileRewardRedemption.fromJson({"voucher": voucher.toJson(), "balance": balance, "replayed": replayed});
+ factory MobileRewardRedemption.fromJson(Map<String,dynamic> json) {
+  if (json.length != 3 || !json.keys.every(["voucher","balance","replayed"].contains)) throw const FormatException('Invalid MobileRewardRedemption fields');
+  final voucher=(() { final value=json["voucher"]; const path="MobileRewardRedemption.voucher"; return MobileVoucher.fromJson(_object(value, path)); })();
+  final balance=(() { final value=json["balance"]; const path="MobileRewardRedemption.balance"; return _integer(value, path, min: 0, max: null); })();
+  final replayed=(() { final value=json["replayed"]; const path="MobileRewardRedemption.replayed"; return _boolean(value, path); })();
+  return MobileRewardRedemption._(voucher: voucher, balance: balance, replayed: replayed);
+ }
+ Map<String,dynamic> toJson() => {"voucher": voucher.toJson(), "balance": balance, "replayed": replayed};
+}

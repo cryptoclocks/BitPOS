@@ -2367,3 +2367,58 @@ export const MobileScheduleHoldSchema=z.object({
  replayed:z.boolean(),
 }).strict();
 export type MobileScheduleHold=z.infer<typeof MobileScheduleHoldSchema>;
+export const MobileRewardOfferSchema=z.object({
+ merchantId:z.string().uuid(),
+ merchantName:z.string().min(1).max(200),
+ nameTh:z.string().min(1).max(80),
+ nameEn:z.string().min(1).max(80),
+ currency:z.string().refine(value => ["THB","USD","USDG"].includes(value)),
+ decimals:z.number().int().safe().min(0).max(6),
+ discountMinor:z.string().regex(new RegExp("^[0-9]{1,18}$")),
+ minimumSpendMinor:z.string().regex(new RegExp("^[0-9]{1,18}$")),
+ id:z.string().uuid(),
+ pointsCost:z.number().int().safe().min(1).max(1000000),
+ validityDays:z.number().int().safe().min(1).max(365),
+ balance:z.number().int().safe().min(0),
+ redeemable:z.boolean(),
+}).strict();
+export type MobileRewardOffer=z.infer<typeof MobileRewardOfferSchema>;
+export const MobileRewardCatalogSchema=z.object({
+ generatedAt:z.string().datetime({offset:true}).regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/),
+ rewards:z.array(MobileRewardOfferSchema).max(30),
+}).strict();
+export type MobileRewardCatalog=z.infer<typeof MobileRewardCatalogSchema>;
+export const MobileRewardRedeemRequestSchema=z.object({
+ rewardId:z.string().uuid(),
+ idempotencyKey:z.string().uuid(),
+}).strict();
+export type MobileRewardRedeemRequest=z.infer<typeof MobileRewardRedeemRequestSchema>;
+export const MobileVoucherSchema=z.object({
+ merchantId:z.string().uuid(),
+ merchantName:z.string().min(1).max(200),
+ nameTh:z.string().min(1).max(80),
+ nameEn:z.string().min(1).max(80),
+ currency:z.string().refine(value => ["THB","USD","USDG"].includes(value)),
+ decimals:z.number().int().safe().min(0).max(6),
+ discountMinor:z.string().regex(new RegExp("^[0-9]{1,18}$")),
+ minimumSpendMinor:z.string().regex(new RegExp("^[0-9]{1,18}$")),
+ id:z.string().uuid(),
+ rewardId:z.string().uuid(),
+ code:z.string().regex(new RegExp("^[A-Z0-9][A-Z0-9_-]{2,31}$")),
+ state:z.string().refine(value => ["AVAILABLE","IN_USE","USED","EXPIRED"].includes(value)),
+ expiresAt:z.string().datetime({offset:true}).regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/),
+ createdAt:z.string().datetime({offset:true}).regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/),
+ pointsSpent:z.number().int().safe().min(1),
+}).strict();
+export type MobileVoucher=z.infer<typeof MobileVoucherSchema>;
+export const MobileVouchersSchema=z.object({
+ generatedAt:z.string().datetime({offset:true}).regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/),
+ vouchers:z.array(MobileVoucherSchema).max(100),
+}).strict();
+export type MobileVouchers=z.infer<typeof MobileVouchersSchema>;
+export const MobileRewardRedemptionSchema=z.object({
+ voucher:MobileVoucherSchema,
+ balance:z.number().int().safe().min(0),
+ replayed:z.boolean(),
+}).strict();
+export type MobileRewardRedemption=z.infer<typeof MobileRewardRedemptionSchema>;

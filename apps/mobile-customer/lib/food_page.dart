@@ -1000,11 +1000,20 @@ class _FoodPageState extends State<FoodPage> with WidgetsBindingObserver {
 
   Future<void> _openCoupon(MobileFoodQuote q) async {
     final applied = _couponQuoteId == q.id ? _couponCode : null;
+    // Reward vouchers are optional help only; a failed lookup just means the customer types the code.
+    var vouchers = const <MobileVoucher>[];
+    try {
+      vouchers = (await widget.api.vouchers()).vouchers
+          .where((v) => v.state == 'AVAILABLE' && v.merchantId == q.merchantId)
+          .toList();
+    } catch (_) {}
+    if (!mounted || !_current) return;
     final result = await Navigator.of(context).push<Object>(
       MaterialPageRoute<Object>(
         builder: (_) => CartCouponPage(
           thai: widget.thai,
           appliedCode: applied,
+          vouchers: vouchers,
           newKey: widget.api.newCommandKey,
           onApply: (code, key) => widget.api.applyFoodCoupon(
             q.id,

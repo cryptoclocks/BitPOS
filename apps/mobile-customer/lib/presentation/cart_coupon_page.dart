@@ -20,6 +20,7 @@ class CartCouponPage extends StatefulWidget {
     this.newKey,
     this.appliedCode,
     this.disabledReason,
+    this.vouchers = const [],
   });
   final bool thai;
 
@@ -30,6 +31,9 @@ class CartCouponPage extends StatefulWidget {
   final String Function()? newKey;
   final String? appliedCode;
   final String? disabledReason;
+
+  /// Unused reward vouchers of this shop (already filtered by the caller). Tapping one only fills the code; the server still decides.
+  final List<MobileVoucher> vouchers;
   @override
   State<CartCouponPage> createState() => _CartCouponPageState();
 }
@@ -170,6 +174,24 @@ class _CartCouponPageState extends State<CartCouponPage> {
                       ),
                       onSubmitted: (_) => _apply(),
                     ),
+                    if (widget.vouchers.isNotEmpty) ...[
+                      Text(
+                        t('คูปองรางวัลของคุณที่ร้านนี้', 'Your reward vouchers at this shop'),
+                        style: Theme.of(context).textTheme.titleSmall,
+                      ),
+                      Wrap(
+                        spacing: 8,
+                        children: [
+                          for (final v in widget.vouchers)
+                            ActionChip(
+                              key: ValueKey('coupon-voucher-${v.id}'),
+                              label: Text('${widget.thai ? v.nameTh : v.nameEn} · ${v.code}'),
+                              onPressed: _busy ? null : () => setState(() => _controller.text = v.code),
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                    ],
                     if (_error != null)
                       Padding(
                         padding: const EdgeInsets.only(bottom: 12),

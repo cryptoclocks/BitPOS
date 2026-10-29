@@ -16,6 +16,7 @@ import PromotionGenerate from './PromotionGenerate';
 import { personalRecipientsView, type PromotionRecipientsView } from '../../../../packages/contracts/src/personal-promotions';
 import { PromotionContextReview, PromotionPublication, playlistStatusLabels } from './PromotionCampaignControl';
 import PromotionFloor from './PromotionFloor';
+import RewardSettings from './RewardSettings';
 import type { FloorSelection } from './ShopFloor';
 
 type Edit = Pick<PromotionCampaign, 'headline' | 'copy' | 'discountPercent' | 'startsAt' | 'expiresAt'>&{bundleUnitMinor?:string};
@@ -243,6 +244,7 @@ export default function Promotions({ session, language, products, tables, device
       if (dirty && !window.confirm(text('ทิ้งข้อความที่ยังไม่บันทึกและสร้างแบบร่างใหม่?', 'Discard unsaved edits and create a new draft?'))) return;
       await mutate(`/promotions/${encodeURIComponent(source.id)}/derive`, { ...body, ...(body.mode === 'regenerate' ? { language } : {}) });
     })} refresh={async () => { setApproveConfirmed(false); setPreviewVersion(undefined); setPublicationEpoch(epoch => epoch + 1); recipientsEpoch.current += 1; setRecipientsFresh(false); await refreshRegistry(); await refresh(); await refreshRecipients(); }}>{floorSelection && <>{error && <p className="error" role="alert">{error}</p>}{recovery}<div className="promotion-content">{editor}</div></>}</PromotionFloor></>}
+    {presentation === 'library' && manage && <RewardSettings session={session} language={language} />}
     {presentation === 'library' && <div className="promotion-layout"><section id="campaign-library" className="promotion-library panel" aria-label="Campaign library">
       <div className="promotion-library-heading"><div><p className="eyebrow">P33 · {text('โปรโมชัน', 'Promotions')}</p><h2>{text('คลังแคมเปญ', 'Campaign library')}</h2><p>{text('ค้นหา เลือก และตรวจร่างก่อนดำเนินการ', 'Search, select and review drafts before taking action.')}</p></div></div>
       <div className="promotion-library-toolbar"><label className="promotion-search">{text('ค้นหารายการ', 'Search campaigns')}<input ref={librarySearch} value={libraryQuery} placeholder={text('ค้นหารายการ', 'Search campaigns')} onChange={event => { setLibraryQuery(event.target.value); setLibraryPage(0); }} /></label>{manage && <button className="promotion-create" type="button" disabled={locked || !fresh} onClick={() => { setFloorSelection(null); setPresentation('create'); }}>＋ {text('สร้างโปรโมชัน', 'Create promotion')}</button>}<div className="promotion-library-tabs" role="group" aria-label={text('ตัวกรองแคมเปญ', 'Campaign filters')}>

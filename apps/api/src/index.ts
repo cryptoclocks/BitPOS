@@ -20,6 +20,7 @@ import {cancelUnpaidOrder} from './order-closure';
 import {fulfillmentRequest} from './fulfillment';
 import {mobileFoodRequest,decideOnlineOrder} from './mobile-food';
 import {mobileProfileRequest} from './mobile-profile';
+import {mobileRewardVoucherRequest,rewardSettings} from './reward-vouchers';
 import {mobileRideRequest} from './mobile-rides';
 import {mobileGroupRequest} from './mobile-groups';
 import {driverPlatformRequest,driverPlatformError} from './driver-platform';
@@ -136,6 +137,8 @@ export async function handle(req:http.IncomingMessage){
   if(support!==undefined)return support;
   const favourites=await mobileFavouritesRequest(url,method??'GET',input,req.headers.authorization);
   if(favourites!==undefined)return favourites;
+  const rewardVouchers=await mobileRewardVoucherRequest(url,method??'GET',input,req.headers.authorization);
+  if(rewardVouchers!==undefined)return rewardVouchers;
   const profile=await mobileProfileRequest(url,method??'GET',input,req.headers.authorization);
   if(profile!==undefined)return profile;
   const rides=await mobileRideRequest(url,method??'GET',input,req.headers.authorization);
@@ -253,6 +256,7 @@ export async function handle(req:http.IncomingMessage){
  if(path==='/api/settings/collection'&&(method==='GET'||method==='PUT'))return collectionSettings(db,merchant,session.user_id,session.current_role,method,input);
  if(path.startsWith('/api/promotions')){const result=await promotionsRequest(db,merchant,session.user_id,session.current_role,path,method??'',input);if(result!==undefined)return result;}
  const registered=await registry(db,merchant,session.user_id,session.current_role,path,method??'',input);if(registered!==undefined)return registered;
+ if(path==='/api/settings/rewards')return rewardSettings(db,merchant,session.user_id,session.current_role,method??'GET',input);
  if(path==='/api/settings/pricing'){if(method==='GET')return pricingView(db,merchant);if(method==='PUT')return publishPrices(db,merchant,session.user_id,session.current_role,input);}
  const registerOrder=path.match(/^\/api\/registers\/([^/]+)\/(quotes|orders|submissions)(?:\/([^/]+)(?:\/(dismiss))?)?$/);
  if(registerOrder){const id=uuid.parse(registerOrder[1]);const action=registerOrder[2];

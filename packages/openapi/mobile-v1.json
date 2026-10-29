@@ -6149,6 +6149,82 @@
           }
         }
       }
+    },
+    "/account/rewards/catalog": {
+      "get": {
+        "operationId": "getRewardCatalog",
+        "security": [
+          {
+            "mobileBearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Rewards of shops where the caller has a paid order, with the caller's per-shop balance (points of that shop's paid refund-free orders minus redemptions). Redeemable is computed by the server.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileRewardCatalog"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/account/rewards/redeem": {
+      "post": {
+        "operationId": "redeemReward",
+        "security": [
+          {
+            "mobileBearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MobileRewardRedeemRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Debits the reward's points and issues one single-use voucher in one transaction; the same idempotency key replays the same voucher. 409 REWARD_INSUFFICIENT_POINTS / REWARD_UNAVAILABLE, 409 IDEMPOTENCY_CONFLICT.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileRewardRedemption"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/account/vouchers": {
+      "get": {
+        "operationId": "listVouchers",
+        "security": [
+          {
+            "mobileBearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The caller's newest 100 vouchers; state is derived by the server (AVAILABLE, IN_USE, USED, EXPIRED). A voucher is applied by typing its code in the existing cart coupon entry; unused expired vouchers are not credited back.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileVouchers"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -17940,6 +18016,265 @@
           "endsAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "replayed": {
+            "type": "boolean"
+          }
+        }
+      },
+      "MobileRewardOffer": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "balance",
+          "currency",
+          "decimals",
+          "discountMinor",
+          "id",
+          "merchantId",
+          "merchantName",
+          "minimumSpendMinor",
+          "nameEn",
+          "nameTh",
+          "pointsCost",
+          "redeemable",
+          "validityDays"
+        ],
+        "properties": {
+          "merchantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "merchantName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "nameTh": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "nameEn": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "currency": {
+            "type": "string",
+            "enum": [
+              "THB",
+              "USD",
+              "USDG"
+            ]
+          },
+          "decimals": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 6
+          },
+          "discountMinor": {
+            "type": "string",
+            "pattern": "^[0-9]{1,18}$"
+          },
+          "minimumSpendMinor": {
+            "type": "string",
+            "pattern": "^[0-9]{1,18}$"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "pointsCost": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000000
+          },
+          "validityDays": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 365
+          },
+          "balance": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "redeemable": {
+            "type": "boolean"
+          }
+        }
+      },
+      "MobileRewardCatalog": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "generatedAt",
+          "rewards"
+        ],
+        "properties": {
+          "generatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "rewards": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MobileRewardOffer"
+            },
+            "maxItems": 30
+          }
+        }
+      },
+      "MobileRewardRedeemRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "rewardId",
+          "idempotencyKey"
+        ],
+        "properties": {
+          "rewardId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "MobileVoucher": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "createdAt",
+          "currency",
+          "decimals",
+          "discountMinor",
+          "expiresAt",
+          "id",
+          "merchantId",
+          "merchantName",
+          "minimumSpendMinor",
+          "nameEn",
+          "nameTh",
+          "pointsSpent",
+          "rewardId",
+          "state"
+        ],
+        "properties": {
+          "merchantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "merchantName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "nameTh": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "nameEn": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "currency": {
+            "type": "string",
+            "enum": [
+              "THB",
+              "USD",
+              "USDG"
+            ]
+          },
+          "decimals": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 6
+          },
+          "discountMinor": {
+            "type": "string",
+            "pattern": "^[0-9]{1,18}$"
+          },
+          "minimumSpendMinor": {
+            "type": "string",
+            "pattern": "^[0-9]{1,18}$"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "rewardId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "code": {
+            "type": "string",
+            "pattern": "^[A-Z0-9][A-Z0-9_-]{2,31}$"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "AVAILABLE",
+              "IN_USE",
+              "USED",
+              "EXPIRED"
+            ]
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "pointsSpent": {
+            "type": "integer",
+            "minimum": 1
+          }
+        }
+      },
+      "MobileVouchers": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "generatedAt",
+          "vouchers"
+        ],
+        "properties": {
+          "generatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "vouchers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MobileVoucher"
+            },
+            "maxItems": 100
+          }
+        }
+      },
+      "MobileRewardRedemption": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "voucher",
+          "balance",
+          "replayed"
+        ],
+        "properties": {
+          "voucher": {
+            "$ref": "#/components/schemas/MobileVoucher"
+          },
+          "balance": {
+            "type": "integer",
+            "minimum": 0
           },
           "replayed": {
             "type": "boolean"

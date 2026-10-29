@@ -17,6 +17,10 @@ void main() {
   'MobileScheduleSlots':(json)=>MobileScheduleSlots.fromJson(json).toJson(),
   'MobileScheduleHoldRequest':(json)=>MobileScheduleHoldRequest.fromJson(json).toJson(),
   'MobileScheduleHold':(json)=>MobileScheduleHold.fromJson(json).toJson(),
+  'MobileRewardCatalog':(json)=>MobileRewardCatalog.fromJson(json).toJson(),
+  'MobileRewardRedeemRequest':(json)=>MobileRewardRedeemRequest.fromJson(json).toJson(),
+  'MobileRewardRedemption':(json)=>MobileRewardRedemption.fromJson(json).toJson(),
+  'MobileVouchers':(json)=>MobileVouchers.fromJson(json).toJson(),
  };
  final fixtures=jsonDecode(File('../openapi/fixtures/mobile-wire.json').readAsStringSync()) as Map<String,dynamic>;
  for(final raw in fixtures['cases'] as List) {

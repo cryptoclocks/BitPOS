@@ -144,6 +144,7 @@ String checkoutRefusalMessage(Object error, bool thai) {
     'COUPON_INELIGIBLE' => ('ออเดอร์นี้ยังไม่เข้าเงื่อนไขคูปอง', 'This order does not meet the coupon conditions.'),
     'COUPON_ACCOUNT_LIMIT' => ('คุณใช้สิทธิ์คูปองนี้ครบแล้ว', 'You have used all of your uses of this coupon.'),
     'COUPON_GLOBAL_LIMIT' || 'COUPON_BUDGET_LIMIT' => ('คูปองนี้ถูกใช้ครบแล้ว', 'This coupon has been fully redeemed.'),
+    'COUPON_REWARD_VOUCHER_REQUIRED' => ('ต้องมีคูปองรางวัลที่ยังใช้ได้ของร้านนี้ แลกแต้มที่หน้ารางวัลก่อน หรือคูปองถูกใช้ไปแล้ว', 'This code needs an unused reward voucher from this shop. Redeem points on the Rewards page first, or your voucher is already in use.'),
     'COUPON_ALREADY_APPLIED' => ('ราคานี้ใช้คูปองไปแล้ว กรุณาอัปเดตราคาก่อนเปลี่ยนคูปอง', 'A coupon is already on this price. Refresh the price to change it.'),
     'COUPON_COLLECTION_REVIEW_REQUIRED' => ('ออเดอร์แบบนี้ยังใช้คูปองไม่ได้', 'Coupons cannot be used with this kind of order yet.'),
     'COUPON_ZERO_ORDER_REQUIRES_COMPLETION' => ('คูปองนี้ทำให้ยอดเป็นศูนย์ ซึ่งยังไม่รองรับ', 'This coupon would make the order free, which is not supported yet.'),

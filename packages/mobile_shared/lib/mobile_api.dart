@@ -207,6 +207,11 @@ class MobileApi {
   Future<MobileSessionRevoked> revokeAccountSession(String sessionId)async=>MobileSessionRevoked.fromJson(await _request('account/sessions/${Uri.encodeComponent(sessionId)}',method:'PUT',body:MobileSessionRevoke(revoked:true).toJson(),authenticated:true));
   Future<MobileProfile> profile() async=>MobileProfile.fromJson(await _request('account/profile',authenticated:true));
   Future<MobileRewards> rewards() async=>MobileRewards.fromJson(await _request('account/rewards',authenticated:true));
+  /// Rewards of shops where the caller has a paid order, with the server-computed per-shop balance.
+  Future<MobileRewardCatalog> rewardCatalog() async=>MobileRewardCatalog.fromJson(await _request('account/rewards/catalog',authenticated:true));
+  /// Debits points and issues one voucher; the same idempotency key replays the same voucher.
+  Future<MobileRewardRedemption> redeemReward(MobileRewardRedeemRequest request) async=>MobileRewardRedemption.fromJson(await _request('account/rewards/redeem',method:'POST',body:request.toJson(),authenticated:true));
+  Future<MobileVouchers> vouchers() async=>MobileVouchers.fromJson(await _request('account/vouchers',authenticated:true));
   Future<MobileAccountErased> eraseAccountData() async=>MobileAccountErased.fromJson(await _request('account/erase',method:'POST',body:MobileAccountErase(idempotencyKey:const Uuid().v4(),confirm:'ERASE').toJson(),authenticated:true));
   Future<MobileAccountExport> accountExport() async=>MobileAccountExport.fromJson(await _request('account/export',authenticated:true));
   Future<MobileRideQuote> quoteRide(MobileRideQuoteRequest request) async=>MobileRideQuote.fromJson(await _request('rides/quote',method:'POST',body:request.toJson(),authenticated:true));
