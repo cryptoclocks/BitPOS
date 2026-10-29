@@ -16,6 +16,9 @@ FoodDriverAssignment _assignment({bool thai = false, bool instructions = true}) 
     state: 'ACCEPTED',
     pickupLatitudeE7: -137560001,
     pickupLongitudeE7: 1005018001,
+    pickupName: 'Try Cafe fixture branch',
+    pickupAddress: 'Fixture road, Bangkok (synthetic)',
+    items: [FoodDriverPickupItem(name: 'Iced latte', qty: 2)],
     recipientName: thai
         ? 'ผู้รับอาหารที่อาคารสำนักงานทางเข้าด้านหลัง'
         : 'Recipient at the rear office building entrance',

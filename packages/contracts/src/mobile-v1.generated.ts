@@ -78,6 +78,11 @@ export const FoodDriverOfferSchema=z.object({
  fixture:z.boolean(),
 }).strict();
 export type FoodDriverOffer=z.infer<typeof FoodDriverOfferSchema>;
+export const FoodDriverPickupItemSchema=z.object({
+ name:z.string().min(1).max(200),
+ qty:z.number().int().safe().min(1).max(1000),
+}).strict();
+export type FoodDriverPickupItem=z.infer<typeof FoodDriverPickupItemSchema>;
 export const FoodDriverAssignmentSchema=z.object({
  id:z.string().uuid(),
  shipmentId:z.string().uuid(),
@@ -88,6 +93,9 @@ export const FoodDriverAssignmentSchema=z.object({
  state:z.string().refine(value => ["ACCEPTED","AT_PICKUP","PICKED_UP","AT_DROPOFF","INCIDENT"].includes(value)),
  pickupLatitudeE7:z.number().int().safe().min(-900000000).max(900000000),
  pickupLongitudeE7:z.number().int().safe().min(-1800000000).max(1800000000),
+ pickupName:z.string().min(1).max(200),
+ pickupAddress:z.string().max(1000),
+ items:z.array(FoodDriverPickupItemSchema).max(100),
  recipientName:z.string().min(1).max(80),
  phone:z.string().min(1).max(32),
  addressText:z.string().min(1).max(1000),

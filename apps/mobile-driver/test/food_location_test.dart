@@ -30,7 +30,7 @@ class WorkApi extends LocationApi {
  @override Future<FoodDispatchMutation?> pendingFoodDispatch() async=>null;
  @override Future<FoodDriverWork> foodDriverWork() async=>FoodDriverWork(offers:[],assignment:FoodDriverAssignment.fromJson({...job(first).toJson(),'state':'AT_PICKUP','proofs':[{'id':second,'kind':'PICKUP','expiresAt':DateTime.now().add(const Duration(minutes:5)).toUtc().toIso8601String(),'attemptsRemaining':10}]}));
 }
-FoodDriverAssignment job(String id)=>FoodDriverAssignment(access:'NORMAL',shipmentVersion:'1',id:id,shipmentId:id,orderId:id,merchantId:id,generation:'1',leaseGeneration:'1',state:'ACCEPTED',pickupLatitudeE7:137560000,pickupLongitudeE7:1005018000,recipientName:'Fixture',phone:'+66900000001',addressText:'Fixture',instructions:'',latitudeE7:137560001,longitudeE7:1005018001,earning:MobileMoney(currency:'USD',decimals:2,amountMinor:'100'),fixture:true,proofs:[]);
+FoodDriverAssignment job(String id)=>FoodDriverAssignment(access:'NORMAL',shipmentVersion:'1',id:id,shipmentId:id,orderId:id,merchantId:id,generation:'1',leaseGeneration:'1',state:'ACCEPTED',pickupLatitudeE7:137560000,pickupLongitudeE7:1005018000,pickupName:'Fixture shop',pickupAddress:'',items:[],recipientName:'Fixture',phone:'+66900000001',addressText:'Fixture',instructions:'',latitudeE7:137560001,longitudeE7:1005018001,earning:MobileMoney(currency:'USD',decimals:2,amountMinor:'100'),fixture:true,proofs:[]);
 
 
 void main(){

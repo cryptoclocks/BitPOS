@@ -229,6 +229,20 @@ class FoodDriverOffer {
  Map<String,dynamic> toJson() => {"id": id, "shipmentId": shipmentId, "generation": generation, "version": version, "expiresAt": expiresAt, "pickupLatitudeE7": pickupLatitudeE7, "pickupLongitudeE7": pickupLongitudeE7, "earning": earning.toJson(), "fixture": fixture};
 }
 
+class FoodDriverPickupItem {
+ final String name;
+ final int qty;
+ const FoodDriverPickupItem._({required this.name, required this.qty});
+ factory FoodDriverPickupItem({required String name, required int qty}) => FoodDriverPickupItem.fromJson({"name": name, "qty": qty});
+ factory FoodDriverPickupItem.fromJson(Map<String,dynamic> json) {
+  if (json.length != 2 || !json.keys.every(["name","qty"].contains)) throw const FormatException('Invalid FoodDriverPickupItem fields');
+  final name=(() { final value=json["name"]; const path="FoodDriverPickupItem.name"; return _string(value, path, pattern: null, format: null, min: 1, max: 200); })();
+  final qty=(() { final value=json["qty"]; const path="FoodDriverPickupItem.qty"; return _integer(value, path, min: 1, max: 1000); })();
+  return FoodDriverPickupItem._(name: name, qty: qty);
+ }
+ Map<String,dynamic> toJson() => {"name": name, "qty": qty};
+}
+
 class FoodDriverAssignment extends FoodDriverDuty {
  final String id;
  final String shipmentId;
@@ -239,6 +253,9 @@ class FoodDriverAssignment extends FoodDriverDuty {
  final String state;
  final int pickupLatitudeE7;
  final int pickupLongitudeE7;
+ final String pickupName;
+ final String pickupAddress;
+ final List<FoodDriverPickupItem> items;
  final String recipientName;
  final String phone;
  final String addressText;
@@ -250,10 +267,10 @@ class FoodDriverAssignment extends FoodDriverDuty {
  final List<FoodDriverProof> proofs;
  final String access;
  final String shipmentVersion;
- const FoodDriverAssignment._({required this.id, required this.shipmentId, required this.orderId, required this.merchantId, required this.generation, required this.leaseGeneration, required this.state, required this.pickupLatitudeE7, required this.pickupLongitudeE7, required this.recipientName, required this.phone, required this.addressText, required this.instructions, required this.latitudeE7, required this.longitudeE7, required this.earning, required this.fixture, required this.proofs, required this.access, required this.shipmentVersion});
- factory FoodDriverAssignment({required String id, required String shipmentId, required String orderId, required String merchantId, required String generation, required String leaseGeneration, required String state, required int pickupLatitudeE7, required int pickupLongitudeE7, required String recipientName, required String phone, required String addressText, required String instructions, required int latitudeE7, required int longitudeE7, required MobileMoney earning, required bool fixture, required List<FoodDriverProof> proofs, required String access, required String shipmentVersion}) => FoodDriverAssignment.fromJson({"id": id, "shipmentId": shipmentId, "orderId": orderId, "merchantId": merchantId, "generation": generation, "leaseGeneration": leaseGeneration, "state": state, "pickupLatitudeE7": pickupLatitudeE7, "pickupLongitudeE7": pickupLongitudeE7, "recipientName": recipientName, "phone": phone, "addressText": addressText, "instructions": instructions, "latitudeE7": latitudeE7, "longitudeE7": longitudeE7, "earning": earning.toJson(), "fixture": fixture, "proofs": proofs.map((value) => value.toJson()).toList(), "access": access, "shipmentVersion": shipmentVersion});
+ const FoodDriverAssignment._({required this.id, required this.shipmentId, required this.orderId, required this.merchantId, required this.generation, required this.leaseGeneration, required this.state, required this.pickupLatitudeE7, required this.pickupLongitudeE7, required this.pickupName, required this.pickupAddress, required this.items, required this.recipientName, required this.phone, required this.addressText, required this.instructions, required this.latitudeE7, required this.longitudeE7, required this.earning, required this.fixture, required this.proofs, required this.access, required this.shipmentVersion});
+ factory FoodDriverAssignment({required String id, required String shipmentId, required String orderId, required String merchantId, required String generation, required String leaseGeneration, required String state, required int pickupLatitudeE7, required int pickupLongitudeE7, required String pickupName, required String pickupAddress, required List<FoodDriverPickupItem> items, required String recipientName, required String phone, required String addressText, required String instructions, required int latitudeE7, required int longitudeE7, required MobileMoney earning, required bool fixture, required List<FoodDriverProof> proofs, required String access, required String shipmentVersion}) => FoodDriverAssignment.fromJson({"id": id, "shipmentId": shipmentId, "orderId": orderId, "merchantId": merchantId, "generation": generation, "leaseGeneration": leaseGeneration, "state": state, "pickupLatitudeE7": pickupLatitudeE7, "pickupLongitudeE7": pickupLongitudeE7, "pickupName": pickupName, "pickupAddress": pickupAddress, "items": items.map((value) => value.toJson()).toList(), "recipientName": recipientName, "phone": phone, "addressText": addressText, "instructions": instructions, "latitudeE7": latitudeE7, "longitudeE7": longitudeE7, "earning": earning.toJson(), "fixture": fixture, "proofs": proofs.map((value) => value.toJson()).toList(), "access": access, "shipmentVersion": shipmentVersion});
  factory FoodDriverAssignment.fromJson(Map<String,dynamic> json) {
-  if (json.length != 20 || !json.keys.every(["id","shipmentId","orderId","merchantId","generation","leaseGeneration","state","pickupLatitudeE7","pickupLongitudeE7","recipientName","phone","addressText","instructions","latitudeE7","longitudeE7","earning","fixture","proofs","access","shipmentVersion"].contains)) throw const FormatException('Invalid FoodDriverAssignment fields');
+  if (json.length != 23 || !json.keys.every(["id","shipmentId","orderId","merchantId","generation","leaseGeneration","state","pickupLatitudeE7","pickupLongitudeE7","pickupName","pickupAddress","items","recipientName","phone","addressText","instructions","latitudeE7","longitudeE7","earning","fixture","proofs","access","shipmentVersion"].contains)) throw const FormatException('Invalid FoodDriverAssignment fields');
   final id=(() { final value=json["id"]; const path="FoodDriverAssignment.id"; return _string(value, path, pattern: null, format: "uuid", min: 0, max: null); })();
   final shipmentId=(() { final value=json["shipmentId"]; const path="FoodDriverAssignment.shipmentId"; return _string(value, path, pattern: null, format: "uuid", min: 0, max: null); })();
   final orderId=(() { final value=json["orderId"]; const path="FoodDriverAssignment.orderId"; return _string(value, path, pattern: null, format: "uuid", min: 0, max: null); })();
@@ -263,6 +280,9 @@ class FoodDriverAssignment extends FoodDriverDuty {
   final state=(() { final value=json["state"]; const path="FoodDriverAssignment.state"; return _enum(_string(value, path, pattern: null, format: null, min: 0, max: null), ["ACCEPTED","AT_PICKUP","PICKED_UP","AT_DROPOFF","INCIDENT"], path); })();
   final pickupLatitudeE7=(() { final value=json["pickupLatitudeE7"]; const path="FoodDriverAssignment.pickupLatitudeE7"; return _integer(value, path, min: -900000000, max: 900000000); })();
   final pickupLongitudeE7=(() { final value=json["pickupLongitudeE7"]; const path="FoodDriverAssignment.pickupLongitudeE7"; return _integer(value, path, min: -1800000000, max: 1800000000); })();
+  final pickupName=(() { final value=json["pickupName"]; const path="FoodDriverAssignment.pickupName"; return _string(value, path, pattern: null, format: null, min: 1, max: 200); })();
+  final pickupAddress=(() { final value=json["pickupAddress"]; const path="FoodDriverAssignment.pickupAddress"; return _string(value, path, pattern: null, format: null, min: 0, max: 1000); })();
+  final items=(() { final value=json["items"]; const path="FoodDriverAssignment.items"; return List<FoodDriverPickupItem>.unmodifiable(_list(value, path, 0, 100).map((value) => FoodDriverPickupItem.fromJson(_object(value, path)))); })();
   final recipientName=(() { final value=json["recipientName"]; const path="FoodDriverAssignment.recipientName"; return _string(value, path, pattern: null, format: null, min: 1, max: 80); })();
   final phone=(() { final value=json["phone"]; const path="FoodDriverAssignment.phone"; return _string(value, path, pattern: null, format: null, min: 1, max: 32); })();
   final addressText=(() { final value=json["addressText"]; const path="FoodDriverAssignment.addressText"; return _string(value, path, pattern: null, format: null, min: 1, max: 1000); })();
@@ -274,10 +294,10 @@ class FoodDriverAssignment extends FoodDriverDuty {
   final proofs=(() { final value=json["proofs"]; const path="FoodDriverAssignment.proofs"; return List<FoodDriverProof>.unmodifiable(_list(value, path, 0, 2).map((value) => FoodDriverProof.fromJson(_object(value, path)))); })();
   final access=(() { final value=json["access"]; const path="FoodDriverAssignment.access"; return _enum(_string(value, path, pattern: null, format: null, min: 0, max: null), ["NORMAL"], path); })();
   final shipmentVersion=(() { final value=json["shipmentVersion"]; const path="FoodDriverAssignment.shipmentVersion"; return _string(value, path, pattern: "^[1-9][0-9]{0,18}\$", format: null, min: 0, max: null); })();
-  return FoodDriverAssignment._(id: id, shipmentId: shipmentId, orderId: orderId, merchantId: merchantId, generation: generation, leaseGeneration: leaseGeneration, state: state, pickupLatitudeE7: pickupLatitudeE7, pickupLongitudeE7: pickupLongitudeE7, recipientName: recipientName, phone: phone, addressText: addressText, instructions: instructions, latitudeE7: latitudeE7, longitudeE7: longitudeE7, earning: earning, fixture: fixture, proofs: proofs, access: access, shipmentVersion: shipmentVersion);
+  return FoodDriverAssignment._(id: id, shipmentId: shipmentId, orderId: orderId, merchantId: merchantId, generation: generation, leaseGeneration: leaseGeneration, state: state, pickupLatitudeE7: pickupLatitudeE7, pickupLongitudeE7: pickupLongitudeE7, pickupName: pickupName, pickupAddress: pickupAddress, items: items, recipientName: recipientName, phone: phone, addressText: addressText, instructions: instructions, latitudeE7: latitudeE7, longitudeE7: longitudeE7, earning: earning, fixture: fixture, proofs: proofs, access: access, shipmentVersion: shipmentVersion);
  }
  @override
- Map<String,dynamic> toJson() => {"id": id, "shipmentId": shipmentId, "orderId": orderId, "merchantId": merchantId, "generation": generation, "leaseGeneration": leaseGeneration, "state": state, "pickupLatitudeE7": pickupLatitudeE7, "pickupLongitudeE7": pickupLongitudeE7, "recipientName": recipientName, "phone": phone, "addressText": addressText, "instructions": instructions, "latitudeE7": latitudeE7, "longitudeE7": longitudeE7, "earning": earning.toJson(), "fixture": fixture, "proofs": proofs.map((value) => value.toJson()).toList(), "access": access, "shipmentVersion": shipmentVersion};
+ Map<String,dynamic> toJson() => {"id": id, "shipmentId": shipmentId, "orderId": orderId, "merchantId": merchantId, "generation": generation, "leaseGeneration": leaseGeneration, "state": state, "pickupLatitudeE7": pickupLatitudeE7, "pickupLongitudeE7": pickupLongitudeE7, "pickupName": pickupName, "pickupAddress": pickupAddress, "items": items.map((value) => value.toJson()).toList(), "recipientName": recipientName, "phone": phone, "addressText": addressText, "instructions": instructions, "latitudeE7": latitudeE7, "longitudeE7": longitudeE7, "earning": earning.toJson(), "fixture": fixture, "proofs": proofs.map((value) => value.toJson()).toList(), "access": access, "shipmentVersion": shipmentVersion};
 }
 
 class FoodDriverRestrictedAssignment extends FoodDriverDuty {

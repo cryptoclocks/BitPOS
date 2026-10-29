@@ -5559,7 +5559,7 @@
             "mobileBearer": []
           }
         ],
-        "x-bitpos-admission": "Return+finance+BITPOS_FOOD_REFUND_EXECUTION_READ_ENABLED=1; reviewed108\u2013116 schema/grants; scoped administrator; default disabled",
+        "x-bitpos-admission": "Return+finance+BITPOS_FOOD_REFUND_EXECUTION_READ_ENABLED=1; reviewed108–116 schema/grants; scoped administrator; default disabled",
         "responses": {
           "200": {
             "description": "Return operational authority; financial review pending is not refund execution.",
@@ -7505,6 +7505,26 @@
           }
         }
       },
+      "FoodDriverPickupItem": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "qty"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "qty": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000
+          }
+        }
+      },
       "FoodDriverAssignment": {
         "type": "object",
         "additionalProperties": false,
@@ -7518,6 +7538,9 @@
           "state",
           "pickupLatitudeE7",
           "pickupLongitudeE7",
+          "pickupName",
+          "pickupAddress",
+          "items",
           "recipientName",
           "phone",
           "addressText",
@@ -7574,6 +7597,22 @@
             "type": "integer",
             "minimum": -1800000000,
             "maximum": 1800000000
+          },
+          "pickupName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "pickupAddress": {
+            "type": "string",
+            "maxLength": 1000
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FoodDriverPickupItem"
+            },
+            "maxItems": 100
           },
           "recipientName": {
             "type": "string",
