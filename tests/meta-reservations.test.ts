@@ -145,7 +145,7 @@ test('chat: "จองโต๊ะ…" books through the agent without a model; 
  assert.match(booked[0].text,/Booked/);assert.equal(booked[1].kind,'cards');assert.match(booked[1].cards[0].title,/4 คน/);
  assert.match(booked[1].cards[0].buttons[0].payload,/^BITPOS_BOOK_CANCEL:/);
  const mine=await handleAgentRequest(chat,{merchantId:M,linkId:L2,psid:PSID2,kind:'my_orders'}) as any[];
- assert.match(mine[0].text,/Your bookings/);
+ assert.ok(mine[1].cards.every((c:any)=>/^🗓️ #/.test(c.title)));assert.ok(mine[1].cards.some((c:any)=>c.buttons[0]?.payload===booked[1].cards[0].buttons[0].payload),'held booking can be cancelled from My orders');
  const cancel=await handleAgentRequest(chat,{merchantId:M,linkId:L2,psid:PSID2,kind:'book_cancel',reservationId:booked[1].cards[0].buttons[0].payload.split(':')[1]}) as any[];
  assert.match(cancel[0].text,/cancelled/);
  // With a model: its extracted fields go to the same booking path (stubbed; no credit used).

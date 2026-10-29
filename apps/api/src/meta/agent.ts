@@ -11,9 +11,11 @@ import {MetaRouterError} from '../../../../packages/meta-ai/src/types';
 import {AgentOrderError,createQuote,listCustomerOrders,listMenu,startAgentCheckout,type AgentDeps,type MenuItem,type QuoteView} from './agent-orders';
 import type {AgentRequest} from './identity';
 import {cancelReservation,customerReservations,openBookingRequest,parseBooking,requestBooking,resetBookingRequest,bangkokToday,TZ,CHECKIN_MINUTES,type BookingFields,type BookingResult,type ReservationView} from './reservations';
-import type {Card,Outgoing} from './messenger';
+import type {Card,Outgoing,QuickReply} from './messenger';
+import {CartError,customerCartOrders,formatCart,parseCart,quoteCart,startCart,type CartLine} from './cart';
 
-export interface ChatAgentDeps extends AgentDeps {router:MetaRouter|null;publicOrigin:string;modelCallsPerHour?:number}
+/** shopMerchant: the shop served at the root of publicOrigin (meta-pay), so menu cards can link to its item pages. */
+export interface ChatAgentDeps extends AgentDeps {router:MetaRouter|null;publicOrigin:string;modelCallsPerHour?:number;shopMerchant?:string|null}
 type By={chosenBy:'model'|'fallback';invocationId?:string|null};
 export type AgentStep=({action:'quote';productId:string;quantity:number;replyTh:string;replyEn:string}|
  {action:'book';booking:BookingFields;replyTh:string;replyEn:string}|
@@ -109,16 +111,45 @@ function imageFor(deps:ChatAgentDeps,i:MenuItem):string|undefined{
  if(i.imageUrl?.startsWith('/images/'))return deps.publicOrigin+'/meta'+i.imageUrl;
  return i.imageUrl?.startsWith('https://')?i.imageUrl:undefined;
 }
-/** The menu as a swipeable card carousel; "Order" quotes the item directly, with no model call. */
-export function menuCards(deps:ChatAgentDeps,psid:string,items:MenuItem[]):Outgoing{
- return {kind:'cards',psid,cards:items.slice(0,10).map(i=>({title:`${i.emoji} ${i.name} · ${i.price.display}`,
+const CART_ID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+const CART_LINES=10;
+/** The chip row under the last reply (design C08/C15). */
+export const QUICK:QuickReply[]=[{title:'เมนู',payload:'BITPOS_MENU'},{title:'ออเดอร์ของฉัน',payload:'BITPOS_MY_ORDERS'},{title:'จองโต๊ะ',payload:'BITPOS_BOOK'}];
+const plus=(cart:CartLine[],productId:string,n=1):CartLine[]|null=>{
+ if(!CART_ID.test(productId))return null;
+ const has=cart.some(l=>l.productId===productId);
+ if(!has&&cart.length>=CART_LINES)return null;
+ return has?cart.map(l=>l.productId===productId?{...l,quantity:Math.min(20,l.quantity+n)}:l):[...cart,{productId,quantity:n}];
+};
+/** The menu as a swipeable card carousel. "Add" carries the cart in its payload, so the chat keeps no cart state. */
+export function menuCards(deps:ChatAgentDeps,psid:string,items:MenuItem[],cart:CartLine[]=[],merchantId?:string):Outgoing{
+ const details=!!merchantId&&merchantId===deps.shopMerchant;
+ return {kind:'cards',psid,cards:items.slice(0,10).map(i=>{const next=plus(cart,i.productId);
+  return {title:`${i.emoji} ${i.name} · ${i.price.display}`,
   subtitle:`${i.nameEn}${i.offer?` · โปร −${i.offer.discountPercent}% (ปกติ ${i.basePrice.display})`:''}`,imageUrl:imageFor(deps,i),
-  buttons:[{type:'postback',title:'สั่ง / Order',payload:`BITPOS_AGENT_ADD:${i.productId}`}]}))};
+  buttons:[next?{type:'postback',title:'ใส่ตะกร้า / Add',payload:`BITPOS_CART_ADD:${formatCart(next)}`}:{type:'postback',title:'สั่ง / Order',payload:`BITPOS_AGENT_ADD:${i.productId}`},
+   ...(details?[{type:'web_url' as const,title:'รายละเอียด / Details',url:`${deps.publicOrigin}/item/${i.productId}`}]:[])]};})};
 }
 function quoteCard(deps:ChatAgentDeps,psid:string,q:QuoteView,item:MenuItem,by:string):Outgoing{
+ const more=plus([],item.productId,q.quantity);
  const card:Card={title:`${item.emoji} ${q.name} ×${q.quantity} = ${q.total}`,subtitle:`${item.offer?`โปร −${item.offer.discountPercent}% · `:''}${LABEL}${by?` · ${by}`:''}`,imageUrl:imageFor(deps,item),
-  buttons:[{type:'postback',title:`จ่าย ${q.total}`.slice(0,20),payload:`BITPOS_AGENT_PAY:${q.quoteId}`},{type:'postback',title:'ดูเมนู / Menu',payload:'BITPOS_MENU'}]};
+  buttons:[{type:'postback',title:`จ่าย ${q.total}`.slice(0,20),payload:`BITPOS_AGENT_PAY:${q.quoteId}`},
+   more?{type:'postback',title:'เพิ่มเมนูอื่น / Add more',payload:`BITPOS_CART_MENU:${formatCart(more)}`}:{type:'postback',title:'ดูเมนู / Menu',payload:'BITPOS_MENU'}]};
  return {kind:'cards',psid,cards:[card]};
+}
+const CART_ERR:Record<CartError['code'],string>={EMPTY:'ตะกร้ายังว่างค่ะ / Your cart is empty.',INVALID_INPUT:'ตะกร้าไม่ถูกต้อง เริ่มใหม่จากเมนูได้เลยค่ะ / Start again from the menu.',
+ NOT_FOUND:'มีเมนูที่ร้านนำออกแล้ว เริ่มใหม่จากเมนูได้เลยค่ะ / An item is no longer on the menu.',OUT_OF_STOCK:'มีเมนูที่ของไม่พอค่ะ ลองลดจำนวนหรือเลือกอย่างอื่น / Not enough stock.',
+ MIXED_CURRENCY:'สั่งรวมกันไม่ได้ค่ะ / These items cannot be paid together.',BELOW_MINIMUM:'ยอดยังต่ำกว่าขั้นต่ำของ Stripe ค่ะ เพิ่มอีกนิดได้เลย / Below the Stripe minimum.',
+ PAYMENTS_UNAVAILABLE:'ตอนนี้ยังรับชำระไม่ได้ค่ะ / Payments are not available right now.',NOT_CANCELLABLE:'ทำรายการนี้ไม่ได้ค่ะ',ENDED:'รายการนี้ปิดแล้วค่ะ'};
+/** Cart summary: every line priced by the server now; Pay starts one hosted Checkout for all of it. */
+async function cartMessages(deps:ChatAgentDeps,merchantId:string,psid:string,cart:CartLine[],note:string):Promise<Outgoing[]>{
+ const q=await quoteCart(deps,merchantId,cart),n=q.lines.reduce((a,l)=>a+l.quantity,0),raw=formatCart(cart);
+ const lines=q.lines.map(l=>`${l.emoji} ${l.name} ×${l.quantity} = ${l.amount}${l.offer?' (โปร)':''}`);
+ const last=q.lines[q.lines.length-1];
+ const image=last?.imageUrl?.startsWith('/images/')?deps.publicOrigin+'/meta'+last.imageUrl:last?.imageUrl?.startsWith('https://')?last.imageUrl:undefined;
+ return [{kind:'text',psid,text:`${note}\n${lines.join('\n')}${/[1-9]/.test(q.discount)?`\nส่วนลดที่ร้านอนุมัติ −${q.discount}`:''}\nรวม ${q.total} · ราคาจากร้าน / Prices from the shop`},
+  {kind:'cards',psid,cards:[{title:`🛒 ตะกร้า ${n} ชิ้น · ${q.total}`,subtitle:`${lines.join(' · ')}`,imageUrl:image,
+   buttons:[{type:'postback',title:`จ่าย ${q.total}`.slice(0,20),payload:`BITPOS_CART_PAY:${raw}`},{type:'postback',title:'เพิ่มเมนู / Add more',payload:`BITPOS_CART_MENU:${raw}`},{type:'postback',title:'ล้างตะกร้า / Clear',payload:'BITPOS_MENU'}]}]}];
 }
 const STATUS:Record<string,string>={PENDING:'⏳ รอชำระ / waiting',CONFIRMED:'✅ จ่ายแล้ว / paid',FAILED:'✖️ จ่ายไม่สำเร็จ / failed',REFUNDING:'↩️ กำลังคืนเงิน / refunding',CANCELLED:'↩️ ยกเลิก / cancelled'};
 
@@ -152,6 +183,13 @@ const RES_STATUS:Record<ReservationView['status'],string>={HELD:'🗓️ จอ�
 
 /** Handles one chat request after the webhook transaction committed; returns the replies to send. */
 export async function handleAgentRequest(deps:ChatAgentDeps,req:AgentRequest):Promise<Outgoing[]>{
+ const out=await agentReplies(deps,req);
+ // Chips go under the last reply unless it is a booking question (its own buttons answer it).
+ const last=out[out.length-1];
+ if(last&&!(last.kind==='buttons'&&last.buttons.some(b=>b.type==='postback'&&b.payload.startsWith('BITPOS_BOOK_SET:'))))out[out.length-1]={...last,quick:QUICK};
+ return out;
+}
+async function agentReplies(deps:ChatAgentDeps,req:AgentRequest):Promise<Outgoing[]>{
  const {merchantId,linkId,psid}=req;
  try{
   if(req.kind==='agent_pay'){
@@ -160,12 +198,29 @@ export async function handleAgentRequest(deps:ChatAgentDeps,req:AgentRequest):Pr
    if(r.kind==='ended')return [{kind:'text',psid,text:'รายการนี้ปิดแล้ว พิมพ์สั่งใหม่ได้เลยค่ะ / This order is closed; order again.'}];
    return [{kind:'buttons',psid,text:`ยอด ${r.total} · จ่ายบนหน้า Stripe Checkout\nTotal ${r.total} · pay on Stripe Checkout.\n${LABEL}`,buttons:[{type:'web_url',title:'จ่าย / Pay',url:r.url}]}];
   }
+  if(req.kind==='cart_add'||req.kind==='cart_menu'||req.kind==='cart_pay'){
+   const cart=parseCart(req.cart).slice(0,CART_LINES);
+   try{
+    if(req.kind==='cart_menu'){
+     const items=(await listMenu(deps,merchantId)).filter(i=>i.payable);
+     return [{kind:'text',psid,text:'เลือกเพิ่มได้เลยค่ะ กด "ใส่ตะกร้า" แล้วจ่ายทีเดียว\nAdd more, then pay once.'},menuCards(deps,psid,items,cart,merchantId)];
+    }
+    if(req.kind==='cart_add')return await cartMessages(deps,merchantId,psid,cart,'ใส่ตะกร้าแล้ว ✓ / Added to cart');
+    const r=await startCart(deps,merchantId,cart,{channel:'chat',linkId,publicOrigin:deps.publicOrigin});
+    return [{kind:'buttons',psid,text:`ยอดรวมจากร้าน · จ่ายทีเดียวบนหน้า Stripe Checkout\nPay the whole cart on Stripe Checkout.\n${LABEL}`,buttons:[{type:'web_url',title:'จ่าย / Pay',url:r.checkoutUrl}]}];
+   }catch(e){if(e instanceof CartError)return [{kind:'text',psid,text:CART_ERR[e.code]}];throw e;}
+  }
   if(req.kind==='my_orders'){
-   const orders=await listCustomerOrders(deps,merchantId,linkId),bookings=await customerReservations(deps.db,merchantId,linkId);
-   if(!orders.length&&!bookings.length)return [{kind:'text',psid,text:'ยังไม่มีออเดอร์หรือการจองค่ะ / No orders or bookings yet.'}];
-   const lines=[...(orders.length?['ออเดอร์ของคุณ / Your orders',...orders.map(o=>`#${o.code} ${o.line} · ${o.handedOver?'🤝 รับแล้ว / picked up':STATUS[o.status]}`)]:[]),
-    ...(bookings.length?['การจองของคุณ / Your bookings',...bookings.map(b=>`#${b.code} โต๊ะ ${b.tableLabel} · ${when(b.startsAt)} · ${b.partySize} คน · ${RES_STATUS[b.status]}`)]:[])];
-   return [{kind:'text',psid,text:lines.join('\n')}];
+   const carts=await customerCartOrders(deps.db,merchantId,linkId),orders=await listCustomerOrders(deps,merchantId,linkId),bookings=await customerReservations(deps.db,merchantId,linkId);
+   if(!carts.length&&!orders.length&&!bookings.length)return [{kind:'text',psid,text:'ยังไม่มีออเดอร์หรือการจองค่ะ / No orders or bookings yet.'}];
+   const CS:Record<string,string>={PENDING:'⏳ รอจ่าย / waiting',PAID:'✅ จ่ายแล้ว / paid',CANCELLED:'↩️ คืนเงินแล้ว / refunded',EXPIRED:'⌛ หมดเวลา / expired'};
+   const cards:Card[]=[
+    ...bookings.map(b=>({title:`🗓️ #${b.code} โต๊ะ ${b.tableLabel} · ${when(b.startsAt)}`,subtitle:`${b.partySize} คน · ${RES_STATUS[b.status]}${b.status==='HELD'?` · เช็กอิน ${hhmm(b.checkInFrom)}–${hhmm(b.checkInUntil)}`:''}`,
+     buttons:b.status==='HELD'?[{type:'postback' as const,title:'ยกเลิกการจอง / Cancel',payload:`BITPOS_BOOK_CANCEL:${b.id}`}]:[]})),
+    ...carts.map(c=>({title:`🧾 #${c.code} ${c.lines.map(l=>`${l.emoji} ${l.name} ×${l.quantity}`).join(', ')}`,subtitle:`${c.total} · ${c.handedOverAt?'🤝 รับแล้ว / picked up':CS[c.status]??c.status}${c.status==='PAID'&&!c.handedOverAt?' · รับที่เคาน์เตอร์':''}`,
+     buttons:c.checkoutUrl?[{type:'web_url' as const,title:'จ่าย / Pay',url:c.checkoutUrl}]:[]})),
+    ...orders.map(o=>({title:`🧾 #${o.code} ${o.line}`,subtitle:o.handedOver?'🤝 รับแล้ว / picked up':STATUS[o.status],buttons:[]}))].slice(0,10);
+   return [{kind:'text',psid,text:'รายการล่าสุดของคุณค่ะ / Your latest orders and bookings'},{kind:'cards',psid,cards}];
   }
   if(req.kind==='book_start')return (await resetBookingRequest(deps.db,merchantId,linkId),bookingMessages(psid,await requestBooking(deps.db,merchantId,linkId,{date:null,time:null,partySize:null},{chosenBy:'fallback',invocationId:null})));
   if(req.kind==='book_set')return bookingMessages(psid,await requestBooking(deps.db,merchantId,linkId,{date:req.date,time:req.time,partySize:null},{chosenBy:'fallback',invocationId:null}));
@@ -176,7 +231,7 @@ export async function handleAgentRequest(deps:ChatAgentDeps,req:AgentRequest):Pr
   if(req.kind==='menu'||req.kind==='agent_add'){
    const items=(await listMenu(deps,merchantId)).filter(i=>i.payable);
    if(!items.length)return [{kind:'text',psid,text:'ตอนนี้ยังไม่มีเมนูที่สั่งผ่านแชทได้ค่ะ / Nothing can be ordered by chat right now.'}];
-   if(req.kind==='menu')return [{kind:'text',psid,text:'เมนูวันนี้ เลื่อนดูแล้วกด "สั่ง" ได้เลยค่ะ\nToday’s menu: swipe and tap Order.'},menuCards(deps,psid,items)];
+   if(req.kind==='menu')return [{kind:'text',psid,text:'เมนูวันนี้ เลื่อนดูแล้วกด "ใส่ตะกร้า" ได้เลยค่ะ\nToday’s menu: swipe and tap Add.'},menuCards(deps,psid,items,[],merchantId)];
    const item=items.find(i=>i.productId===req.productId);
    if(!item)return [{kind:'text',psid,text:'เมนูนี้สั่งผ่านแชทไม่ได้ตอนนี้ค่ะ / This item cannot be ordered by chat now.'}];
    const q=await createQuote(deps,merchantId,'messenger',item.productId,1,linkId);
@@ -185,7 +240,7 @@ export async function handleAgentRequest(deps:ChatAgentDeps,req:AgentRequest):Pr
   const plan=await planChatOrder(deps,merchantId,linkId,req.text);
   const by=plan.kind!=='error'&&plan.by?` · ${plan.by}`:'';
   if(plan.kind==='quote')return [{kind:'text',psid,text:`${plan.reply}${by}`},quoteCard(deps,psid,plan.quote,plan.item,plan.by)];
-  if(plan.kind==='menu')return [{kind:'text',psid,text:`${plan.reply}${by}`},menuCards(deps,psid,plan.items)];
+  if(plan.kind==='menu')return [{kind:'text',psid,text:`${plan.reply}${by}`},menuCards(deps,psid,plan.items,[],merchantId)];
   if(plan.kind==='book')return bookingMessages(psid,plan.result,`${plan.reply}${by}`);
   if(plan.kind==='help')return [{kind:'buttons',psid,text:`${plan.reply}${by}`,buttons:[{type:'postback',title:'ดูเมนู / Menu',payload:'BITPOS_MENU'},{type:'postback',title:'ออเดอร์ของฉัน',payload:'BITPOS_MY_ORDERS'}]}];
   if(plan.kind==='error')return [{kind:'text',psid,text:plan.text}];

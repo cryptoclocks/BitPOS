@@ -13,6 +13,7 @@ import {parseMessengerWebhook,sendMessenger} from '../apps/api/src/meta/messenge
 import type {EffectiveMenu} from '../apps/api/src/offers';
 import {decideStep,handleAgentRequest,matchItem,type ChatAgentDeps} from '../apps/api/src/meta/agent';
 import {agentReceipt,listMenu,reconcileAgentCheckout} from '../apps/api/src/meta/agent-orders';
+import {cartChatReceipt} from '../apps/api/src/meta/cart';
 import {handleRpc} from '../apps/api/src/meta/mcp';
 import {applyStripeWebhook} from '../apps/api/src/meta/tap-checkout';
 import {serveMeta,type MetaRouteDeps} from '../apps/api/src/meta/routes';
@@ -186,12 +187,13 @@ test('menu cards, one-tap order and My orders: no model call; receipt template w
  assert.equal(msg(PSID,{postback:{payload:'BITPOS_MY_ORDERS'}},52)[0].event.kind,'my_orders');
  const [intro,cards]=await handleAgentRequest(deps,{merchantId:A,linkId,psid:PSID,kind:'menu'}) as any[];
  assert.equal(intro.kind,'text');assert.equal(cards.kind,'cards');
- const card=cards.cards.find((c:any)=>c.buttons[0].payload===`BITPOS_AGENT_ADD:${latte}`);
+ const card=cards.cards.find((c:any)=>c.buttons[0].payload===`BITPOS_CART_ADD:${latte}:1`);
  assert.match(card.title,/\$4\.00/);assert.match(card.subtitle,/−20%/);
  const [quote]=await handleAgentRequest(deps,{merchantId:A,linkId,psid:PSID,kind:'agent_add',productId:latte}) as any[];
  assert.equal(quote.kind,'cards');assert.match(quote.cards[0].buttons[0].payload,/^BITPOS_AGENT_PAY:/);
- const [mine]=await handleAgentRequest(deps,{merchantId:A,linkId,psid:PSID,kind:'my_orders'}) as any[];
- assert.match(mine.text,/#[0-9A-F]{4}/);
+ const [mine,mineCards]=await handleAgentRequest(deps,{merchantId:A,linkId,psid:PSID,kind:'my_orders'}) as any[];
+ assert.equal(mineCards.kind,'cards');assert.match(mineCards.cards[0].title,/#[0-9A-F]{4}/);assert.deepEqual(mineCards.quick.map((q:any)=>q.payload),['BITPOS_MENU','BITPOS_MY_ORDERS','BITPOS_BOOK'],'chips under the last reply');
+ assert.match(mine.text,/รายการล่าสุด/);
  assert.equal(routerCalls,calls0,'menu, one-tap order and My orders never call the model');
  // Receipt: Messenger receipt template; if Messenger refuses it, the same facts go out as text.
  const order=(await admin.query<{id:string}>("SELECT id FROM meta_agent_orders WHERE link_id=$1 AND status='CONFIRMED' ORDER BY created_at DESC LIMIT 1",[linkId])).rows[0].id;
@@ -203,4 +205,27 @@ test('menu cards, one-tap order and My orders: no model call; receipt template w
  assert.equal(sent[0].message.attachment.payload.template_type,'receipt');
  assert.equal(sent[0].message.attachment.payload.summary.total_cost,4);
  assert.match(sent[1].message.text,/จ่ายแล้ว/,'fallback text after a refused template');
+});
+
+test('chat cart: the cart rides in the payload, the server re-prices it, one Checkout, receipt back to the chat',{skip},async()=>{
+ const calls0=routerCalls;
+ const ev=msg(PSID,{postback:{payload:`BITPOS_CART_ADD:${latte}:2`}},60)[0].event as any;assert.deepEqual([ev.kind,ev.cart],['cart_add',`${latte}:2`]);
+ assert.equal(msg(PSID,{postback:{payload:`BITPOS_CART_PAY:${latte}:2,not-a-cart`}},61).length,0,'malformed cart payload ignored');
+ const [note,card]=await handleAgentRequest(deps,{merchantId:A,linkId,psid:PSID,kind:'cart_add',cart:`${latte}:2`}) as any[];
+ assert.match(note.text,/×2 = \$8\.00/);assert.match(note.text,/−\$2\.00/,'approved discount shown');assert.match(card.cards[0].title,/2 ชิ้น · \$8\.00/);
+ assert.equal(card.cards[0].buttons[0].payload,`BITPOS_CART_PAY:${latte}:2`);assert.ok(card.quick,'chips');
+ const [, more]=await handleAgentRequest(deps,{merchantId:A,linkId,psid:PSID,kind:'cart_menu',cart:`${latte}:2`}) as any[];
+ assert.equal(more.cards[0].buttons[0].payload,`BITPOS_CART_ADD:${latte}:3`,'adding keeps the cart');
+ const [pay]=await handleAgentRequest(deps,{merchantId:A,linkId,psid:PSID,kind:'cart_pay',cart:`${latte}:2`}) as any[];
+ assert.equal(pay.buttons[0].type,'web_url');assert.match(pay.buttons[0].url,/^https:\/\/checkout\.stripe\.com\//);
+ const o=(await admin.query<{id:string;amount_minor:string;channel:string}>("SELECT id,amount_minor::text,channel FROM meta_cart_orders WHERE link_id=$1 ORDER BY created_at DESC LIMIT 1",[linkId])).rows[0];
+ assert.deepEqual([o.channel,o.amount_minor],['chat','800'],'server price, chat channel');
+ assert.equal(await cartChatReceipt(db,A,o.id,'https://pay.example.test'),null,'no receipt before paid');
+ await admin.query("UPDATE meta_cart_orders SET status='PAID',paid_at=now(),paid_source='webhook',stripe_payment_intent_id='pi_testchat1' WHERE id=$1",[o.id]);
+ const r=(await cartChatReceipt(db,A,o.id,'https://pay.example.test'))!;
+ assert.deepEqual([r.psid,r.receipt.total,r.receipt.subtotal,r.receipt.discount,r.receipt.elements[0].quantity],[PSID,8,10,2,2]);assert.match(r.text,/ส่วนลด −\$2\.00/);
+ const [,mine]=await handleAgentRequest(deps,{merchantId:A,linkId,psid:PSID,kind:'my_orders'}) as any[];
+ assert.ok(mine.cards.some((c:any)=>c.title.includes('×2')&&/จ่ายแล้ว/.test(c.subtitle)),'cart order in My orders');
+ const bad=await handleAgentRequest(deps,{merchantId:A,linkId,psid:PSID,kind:'cart_add',cart:`${latte}:20`}) as any[];assert.match(bad[0].text,/ของไม่พอ/);
+ assert.equal(routerCalls,calls0,'the cart never calls the model');
 });

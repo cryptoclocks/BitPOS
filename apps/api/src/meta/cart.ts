@@ -10,7 +10,7 @@ import {listMenu,type AgentDeps,type Currency} from './agent-orders';
 import {formatTapAmount} from './staff';
 import {STRIPE_MINIMUM,createCheckoutSession,refundPaymentIntent,retrieveCheckoutSession,type PaymentFact} from './stripe';
 
-export type CartChannel='table'|'counter'|'web';
+export type CartChannel='table'|'counter'|'web'|'chat';
 export interface CartLine {productId:string;quantity:number}
 export interface CartOrderView {orderId:string;code:string;channel:CartChannel;status:'PENDING'|'PAID'|'CANCELLED'|'EXPIRED';currency:Currency;amountMinor:string;total:string;
  discount:string;checkoutUrl:string|null;paidAt:string|null;handedOverAt:string|null;stockShort:boolean;tableLabel:string|null;
@@ -59,7 +59,7 @@ export async function quoteCart(deps:AgentDeps,merchantId:string,lines:CartLine[
 /** Makes the order and its hosted Stripe Checkout. Returns the order and a one-time access token for its receipt page. */
 export async function startCart(deps:AgentDeps,merchantId:string,lines:CartLine[],opts:{channel:CartChannel;tableId?:string|null;linkId?:string|null;staffUserId?:string|null;deviceId?:string|null;publicOrigin:string}):Promise<{orderId:string;access:string;checkoutUrl:string}>{
  if(!deps.stripe)throw new CartError('PAYMENTS_UNAVAILABLE');
- if((opts.channel==='counter')!==Boolean(opts.staffUserId))throw new CartError('INVALID_INPUT');
+ if((opts.channel==='counter')!==Boolean(opts.staffUserId)||opts.channel==='chat'&&!opts.linkId)throw new CartError('INVALID_INPUT');
  const p=await price(deps,merchantId,lines);
  const access=randomBytes(24).toString('base64url');
  const orderId=await deps.db.tenant(merchantId,async c=>{
@@ -163,6 +163,31 @@ export async function refundCart(deps:AgentDeps,merchantId:string,orderId:string
    await c.query("UPDATE meta_cart_orders SET status='CANCELLED',stripe_refund_id=$2,cancelled_at=clock_timestamp() WHERE id=$1",[orderId,refund.id]);
   }
   return (await viewOf(c,orderId))!;
+ });
+}
+/** Messenger receipt for a paid chat cart (consented, not revoked links only). */
+export async function cartChatReceipt(db:MetaDb,merchantId:string,orderId:string,publicOrigin:string):Promise<{psid:string;text:string;receipt:import('./messenger').Receipt}|null>{
+ if(!UUID.test(orderId))return null;
+ return db.tenant(merchantId,async c=>{
+  const o=(await c.query<{psid:string;shop:string;status:string;currency:string;amount_minor:string;discount_minor:string;paid_at:Date|null}>(
+   `SELECT l.psid,m.name AS shop,o.status,o.currency,o.amount_minor::text,o.discount_minor::text,o.paid_at FROM meta_cart_orders o JOIN merchants m ON m.id=o.merchant_id
+    JOIN meta_customer_links l ON l.merchant_id=o.merchant_id AND l.id=o.link_id AND l.revoked_at IS NULL WHERE o.id=$1 AND o.channel='chat'`,[orderId])).rows[0];
+  if(!o||o.status!=='PAID')return null;
+  const items=(await c.query<{name:string;name_en:string;emoji:string;quantity:number;unit_minor:string;image_url:string|null}>(
+   'SELECT i.name,i.name_en,i.emoji,i.quantity,i.unit_minor::text,p.image_url FROM meta_cart_items i LEFT JOIN products p ON p.merchant_id=i.merchant_id AND p.id=i.product_id WHERE i.order_id=$1 ORDER BY i.line',[orderId])).rows;
+  const code=cartCode(orderId),cur=o.currency.toUpperCase(),dec=(m:string|bigint)=>Number(BigInt(m))/100,f=(m:string)=>formatTapAmount(m,o.currency);
+  const img=(u:string|null)=>u?.startsWith('/images/')?publicOrigin+'/meta'+u:u?.startsWith('https://')?u:undefined;
+  const text=`จ่ายแล้ว ✓ รหัสรับสินค้า #${code} · ${o.shop}\n${items.map(i=>`${i.emoji} ${i.name} ×${i.quantity}`).join('\n')}\n${BigInt(o.discount_minor)>0n?`ส่วนลด −${f(o.discount_minor)}\n`:''}รวม ${f(o.amount_minor)} · รับที่เคาน์เตอร์ได้เลยค่ะ\nPaid — pickup code #${code}. Stripe sandbox, test mode.`;
+  return {psid:o.psid,text,receipt:{recipientName:`${o.shop} · รหัสรับ #${code}`,orderNumber:code,currency:cur,paymentMethod:'Stripe sandbox (test mode)',timestamp:Math.floor((o.paid_at??new Date()).getTime()/1000),
+   elements:items.map(i=>({title:`${i.emoji} ${i.name} / ${i.name_en}`,subtitle:'รับที่เคาน์เตอร์ / Pick up at the counter',quantity:i.quantity,price:dec(i.unit_minor),currency:cur,imageUrl:img(i.image_url)})),
+   total:dec(o.amount_minor),subtotal:dec(BigInt(o.amount_minor)+BigInt(o.discount_minor)),discount:BigInt(o.discount_minor)>0n?dec(o.discount_minor):undefined}};
+ });
+}
+/** A Messenger customer's own recent cart orders for "My orders". */
+export async function customerCartOrders(db:MetaDb,merchantId:string,linkId:string):Promise<CartOrderView[]>{
+ return db.tenant(merchantId,async c=>{
+  const ids=(await c.query<{id:string}>("SELECT id FROM meta_cart_orders WHERE link_id=$1 AND created_at>clock_timestamp()-interval '7 days' AND (status<>'PENDING' OR expires_at>clock_timestamp()) ORDER BY created_at DESC LIMIT 5",[linkId])).rows;
+  return (await Promise.all(ids.map(r=>viewOf(c,r.id)))).filter((v):v is CartOrderView=>!!v);
  });
 }
 export {formatTapAmount};

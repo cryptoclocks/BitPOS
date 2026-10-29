@@ -37,6 +37,9 @@ export type MessengerEvent=
  {kind:'agent_add';pageId:string;psid:string;timestamp:number;productId:string}|
  {kind:'menu';pageId:string;psid:string;timestamp:number}|
  {kind:'my_orders';pageId:string;psid:string;timestamp:number}|
+ {kind:'cart_add';pageId:string;psid:string;timestamp:number;cart:string}|
+ {kind:'cart_pay';pageId:string;psid:string;timestamp:number;cart:string}|
+ {kind:'cart_menu';pageId:string;psid:string;timestamp:number;cart:string}|
  {kind:'book_start';pageId:string;psid:string;timestamp:number}|
  {kind:'book_set';pageId:string;psid:string;timestamp:number;date:string|null;time:string|null}|
  {kind:'book_cancel';pageId:string;psid:string;timestamp:number;reservationId:string};
@@ -46,6 +49,8 @@ export interface ParsedEvent {event:MessengerEvent;key:Buffer}
 const STOP=new Set(['stop','ลบข้อมูล','ยกเลิก','เลิกติดตาม']);
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 // Product ids come from the inherited catalog and are not always version-4 UUIDs.
+// A chat cart travels in the button payload itself ("productId:qty,…", at most 10 lines); the server re-prices it.
+const CART=/^BITPOS_CART_(ADD|PAY|MENU):((?:[0-9a-f-]{36}:[0-9]{1,2})(?:,[0-9a-f-]{36}:[0-9]{1,2}){0,9})$/;
 const ANY_UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
 /** Turns a `page` webhook body into the BitPOS events it carries; anything else is ignored. */
@@ -68,6 +73,7 @@ export function parseMessengerWebhook(body:unknown):ParsedEvent[]{
    else if(payload?.startsWith('BITPOS_AGENT_PAY:')&&UUID.test(payload.slice(17)))event={...base,kind:'agent_pay',quoteId:payload.slice(17)};
    else if(payload?.startsWith('BITPOS_AGENT_ADD:')&&ANY_UUID.test(payload.slice(17)))event={...base,kind:'agent_add',productId:payload.slice(17)};
    else if(payload==='BITPOS_MENU')event={...base,kind:'menu'};
+   else if(payload&&CART.test(payload)){const [,k,cart]=payload.match(CART)!;event=k==='ADD'?{...base,kind:'cart_add',cart}:k==='PAY'?{...base,kind:'cart_pay',cart}:{...base,kind:'cart_menu',cart};}
    else if(payload==='BITPOS_MY_ORDERS')event={...base,kind:'my_orders'};
    else if(payload==='BITPOS_BOOK')event={...base,kind:'book_start'};
    else if(payload?.startsWith('BITPOS_BOOK_CANCEL:')&&ANY_UUID.test(payload.slice(19)))event={...base,kind:'book_cancel',reservationId:payload.slice(19)};
@@ -90,16 +96,22 @@ export type MessengerButton={type:'postback';title:string;payload:string}|{type:
 export interface Card {title:string;subtitle?:string;imageUrl?:string;buttons:MessengerButton[]}
 /** Messenger's receipt template; amounts are decimal numbers in the order's currency, rendered by Messenger. */
 export interface Receipt {recipientName:string;orderNumber:string;currency:string;paymentMethod:string;timestamp:number;
- elements:{title:string;subtitle?:string;quantity:number;price:number;currency:string;imageUrl?:string}[];total:number}
-export type Outgoing=
+ elements:{title:string;subtitle?:string;quantity:number;price:number;currency:string;imageUrl?:string}[];total:number;subtotal?:number;discount?:number}
+/** Quick-reply chips under the last message (design C08/C15); each sends a postback-like payload. */
+export type QuickReply={title:string;payload:string};
+export type Outgoing=(
  /** eventUpdate: a booking notice that may arrive after the 24-hour window (CONFIRMED_EVENT_UPDATE tag). */
  {kind:'text';psid:string;text:string;eventUpdate?:boolean}|
  {kind:'buttons';psid:string;text:string;buttons:MessengerButton[]}|
  {kind:'cards';psid:string;cards:Card[]}|
- {kind:'receipt';psid:string;receipt:Receipt;fallbackText:string};
+ {kind:'receipt';psid:string;receipt:Receipt;fallbackText:string})&{quick?:QuickReply[]};
 
 const cut=(s:string,n:number)=>s.length<=n?s:s.slice(0,n-1)+'…';
 function messagePayload(m:Outgoing):unknown{
+ const p=basePayload(m) as Record<string,unknown>;
+ return m.quick?.length?{...p,quick_replies:m.quick.slice(0,13).map(q=>({content_type:'text',title:cut(q.title,20),payload:q.payload}))}:p;
+}
+function basePayload(m:Outgoing):unknown{
  if(m.kind==='text')return {text:m.text};
  if(m.kind==='buttons')return {attachment:{type:'template',payload:{template_type:'button',text:cut(m.text,640),buttons:m.buttons.slice(0,3)}}};
  if(m.kind==='cards')return {attachment:{type:'template',payload:{template_type:'generic',image_aspect_ratio:'square',elements:m.cards.slice(0,10).map(c=>({title:cut(c.title,80),
@@ -107,7 +119,7 @@ function messagePayload(m:Outgoing):unknown{
  const r=m.receipt;
  return {attachment:{type:'template',payload:{template_type:'receipt',recipient_name:cut(r.recipientName,80),order_number:r.orderNumber,currency:r.currency,payment_method:r.paymentMethod,timestamp:String(r.timestamp),
   elements:r.elements.map(e=>({title:cut(e.title,80),...(e.subtitle?{subtitle:cut(e.subtitle,80)}:{}),quantity:e.quantity,price:e.price,currency:e.currency,...(e.imageUrl?{image_url:e.imageUrl}:{})})),
-  summary:{total_cost:r.total}}}};
+  summary:{...(r.subtotal!==undefined?{subtotal:r.subtotal}:{}),total_cost:r.total},...(r.discount?{adjustments:[{name:'ส่วนลดที่ร้านอนุมัติ / Approved offer',amount:r.discount}]}:{})}}};
 }
 
 export async function sendMessenger(config:MessengerConfig,message:Outgoing,fetchImpl:MessengerFetch=fetch):Promise<void>{
@@ -119,7 +131,7 @@ export async function sendMessenger(config:MessengerConfig,message:Outgoing,fetc
   body:JSON.stringify({recipient:{id:message.psid},...(message.kind==='text'&&message.eventUpdate?{messaging_type:'MESSAGE_TAG',tag:'CONFIRMED_EVENT_UPDATE'}:{messaging_type:'RESPONSE'}),message:payload})});}
  catch{throw new MessengerError('SEND_FAILED');}
  // A receipt Messenger will not render still reaches the customer as plain text.
- if(!res.ok&&message.kind==='receipt')return sendMessenger(config,{kind:'text',psid:message.psid,text:message.fallbackText},fetchImpl);
+ if(!res.ok&&message.kind==='receipt')return sendMessenger(config,{kind:'text',psid:message.psid,text:message.fallbackText,quick:message.quick},fetchImpl);
  if(!res.ok)throw new MessengerError('SEND_FAILED');
 }
 
