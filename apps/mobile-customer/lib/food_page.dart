@@ -4,6 +4,7 @@ import 'dart:async';
 
 import 'food_review_page.dart';
 import 'presentation/merchant_search_empty.dart';
+import 'package:mobile_shared/presentation/bitpos_state_view.dart';
 import 'presentation/merchant_search_controls.dart';
 import 'presentation/merchant_branch_card.dart';
 import 'presentation/food_product_card.dart';
@@ -2477,6 +2478,16 @@ class _FoodPageState extends State<FoodPage> with WidgetsBindingObserver {
                         }),
                 ),
               ),
+              if (_branches.isEmpty && !_discoveryLoaded && !_busy && _error != null)
+                BitPosStateView(
+                  kind: _error is MobileApiException
+                      ? BitPosStateKind.error
+                      : BitPosStateKind.offline,
+                  thai: widget.thai,
+                  message: foodErrorMessage(_error!, widget.thai),
+                  actionLabel: t('ลองอีกครั้ง', 'Try again'),
+                  onAction: () => _run(_reloadBranches),
+                ),
               if (_branches.isEmpty && _discoveryLoaded && !_busy)
                 MerchantSearchEmpty(
                   thai: widget.thai,
