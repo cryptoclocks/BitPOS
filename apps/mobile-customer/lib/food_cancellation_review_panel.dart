@@ -39,7 +39,7 @@ class _FoodCancellationReviewPanelState
   bool _busy = false, _foreground = true, _recorded = false;
   bool _active = true;
   String _reason = '';
-  bool _moreReasons = false;
+  bool _moreReasons = false, _detailMissing = false;
   int _epoch = 0;
   bool get _current =>
       mounted &&
@@ -216,6 +216,21 @@ class _FoodCancellationReviewPanelState
                 ),
               ),
             ),
+          if (_detailMissing)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: Semantics(
+                liveRegion: true,
+                child: Text(
+                  t(
+                    'พิมพ์รายละเอียดสั้น ๆ ในช่องด้านล่างก่อนส่งคำขอ',
+                    'Please type a short detail in the box below before sending.',
+                  ),
+                  key: const ValueKey('food-cancellation-detail-missing'),
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                ),
+              ),
+            ),
           if (_recorded)
             Semantics(
               liveRegion: true,
@@ -371,6 +386,9 @@ class _FoodCancellationReviewPanelState
               TextField(
                 key: const ValueKey('food-cancellation-review-detail'),
                 controller: _detail,
+                onChanged: (_) {
+                  if (_detailMissing) setState(() => _detailMissing = false);
+                },
                 enabled: !_busy,
                 maxLength: 2000,
                 minLines: 2,
@@ -390,8 +408,8 @@ class _FoodCancellationReviewPanelState
                 padding: const EdgeInsets.only(bottom: 8),
                 child: Text(
                   t(
-                    'ส่งคำขอให้เจ้าหน้าที่ตรวจสอบเท่านั้น ยังไม่ยกเลิกออเดอร์ คืนเงิน คืนสต็อก หรือปล่อยงานไรเดอร์',
-                    'This asks staff to review. It does not cancel the order, issue a refund, return stock, or release a rider.',
+                    'ตอนนี้ยกเลิกออเดอร์ทันทีในแอปไม่ได้ ส่งคำขอให้ทีมงานตรวจสอบแทน ออเดอร์ ยอดเงิน สต็อก และงานไรเดอร์จะยังไม่เปลี่ยนจนกว่าทีมงานจะดำเนินการ',
+                    'The app cannot cancel an order instantly. This only asks staff to review; it does not cancel the order, refund payment, return stock or release the rider job until staff act.',
                   ),
                   style: const TextStyle(
                     fontSize: 12,
@@ -411,12 +429,10 @@ class _FoodCancellationReviewPanelState
                     ? null
                     : () {
                         if (_detail.text.trim().isEmpty) {
-                          setState(
-                            () => _error = const MobileApiException(
-                              'INVALID_REQUEST',
-                              422,
-                            ),
-                          );
+                          setState(() {
+                            _error = null;
+                            _detailMissing = true;
+                          });
                           return;
                         }
                         final command = widget.api.newCancellationReview(

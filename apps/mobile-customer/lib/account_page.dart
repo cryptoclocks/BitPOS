@@ -522,12 +522,33 @@ class _AccountPageState extends State<AccountPage> {
               ),
         key: const ValueKey('account-order-again-tile'),
       );
+      final rewards = _accountTile(
+        Icons.card_giftcard_outlined,
+        t('แต้มและรางวัล', 'Points and rewards'),
+        t(
+          'ดูแต้มจากออเดอร์ที่ชำระแล้ว และแลกคูปองส่วนลด',
+          'See points from paid orders and redeem discount vouchers',
+        ),
+        _busy
+            ? null
+            : () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => RewardsPage(
+                    api: widget.api,
+                    owner: widget.owner,
+                    thai: widget.thai,
+                    onAuthenticationRequired: widget.onAuthenticationRequired,
+                  ),
+                ),
+              ),
+        key: const ValueKey('account-rewards-tile'),
+      );
       final previews = _accountTile(
         Icons.auto_awesome_outlined,
         t('ฟีเจอร์ที่กำลังมา', 'Coming features'),
         t(
-          'คูปอง รางวัล สั่งล่วงหน้า และอื่นๆ (ตัวอย่าง)',
-          'Coupons, rewards, scheduling and more (preview)',
+          'ตัวอย่างฟีเจอร์ที่ยังไม่เปิดใช้งานจริง',
+          'Samples of features that are not live yet',
         ),
         _busy
             ? null
@@ -555,6 +576,7 @@ class _AccountPageState extends State<AccountPage> {
             rides,
             groups,
             orderAgain,
+            rewards,
             previews,
             help,
             const SizedBox(height: 14),
@@ -571,6 +593,7 @@ class _AccountPageState extends State<AccountPage> {
           SizedBox(width: half, child: rides),
           SizedBox(width: half, child: groups),
           SizedBox(width: half, child: orderAgain),
+          SizedBox(width: half, child: rewards),
           SizedBox(width: half, child: previews),
           SizedBox(width: half, child: help),
           const SizedBox(width: 20, height: 14),
