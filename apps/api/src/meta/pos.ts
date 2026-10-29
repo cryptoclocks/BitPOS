@@ -14,6 +14,7 @@ import {listMenu} from './agent-orders';
 import {cartForStaff,CartError,refundCart,startCart,type CartLine} from './cart';
 import {agentDepsOf} from './shop';
 import {CHANNEL,esc,photo,pill,row,staffHtml} from './ui';
+import {listPayouts} from './stripe';
 
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 const STATUS:Record<string,[string,string]>={PAID:['จ่ายแล้ว','gr'],CREATED:['รอจ่าย','am'],EXPIRED:['หมดเวลา','mu'],FAILED:['ไม่สำเร็จ','rd'],CANCELLED:['ยกเลิก/คืนเงิน','rd']};
@@ -37,7 +38,7 @@ const handover=(o:StaffOrder)=>o.status==='PAID'&&!o.handedOverAt?`<form method=
 /** Returns true when it answered the request. */
 export async function servePos(req:http.IncomingMessage,res:http.ServerResponse,deps:MetaRouteDeps,staff:StaffDeps,whoami:()=>Promise<StaffView|null>,url:URL,log:(m:string)=>void):Promise<boolean>{
  const path=url.pathname,method=req.method??'GET';
- const known=path==='/meta/staff'||/^\/meta\/staff\/(overview|counter|kitchen|bookings|menu|customers|connector|reports|settings|order)(\/|$)/.test(path);
+ const known=path==='/meta/staff'||/^\/meta\/staff\/(overview|counter|kitchen|bookings|menu|customers|connector|reports|payouts|users|settings|order)(\/|$)/.test(path);
  if(!known)return false;
  const me=await whoami();
  if(!me){go(res,'/meta/staff');return true;}
@@ -215,9 +216,33 @@ ${row({href:'/meta/staff/offers',icon:'✨',title:`${r.drafts} ร่างโ�
   const total=r.days.reduce((a,x)=>a+BigInt(x.sum),0n),days=[...new Set(r.days.map(x=>x.day))],peak=Math.max(1,...days.map(d=>r.days.filter(x=>x.day===d).reduce((a,x)=>a+Number(x.sum),0)));
   const bars=days.map(d=>{const items=r.days.filter(x=>x.day===d);const sum=items.reduce((a,x)=>a+Number(x.sum),0);return `<div style="display:flex;gap:10px;align-items:center;margin:8px 0"><span style="width:70px">${esc(d)}</span><span class="barh" style="flex:1"><i style="width:${Math.round(sum/peak*100)}%"></i></span><b style="width:90px;text-align:right">${money(sum)}</b></div>`;}).join('');
   return send(200,path,'รายงาน 7 วัน',`<div class="grid g3"><div class="met p"><small>ยอดที่จ่ายแล้ว (Stripe)</small><b>${money(total)}</b><small>ทุกช่องทางของ Meta</small></div><div class="met"><small>คืนเงิน</small><b>${money(r.refunds.sum??'0')}</b><small>${r.refunds.n} รายการ</small></div>
-<div class="met"><small>ยอดโอนจาก Stripe</small><b>sandbox</b><small><a href="https://dashboard.stripe.com/test/payouts" target="_blank" rel="noopener">ดูใน Stripe dashboard (test) →</a></small></div></div>
+<div class="met"><small>ยอดโอนจาก Stripe</small><b>sandbox</b><small><a href="/meta/staff/payouts">ดูยอดคงเหลือและรอบโอน →</a></small></div></div>
 <div class="grid g2" style="margin-top:14px"><div class="card"><h2>ยอดรายวัน</h2>${bars||'<p class="mu">ยังไม่มีข้อมูล</p>'}</div><div class="card"><h2>เมนูขายดี</h2>${r.top.map((x,i)=>row({icon:String(i+1),title:x.name,right:`${x.n} ชิ้น`})).join('')||'<p class="mu">ยังไม่มีข้อมูล</p>'}</div></div>`,
    {sub:'จาก meta_order_feed() · เฉพาะช่องทาง Meta · ไม่รวมคริปโต',actions:'<a class="btn g" href="/meta/staff/ledger">หลักฐาน AI →</a>'});
+ }
+
+ if(path==='/meta/staff/payouts'){
+  if(!boss)return ownerOnly();
+  if(!deps.stripe)return send(503,'/meta/staff/reports','ยอดโอนจาก Stripe','<div class="card">ยังไม่ได้ตั้งค่า Stripe</div><a class="btn g inline" href="/meta/staff/reports">← รายงาน</a>');
+  let p;try{p=await listPayouts(deps.stripe.config,deps.stripe.fetch);}catch{log('Stripe payouts lookup failed');return send(502,'/meta/staff/reports','ยอดโอนจาก Stripe','<div class="card">อ่านข้อมูลจาก Stripe ไม่ได้ ลองอีกครั้ง</div><a class="btn g inline" href="/meta/staff/reports">← รายงาน</a>');}
+  const sum=(xs:{amountMinor:bigint;currency:string}[])=>xs.map(x=>money(x.amountMinor,x.currency)).join(' · ')||money(0);
+  const PS:Record<string,[string,string]>={paid:['โอนแล้ว','gr'],pending:['รอโอน','am'],in_transit:['กำลังโอน','am'],canceled:['ยกเลิก','mu'],failed:['ไม่สำเร็จ','rd']};
+  const day=(s:number)=>s?new Date(s*1000).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric',timeZone:'Asia/Bangkok'}):'—';
+  return send(200,'/meta/staff/reports','ยอดโอนจาก Stripe',`<div class="grid g2"><div class="met p"><small>พร้อมโอน</small><b>${esc(sum(p.available))}</b><small>Stripe balance (test)</small></div><div class="met"><small>รอเคลียร์</small><b>${esc(sum(p.pending))}</b><small>ยอดที่ยังไม่พร้อมโอน</small></div></div>
+<h2 style="margin-top:18px">รอบโอนล่าสุด</h2>${p.payouts.length?`<table><tr><th>รอบโอน</th><th>ยอด</th><th>สถานะ</th><th>ถึงบัญชี</th><th>ประเภท</th></tr>${p.payouts.map(x=>`<tr><td><small>${esc(x.id.slice(0,14))}…</small></td><td>${esc(money(x.amountMinor,x.currency))}</td><td>${pill(...(PS[x.status]??[x.status,'mu']) as [string,string])}</td><td>${day(x.arrivalDate)}</td><td>${x.automatic?'อัตโนมัติ':'สั่งเอง'}</td></tr>`).join('')}</table>`:'<div class="card mu">ยังไม่มีรอบโอน · บัญชีทดสอบมักไม่มีรอบโอนจนกว่าจะสร้างใน Stripe</div>'}
+<a class="btn g inline" href="/meta/staff/reports">← รายงาน</a>`,{sub:'อ่านอย่างเดียวจาก Stripe API (test mode) · บัญชี sandbox ใช้ร่วมทุกร้านทดสอบ · ไม่ใช่เงินจริง'});
+ }
+
+ if(path==='/meta/staff/users'){
+  if(!boss)return ownerOnly();
+  const rows=(await db.tenant(me.merchantId,c=>c.query<{user_id:string;role:string}>("SELECT user_id::text,role FROM members WHERE merchant_id=$1 ORDER BY CASE role WHEN 'owner' THEN 0 WHEN 'manager' THEN 1 ELSE 2 END,user_id",[me.merchantId]))).rows;
+  const RT:Record<string,[string,string]>={owner:['เจ้าของ','dk'],manager:['ผู้จัดการ','vi'],staff:['พนักงาน','']};
+  const CAN:[string,boolean,boolean,boolean][]=[['ดูและส่งมอบออเดอร์',true,true,true],['ขายหน้าร้าน (Stripe QR)',true,true,true],['คิวครัว · การจอง',true,true,true],['แก้สต็อก',true,true,false],['คืนเงินผ่าน Stripe',true,true,false],['อนุมัติโปร Muse Spark',true,true,false],['เปิด Allow All ให้ Muse Spark',true,false,false],['รายงาน · ยอดโอน · ผู้ใช้',true,true,false]];
+  const yes=(b:boolean)=>b?'<b style="color:var(--gr)">✓</b>':'<span class="mu">—</span>';
+  return send(200,'/meta/staff/settings','ผู้ใช้และสิทธิ์',`<div class="grid g2"><div class="card"><h2>สมาชิกร้าน ${rows.length}</h2>${rows.map(r=>row({icon:r.role==='owner'?'👑':r.role==='manager'?'🧑‍💼':'🧑‍🍳',title:`บัญชี ${r.user_id.slice(0,8)}${r.user_id===me.userId?' · คุณ':''}`,sub:'Supabase Auth ของ BitPOS · ไม่แสดงอีเมล',right:pill(...(RT[r.role]??[r.role,'mu']) as [string,string])})).join('')}
+<p class="mu">เพิ่มหรือเปลี่ยนบทบาทโดยผู้ดูแลระบบ (tools/meta/create-demo-staff.sh) · ไม่มีปุ่มแก้สิทธิ์ในหน้าเว็บ</p></div>
+<div class="card"><h2>สิทธิ์ตามบทบาท</h2><table><tr><th>งาน</th><th>เจ้าของ</th><th>ผู้จัดการ</th><th>พนักงาน</th></tr>${CAN.map(([a,...b])=>`<tr><td>${esc(a)}</td>${b.map(x=>`<td>${yes(x)}</td>`).join('')}</tr>`).join('')}</table><p class="mu">เซิร์ฟเวอร์อ่านบทบาทจากตาราง members ใหม่ทุกคำขอ</p></div></div>
+<a class="btn g inline" href="/meta/staff/settings">← ตั้งค่า</a>`,{sub:shop});
  }
 
  if(path==='/meta/staff/settings'){
@@ -231,7 +256,7 @@ ${row({href:'/meta/staff/offers',icon:'✨',title:`${r.drafts} ร่างโ�
 <div class="grid g2" style="margin-top:16px">${[['👥','ผู้ใช้และสิทธิ์',r.roles.map(x=>`${({owner:'เจ้าของ',manager:'ผู้จัดการ',staff:'พนักงาน'} as Record<string,string>)[x.role]??x.role} ${x.n}`).join(' · ')+' · ตรวจสิทธิ์ทุกคำขอ'],
  ['💬','Messenger',r.page?`เพจ ${r.page} · เชื่อมต่อแล้ว · ข้อความยินยอม v1`:'ยังไม่ได้เชื่อมเพจ'],['💳','Stripe',deps.stripe?'Sandbox · webhook ตรวจลายเซ็น · ห้ามคีย์จริง':'ยังไม่ได้ตั้งค่า'],
  ['✨','Muse Spark',deps.offers?.router?'muse-spark-1.3 · จำกัด 10 ครั้ง/ชม./ลูกค้า · มีตัวสำรอง':'ใช้ตัวสำรอง (ไม่มีโมเดล)'],['🤖','Muse Connector (MCP)','ดูปลายทางและเครื่องมือ'],['🖥️','เฟิร์มแวร์ BitPOS Mini','รุ่น Meta แยกจาก sol- · ดูรายละเอียดใน README ของเฟิร์มแวร์']]
- .map(([i,a,b],n)=>row({icon:i,title:a,sub:esc(b),href:n===4?'/meta/staff/connector':n===3?'/meta/staff/ledger':undefined})).join('')}</div>`,{sub:shop});
+ .map(([i,a,b],n)=>row({icon:i,title:a,sub:esc(b),href:n===0?'/meta/staff/users':n===4?'/meta/staff/connector':n===3?'/meta/staff/ledger':undefined})).join('')}</div>`,{sub:shop});
  }
 
  const refund=path.match(/^\/meta\/staff\/order\/([0-9a-f-]{36})\/refund$/);

@@ -64,7 +64,7 @@ ${row({icon:'📶',title:'แตะมือถือที่เครื่อ
    const items=menu.filter(m=>!cat||m.category===cat).map(m=>row({href:`/item/${m.productId}`,img:photo(m.imageUrl),title:`${m.name} · ${m.nameEn}`,
     sub:`${m.offer?`<span class="pill rd">โปร −${m.offer.discountPercent}%</span>`:''}${m.available>0?'':'<span class="pill mu">หมด</span>'}`,right:price(m)})).join('');
    const added=url.searchParams.get('added')?'<div class="note" style="background:var(--grb);color:var(--gr)">ใส่ตะกร้าแล้ว ✓ / Added to cart</div>':'';
-   send(res,200,customerHtml({title:'เมนู',back:'/',nav:[['สั่งด้วยเสียง/พิมพ์ (ต้องเชื่อมต่อ)','/meta/order'],['หน้าร้าน / Shop','/']]},`<h1>เมนู / Menu</h1>${added}${chips}${items||'<p class="mu">ยังไม่มีเมนูในหมวดนี้</p>'}${cartBar()}`));return true;
+   send(res,200,customerHtml({title:'เมนู',back:'/',nav:[['สั่งด้วยเสียง/พิมพ์ (ต้องเชื่อมต่อ)','/meta/order'],['หน้าร้าน / Shop','/']]},`<h1>เมนู / Menu</h1>${added}${chips}${items?`<div class="lst">${items}</div>`:'<p class="mu">ยังไม่มีเมนูในหมวดนี้</p>'}${cartBar()}`));return true;
   }
   const item=path.match(/^\/item\/([0-9a-f-]{36})$/);
   if(item&&method==='GET'){
@@ -91,9 +91,9 @@ ${m.payable?`<form method="post" action="/cart/add"><input type="hidden" name="i
    let q;try{q=await quoteCart(agent,merchant,cart);}catch(e){if(e instanceof CartError){send(res,409,customerHtml({title:'ตะกร้า',back:'/menu',nav:[['กลับไปเมนู','/menu']]},status('⚠️','am','ตรวจรายการอีกครั้ง',[esc(ERR[e.code])]))+'',{'Set-Cookie':e.code==='NOT_FOUND'?setCookie(deps,CART,'',0):''});return true;}throw e;}
    const lines=q.lines.map(l=>`${row({img:photo(l.imageUrl),title:`${l.name} × ${l.quantity}`,sub:`${esc(l.unit)} / ชิ้น${l.offer?' · <span class="pill rd">โปร</span>':''}`,right:esc(l.amount)})}
 <div class="qty" style="justify-content:flex-end;margin:-2px 4px 8px">${[l.quantity-1,l.quantity+1].map((n,i)=>`<form method="post" action="/cart/set"><input type="hidden" name="id" value="${l.productId}"><input type="hidden" name="q" value="${n}"><button aria-label="${i?'เพิ่ม':'ลด'}">${i?'+':'−'}</button></form>`).join('')}</div>`).join('');
-   const body=`<h1>ตรวจรายการ / Review</h1>${lines}<div class="card">${q.discount!=='$0.00'?`<div class="tot"><span class="mu">ส่วนลดที่ร้านอนุมัติ</span><span style="color:var(--gr)">−${esc(q.discount)}</span></div>`:''}<div class="tot b"><span>รวม / Total</span><span style="color:var(--p)">${esc(q.total)}</span></div>
+   const body=`<h1>ตรวจรายการ / Review</h1><div class="cols"><div>${lines}</div><div><div class="card">${q.discount!=='$0.00'?`<div class="tot"><span class="mu">ส่วนลดที่ร้านอนุมัติ</span><span style="color:var(--gr)">−${esc(q.discount)}</span></div>`:''}<div class="tot b"><span>รวม / Total</span><span style="color:var(--p)">${esc(q.total)}</span></div>
 <small>ราคาล็อกเมื่อกดจ่าย (30 นาที) · ถ้าราคาเปลี่ยน ระบบคิดใหม่ก่อนเสมอ</small></div><div class="note">Stripe sandbox · บัตรทดสอบ 4242 4242 4242 4242 · ไม่มีเงินจริง</div>
-<form method="post" action="/checkout"><button>จ่าย ${esc(q.total)} ด้วย Stripe</button></form>`;
+<form method="post" action="/checkout"><button>จ่าย ${esc(q.total)} ด้วย Stripe</button></form></div></div>`;
    send(res,200,customerHtml({title:'ตะกร้า',back:'/menu',navPrimary:false,nav:[['เพิ่มเมนู / Add more','/menu']]},body));return true;
   }
   if(path==='/checkout'&&method==='POST'){

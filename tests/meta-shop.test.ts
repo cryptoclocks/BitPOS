@@ -30,6 +30,8 @@ const calls:{url:string;body:URLSearchParams;key:string|null}[]=[];
 let session:{id:string;orderId:string;amount:number;paid:boolean}|null=null;
 const stripeFetch=async(u:string,init:RequestInit)=>{
  const body=new URLSearchParams(String(init.body??''));calls.push({url:u,body,key:(init.headers as Record<string,string>)['Idempotency-Key']??null});
+ if(u.endsWith('/v1/balance'))return new Response(JSON.stringify({object:'balance',livemode:false,available:[{amount:1050,currency:'usd'}],pending:[{amount:500,currency:'usd'}]}),{status:200});
+ if(u.includes('/v1/payouts'))return new Response(JSON.stringify({object:'list',data:[{id:'po_test123456789',livemode:false,amount:2000,currency:'usd',status:'paid',arrival_date:1793000000,automatic:true}]}),{status:200});
  if(u.endsWith('/v1/refunds'))return new Response(JSON.stringify({object:'refund',id:`re_shop${Date.now()}${calls.length}`,livemode:false,amount:Number(body.get('amount')),payment_intent:body.get('payment_intent'),status:'succeeded'}),{status:200});
  if(u.endsWith('/v1/checkout/sessions')&&init.method==='POST'){
   session={id:`cs_test_shop${calls.length}${Date.now()}`,orderId:body.get('metadata[bitpos_order]')!,amount:Number(body.get('line_items[0][price_data][unit_amount]')),paid:false};
@@ -129,9 +131,12 @@ test('HTTP: shop pages always offer a way on; same-origin POSTs; staff pages nee
   assert.match(await (await fetch(base+'/meta/staff/overview',{redirect:'follow'})).text(),/name="password"/);
   const login=await fetch(base+'/meta/staff/login',{method:'POST',body:'email=owner@shop.test&password=x',redirect:'manual',headers:{'content-type':'application/x-www-form-urlencoded',origin:'https://pos.example.test'}});
   assert.equal(login.status,303);const sc=login.headers.get('set-cookie')!.split(';')[0];
-  for(const p of ['/meta/staff','/meta/staff/overview','/meta/staff/counter','/meta/staff/kitchen','/meta/staff/bookings','/meta/staff/menu','/meta/staff/customers','/meta/staff/connector','/meta/staff/reports','/meta/staff/settings','/meta/staff/offers','/meta/staff/ledger']){
+  for(const p of ['/meta/staff','/meta/staff/overview','/meta/staff/counter','/meta/staff/kitchen','/meta/staff/bookings','/meta/staff/menu','/meta/staff/customers','/meta/staff/connector','/meta/staff/reports','/meta/staff/settings','/meta/staff/users','/meta/staff/payouts','/meta/staff/offers','/meta/staff/ledger']){
    const r=await fetch(base+p,{headers:{cookie:sc}});assert.equal(r.status,200,p);const h=await r.text();assert.match(h,/class="side"/,`${p} has the meta-pos sidebar`);assert.doesNotMatch(h,/USDG|USDC|Solana|devnet/i,p);
   }
+  const po=await (await fetch(base+'/meta/staff/payouts',{headers:{cookie:sc}})).text();assert.match(po,/\$10\.50/,'available balance');assert.match(po,/\$20\.00/);assert.match(po,/โอนแล้ว/);
+  assert.match(await (await fetch(base+'/meta/staff/users',{headers:{cookie:sc}})).text(),/สิทธิ์ตามบทบาท/);
+  assert.match(await (await fetch(base+'/menu')).text(),/class="lst"/,'desktop two-column menu');
   const bill=await fetch(base+'/meta/staff/counter',{method:'POST',body:`q_${latte}=1&q_${cake}=1`,redirect:'manual',headers:{cookie:sc,'content-type':'application/x-www-form-urlencoded',origin:'https://pos.example.test'}});
   assert.equal(bill.status,303);const qr=await (await fetch(base+bill.headers.get('location')!,{headers:{cookie:sc}})).text();assert.match(qr,/<svg/,'Stripe QR');assert.match(qr,/\$10\.50/);
   const billId=bill.headers.get('location')!.split('/').pop()!;

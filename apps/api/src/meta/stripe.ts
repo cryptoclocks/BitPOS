@@ -154,3 +154,18 @@ export async function refundPaymentIntent(config:StripeSandboxConfig,req:{paymen
  if(!['succeeded','pending'].includes(body.status))throw new StripePaymentError('PAYMENT_FAILED',String(body.status));
  return {id:body.id,status:body.status};
 }
+
+export interface Payout {id:string;amountMinor:bigint;currency:string;status:string;arrivalDate:number;automatic:boolean}
+export interface PayoutSummary {available:{amountMinor:bigint;currency:string}[];pending:{amountMinor:bigint;currency:string}[];payouts:Payout[]}
+/** Balance and the last payouts of the test account (read only). Live-mode answers are refused. */
+export async function listPayouts(config:StripeSandboxConfig,fetchImpl:StripeFetch=fetch):Promise<PayoutSummary>{
+ const bal=await stripeCall(config,'GET','/v1/balance',null,null,fetchImpl);
+ if(bal?.object!=='balance')throw new StripePaymentError('PROVIDER_OUTCOME_UNKNOWN');
+ if(bal.livemode!==false)throw new StripePaymentError('LIVE_MODE_REFUSED');
+ const list=await stripeCall(config,'GET','/v1/payouts?limit=10',null,null,fetchImpl);
+ if(list?.object!=='list'||!Array.isArray(list.data))throw new StripePaymentError('PROVIDER_OUTCOME_UNKNOWN');
+ const money=(x:any)=>({amountMinor:BigInt(Number.isSafeInteger(x?.amount)?x.amount:0),currency:String(x?.currency??'')});
+ const payouts=list.data.map((p:any)=>{if(p?.livemode!==false)throw new StripePaymentError('LIVE_MODE_REFUSED');
+  return {id:String(p.id),...money(p),status:String(p.status),arrivalDate:Number(p.arrival_date)||0,automatic:p.automatic===true};});
+ return {available:(bal.available??[]).map(money),pending:(bal.pending??[]).map(money),payouts};
+}
