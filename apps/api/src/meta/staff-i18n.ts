@@ -8,6 +8,8 @@ import {AsyncLocalStorage} from 'node:async_hooks';
 export type StaffLang='en'|'th';
 export const LANG=new AsyncLocalStorage<StaffLang>();
 export const LANG_COOKIE='bitpos_lang';
+/** True when the page is shown inside the POS screens' Muse tab (Sec-Fetch-Dest: iframe): no Meta menu bars. */
+export const FRAME=new AsyncLocalStorage<boolean>();
 export const staffLang=():StaffLang=>LANG.getStore()??'en';
 /** Pick one of two strings for the current staff page. */
 export const L=(th:string,en:string)=>staffLang()==='th'?th:en;

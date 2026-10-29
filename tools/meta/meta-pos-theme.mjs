@@ -11,7 +11,10 @@ const toHsl=(r,g,b)=>{r/=255;g/=255;b/=255;const max=Math.max(r,g,b),min=Math.mi
  if(max!==min){const d=max-min;s=l>.5?d/(2-max-min):d/(max+min);h=max===r?(g-b)/d+(g<b?6:0):max===g?(b-r)/d+2:(r-g)/d+4;h*=60;}return [h,s,l];};
 const toRgb=(h,s,l)=>{const k=n=>(n+h/30)%12,a=s*Math.min(l,1-l),f=n=>l-a*Math.max(-1,Math.min(k(n)-3,9-k(n),1));return [f(0),f(8),f(4)].map(v=>Math.round(v*255));};
 const purple=(h,s)=>s>0.04&&h>=250&&h<=335;
-const recolour=(r,g,b)=>{const [h,s,l]=toHsl(r,g,b);if(!purple(h,s))return null;return toRgb(META_HUE,Math.min(1,s*1.05),l);};
+// Strong brand shades (buttons, active tabs) become Meta blue itself: full saturation, a little lighter.
+const recolour=(r,g,b)=>{const [h,s,l]=toHsl(r,g,b);if(!purple(h,s))return null;
+ if(s>=0.35&&l>=0.25&&l<=0.62)return toRgb(META_HUE,1,Math.min(0.55,Math.max(0.4,l*1.3)));
+ return toRgb(META_HUE,Math.min(1,s*1.05),l);};
 const hex=v=>v.toString(16).padStart(2,'0');
 export function themeText(text){
  return text

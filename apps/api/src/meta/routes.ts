@@ -18,7 +18,7 @@ import {AsrError,asrConfigFromEnv,MAX_WAV_BYTES,transcribe,type AsrConfig,type A
 import {randomBytes} from 'node:crypto';
 import {AsyncLocalStorage} from 'node:async_hooks';
 import {aiHtml,customerHtml,photo,staffHtml} from './ui';
-import {L,LANG,LANG_COOKIE,langFromCookie,nm} from './staff-i18n';
+import {FRAME,L,LANG,LANG_COOKIE,langFromCookie,nm} from './staff-i18n';
 import {servePosApi} from './pos-api';
 import {servePos} from './pos';
 import {CartError,cartChatReceipt,cartOrderMerchant,formatCart,handOverCart,parseCart,quoteCart,startCart,type CartLine} from './cart';
@@ -260,7 +260,7 @@ export async function serveMeta(req:http.IncomingMessage,res:http.ServerResponse
   const l=url.searchParams.get('l')==='th'?'th':'en',b=url.searchParams.get('b')??'';
   res.writeHead(303,{Location:/^\/meta\/staff(\/[a-z-]{1,30})*$/.test(b)?b:'/meta/staff','Set-Cookie':`${LANG_COOKIE}=${l}; Path=/meta/staff; Max-Age=31536000; SameSite=Lax; Secure`,'Cache-Control':'no-store'});res.end();return true;
  }
- if(path==='/meta/staff'||path.startsWith('/meta/staff/'))return LANG.run(langFromCookie(req.headers.cookie),()=>STAFF_CTX.run({active:path.replace(/^(\/meta\/staff\/[a-z]+).*$/,'$1'),me:null,shop:''},()=>serveStaff(req,res,deps,url,log)));
+ if(path==='/meta/staff'||path.startsWith('/meta/staff/'))return FRAME.run(req.headers['sec-fetch-dest']==='iframe',()=>LANG.run(langFromCookie(req.headers.cookie),()=>STAFF_CTX.run({active:path.replace(/^(\/meta\/staff\/[a-z]+).*$/,'$1'),me:null,shop:''},()=>serveStaff(req,res,deps,url,log))));
  const mcp=path.match(/^\/meta\/mcp\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[89ab][0-9a-f]{3}-[0-9a-f]{12})$/);
  if(mcp){
   if(!deps.offers){json(res,503,{error:'NOT_CONFIGURED'});return true;}
@@ -315,7 +315,7 @@ function allowAttempt(req:http.IncomingMessage,now=Date.now(),bucket=attempts,li
  if(!a||now-a.start>windowMs){if(bucket.size>10_000)bucket.clear();bucket.set(key,{start:now,n:1});return true;}
  return ++a.n<=limit;
 }
-function staffCookie(deps:StaffDeps,value:string,maxAge:number){
+export function staffCookie(deps:StaffDeps,value:string,maxAge:number){
  return `${STAFF_COOKIE}=${value}; Path=/meta/staff; HttpOnly; SameSite=Strict; Max-Age=${maxAge}${deps.config.origin.startsWith('https:')?'; Secure':''}`;
 }
 function signInForm(deps:StaffDeps,message?:string):string[]{

@@ -55,6 +55,13 @@ export async function staffSignIn(deps:StaffDeps,email:string,password:string):P
  return {kind:'ok',token,role};
 }
 
+/** A Meta staff session for a member already signed in to the POS screens (meta-pos single sign-on). */
+export async function staffSessionFor(deps:StaffDeps,merchantId:string,userId:string):Promise<string>{
+ const token=randomBytes(32).toString('base64url');
+ await deps.db.tenant(merchantId,db=>db.query("WITH n AS (SELECT clock_timestamp() AS t) INSERT INTO meta_staff_sessions(merchant_id,user_id,token_sha256,created_at,expires_at) SELECT $1,$2,$3,t,t+interval '8 hours' FROM n",[merchantId,userId,sha(token)]));
+ return token;
+}
+
 /** Demo quick sign-in: the same password grant, with credentials read from the private demo file. */
 export async function staffDemoSignIn(deps:StaffDeps,role:string):Promise<SignInResult>{
  const file=deps.config.demoLoginFile;

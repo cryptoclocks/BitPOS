@@ -9,6 +9,8 @@ import QRCode from 'qrcode';
 import type {MetaRouteDeps} from './routes';
 import {agentDepsOf} from './shop';
 import {cartForStaff,CartError,startCart,type CartLine} from './cart';
+import {staffSessionFor} from './staff';
+import {staffCookie} from './routes';
 
 export interface PosMember {userId:string;merchantId:string;role:'owner'|'manager'|'staff'}
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
@@ -36,6 +38,12 @@ export async function servePosApi(req:http.IncomingMessage,res:http.ServerRespon
  if(method==='POST'&&req.headers.origin!==deps.staff?.config.origin)return json(res,403,{error:'SAME_ORIGIN_REQUIRED'});
  const me=await posMember(deps,req.headers.authorization);
  if(!me)return json(res,401,{error:'AUTH_REQUIRED'});
+ if(path==='/meta/staff/api/sso'&&method==='POST'){
+  // The Muse tab shows Meta pages in frames; they use the Meta staff cookie, made here from the POS session.
+  if(!deps.staff)return json(res,503,{error:'UNAVAILABLE'});
+  const token=await staffSessionFor(deps.staff,me.merchantId,me.userId);
+  res.writeHead(200,{'Content-Type':'application/json','Cache-Control':'no-store','Set-Cookie':staffCookie(deps.staff,token,28800)});res.end('{"ok":true}');return true;
+ }
  const agent=agentDepsOf(deps);
  if(!agent?.stripe)return json(res,503,{error:'PAYMENTS_UNAVAILABLE'});
  const bill=async(id:string)=>{

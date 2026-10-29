@@ -3,7 +3,7 @@
 // Server-rendered HTML with inline CSS only (the pages' CSP allows inline styles and no scripts unless nonced).
 // Every page built here ends with at least one way onward, so no page is a dead end (design link audit rule).
 
-import {localizeStaff,staffLang} from './staff-i18n';
+import {FRAME,localizeStaff,staffLang} from './staff-i18n';
 export const esc=(s:unknown)=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]!));
 
 const CSS=`:root{--p:#0866FF;--pd:#0450C8;--ink:#1C2B33;--mu:#65676B;--bg:#F0F2F5;--ln:#DADDE1;--ti:#E7F0FF;--gr:#1E8E3E;--grb:#E6F4EA;--rd:#D3203A;--rdb:#FDECEF;--am:#8A5A00;--amb:#FFF4D6;--vi:#7A3FF2;--vib:#F1EAFF}
@@ -63,7 +63,7 @@ tr:target{background:var(--ti)}
 @media (max-width:700px){.fgrid{grid-template-columns:repeat(2,minmax(0,1fr));gap:16px 10px}.ftab{padding:18px 10px 10px;border-radius:18px}.ftab .ftop{flex-direction:column;align-items:flex-start;gap:4px}.ftab .ftop b{font-size:16px}.fl{font-size:12px}.room{padding:56px 14px 52px}.fbar{position:static;width:auto;flex-direction:row;height:44px;margin:0 0 16px}.fbar i{width:20px;height:20px}.fwin{left:14px;right:14px}.fplant.b{display:none}}
 @media (min-width:1000px){.m{max-width:1000px;padding:24px 28px 40px}.lst{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 14px}.cols{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:24px;align-items:start}.cols>div:last-child{position:sticky;top:76px}.hero{height:340px}}
 /* meta-pos on phones and tablets: the sidebar becomes a top bar with a menu; wide tables scroll inside their card. */
-.mtop{display:none}.lang a{font-size:12px;font-weight:600;padding:4px 9px;border-radius:9px;color:var(--mu);border:1px solid var(--ln)}.lang a.on{background:var(--p);border-color:var(--p);color:#fff}.lang{display:inline-flex;gap:4px}
+.mtop{display:none}body.embed{background:transparent}body.embed .mtop,body.embed .side,body.embed .hd{display:none!important}body.embed .desk{display:block}body.embed .pg{padding:4px 2px 24px;max-width:none}.lang a{font-size:12px;font-weight:600;padding:4px 9px;border-radius:9px;color:var(--mu);border:1px solid var(--ln)}.lang a.on{background:var(--p);border-color:var(--p);color:#fff}.lang{display:inline-flex;gap:4px}
 .side .lang{margin:12px 12px 0}.tw{overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:14px}.tw table{min-width:560px}
 @media (max-width:1100px){.g4{grid-template-columns:repeat(2,minmax(0,1fr))}.g3{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:860px){.desk{display:block}.side,.hd{display:none}
@@ -131,7 +131,7 @@ export function staffHtml(o:PageOpts&{active:string;role:string;shop:string;sub?
  const out=`<form method="post" action="/meta/staff/logout"><button class="g inline">ออกจากระบบ</button></form>`;
  // Wide tables scroll inside their own box instead of the page.
  const wrapped=body.replace(/<table>/g,'<div class="tw"><table>').replace(/<\/table>/g,'</table></div>');
- return localizeStaff(`${head(o)}<body><header class="mtop"><span class="brand">BitPOS <b>× Muse</b></span><span class="shop">${esc(o.shop)}</span><span class="sp"></span>${lang}
+ return localizeStaff(`${head(o)}<body${FRAME.getStore()?' class="embed"':''}><header class="mtop"><span class="brand">BitPOS <b>× Muse</b></span><span class="shop">${esc(o.shop)}</span><span class="sp"></span>${lang}
 <input type="checkbox" id="mn" class="mnck" hidden><label for="mn" class="mnav" aria-label="เมนู">☰</label><nav class="mgrid">${nav('m')}<div class="who"><b>${esc(ROLE_TH[o.role]??o.role)}</b><small>${esc(o.shop)}</small>${out}</div></nav></header>
 <div class="desk"><nav class="side"><div class="brandbox" style="padding:6px 12px 16px"><span class="brand">BitPOS <b>× Muse</b></span></div>${nav('s')}
 <div class="who"><b>${esc(ROLE_TH[o.role]??o.role)}</b><br><small>${esc(o.shop)}</small>${out}</div>${lang}</nav>
