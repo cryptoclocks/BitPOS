@@ -1,7 +1,7 @@
 import React from 'react';
 import { formatMoney } from '../lib/money';
 import type { PrivateOrder } from '../lib/table';
-import { channelOf, hourlyBuckets, isToday, sumSingleDenomination, type Channel } from '../lib/pos-overview';
+import { channelOf, hourlyBuckets, isToday, shopTime, sumSingleDenomination, todayMayBeTruncated, type Channel } from '../lib/pos-overview';
 import '../styles/pos-overview.css';
 
 const inProgress = (order: PrivateOrder) => order.status === 'PAID' && !!order.fulfillment && order.fulfillment.status !== 'COLLECTED';
@@ -24,6 +24,7 @@ export default function PosOverview({ orders, ready, failed, language, now = new
   const recent = [...today].sort((a, b) => Date.parse(b.createdAt!) - Date.parse(a.createdAt!)).slice(0, 5);
   return <main className="pos-overview" aria-label={text('ภาพรวมร้าน', 'Shop overview')}>
     <div className="section-heading"><div><p className="eyebrow">{text('วันนี้', 'TODAY')}</p><h1>{text('ภาพรวมร้าน', 'Shop overview')}</h1><p className="pos-overview-sub">{text('สรุปจากออเดอร์ที่โหลดอยู่ในระบบ ไม่ใช่รายงานปิดรอบ', 'Summarised from the orders currently loaded. This is not a closed-shift report.')}</p></div></div>
+    {ready && todayMayBeTruncated(orders, now) && <p className="notice" role="status">{text('ระบบส่งออเดอร์ล่าสุดสูงสุด 200 รายการ ตัวเลขวันนี้อาจไม่ครบ ดูยอดเต็มในรายงาน', 'The server returns only the newest 200 orders, so today\'s figures may be incomplete. Use Reports for the full total.')}</p>}
     {failed && <p className="error" role="status">{text('โหลดออเดอร์ไม่สำเร็จ ตัวเลขอาจไม่ล่าสุด', 'Orders could not be loaded. Figures may be stale.')}</p>}
     {!ready ? <p className="notice" role="status">{text('กำลังโหลดภาพรวม…', 'Loading overview…')}</p> : <>
       <section className="pos-overview-kpis" aria-label={text('ตัวเลขสำคัญ', 'Key figures')}>
@@ -42,7 +43,7 @@ export default function PosOverview({ orders, ready, failed, language, now = new
         </section>
       </div>
       <section className="pos-overview-recent"><div className="pos-overview-recent-head"><h2>{text('ออเดอร์ล่าสุด', 'Recent orders')}</h2><button type="button" className="secondary" onClick={onOpenOrders}>{text('เปิดศูนย์ออเดอร์', 'Open order center')}</button></div>
-        {recent.length ? <table><thead><tr><th>{text('ออเดอร์', 'Order')}</th><th>{text('ช่องทาง', 'Channel')}</th><th>{text('สถานะ', 'Status')}</th><th>{text('ยอดรวม', 'Total')}</th><th>{text('เวลา', 'Time')}</th></tr></thead><tbody>{recent.map(order => <tr key={order.id}><td>#{order.id.slice(-8)}</td><td>{channels.find(c => c.key === channelOf(order))!.label}</td><td>{statusLabel(order)}</td><td>{formatMoney(order.pricing.total)}</td><td>{new Date(order.createdAt!).toLocaleTimeString(language === 'th' ? 'th-TH' : 'en-GB', { hour: '2-digit', minute: '2-digit' })}</td></tr>)}</tbody></table> : <p className="notice">{text('ยังไม่มีออเดอร์วันนี้', 'No orders today yet.')}</p>}
+        {recent.length ? <table><thead><tr><th>{text('ออเดอร์', 'Order')}</th><th>{text('ช่องทาง', 'Channel')}</th><th>{text('สถานะ', 'Status')}</th><th>{text('ยอดรวม', 'Total')}</th><th>{text('เวลา', 'Time')}</th></tr></thead><tbody>{recent.map(order => <tr key={order.id}><td>#{order.id.slice(0, 8)}</td><td>{channels.find(c => c.key === channelOf(order))!.label}</td><td>{statusLabel(order)}</td><td>{formatMoney(order.pricing.total)}</td><td>{shopTime(order.createdAt!, language)}</td></tr>)}</tbody></table> : <p className="notice">{text('ยังไม่มีออเดอร์วันนี้', 'No orders today yet.')}</p>}
       </section>
     </>}
   </main>;

@@ -1,3 +1,4 @@
+import { shopDay } from '../lib/pos-overview';
 import React, { useEffect, useState } from 'react';
 import { api, errorMessage } from '../lib/api';
 import { formatMoney } from '../lib/money';
@@ -16,7 +17,7 @@ import { filterReturns, isOpenReturn } from '../lib/returns-view';
 import type { ReturnFilter, ReturnRow } from '../lib/returns-view';
 
 type View = 'daily' | 'period' | 'analytics' | 'top' | 'receive' | 'payouts' | 'returns' | 'shift' | 'export';
-const localDay = (date = new Date()) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+const localDay = (date = new Date()) => shopDay(date); // shop zone (Asia/Bangkok), not the browser's
 
 // Every figure is computed from the orders the POS already loaded (a recent window,
 // not the full history) and says so. Nothing here is a closed-shift or accounting report.
