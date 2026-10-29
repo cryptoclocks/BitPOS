@@ -1961,10 +1961,12 @@ class MobileBranch {
  final bool pickupEnabled;
  final bool deliveryEnabled;
  final int version;
- const MobileBranch._({required this.id, required this.merchantId, required this.merchantName, required this.name, required this.nameEn, required this.addressLabel, required this.pickupEnabled, required this.deliveryEnabled, required this.version});
- factory MobileBranch({required String id, required String merchantId, required String merchantName, required String name, required String nameEn, required String addressLabel, required bool pickupEnabled, required bool deliveryEnabled, required int version}) => MobileBranch.fromJson({"id": id, "merchantId": merchantId, "merchantName": merchantName, "name": name, "nameEn": nameEn, "addressLabel": addressLabel, "pickupEnabled": pickupEnabled, "deliveryEnabled": deliveryEnabled, "version": version});
+ final bool? openNow;
+ final String? nextOpenAt;
+ const MobileBranch._({required this.id, required this.merchantId, required this.merchantName, required this.name, required this.nameEn, required this.addressLabel, required this.pickupEnabled, required this.deliveryEnabled, required this.version, required this.openNow, required this.nextOpenAt});
+ factory MobileBranch({required String id, required String merchantId, required String merchantName, required String name, required String nameEn, required String addressLabel, required bool pickupEnabled, required bool deliveryEnabled, required int version, required bool? openNow, required String? nextOpenAt}) => MobileBranch.fromJson({"id": id, "merchantId": merchantId, "merchantName": merchantName, "name": name, "nameEn": nameEn, "addressLabel": addressLabel, "pickupEnabled": pickupEnabled, "deliveryEnabled": deliveryEnabled, "version": version, "openNow": openNow, "nextOpenAt": nextOpenAt});
  factory MobileBranch.fromJson(Map<String,dynamic> json) {
-  if (json.length != 9 || !json.keys.every(["id","merchantId","merchantName","name","nameEn","addressLabel","pickupEnabled","deliveryEnabled","version"].contains)) throw const FormatException('Invalid MobileBranch fields');
+  if (json.length != 11 || !json.keys.every(["id","merchantId","merchantName","name","nameEn","addressLabel","pickupEnabled","deliveryEnabled","version","openNow","nextOpenAt"].contains)) throw const FormatException('Invalid MobileBranch fields');
   final id=(() { final value=json["id"]; const path="MobileBranch.id"; return _string(value, path, pattern: null, format: "uuid", min: 0, max: null); })();
   final merchantId=(() { final value=json["merchantId"]; const path="MobileBranch.merchantId"; return _string(value, path, pattern: null, format: "uuid", min: 0, max: null); })();
   final merchantName=(() { final value=json["merchantName"]; const path="MobileBranch.merchantName"; return _string(value, path, pattern: null, format: null, min: 0, max: 320); })();
@@ -1974,9 +1976,11 @@ class MobileBranch {
   final pickupEnabled=(() { final value=json["pickupEnabled"]; const path="MobileBranch.pickupEnabled"; return _boolean(value, path); })();
   final deliveryEnabled=(() { final value=json["deliveryEnabled"]; const path="MobileBranch.deliveryEnabled"; return _boolean(value, path); })();
   final version=(() { final value=json["version"]; const path="MobileBranch.version"; return _integer(value, path, min: 1, max: null); })();
-  return MobileBranch._(id: id, merchantId: merchantId, merchantName: merchantName, name: name, nameEn: nameEn, addressLabel: addressLabel, pickupEnabled: pickupEnabled, deliveryEnabled: deliveryEnabled, version: version);
+  final openNow=(() { final value=json["openNow"]; const path="MobileBranch.openNow"; return value == null ? null : (_boolean(value, path)); })();
+  final nextOpenAt=(() { final value=json["nextOpenAt"]; const path="MobileBranch.nextOpenAt"; return value == null ? null : (_string(value, path, pattern: null, format: "date-time", min: 0, max: null)); })();
+  return MobileBranch._(id: id, merchantId: merchantId, merchantName: merchantName, name: name, nameEn: nameEn, addressLabel: addressLabel, pickupEnabled: pickupEnabled, deliveryEnabled: deliveryEnabled, version: version, openNow: openNow, nextOpenAt: nextOpenAt);
  }
- Map<String,dynamic> toJson() => {"id": id, "merchantId": merchantId, "merchantName": merchantName, "name": name, "nameEn": nameEn, "addressLabel": addressLabel, "pickupEnabled": pickupEnabled, "deliveryEnabled": deliveryEnabled, "version": version};
+ Map<String,dynamic> toJson() => {"id": id, "merchantId": merchantId, "merchantName": merchantName, "name": name, "nameEn": nameEn, "addressLabel": addressLabel, "pickupEnabled": pickupEnabled, "deliveryEnabled": deliveryEnabled, "version": version, "openNow": openNow, "nextOpenAt": nextOpenAt};
 }
 
 class MobileBranches {

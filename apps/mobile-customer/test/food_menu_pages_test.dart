@@ -5,9 +5,10 @@ import 'package:mobile_shared/mobile_v1.generated.dart';
 import 'package:bitpos_customer/food_page.dart';
 import 'food_history_test.dart' show id;
 class MenuPagesApi extends MobileApi{
- MenuPagesApi({this.productCount=500}):super(base:Uri.parse('http://127.0.0.1/api/mobile/v1/'),fixture:true);
+ MenuPagesApi({this.productCount=500,this.openNow}):super(base:Uri.parse('http://127.0.0.1/api/mobile/v1/'),fixture:true);
  final int productCount;
- final branch=MobileBranch(id:id(1),merchantId:id(2),merchantName:'Fixture merchant',name:'ร้านทดสอบ',nameEn:'Fixture branch',addressLabel:'Local fixture',pickupEnabled:true,deliveryEnabled:false,version:1);
+ final bool? openNow;
+ late final branch=MobileBranch(id:id(1),merchantId:id(2),merchantName:'Fixture merchant',name:'ร้านทดสอบ',nameEn:'Fixture branch',addressLabel:'Local fixture',pickupEnabled:true,deliveryEnabled:false,version:1,openNow:openNow,nextOpenAt:openNow==false?'2026-11-02T01:00:00Z':null);
  bool failContinuation=true;
  @override Future<MobileFoodOrderRequest?> pendingFoodOrder() async=>null;
  @override Future<String?> activeFoodOrderId() async=>null;
@@ -21,6 +22,24 @@ class MenuPagesApi extends MobileApi{
  }
 }
 void main(){
+ testWidgets('closed branch menu shows shared closed state and keeps menu/cart usable',(tester) async{
+  final api=MenuPagesApi(productCount:2,openNow:false);addTearDown(api.close);
+  await tester.pumpWidget(MaterialApp(home:Scaffold(body:SingleChildScrollView(child:FoodPage(api:api,thai:true,onAuthenticationRequired:(){})))));
+  await tester.pumpAndSettle();
+  expect(find.byKey(const ValueKey('branch-closed-chip')),findsOneWidget);
+  await tester.tap(find.text('ร้านทดสอบ'));await tester.pumpAndSettle();
+  expect(find.byKey(const ValueKey('bitpos-state-closed')),findsOneWidget);
+  expect(find.textContaining('ตะกร้าของคุณยังอยู่'),findsWidgets);
+  expect(find.text('เมนู1'),findsOneWidget,reason:'closed does not hide the menu or clear the cart');
+ });
+ testWidgets('open or unknown-hours branch menu has no closed state',(tester) async{
+  for(final open in [true,null]){
+   final api=MenuPagesApi(productCount:1,openNow:open);addTearDown(api.close);
+   await tester.pumpWidget(MaterialApp(home:Scaffold(body:SingleChildScrollView(child:FoodPage(api:api,thai:true,onAuthenticationRequired:(){})))));
+   await tester.pumpAndSettle();await tester.tap(find.text('ร้านทดสอบ'));await tester.pumpAndSettle();
+   expect(find.byKey(const ValueKey('bitpos-state-closed')),findsNothing);
+  }
+ });
  testWidgets('Thai menu no-match clears locally to loaded results',(tester) async{
   final api=MenuPagesApi(productCount:2);addTearDown(api.close);
   await tester.pumpWidget(MaterialApp(home:Scaffold(body:SingleChildScrollView(child:FoodPage(api:api,thai:true,onAuthenticationRequired:(){})))));

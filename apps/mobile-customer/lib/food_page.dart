@@ -2220,6 +2220,12 @@ class _FoodPageState extends State<FoodPage> with WidgetsBindingObserver {
                   ),
                 ],
               ),
+              if (menu.branch.openNow == false)
+                BitPosStateView(
+                  kind: BitPosStateKind.closed,
+                  thai: widget.thai,
+                  message: branchClosedMessage(menu.branch, widget.thai),
+                ),
               if (!menu.branch.pickupEnabled && !menu.branch.deliveryEnabled)
                 Text(
                   t(

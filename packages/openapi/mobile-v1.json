@@ -9329,7 +9329,9 @@
           "addressLabel",
           "pickupEnabled",
           "deliveryEnabled",
-          "version"
+          "version",
+          "openNow",
+          "nextOpenAt"
         ],
         "properties": {
           "id": {
@@ -9365,6 +9367,27 @@
           "version": {
             "type": "integer",
             "minimum": 1
+          },
+          "openNow": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "nextOpenAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         }
       },

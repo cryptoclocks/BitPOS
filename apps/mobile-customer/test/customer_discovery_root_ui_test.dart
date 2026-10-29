@@ -63,6 +63,8 @@ class PagedDiscoveryApi extends DiscoveryApi {
       pickupEnabled: true,
       deliveryEnabled: false,
       version: 1,
+        openNow: null,
+        nextOpenAt: null,
     );
     return MobileBranches(
       branches: cursor == null ? [branch] : [branch, next],
@@ -132,6 +134,8 @@ class TwoMerchantApi extends DiscoveryApi {
     pickupEnabled: true,
     deliveryEnabled: false,
     version: 1,
+        openNow: null,
+        nextOpenAt: null,
   );
   @override
   Future<MobileBranches> branches({

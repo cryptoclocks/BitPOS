@@ -753,6 +753,8 @@ export const MobileBranchSchema=z.object({
  pickupEnabled:z.boolean(),
  deliveryEnabled:z.boolean(),
  version:z.number().int().safe().min(1),
+ openNow:z.boolean().nullable(),
+ nextOpenAt:z.string().datetime({offset:true}).regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/).nullable(),
 }).strict();
 export type MobileBranch=z.infer<typeof MobileBranchSchema>;
 export const MobileBranchesSchema=z.object({

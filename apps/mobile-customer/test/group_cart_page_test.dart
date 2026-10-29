@@ -45,6 +45,8 @@ MobileBranch branch() => MobileBranch.fromJson({
   'pickupEnabled': true,
   'deliveryEnabled': false,
   'version': 1,
+  'openNow': null,
+  'nextOpenAt': null,
 });
 
 MobileMoney usd(int minor) =>
