@@ -80,6 +80,23 @@
   - **Facebook Page post drafts (`social.ts`, migration 321):** Muse Image square post from the real menu photo, plus Muse Spark words (number-free); the server adds price, discount and end time and the AI-edited note. An owner or manager edits the caption and presses Post (Graph /{page}/photos); errors are kept and Post can be tried again. Live: draft made. Not posted — publishing is the owner's action, and the Page token may lack pages_manage_posts.
   - **Fix:** English staff pages no longer translate text inside textarea/pre (they had rewritten the caption).
   - **OCI:** migrations 320–321 applied after backup `bitpos-20261029T182844Z-pre320.dump`. Meta tests 92/92.
+- 30 October (later): offer animations and two-item offers (owner request).
+  - **Animations (`anim.ts`, `gif.ts`):** a looping GIF made on the server from the offer picture. Frames are SVG rendered by resvg, with a slow zoom and pan, the discount badge popping in and pulsing, a light sweep, twinkling sparkles and the names fading in. Our own GIF encoder: fixed 8×8×4 palette, ordered dither, LZW. Sizes are 480 px (Messenger, meta-pay) and 240 px (BitPOS Mini). Each is made once and cached in `meta_offer_animations`. URLs carry a tag (`…/480-<tag>.gif`) so Cloudflare, which keeps GIFs for 4 h, never serves an old one.
+  - **WebP:** Muse Image answers WebP, which resvg cannot read, so the Meta image is now `bitpos-meta-base:20261029-r2` (r1 + sharp 0.33.5, linked in) and sharp turns WebP into PNG first.
+  - **Memory:** frames are kept as palette indices. The container limit went from 256 MB to 512 MB, because a 480 px build peaked at 386 MB on top of the ~200 MB the server idles at; at 256 MB it was killed.
+  - **Two-item offers (`combos.ts`, migration 322):** Muse Spark picks two items from the list, a 5–20% discount on the pair, and how long it runs, with digit-free reasons; the template fallback is a drink plus a bakery item at 10% for 6 h. An owner or manager approves, rejects or stops it on the Promotions page.
+    - On approval, Muse Image `/v1/images/generations` draws a new picture of the pair, labelled as an AI picture. If it fails, the first item's real photo is used.
+    - The cart prices it on the server: per pair of A and B, X% off both unit prices, and each unit counts in one pair only. Checkout charges that one total.
+  - **Where customers see it:**
+    - Messenger: after a tap, the chosen offer's animation, then the offer card, then the live pair's animation and an "Add both" button.
+    - meta-pay: the menu shows the pair card with its animation and "Add both"; an item on offer shows its animation; the cart shows a "Pair deal" line.
+    - BitPOS Mini: the idle screen and the welcome-after-tap screen get `anim`, which is the tapped customer's offer, else the pair, else a live offer.
+  - **Firmware (`bitpos_meta.c`):** downloads the same-origin path into PSRAM (at most 900 KB, must start with `GIF8`, retried every 30 s), plays it with `lv_gif` from memory at 240×240 with the text on the right, and frees the old buffer after the swap. It builds (1.44 MB, 31% of the slot free). **Not flashed:** the Mini is not connected.
+  - **Live on OCI:** migration 322 applied after backup `bitpos-20261029T185016Z-pre322.dump`. Muse Spark paired Latte + Croissant −10% for 4 h, the owner approved it, and Muse Image drew the picture in 10 s (WebP). The animation is served at 480 px (1.35 MB, ~4 s the first time) and 240 px (326 KB). The meta-pay cart showed −$0.90 for one pair.
+  - **Tests:** `tests/meta-combos.test.ts` checks that the GIF round-trips through a decoder past the 4096-code reset, pair pricing, RLS, the cache, and the device path filter. Meta tests 95/95.
+  - **Open:**
+    - Flash and watch the Mini.
+    - Messenger animation on a real tap.
 - Next: NTAG424 sticker provisioning tool; Muse Connector (MCP); Allow All UI; demo video.
 - Superseded (kept for history): Messenger (needs the owner signed in to Facebook to create a Page and Meta app), paying a hosted Checkout by hand, a real Messenger app/page and webhook delivery, NTAG424 sticker configuration, Muse connector review, routing `/meta/*` to the API in the tunnel. Next: live Muse Spark call, sticker provisioning tool, Stripe checkout on the tap page.
 

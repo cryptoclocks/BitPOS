@@ -46,12 +46,24 @@ async function price(deps:AgentDeps,merchantId:string,lines:CartLine[]){
   const unit=BigInt(m.price.amountMinor),b=BigInt(m.basePrice.amountMinor);total+=unit*BigInt(l.quantity);base+=b*BigInt(l.quantity);
   return {line:i+1,m,quantity:l.quantity,unit,base:b};
  });
+ // Two-item offers (migration 322): per pair of A and B, X% off both unit prices; a unit counts in one pair only.
+ const combos=(await deps.db.tenant(merchantId,c=>c.query<{id:string;product_a:string;product_b:string;discount_percent:number}>(
+  "SELECT id,product_a,product_b,discount_percent FROM meta_combo_offers WHERE state='APPLIED' AND expires_at>clock_timestamp() ORDER BY discount_percent DESC"))).rows;
+ const left=new Map(priced.map(x=>[x.m.productId,x.quantity]));const unitOf=new Map(priced.map(x=>[x.m.productId,x.unit]));
+ let comboOff=0n;const combosApplied:{id:string;pairs:number;off:bigint}[]=[];
+ for(const c of combos){
+  const pairs=Math.min(left.get(c.product_a)??0,left.get(c.product_b)??0);if(pairs<=0)continue;
+  const off=(unitOf.get(c.product_a)!+unitOf.get(c.product_b)!)*BigInt(pairs)*BigInt(c.discount_percent)/100n;
+  left.set(c.product_a,left.get(c.product_a)!-pairs);left.set(c.product_b,left.get(c.product_b)!-pairs);
+  comboOff+=off;combosApplied.push({id:c.id,pairs,off});
+ }
+ total-=comboOff;
  if(total<STRIPE_MINIMUM[currency!])throw new CartError('BELOW_MINIMUM');
- return {currency:currency!,total,discount:base-total,priced};
+ return {currency:currency!,total,discount:base-total,priced,comboOff,combosApplied};
 }
 export async function quoteCart(deps:AgentDeps,merchantId:string,lines:CartLine[]){
  const p=await price(deps,merchantId,lines);
- return {currency:p.currency,total:formatTapAmount(p.total.toString(),p.currency),discount:formatTapAmount(p.discount.toString(),p.currency),
+ return {currency:p.currency,total:formatTapAmount(p.total.toString(),p.currency),discount:formatTapAmount(p.discount.toString(),p.currency),comboDiscount:p.comboOff>0n?formatTapAmount(p.comboOff.toString(),p.currency):null,
   lines:p.priced.map(x=>({productId:x.m.productId,name:x.m.name,nameEn:x.m.nameEn,emoji:x.m.emoji,imageUrl:x.m.imageUrl,quantity:x.quantity,
    unit:formatTapAmount(x.unit.toString(),p.currency),amount:formatTapAmount((x.unit*BigInt(x.quantity)).toString(),p.currency),offer:x.m.offer!==null}))};
 }

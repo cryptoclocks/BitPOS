@@ -1,6 +1,6 @@
 # Meta hackathon work (2026-10-26..11-04). See meta-hackathon/PROVENANCE.md.
 # The /meta-only server on the OCI host, as its own compose project beside bitpos-runtime.
-# It runs bitpos-meta-base:20261029-r1 (infra/meta/Dockerfile: the pinned base below plus resvg for receipt pictures). The base is the runtime image, pinned under its own tag bitpos-meta-base:20261029 (same image id as
+# It runs bitpos-meta-base:20261029-r2 (infra/meta/Dockerfile: the pinned base below plus resvg and sharp for receipt pictures and offer animations). The base is the runtime image, pinned under its own tag bitpos-meta-base:20261029 (same image id as
 # bitpos-runtime:current on 2026-10-29, so a retag by the Solana stream cannot change it), and mounts the
 # hackathon source read-only at /app/meta-src, so modules resolve from the image's /app/node_modules.
 # Listens on 127.0.0.1:3102 only; the Cloudflare tunnel routes meta-pay.<domain> (customers) and meta-pos.<domain>
@@ -10,7 +10,7 @@
 name: bitpos-meta
 services:
   meta:
-    image: bitpos-meta-base:20261029-r1
+    image: bitpos-meta-base:20261029-r2
     network_mode: host
     restart: unless-stopped
     user: "1001:1001"
@@ -22,7 +22,8 @@ services:
       # Demo staff accounts of the Meta demo shop (Muse Café) for the staff page's quick sign-in (read-only, private;
       # created by tools/meta/create-demo-staff.sh). The POS demo's own accounts are not used by Meta.
       - /home/ubuntu/bitpos-private/meta/demo-login-meta.json:/run/meta/demo-login.json:ro
-    mem_limit: 256m
+    # 512 MB: building a 480 px offer animation (resvg + sharp) needs ~100 MB above the ~200 MB the server idles at.
+    mem_limit: 512m
     logging:
       driver: json-file
       options: {max-size: "10m", max-file: "3"}

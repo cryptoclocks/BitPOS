@@ -44,6 +44,9 @@ export async function editImage(config:AsrConfig,imageUrl:string,prompt:string,f
  try{res=await fetchImpl(`${config.baseUrl}/images/edits`,{method:'POST',redirect:'error',signal:AbortSignal.timeout(120000),
   headers:{Authorization:`Bearer ${config.apiKey}`,'Content-Type':'application/json'},body:JSON.stringify({model:'muse-image-1.0',prompt,images:[{image_url:imageUrl}],n:1})});}
  catch{throw new VisionError('UNAVAILABLE');}
+ return imageResult(res,fetchImpl);
+}
+async function imageResult(res:Response,fetchImpl:VisionFetch):Promise<{bytes:Buffer;mime:string}>{
  if(!res.ok)throw new VisionError(res.status===400?'INVALID':'FAILED');
  const body=await res.json().catch(()=>null) as {data?:{b64_json?:string;url?:string}[]}|null;
  const d=body?.data?.[0];
@@ -55,4 +58,13 @@ export async function editImage(config:AsrConfig,imageUrl:string,prompt:string,f
  const mime=bytes[0]===0x89?'image/png':bytes[0]===0xff?'image/jpeg':bytes.subarray(8,12).toString('ascii')==='WEBP'?'image/webp':'';
  if(!mime)throw new VisionError('FAILED');
  return {bytes,mime};
+}
+
+/** Muse Image generation of a new picture from words only (used for two-item offer art, labelled AI-generated). */
+export async function generateImage(config:AsrConfig,prompt:string,fetchImpl:VisionFetch=fetch):Promise<{bytes:Buffer;mime:string}>{
+ let res:Response;
+ try{res=await fetchImpl(`${config.baseUrl}/images/generations`,{method:'POST',redirect:'error',signal:AbortSignal.timeout(120000),
+  headers:{Authorization:`Bearer ${config.apiKey}`,'Content-Type':'application/json'},body:JSON.stringify({model:'muse-image-1.0',prompt,n:1})});}
+ catch{throw new VisionError('UNAVAILABLE');}
+ return imageResult(res,fetchImpl);
 }

@@ -9,6 +9,7 @@ import {customerHtml,esc,photo,pill,row,status} from './ui';
 import type {MetaRouteDeps} from './routes';
 import {isTourist,menuNames,TOURIST,TOURIST_UI,type TouristLang} from './translate';
 import {liveBanners} from './banners';
+import {listCombos} from './combos';
 
 const CART='bitpos_meta_cart',TABLE='bitpos_meta_table',LANG='bitpos_meta_lang',MAX_FORM=4096;
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
@@ -72,22 +73,28 @@ ${row({icon:'📶',title:'แตะมือถือที่เครื่อ
    const chips=`<div class="chips">${CATS.map(([k,t])=>`<a class="pill${k===cat?'':' mu'}" href="/menu${k?`?c=${encodeURIComponent(k)}`:''}">${esc(ui?k||'All':t)}</a>`).join('')}</div>`;
    const items=menu.filter(m=>!cat||m.category===cat).map(m=>row({href:`/item/${m.productId}`,img:bn.has(m.productId)?`/meta/banner/${bn.get(m.productId)}`:photo(m.imageUrl),title:lang?`${tr.get(m.productId)??m.nameEn} · ${m.nameEn}`:`${m.name} · ${m.nameEn}`,
     sub:`${m.offer?`<span class="pill rd">โปร −${m.offer.discountPercent}%</span>`:''}${m.available>0?'':'<span class="pill mu">หมด</span>'}`,right:price(m)})).join('');
+   const combos=await listCombos(deps.identity.db,merchant,true).catch(()=>[]);
+   // Two-item offers: the looping animation (Muse Image picture) and one button that adds both.
+   const pairs=combos.slice(0,2).map(c=>`<div class="card" style="padding:10px;display:flex;gap:12px;align-items:center"><img src="/meta/anim/combo/${c.id}/480-${c.hasImage?'00000001':'00000000'}.gif" alt="" style="width:112px;height:112px;border-radius:14px;flex:none;background:var(--ln)">
+<div style="flex:1;min-width:0"><span class="pill rd">🍰 ${ui?'Pair deal':'โปรคู่'} −${c.discountPercent}%</span><div style="font-weight:700;margin:4px 0">${esc(c.a.emoji)} ${esc(lang?c.a.nameEn:c.a.name)} + ${esc(c.b.emoji)} ${esc(lang?c.b.nameEn:c.b.name)}</div><small class="mu">${esc(lang?c.reasonEn:`${c.reasonTh} · ${c.reasonEn}`)}</small>
+<form method="post" action="/cart/add" style="margin-top:6px"><input type="hidden" name="id" value="${c.a.id}"><input type="hidden" name="pair" value="${c.b.id}"><input type="hidden" name="q" value="1"><button>${ui?'Add both':'ใส่ทั้งคู่ / Add both'}</button></form></div></div>`).join('');
    const added=url.searchParams.get('added')?'<div class="note" style="background:var(--grb);color:var(--gr)">ใส่ตะกร้าแล้ว ✓ / Added to cart</div>':'';
-   send(res,200,customerHtml({title:'เมนู',back:'/',nav:ui?[['Voice order (Messenger customers)','/meta/order'],['Shop','/']]:[['สั่งด้วยเสียง/พิมพ์ (ต้องเชื่อมต่อ)','/meta/order'],['หน้าร้าน / Shop','/']]},`<h1>${ui?esc(ui.menu):'เมนู / Menu'}</h1>${langChips('/menu')}${added}${chips}${ui?`<p class="mu">${esc(ui.note)}</p>`:''}${items?`<div class="lst">${items}</div>`:'<p class="mu">ยังไม่มีเมนูในหมวดนี้</p>'}${cartBar()}`),langCookie?{'Set-Cookie':langCookie}:{});return true;
+   send(res,200,customerHtml({title:'เมนู',back:'/',nav:ui?[['Voice order (Messenger customers)','/meta/order'],['Shop','/']]:[['สั่งด้วยเสียง/พิมพ์ (ต้องเชื่อมต่อ)','/meta/order'],['หน้าร้าน / Shop','/']]},`<h1>${ui?esc(ui.menu):'เมนู / Menu'}</h1>${langChips('/menu')}${added}${pairs}${chips}${ui?`<p class="mu">${esc(ui.note)}</p>`:''}${items?`<div class="lst">${items}</div>`:'<p class="mu">ยังไม่มีเมนูในหมวดนี้</p>'}${cartBar()}`),langCookie?{'Set-Cookie':langCookie}:{});return true;
   }
   const item=path.match(/^\/item\/([0-9a-f-]{36})$/);
   if(item&&method==='GET'){
    const all=await listMenu(agent,merchant),m=all.find(x=>x.productId===item[1]),tr=await names(m?[m]:[]),bn=await liveBanners(deps.identity.db,merchant);
    if(!m){send(res,404,customerHtml({title:'ไม่พบเมนู',back:'/menu',nav:[['กลับไปเมนู','/menu']]},status('🔎','am','ไม่พบเมนูนี้',['เมนูอาจถูกนำออกแล้ว'])));return true;}
-   const live=bn.get(m.productId),img=live?`/meta/banner/${live}`:photo(m.imageUrl);
-   const body=`${img?`<img class="hero" src="${esc(img)}" alt="">${live?'<small class="mu">🎨 ภาพแก้ด้วย AI (Muse Image) · AI-edited photo</small>':''}`:''}<div class="card"><h1>${lang?esc(tr.get(m.productId)??m.nameEn):esc(m.name)} · ${esc(m.nameEn)}</h1><p style="font-size:22px;font-weight:800;color:var(--p)">${price(m)}</p>
+   const live=bn.get(m.productId),img=m.offer&&(live||m.imageUrl)?`/meta/anim/offer/${m.productId}/480-${(m.offer.offerId+(live??'')).replace(/[^0-9a-f]/g,'').slice(-8).padStart(8,'0')}.gif`:live?`/meta/banner/${live}`:photo(m.imageUrl);
+   const body=`${img?`<img class="hero" src="${esc(img)}" alt=""${m.offer?' style="aspect-ratio:1/1;object-fit:cover"':''}>${live?'<small class="mu">🎨 ภาพแก้ด้วย AI (Muse Image) · AI-edited photo</small>':''}`:''}<div class="card"><h1>${lang?esc(tr.get(m.productId)??m.nameEn):esc(m.name)} · ${esc(m.nameEn)}</h1><p style="font-size:22px;font-weight:800;color:var(--p)">${price(m)}</p>
 ${m.offer?`${pill(`โปร −${m.offer.discountPercent}% ที่ร้านอนุมัติ`,'rd')}`:''}<p class="mu">ราคาจากร้าน ส่วนลดคิดโดยเซิร์ฟเวอร์ · Prices from the server</p></div>
 ${m.payable?`<form method="post" action="/cart/add"><input type="hidden" name="id" value="${m.productId}"><label>จำนวน / Quantity</label><select name="q">${[1,2,3,4,5].map(n=>`<option>${n}</option>`).join('')}</select><button>${ui?esc(ui.add):'ใส่ตะกร้า / Add to cart'}</button></form>`:'<div class="note">เมนูนี้หมดหรือสั่งไม่ได้ตอนนี้ / Not available now.</div>'}`;
    send(res,200,customerHtml({title:m.nameEn,back:'/menu',nav:[['กลับไปเมนู / Menu','/menu'],['ตะกร้า / Cart','/cart']]},body));return true;
   }
   if(path==='/cart/add'&&method==='POST'){
    const f=await form(req);const id=f?.get('id')??'',q=Math.min(5,Math.max(1,Number(f?.get('q')??1)|0));
-   const next=UUID.test(id)?parseCart(formatCart([...cart,{productId:id,quantity:q}])):cart;
+   const pair=f?.get('pair')??'';
+   const next=UUID.test(id)?parseCart(formatCart([...cart,{productId:id,quantity:q},...(UUID.test(pair)?[{productId:pair,quantity:q}]:[])])):cart;
    redirect(res,'/menu?added=1',{'Set-Cookie':setCookie(deps,CART,formatCart(next),2*86400)});return true;
   }
   if(path==='/cart/set'&&method==='POST'){
@@ -101,7 +108,7 @@ ${m.payable?`<form method="post" action="/cart/add"><input type="hidden" name="i
    const tr=lang?await names(await listMenu(agent,merchant)):new Map<string,string>();
    const lines=q.lines.map(l=>`${row({img:photo(l.imageUrl),title:`${lang?tr.get(l.productId)??l.nameEn:l.name} × ${l.quantity}`,sub:`${esc(l.unit)} / ชิ้น${l.offer?' · <span class="pill rd">โปร</span>':''}`,right:esc(l.amount)})}
 <div class="qty" style="justify-content:flex-end;margin:-2px 4px 8px">${[l.quantity-1,l.quantity+1].map((n,i)=>`<form method="post" action="/cart/set"><input type="hidden" name="id" value="${l.productId}"><input type="hidden" name="q" value="${n}"><button aria-label="${i?'เพิ่ม':'ลด'}">${i?'+':'−'}</button></form>`).join('')}</div>`).join('');
-   const body=`<h1>ตรวจรายการ / Review</h1><div class="cols"><div>${lines}</div><div><div class="card">${q.discount!=='$0.00'?`<div class="tot"><span class="mu">ส่วนลดที่ร้านอนุมัติ</span><span style="color:var(--gr)">−${esc(q.discount)}</span></div>`:''}<div class="tot b"><span>รวม / Total</span><span style="color:var(--p)">${esc(q.total)}</span></div>
+   const body=`<h1>ตรวจรายการ / Review</h1><div class="cols"><div>${lines}</div><div><div class="card">${q.comboDiscount?`<div class="tot"><span class="mu">🍰 โปรคู่ / Pair deal</span><span style="color:var(--gr)">−${esc(q.comboDiscount)}</span></div>`:''}${q.discount!=='$0.00'?`<div class="tot"><span class="mu">${q.comboDiscount?'ส่วนลดรวม / Total savings':'ส่วนลดที่ร้านอนุมัติ'}</span><span style="color:var(--gr)">−${esc(q.discount)}</span></div>`:''}<div class="tot b"><span>รวม / Total</span><span style="color:var(--p)">${esc(q.total)}</span></div>
 <small>ราคาล็อกเมื่อกดจ่าย (30 นาที) · ถ้าราคาเปลี่ยน ระบบคิดใหม่ก่อนเสมอ</small></div><div class="note">Stripe sandbox · บัตรทดสอบ 4242 4242 4242 4242 · ไม่มีเงินจริง</div>
 <form method="post" action="/checkout"><button>${ui?`${esc(ui.pay)} · ${esc(q.total)}`:`จ่าย ${esc(q.total)} ด้วย Stripe`}</button></form></div></div>`;
    send(res,200,customerHtml({title:'ตะกร้า',back:'/menu',navPrimary:false,nav:[['เพิ่มเมนู / Add more','/menu']]},body));return true;

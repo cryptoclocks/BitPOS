@@ -9,7 +9,10 @@
  * Settings live in the bitpos_nvs partition under a separate "meta" namespace (url, device, key). The standard
  * "config"/"state" namespaces are only read (WiFi) and never written. Provision over USB with one line:
  *   META_PROVISION <https-origin> <device-uuid> <device-key>
- * The key is never logged. Text must stay within the device font (ASCII and Thai); the server keeps to that. "META_STATUS" prints whether settings exist; "META_FORGET" erases the meta namespace. */
+ * The key is never logged. Text must stay within the device font (ASCII and Thai); the server keeps to that. "META_STATUS" prints whether settings exist; "META_FORGET" erases the meta namespace.
+ * Offer animations: on the idle and welcome screens the server may name a 240 px looping GIF ("anim", a same-origin
+ * /meta/anim/... path). The device downloads it once into PSRAM (at most ANIM_MAX bytes, must start with GIF8) and plays
+ * it with lv_gif from memory; the text moves to the right. A failed download just leaves the plain screen. */
 #include <string.h>
 #include <stdio.h>
 #include <ctype.h>
@@ -24,6 +27,7 @@
 #include "esp_timer.h"
 #include "esp_app_desc.h"
 #include "esp_system.h"
+#include "esp_heap_caps.h"
 #include "nvs_flash.h"
 #include "nvs.h"
 #include "cJSON.h"
@@ -38,10 +42,14 @@ static const char *TAG="BitPOSMeta";
 #define ID_MAX 40
 #define KEY_MAX 64
 #define BODY_MAX 2048
+#define ANIM_PATH_MAX 128
+#define ANIM_MAX (900*1024)
 static char meta_url[URL_MAX],meta_device[ID_MAX],meta_key[KEY_MAX];
 static volatile bool wifi_up;
-static struct {char screen[16],tone[10],table[40],title[96],line1[128],line2[128],big[24],qr[200];int countdown;int poll_ms;int64_t fetched_us;bool online;} view;
+static struct {char screen[16],tone[10],table[40],title[96],line1[128],line2[128],big[24],qr[200],anim[ANIM_PATH_MAX];int countdown;int poll_ms;int64_t fetched_us;bool online;} view;
 static lv_obj_t *countdown_label;
+/* The downloaded animation (PSRAM) and the path it came from; the image descriptor points into anim_buf. */
+static uint8_t *anim_buf;static size_t anim_len;static char anim_loaded[ANIM_PATH_MAX];static lv_image_dsc_t anim_dsc;
 
 static uint32_t tone_bg(const char *t){
     if(!strcmp(t,"green"))return 0x1E8E3E;
@@ -73,17 +81,22 @@ static void render(void){
         text(scr,"ออเดอร์ที่ค้างจะไม่หาย - ไม่ตัดเงินซ้ำ",20,150,440,&bitpos_font_20,0x65676B,LV_TEXT_ALIGN_CENTER);return;
     }
     int x=20,w=440;
+    if(!view.qr[0]&&view.anim[0]&&anim_buf&&!strcmp(view.anim,anim_loaded)){
+        memset(&anim_dsc,0,sizeof(anim_dsc));anim_dsc.header.magic=LV_IMAGE_HEADER_MAGIC;anim_dsc.data=anim_buf;anim_dsc.data_size=anim_len;
+        lv_obj_t *g=lv_gif_create(scr);lv_gif_set_src(g,&anim_dsc);lv_obj_set_pos(g,12,52);
+        lv_obj_set_style_radius(g,16,0);lv_obj_set_style_clip_corner(g,true,0);x=264;w=204;
+    }
     if(view.qr[0]){
         lv_obj_t *qr=lv_qrcode_create(scr);lv_qrcode_set_size(qr,190);lv_qrcode_set_dark_color(qr,lv_color_hex(0x1C2B33));lv_qrcode_set_light_color(qr,lv_color_hex(0xFFFFFF));
         lv_qrcode_update(qr,view.qr,strlen(view.qr));lv_obj_set_pos(qr,16,62);lv_obj_set_style_border_color(qr,lv_color_hex(0xFFFFFF),0);lv_obj_set_style_border_width(qr,6,0);
         text(scr,"QR ของ Stripe (sandbox)",8,262,206,&bitpos_font_20,muted,LV_TEXT_ALIGN_CENTER);x=232;w=232;
     }
     int y=view.qr[0]?60:52;
-    if(view.title[0]){lv_obj_t *t=text(scr,view.title,x,y,w,&bitpos_font_20,fg,view.qr[0]?LV_TEXT_ALIGN_LEFT:LV_TEXT_ALIGN_CENTER);lv_obj_update_layout(t);y+=lv_obj_get_height(t)+8;}
-    if(view.big[0]){text(scr,view.big,x,y,w,&lv_font_montserrat_48,d?0xFFFFFF:0x0866FF,view.qr[0]?LV_TEXT_ALIGN_LEFT:LV_TEXT_ALIGN_CENTER);y+=62;}
+    if(view.title[0]){lv_obj_t *t=text(scr,view.title,x,y,w,&bitpos_font_20,fg,x!=20?LV_TEXT_ALIGN_LEFT:LV_TEXT_ALIGN_CENTER);lv_obj_update_layout(t);y+=lv_obj_get_height(t)+8;}
+    if(view.big[0]){text(scr,view.big,x,y,w,&lv_font_montserrat_48,d?0xFFFFFF:0x0866FF,x!=20?LV_TEXT_ALIGN_LEFT:LV_TEXT_ALIGN_CENTER);y+=62;}
     if(view.countdown>0){countdown_label=text(scr,"--:--",x,y,w,&lv_font_montserrat_48,fg,LV_TEXT_ALIGN_CENTER);y+=62;}
-    if(view.line1[0]){lv_obj_t *t=text(scr,view.line1,x,y,w,&bitpos_font_20,muted,view.qr[0]?LV_TEXT_ALIGN_LEFT:LV_TEXT_ALIGN_CENTER);lv_obj_update_layout(t);y+=lv_obj_get_height(t)+4;}
-    if(view.line2[0])text(scr,view.line2,x,y,w,&bitpos_font_20,muted,view.qr[0]?LV_TEXT_ALIGN_LEFT:LV_TEXT_ALIGN_CENTER);
+    if(view.line1[0]){lv_obj_t *t=text(scr,view.line1,x,y,w,&bitpos_font_20,muted,x!=20?LV_TEXT_ALIGN_LEFT:LV_TEXT_ALIGN_CENTER);lv_obj_update_layout(t);y+=lv_obj_get_height(t)+4;}
+    if(view.line2[0])text(scr,view.line2,x,y,w,&bitpos_font_20,muted,x!=20?LV_TEXT_ALIGN_LEFT:LV_TEXT_ALIGN_CENTER);
 }
 static void tick(lv_timer_t *t){
     (void)t;if(!countdown_label||view.countdown<=0)return;
@@ -111,6 +124,7 @@ static bool fetch_view(void){
             copy(j,"title",view.title,sizeof(view.title));copy(j,"line1",view.line1,sizeof(view.line1));copy(j,"line2",view.line2,sizeof(view.line2));
             copy(j,"big",view.big,sizeof(view.big));copy(j,"qr",view.qr,sizeof(view.qr));
             if(strncmp(view.qr,"https://",8))view.qr[0]=0;
+            copy(j,"anim",view.anim,sizeof(view.anim));if(strncmp(view.anim,"/meta/anim/",11)||strstr(view.anim,".."))view.anim[0]=0;
             cJSON *cd=cJSON_GetObjectItemCaseSensitive(j,"countdown_s"),*pm=cJSON_GetObjectItemCaseSensitive(j,"poll_ms");
             view.countdown=cJSON_IsNumber(cd)?cd->valueint:0;view.poll_ms=cJSON_IsNumber(pm)&&pm->valueint>=1000&&pm->valueint<=30000?pm->valueint:2000;
             view.fetched_us=esp_timer_get_time();ok=true;
@@ -119,16 +133,43 @@ static bool fetch_view(void){
     }
     esp_http_client_close(c);esp_http_client_cleanup(c);return ok;
 }
+/* Downloads view.anim into a new PSRAM buffer; true when it is a GIF that fits. Runs without the LVGL lock. */
+static bool fetch_anim(uint8_t **out,size_t *len){
+    char url[URL_MAX+ANIM_PATH_MAX];snprintf(url,sizeof(url),"%s%s",meta_url,view.anim);
+    esp_http_client_config_t cfg={.url=url,.crt_bundle_attach=esp_crt_bundle_attach,.timeout_ms=15000,.disable_auto_redirect=true,.buffer_size=4096};
+    esp_http_client_handle_t c=esp_http_client_init(&cfg);if(!c)return false;
+    bool ok=false;uint8_t *buf=NULL;
+    if(esp_http_client_open(c,0)==ESP_OK){
+        int64_t size=esp_http_client_fetch_headers(c);
+        if(esp_http_client_get_status_code(c)==200&&size>16&&size<=ANIM_MAX&&(buf=heap_caps_malloc((size_t)size,MALLOC_CAP_SPIRAM|MALLOC_CAP_8BIT))){
+            int n=0,r;while(n<size&&(r=esp_http_client_read(c,(char*)buf+n,(int)size-n))>0)n+=r;
+            ok=n==size&&!memcmp(buf,"GIF8",4);
+            if(ok){*out=buf;*len=(size_t)n;}else{heap_caps_free(buf);}
+        }
+    }
+    esp_http_client_close(c);esp_http_client_cleanup(c);
+    if(!ok)ESP_LOGW(TAG,"offer animation not loaded");
+    return ok;
+}
 static void poller(void *arg){
     (void)arg;uint32_t last=0;bool rendered=false;int failures=0;
     for(;;){
         bool ok=wifi_up&&fetch_view();
         failures=ok?0:failures+1;bool online=failures<3;
+        /* A new animation: download first, then swap it in under the lock (the old buffer is freed after the re-render). */
+        uint8_t *old=NULL;
+        static int64_t anim_retry_us;
+        if(ok&&view.anim[0]&&strcmp(view.anim,anim_loaded)&&esp_timer_get_time()>=anim_retry_us){
+            anim_retry_us=esp_timer_get_time()+30000000; /* one try per 30 s while the same path keeps failing */
+            uint8_t *buf;size_t len;
+            if(fetch_anim(&buf,&len)&&display_engine_lock(1000)){old=anim_buf;anim_buf=buf;anim_len=len;snprintf(anim_loaded,sizeof(anim_loaded),"%s",view.anim);anim_retry_us=0;last=0;rendered=false;display_engine_unlock();}
+        }
         /* Re-render only when what the screen shows changed (FNV-1a over the fields). */
-        uint32_t sig=2166136261u;const char *fields[]={view.screen,view.tone,view.title,view.line1,view.line2,view.big,view.qr,view.table};
+        uint32_t sig=2166136261u;const char *fields[]={view.screen,view.tone,view.title,view.line1,view.line2,view.big,view.qr,view.table,view.anim,anim_loaded};
         for(size_t f=0;f<sizeof(fields)/sizeof(fields[0]);f++)for(const char *p=fields[f];;p++){sig=(sig^(uint8_t)*p)*16777619u;if(!*p)break;}
         sig=(sig^(uint32_t)online^((uint32_t)(view.countdown>0)<<1))*16777619u;
         if((sig!=last||!rendered)&&display_engine_lock(1000)){view.online=online;render();display_engine_unlock();last=sig;rendered=true;}
+        if(old&&rendered)heap_caps_free(old);else if(old&&display_engine_lock(5000)){lv_obj_clean(lv_screen_active());display_engine_unlock();heap_caps_free(old);rendered=false;}
         vTaskDelay(pdMS_TO_TICKS(ok?view.poll_ms:3000));
     }
 }

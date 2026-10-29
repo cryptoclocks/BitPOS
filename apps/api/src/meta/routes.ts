@@ -2,6 +2,7 @@
 // Raw HTTP handlers under /meta/: the NTAG424 tap URL, the Messenger webhook and the customer web session.
 // They need the exact request bytes (webhook signature), cookies and redirects, so they sit beside the JSON API.
 import type http from 'node:http';
+import type {Outgoing} from './messenger';
 import {consumeMagicLink,customerFromSession,handleMessengerEvents,handleTap,offerForTap,offerMessage,revokeFromSession,type IdentityDeps,type OfferDeps,type OfferView} from './identity';
 import {invocationSink} from './evidence';
 import {applyStripeWebhook,reconcileTapOrder,startTapCheckout,type StripeDeps} from './tap-checkout';
@@ -23,6 +24,7 @@ import {FRAME,L,LANG,LANG_COOKIE,langFromCookie,nm} from './staff-i18n';
 import {servePosApi} from './pos-api';
 import {saveChatCart,talkCart} from './cart-agent';
 import {discardPost,draftPost,postImage,postsByDraft,publishPost,SocialError,type PostView} from './social';
+import {ComboError,comboAnimation,comboImage,decideCombo,draftCombo,illustrateCombo,listCombos,offerAnimation,type ComboView} from './combos';
 import {BannerError,bannerImage,bannersByDraft,createBanner,decideBanner,type BannerView} from './banners';
 import {servePos} from './pos';
 import {CartError,cartChatReceipt,cartOrderMerchant,formatCart,handOverCart,parseCart,quoteCart,startCart,type CartLine} from './cart';
@@ -112,7 +114,7 @@ export async function serveMeta(req:http.IncomingMessage,res:http.ServerResponse
  // Customer pages live on META_PUBLIC_URL's host, staff pages on META_STAFF_URL's host. On the staff host only
  // /meta/staff (and the menu photos its pages show) answers; elsewhere (customer host or the legacy pay.… /meta/ route) staff pages redirect there.
  // Direct loopback requests (host health checks, tests) are not redirected.
- const staffOrigin=deps.staff?.config.origin,host=(req.headers.host??'').toLowerCase(),isStaffPath=path==='/meta/staff'||path.startsWith('/meta/staff/'),isMenuImage=/^\/meta\/images\/menu\/[a-z0-9-]{1,64}\.jpg$|^\/meta\/icons\//.test(path);
+ const staffOrigin=deps.staff?.config.origin,host=(req.headers.host??'').toLowerCase(),isStaffPath=path==='/meta/staff'||path.startsWith('/meta/staff/'),isMenuImage=/^\/meta\/images\/menu\/[a-z0-9-]{1,64}\.jpg$|^\/meta\/icons\/|^\/meta\/anim\//.test(path);
  if(staffOrigin&&staffOrigin!==deps.identity.publicOrigin&&!/^(127\.0\.0\.1|localhost)(:\d+)?$/.test(host)){
   if(host===new URL(staffOrigin).host){if(!isStaffPath&&!isMenuImage){res.writeHead(404,{'Content-Type':'text/plain'});res.end('not found');return true;}}
   else if(isStaffPath&&method==='GET'){res.writeHead(302,{Location:staffOrigin+path,'Cache-Control':'no-store'});res.end();return true;}
@@ -130,6 +132,14 @@ export async function serveMeta(req:http.IncomingMessage,res:http.ServerResponse
   const b=await bannerImage(deps.identity.db,deps.demoMerchant,banner[1],true);
   if(!b){res.writeHead(404,{'Content-Type':'text/plain'});res.end('not found');return true;}
   res.writeHead(200,{'Content-Type':b.mime,'Cache-Control':'public, max-age=600','X-Content-Type-Options':'nosniff'});res.end(b.image);return true;
+ }
+ const anim=path.match(/^\/meta\/anim\/(offer|combo)\/([0-9a-f-]{36})\/(240|480)(?:-[0-9a-f]{8})?\.gif$/);
+ if(anim&&method==='GET'){
+  // Offer animations (meta-pay, Messenger, the BitPOS Mini): only for an offer that is live now in the demo shop.
+  const chat=chatDeps(deps);
+  const gif=chat&&deps.demoMerchant?(await (anim[1]==='offer'?offerAnimation:comboAnimation)(chat,deps.demoMerchant,anim[2],Number(anim[3]) as 240|480).catch(()=>null))?.gif:null;
+  if(!gif){res.writeHead(404,{'Content-Type':'text/plain','Cache-Control':'no-store'});res.end('not found');return true;}
+  res.writeHead(200,{'Content-Type':'image/gif','Content-Length':gif.length,'Cache-Control':'public, max-age=300','X-Content-Type-Options':'nosniff'});res.end(gif);return true;
  }
  const image=path.match(/^\/meta\/images\/menu\/([a-z0-9-]{1,64}\.jpg)$/);
  if(image&&method==='GET'){
@@ -157,7 +167,7 @@ export async function serveMeta(req:http.IncomingMessage,res:http.ServerResponse
  if(path==='/meta/device/state'&&method==='GET'){
   const d=url.searchParams.get('d')??'';
   if(!/^[0-9a-f-]{36}$/.test(d)||!deviceKeyValid(deps.identity.masterKey,d,req.headers.authorization)){json(res,401,{error:'UNAUTHORIZED'});return true;}
-  const v=await deviceView(deps.identity.db,d,deps.identity.publicOrigin);
+  const v=await deviceView(deps.identity.db,d,deps.identity.publicOrigin,deviceAnim(deps));
   if(!v){json(res,404,{error:'NOT_FOUND'});return true;}
   json(res,200,v);return true;
  }
@@ -187,7 +197,7 @@ export async function serveMeta(req:http.IncomingMessage,res:http.ServerResponse
    const send=async(message:Parameters<typeof sendMessenger>[1])=>{try{await sendMessenger(messenger,message,deps.fetch);}catch(e){log(`Messenger send failed: ${e instanceof MessengerError?`${e.code} ${e.detail}`:'UNKNOWN'}`);}};
    for(const message of outbox)await send(message);
    // Offers are chosen after the webhook transaction committed, so the model call never holds a lock.
-   for(const o of offers){const view=await offerOrNull(deps,o.merchantId,o.linkId,o.tapSessionId);if(view)await send(offerMessage(o.psid,view,deps.identity.publicOrigin));}
+   for(const o of offers){const view=await offerOrNull(deps,o.merchantId,o.linkId,o.tapSessionId);if(view)for(const m of await animatedOffer(deps,o.merchantId,o.psid,view))await send(m);}
    // Chat orders also run after commit, so the model and Stripe calls never hold a transaction.
    const chat=chatDeps(deps);
    for(const a of agent){
@@ -408,7 +418,7 @@ async function serveStaff(req:http.IncomingMessage,res:http.ServerResponse,deps:
   if(r==='HANDED_OVER'||r==='ALREADY'){res.writeHead(303,{Location:`/meta/staff?done=${pickupCode(hand[1])}`,'Cache-Control':'no-store'});res.end();return true;}
   page(res,r==='NOT_FOUND'?404:409,'ส่งมอบไม่ได้',[r==='NOT_PAID'?'ออเดอร์นี้ยังไม่ได้จ่าย / This order is not paid.':'ไม่พบออเดอร์ / Order not found.','<a href="/meta/staff">← กลับ / Back</a>']);return true;
  }
- if(path==='/meta/staff/offers'||path.startsWith('/meta/staff/offers/')||path.startsWith('/meta/staff/policies/')||path.startsWith('/meta/staff/banners/')||path.startsWith('/meta/staff/posts/'))return serveOffers(req,res,deps,staff,cookie,url,log);
+ if(path==='/meta/staff/offers'||path.startsWith('/meta/staff/offers/')||path.startsWith('/meta/staff/policies/')||path.startsWith('/meta/staff/banners/')||path.startsWith('/meta/staff/posts/')||path.startsWith('/meta/staff/combos/'))return serveOffers(req,res,deps,staff,cookie,url,log);
  if(path==='/meta/staff/ledger'&&method==='GET')return serveLedger(res,deps,staff,cookie);
  const resCancel=path.match(/^\/meta\/staff\/reservations\/([0-9a-f-]{36})\/cancel$/);
  if(resCancel&&method==='POST'){
@@ -469,13 +479,14 @@ async function serveOffers(req:http.IncomingMessage,res:http.ServerResponse,deps
  const back=(note?:string)=>{res.writeHead(303,{Location:`/meta/staff/offers${note?`?n=${note}`:''}`,'Cache-Control':'no-store'});res.end();return true as const;};
  try{
   if(path==='/meta/staff/offers'&&method==='GET'){
-   const {drafts,policies}=await listOffersOverview(od,me);const banners=await bannersByDraft(deps.identity.db,me.merchantId),posts=await postsByDraft(deps.identity.db,me.merchantId);
-   const notes:Record<string,string>={drafted:'ร่างโปรใหม่แล้ว / New draft ready.',banner:'🎨 Muse Image ทำป้ายแล้ว รออนุมัติ / Banner ready for approval.',bannerok:'ใช้ป้ายนี้บน meta-pay แล้ว / Banner is live on meta-pay.',bannerno:'ไม่ใช้ป้ายนี้ / Banner rejected.',bannerfail:'Muse Image ทำป้ายไม่สำเร็จ ลองใหม่ / Could not make the banner; try again.',post:'📣 ร่างโพสต์พร้อมให้ตรวจ / Post draft ready for review.',posted:'✅ โพสต์ลงเพจแล้ว / Posted to the Page.',postfail:'โพสต์ไม่สำเร็จ ดูรายละเอียดที่ร่าง / Posting failed; see the draft.',postdraftfail:'ร่างโพสต์ไม่สำเร็จ ลองใหม่ / Could not draft the post; try again.',discarded:'ทิ้งร่างแล้ว / Draft discarded.',auto:'🤖 อยู่ในกรอบ Allow All จึงอนุมัติอัตโนมัติแล้ว / Inside Allow All: approved automatically.',approved:'อนุมัติแล้ว / Approved.',rejected:'ไม่อนุมัติแล้ว / Rejected.',stopped:'หยุดโปรแล้ว / Offer stopped.',revoked:'ยกเลิก Allow All แล้ว / Allow All revoked.'};
+   const {drafts,policies}=await listOffersOverview(od,me);const combos=await listCombos(deps.identity.db,me.merchantId);const banners=await bannersByDraft(deps.identity.db,me.merchantId),posts=await postsByDraft(deps.identity.db,me.merchantId);
+   const notes:Record<string,string>={drafted:'ร่างโปรใหม่แล้ว / New draft ready.',banner:'🎨 Muse Image ทำป้ายแล้ว รออนุมัติ / Banner ready for approval.',bannerok:'ใช้ป้ายนี้บน meta-pay แล้ว / Banner is live on meta-pay.',bannerno:'ไม่ใช้ป้ายนี้ / Banner rejected.',bannerfail:'Muse Image ทำป้ายไม่สำเร็จ ลองใหม่ / Could not make the banner; try again.',post:'📣 ร่างโพสต์พร้อมให้ตรวจ / Post draft ready for review.',posted:'✅ โพสต์ลงเพจแล้ว / Posted to the Page.',postfail:'โพสต์ไม่สำเร็จ ดูรายละเอียดที่ร่าง / Posting failed; see the draft.',postdraftfail:'ร่างโพสต์ไม่สำเร็จ ลองใหม่ / Could not draft the post; try again.',discarded:'ทิ้งร่างแล้ว / Draft discarded.',combo:'🍰 ร่างโปรคู่แล้ว รออนุมัติ / Two-item offer drafted.',comboon:'✅ เปิดโปรคู่แล้ว Muse Image กำลังสร้างภาพ (ราว 1 นาที) / Two-item offer is live; Muse Image is making its picture (about a minute).',combono:'ไม่ใช้โปรคู่นี้ / Two-item offer rejected.',combostop:'หยุดโปรคู่แล้ว / Two-item offer stopped.',comboimg:'🎨 กำลังสร้างภาพใหม่ / Making a new picture.',combofail:'ทำรายการโปรคู่ไม่ได้ / Could not change the two-item offer.',auto:'🤖 อยู่ในกรอบ Allow All จึงอนุมัติอัตโนมัติแล้ว / Inside Allow All: approved automatically.',approved:'อนุมัติแล้ว / Approved.',rejected:'ไม่อนุมัติแล้ว / Rejected.',stopped:'หยุดโปรแล้ว / Offer stopped.',revoked:'ยกเลิก Allow All แล้ว / Allow All revoked.'};
    const n=url.searchParams.get('n');
    page(res,200,'โปรโมชัน / Promotions',[`<small>${esc(me.role)} · Muse Spark ร่าง เจ้าของอนุมัติ ราคาคิดโดยระบบ / Muse Spark drafts, the owner approves, the server prices</small>`,
     ...(n&&notes[n]?[`<strong>${notes[n]}</strong>`]:[]),
     '<form method="post" action="/meta/staff/offers/draft"><button>✨ ให้ Muse Spark ร่างโปร / Draft an offer with Muse Spark</button></form>',
     ...(policies.length?policies.map(policyLine):['<small>ยังไม่มี Allow All / No Allow All policy yet.</small>']),
+    comboSection(combos,me.role!=='staff'),
     ...(drafts.length?drafts.map(d=>draftLine(d,me.role==='owner',banners.get(d.id)??[],me.role!=='staff',posts.get(d.id)??[])):['<small>ยังไม่มีร่างโปร / No drafts yet.</small>']),
     '<a href="/meta/staff">← ออเดอร์ / Orders</a>']);
    return true;
@@ -486,7 +497,24 @@ async function serveOffers(req:http.IncomingMessage,res:http.ServerResponse,deps
   const bimg=path.match(/^\/meta\/staff\/banners\/([0-9a-f-]{36})$/);
   if(bimg&&method==='GET'){const b=await bannerImage(deps.identity.db,me.merchantId,bimg[1],false);if(!b){json(res,404,{error:'RESOURCE_NOT_FOUND'});return true;}
    res.writeHead(200,{'Content-Type':b.mime,'Cache-Control':'private, max-age=300','X-Content-Type-Options':'nosniff'});res.end(b.image);return true;}
+  const cimg=path.match(/^\/meta\/staff\/combos\/([0-9a-f-]{36})\/image$/);
+  if(cimg&&method==='GET'){const b=await comboImage(deps.identity.db,me.merchantId,cimg[1]);if(!b?.image){json(res,404,{error:'RESOURCE_NOT_FOUND'});return true;}
+   res.writeHead(200,{'Content-Type':b.image_mime??'image/png','Cache-Control':'private, max-age=300','X-Content-Type-Options':'nosniff'});res.end(b.image);return true;}
   if(method!=='POST'){json(res,404,{error:'RESOURCE_NOT_FOUND'});return true;}
+  const cb=path==='/meta/staff/combos/draft'?['','draft']:path.match(/^\/meta\/staff\/combos\/([0-9a-f-]{36})\/(approve|reject|stop|illustrate)$/)?.slice(1);
+  if(cb){
+   if(me.role==='staff'){page(res,403,'ทำรายการไม่ได้',[OFFER_ERRORS.ROLE_REQUIRED,'<a href="/meta/staff/offers">← กลับ / Back</a>']);return true;}
+   const chat=chatDeps(deps)!;
+   const picture=(id:string)=>{if(!deps.asr)return;void illustrateCombo(deps.identity.db,deps.asr,me.merchantId,id).then(ok=>{log(`Two-item offer picture ${ok?'made with Muse Image':'failed'}`);
+    if(ok&&me.merchantId===deps.demoMerchant)for(const size of [480,240] as const)void comboAnimation(chat,me.merchantId,id,size).catch(()=>null);}).catch(()=>log('Two-item offer picture failed'));};
+   try{
+    if(cb[1]==='draft'){await draftCombo(chat,deps.offers.router,me.merchantId,me.userId);log('Two-item offer drafted');return back('combo');}
+    if(cb[1]==='illustrate'){picture(cb[0]);return back('comboimg');}
+    await decideCombo(deps.identity.db,me.merchantId,me.userId,cb[0],cb[1] as 'approve'|'reject'|'stop');log(`Two-item offer ${cb[1]}`);
+    if(cb[1]==='approve')picture(cb[0]);
+    return back(cb[1]==='approve'?'comboon':cb[1]==='reject'?'combono':'combostop');
+   }catch(e){if(e instanceof ComboError)return back('combofail');throw e;}
+  }
   const mk=path.match(/^\/meta\/staff\/offers\/([0-9a-f-]{36})\/banner$/);
   if(mk){
    if(me.role==='staff'){page(res,403,'ทำรายการไม่ได้',[OFFER_ERRORS.ROLE_REQUIRED,'<a href="/meta/staff/offers">← กลับ / Back</a>']);return true;}
@@ -535,6 +563,60 @@ async function serveOffers(req:http.IncomingMessage,res:http.ServerResponse,deps
   if(e instanceof OfferPolicyError){page(res,e.code==='ROLE_REQUIRED'||e.code==='OWNER_REQUIRED'?403:e.code==='NOT_FOUND'?404:409,'ทำรายการไม่ได้',[OFFER_ERRORS[e.code],'<a href="/meta/staff/offers">← กลับ / Back</a>']);return true;}
   log('Offer action failed');page(res,500,'ระบบขัดข้อง',['Something went wrong.','<a href="/meta/staff/offers">← กลับ / Back</a>']);return true;
  }
+}
+
+/** BitPOS Mini: the 240 px animation for the tapped customer's offer, else the shop's live two-item offer, else a live
+ * single offer with a photo. Made (and cached) before the path is handed out, so the device's download is quick. */
+function deviceAnim(deps:MetaRouteDeps){
+ // The device polls every few seconds: remember the answer for 20 s instead of reading the GIF cache each time.
+ return async(merchantId:string,productId:string|null):Promise<string>=>{
+  const chat=chatDeps(deps);if(!chat||merchantId!==deps.demoMerchant)return '';
+  const key=`${merchantId}:${productId??''}`,hit=ANIM_MEMO.get(key);
+  if(hit&&hit.at>Date.now()-20_000)return hit.path;
+  const path=await pick(chat,merchantId,productId);ANIM_MEMO.set(key,{path,at:Date.now()});if(ANIM_MEMO.size>200)ANIM_MEMO.clear();
+  return path;
+ };
+ async function pick(chat:ChatAgentDeps,merchantId:string,productId:string|null):Promise<string>{
+  const mine=productId?await offerAnimation(chat,merchantId,productId,240):null;
+  if(mine)return `/meta/anim/offer/${productId}/240-${mine.tag}.gif`;
+  const combo=(await listCombos(chat.db,merchantId,true))[0],pair=combo?await comboAnimation(chat,merchantId,combo.id,240):null;
+  if(pair)return `/meta/anim/combo/${combo.id}/240-${pair.tag}.gif`;
+  const item=(await listMenu(chat,merchantId)).find(m=>m.offer&&m.imageUrl),one=item?await offerAnimation(chat,merchantId,item.productId,240):null;
+  return one?`/meta/anim/offer/${item!.productId}/240-${one.tag}.gif`:'';
+ }
+}
+const ANIM_MEMO=new Map<string,{path:string;at:number}>();
+/** The chosen offer with motion: a looping animation first (made once and cached, so Messenger can fetch it at once),
+ * then the offer card; a live two-item offer follows with its own animation and an "add both" button. */
+async function animatedOffer(deps:MetaRouteDeps,merchantId:string,psid:string,view:OfferView):Promise<Outgoing[]>{
+ const origin=deps.identity.publicOrigin,chat=chatDeps(deps),out:Outgoing[]=[];
+ const demo=!!chat&&merchantId===deps.demoMerchant&&!!origin;
+ const one=demo?await offerAnimation(chat,merchantId,view.productId,480).catch(()=>null):null;
+ if(one)out.push({kind:'image',psid,url:`${origin}/meta/anim/offer/${view.productId}/480-${one.tag}.gif`});
+ out.push(offerMessage(psid,view,origin));
+ if(demo){const combo=(await listCombos(chat.db,merchantId,true).catch(()=>[]))[0];
+  if(combo){
+   const pair=await comboAnimation(chat,merchantId,combo.id,480).catch(()=>null);
+   if(pair)out.push({kind:'image',psid,url:`${origin}/meta/anim/combo/${combo.id}/480-${pair.tag}.gif`});
+   out.push({kind:'buttons',psid,text:`🍰 โปรคู่: ${combo.a.emoji} ${combo.a.name} + ${combo.b.emoji} ${combo.b.name} ลด ${combo.discountPercent}% ทั้งคู่\n${combo.reasonTh}\n\n🍰 Pair deal: ${combo.a.nameEn} + ${combo.b.nameEn}, ${combo.discountPercent}% off both\n${combo.reasonEn}`,
+    buttons:[{type:'postback',title:'ใส่ทั้งคู่ / Add both',payload:`BITPOS_CART_ADD:${combo.a.id}:1,${combo.b.id}:1`}]});
+  }}
+ return out;
+}
+
+/** Two-item offers: Muse Spark drafts a pair, an owner or manager approves it, Muse Image makes a new picture, and the
+ * server turns it into a looping animation (meta-pay, Messenger, the BitPOS Mini). */
+function comboSection(combos:ComboView[],boss:boolean):string{
+ const at=(iso:string)=>new Date(iso).toLocaleString('en-GB',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit',timeZone:'Asia/Bangkok'});
+ const st={DRAFT:L('รออนุมัติ','Waiting'),APPLIED:L('ใช้อยู่','Live'),REJECTED:L('ไม่อนุมัติ','Rejected'),STOPPED:L('หยุดแล้ว','Stopped')};
+ const card=(c:ComboView)=>{
+  const live=c.live?`<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:8px">${c.hasImage?`<figure style="margin:0"><img src="/meta/staff/combos/${c.id}/image" alt="" style="width:160px;height:160px;object-fit:cover;border-radius:12px;border:1px solid var(--ln)"><figcaption><small>🎨 ${L('ภาพสร้างใหม่ด้วย AI (Muse Image)','New AI picture (Muse Image)')}</small></figcaption></figure>`:`<small>⏳ ${L('Muse Image กำลังสร้างภาพ… รีเฟรชอีกครั้ง','Muse Image is making the picture… refresh soon')}</small>`}
+   <figure style="margin:0"><img src="/meta/anim/combo/${c.id}/480-${c.hasImage?'00000001':'00000000'}.gif" alt="" loading="lazy" style="width:160px;height:160px;border-radius:12px;border:1px solid var(--ln)"><figcaption><small>🎞️ ${L('ภาพเคลื่อนไหวที่ลูกค้าเห็น','Animation customers see')}</small></figcaption></figure></div>`:'';
+  const act=!boss?'':c.state==='DRAFT'?`<form method="post" action="/meta/staff/combos/${c.id}/approve"><button class="inline">${L('อนุมัติ + สร้างภาพ','Approve + make picture')}</button></form><form method="post" action="/meta/staff/combos/${c.id}/reject"><button class="g inline">${L('ไม่อนุมัติ','Reject')}</button></form>`
+   :c.live?`${c.hasImage?'':`<form method="post" action="/meta/staff/combos/${c.id}/illustrate"><button class="s inline">🎨 ${L('สร้างภาพอีกครั้ง','Make the picture again')}</button></form>`}<form method="post" action="/meta/staff/combos/${c.id}/stop"><button class="g inline">${L('หยุดโปรคู่','Stop')}</button></form>`:'';
+  return `<div style="border:1px solid var(--ln);border-radius:14px;padding:12px;margin:8px 0">🍰 <strong>${esc(c.a.emoji)} ${esc(nm(c.a.name,c.a.nameEn))} + ${esc(c.b.emoji)} ${esc(nm(c.b.name,c.b.nameEn))}</strong> · −${c.discountPercent}% ${L('ทั้งคู่','on the pair')} · ${c.durationHours} ${L('ชม.','h')} · ${st[c.state]}${c.live&&c.expiresAt?` · ${L('ถึง','until')} ${at(c.expiresAt)}`:''}<br><small>${esc(L(c.reasonTh,c.reasonEn))} · ${c.chosenBy==='model'?'Muse Spark':L('แม่แบบ','template')}</small>${live}${act}</div>`;};
+ return `<h3 style="margin:14px 0 4px">🍰 ${L('โปรคู่ (สั่งสองอย่าง)','Two-item offers')}</h3><small>${L('สั่งคู่นี้ด้วยกันลดทั้งคู่ ราคาคิดโดยระบบตอนชำระ ลูกค้าเห็นภาพเคลื่อนไหวบน meta-pay, Messenger และจอ BitPOS Mini','Order both together for a discount on the pair; the server prices it at checkout. Customers see the animation on meta-pay, Messenger and the BitPOS Mini.')}</small>
+${boss?`<form method="post" action="/meta/staff/combos/draft"><button>✨ ${L('ให้ Muse Spark จับคู่โปร','Pair an offer with Muse Spark')}</button></form>`:''}${combos.map(card).join('')||`<small>${L('ยังไม่มีโปรคู่','No two-item offers yet.')}</small>`}`;
 }
 
 const ORDER_LINK='<a href="/meta/order">🎙️ สั่งด้วยเสียงหรือพิมพ์ / Order by voice or text →</a>';
