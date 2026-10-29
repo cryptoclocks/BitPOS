@@ -19,6 +19,7 @@ import {randomBytes} from 'node:crypto';
 import {AsyncLocalStorage} from 'node:async_hooks';
 import {aiHtml,customerHtml,photo,staffHtml} from './ui';
 import {L,LANG,LANG_COOKIE,langFromCookie,nm} from './staff-i18n';
+import {servePosApi} from './pos-api';
 import {servePos} from './pos';
 import {CartError,cartChatReceipt,cartOrderMerchant,formatCart,handOverCart,parseCart,quoteCart,startCart,type CartLine} from './cart';
 import {receiptAvailable,receiptImageKeyValid,receiptImageUrl,receiptPng} from './receipt-image';
@@ -253,6 +254,7 @@ export async function serveMeta(req:http.IncomingMessage,res:http.ServerResponse
   page(res,202,'กำลังตรวจสอบการชำระเงิน',['ยังไม่ได้รับการยืนยันจาก Stripe ลองรีเฟรชอีกครั้ง','Waiting for Stripe to confirm. Refresh in a moment.']);return true;
  }
  if(path==='/meta/order'||path==='/meta/order/pay'||path==='/meta/order/add'||path==='/meta/order/voice'||path==='/meta/order/cartpay'||path==='/meta/order/photo')return serveWebOrder(req,res,deps,url,log);
+ if(path.startsWith('/meta/staff/api/'))return servePosApi(req,res,deps,path,log);
  if(path==='/meta/staff/lang'&&method==='GET'){
   // TH/EN switch for meta-pos (English by default); only a meta-pos path can be the way back.
   const l=url.searchParams.get('l')==='th'?'th':'en',b=url.searchParams.get('b')??'';

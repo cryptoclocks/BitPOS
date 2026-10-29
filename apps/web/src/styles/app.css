@@ -38,3 +38,9 @@ input:not([type="checkbox"]):not([type="radio"]),select{border-color:var(--bp-li
 .error{background:var(--bp-redbg);color:var(--bp-red);border-color:var(--bp-red)}
 .shell button:not(.product){min-height:var(--bp-touch-min)}
 .shell .language-toggle{width:48px;height:48px;min-width:48px}
+/* Meta edition: Stripe counter bill (MetaCounterBill.tsx). */
+.meta-bill-backdrop{position:fixed;inset:0;z-index:60;background:rgba(15,23,42,.45);display:flex;align-items:center;justify-content:center;padding:16px}
+.meta-bill{width:min(440px,100%);max-height:92vh;overflow:auto;display:grid;gap:12px}.meta-bill header{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}.meta-bill header h2{margin:2px 0 0}
+.meta-qr{background:#fff;border-radius:16px;padding:12px;display:flex;justify-content:center}.meta-qr svg{width:min(280px,70vw);height:auto}
+.meta-paid{display:grid;gap:4px;text-align:center;padding:22px;border-radius:16px;background:#e5f5ed;color:#197b57}.meta-paid strong{font-size:28px}
+.meta-lines{list-style:none;margin:0;padding:0;display:grid;gap:6px}.meta-lines li{display:flex;justify-content:space-between;gap:10px}
