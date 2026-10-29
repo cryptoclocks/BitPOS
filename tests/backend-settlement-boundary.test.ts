@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {randomUUID} from 'node:crypto';
 import pg from 'pg';
+import {fixturePaymentAttempt} from './backend-payment-fixture';
 
 const settlementSql='SELECT (r.updated_order).*,r.details AS settlement_details FROM bitpos.settle_verified_attempt($1::uuid,$2::uuid,$3::uuid,$4::boolean) AS r';
 // SQL-only fixtures: no chain proof, wallet signing, durable rows, or worker-visible attempts.
@@ -17,14 +18,14 @@ test('settlement rejects missing proof stage and absent or foreign tenant withou
   await db.query("SELECT set_config('bitpos.merchant',$1,true)",[merchant]);
   const customer=(await db.query('INSERT INTO bitpos.customers(merchant_id) VALUES($1) RETURNING id',[merchant])).rows[0].id;
   const order=(await db.query("INSERT INTO bitpos.orders(merchant_id,customer_id,thb_minor,usdg_minor,treasury,terminal_id,idempotency_key,access_token,request_hash,quote_expires_at,status) VALUES($1,$2,100,1,'11111111111111111111111111111111','rollback-fixture',$3,$4,'rollback-settlement-boundary',clock_timestamp()+interval '1 day','AWAITING_PAYMENT') RETURNING id",[merchant,customer,randomUUID(),randomUUID()])).rows[0].id;
-  const attempt=(await db.query("INSERT INTO bitpos.payment_attempts(merchant_id,order_id,reference,payer,recipient,amount_minor,mint,token_program,status,signature) VALUES($1,$2,$3,'rollback-payer','rollback-recipient',1,'rollback-mint','rollback-program','SUBMITTED',$4) RETURNING id",[merchant,order,randomUUID(),'not-a-chain-proof-'+randomUUID()])).rows[0].id;
+  const attempt=(await fixturePaymentAttempt(db,{merchant:merchant,order:order,reference:randomUUID(),status:"SUBMITTED",amount:String(1),signature:'not-a-chain-proof-'+randomUUID()})).rows[0].id;
   const otherOrder=(await db.query("INSERT INTO bitpos.orders(merchant_id,customer_id,thb_minor,usdg_minor,treasury,terminal_id,idempotency_key,access_token,request_hash,quote_expires_at) VALUES($1,$2,100,1,'fixture-recipient','wrong-order-fixture',$3,$4,'wrong-order',clock_timestamp()+interval '1 day') RETURNING id",[merchant,customer,randomUUID(),randomUUID()])).rows[0].id;
   const foreign=randomUUID();
   await db.query("INSERT INTO bitpos.merchants(id,name,treasury) VALUES($1,'Foreign rollback fixture','fixture-recipient')",[foreign]);
   await db.query("SELECT set_config('bitpos.merchant',$1,true)",[foreign]);
   const foreignCustomer=(await db.query('INSERT INTO bitpos.customers(merchant_id) VALUES($1) RETURNING id',[foreign])).rows[0].id;
   const foreignOrder=(await db.query("INSERT INTO bitpos.orders(merchant_id,customer_id,thb_minor,usdg_minor,treasury,terminal_id,idempotency_key,access_token,request_hash,quote_expires_at) VALUES($1,$2,100,1,'fixture-recipient','foreign-fixture',$3,$4,'foreign-order',clock_timestamp()+interval '1 day') RETURNING id",[foreign,foreignCustomer,randomUUID(),randomUUID()])).rows[0].id;
-  const foreignAttempt=(await db.query("INSERT INTO bitpos.payment_attempts(merchant_id,order_id,reference,payer,recipient,amount_minor,mint,token_program,status,signature) VALUES($1,$2,$3,'p','r',1,'m','t','SUBMITTED',$4) RETURNING id",[foreign,foreignOrder,randomUUID(),randomUUID()])).rows[0].id;
+  const foreignAttempt=(await fixturePaymentAttempt(db,{merchant:foreign,order:foreignOrder,reference:randomUUID(),status:"SUBMITTED",amount:String(1),signature:randomUUID()})).rows[0].id;
   await db.query("SELECT set_config('bitpos.merchant',$1,true)",[merchant]);
   const snapshot=async()=>(await db.query('SELECT o.status,o.version,o.reservation_released,a.status AS attempt_status,(SELECT count(*)::int FROM bitpos.payments p WHERE p.order_id=o.id) AS payments FROM bitpos.orders o JOIN bitpos.payment_attempts a ON a.order_id=o.id WHERE o.id=$1',[order])).rows;
   const before=await snapshot();
@@ -55,9 +56,8 @@ test('settlement rejects missing proof stage and absent or foreign tenant withou
   assert.equal((await db.query('SELECT status FROM bitpos.payment_attempts WHERE id=$1',[attempt])).rows[0].status,'FINALIZED');
   await db.query('SAVEPOINT missing_authority_fixture');
   const incomplete=(await db.query("INSERT INTO bitpos.orders(merchant_id,customer_id,authority_version,usdg_minor,treasury,idempotency_key,access_token,request_hash,quote_expires_at) VALUES($1,$2,2,1,'fixture-recipient',$3,$4,'incomplete-v2',clock_timestamp()+interval '1 day') RETURNING id",[merchant,customer,randomUUID(),randomUUID()])).rows[0].id;
-  const incompleteAttempt=(await db.query("INSERT INTO bitpos.payment_attempts(merchant_id,order_id,reference,payer,recipient,amount_minor,mint,token_program,status,signature) VALUES($1,$2,$3,'p','r',1,'m','t','SUBMITTED',$4) RETURNING id",[merchant,incomplete,randomUUID(),randomUUID()])).rows[0].id;
   await db.query('SAVEPOINT missing_authority_call');
-  await assert.rejects(db.query(settlementSql,[merchant,incomplete,incompleteAttempt,true]),{code:'23514',message:'MISSING_ORDER_AUTHORITY'});
+  await assert.rejects(db.query("INSERT INTO bitpos.payment_attempts(merchant_id,order_id,reference,payer,recipient,amount_minor,mint,token_program,status) VALUES($1,$2,$3,'fixture-payer','fixture-recipient',1,'fixture-mint','fixture-program','BUILDING')",[merchant,incomplete,randomUUID()]),{code:'23514',message:'PAYMENT_QUOTE_MISMATCH'});
   await db.query('ROLLBACK TO SAVEPOINT missing_authority_call');
   assert.equal((await db.query('SELECT status,version,paid_at FROM bitpos.orders WHERE id=$1',[incomplete])).rows[0].status,'AWAITING_WALLET');
   assert.equal((await db.query('SELECT count(*)::int AS n FROM bitpos.payments WHERE order_id=$1',[incomplete])).rows[0].n,0);

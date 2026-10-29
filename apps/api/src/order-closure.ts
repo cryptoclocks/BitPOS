@@ -4,11 +4,13 @@ import {routingLock,fail} from './authority';
 import {audit} from './db';
 import {releaseReservation,streamEvent} from './orders';
 
-type ClosureReason='canceled'|'timeout';
-async function closeLocked(db:pg.PoolClient,merchant:string,orderId:string,reason:ClosureReason,actor:string,exact?:{device:string;version:number;generation:string}){
+type ClosureCause={kind:'ROUTED_CANCEL';exact:{device:string;version:number;generation:string}}|{kind:'QUOTE_TIMEOUT'}|{kind:'ONLINE_ACCEPTANCE_ENDED'};
+async function closeLocked(db:pg.PoolClient,merchant:string,orderId:string,cause:ClosureCause,actor:string){
+  const reason=cause.kind==='QUOTE_TIMEOUT'?'timeout':'canceled';
+  const exact=cause.kind==='ROUTED_CANCEL'?cause.exact:undefined;
   const authority=(await db.query<AuthorityRow>('SELECT * FROM order_authority WHERE merchant_id=$1 AND order_id=$2',[merchant,orderId])).rows[0];
   if(exact&&(!authority||authority.target_device_id!==exact.device))fail('ORDER_NOT_RELEASABLE');
-  const screen=authority?(await db.query('SELECT * FROM device_screen_state WHERE merchant_id=$1 AND device_id=$2 FOR UPDATE',[merchant,authority.target_device_id])).rows[0]:null;
+  const screen=authority&&authority.source_kind!=='online'?(await db.query('SELECT * FROM device_screen_state WHERE merchant_id=$1 AND device_id=$2 FOR UPDATE',[merchant,authority.target_device_id])).rows[0]:null;
   const o=(await db.query<OrderRow&{deadline_elapsed:boolean}>('SELECT *,quote_expires_at<=clock_timestamp() AS deadline_elapsed FROM orders WHERE merchant_id=$1 AND id=$2 FOR UPDATE',[merchant,orderId])).rows[0];
   if(!o)fail('RESOURCE_NOT_FOUND',404);
   if(exact){
@@ -17,7 +19,10 @@ async function closeLocked(db:pg.PoolClient,merchant:string,orderId:string,reaso
     if(screen?.kind!=='order'||screen.order_id!==orderId||String(screen.screen_generation)!==exact.generation||o.version!==exact.version)fail('ORDER_NOT_RELEASABLE');
   }
   if(o.closure_reason)return {replayed:true};
-  if(reason==='timeout'){
+  if(cause.kind==='ONLINE_ACCEPTANCE_ENDED'){
+    if(authority?.source_kind!=='online'||!(await db.query('SELECT bitpos.online_acceptance_ended($1,$2) AS ended',[merchant,orderId])).rows[0].ended)fail('ACCEPTANCE_UNAVAILABLE');
+    if(!['AWAITING_WALLET','AWAITING_PAYMENT','EXPIRED','CONFIRMING'].includes(o.status))return {replayed:false,closed:false};
+  }else if(cause.kind==='QUOTE_TIMEOUT'){
     if(!o.deadline_elapsed)return {replayed:false,closed:false};
     if(!['AWAITING_WALLET','AWAITING_PAYMENT','EXPIRED'].includes(o.status))return {replayed:false,closed:false};
   }else if(!['AWAITING_WALLET','AWAITING_PAYMENT'].includes(o.status))fail('ORDER_NOT_PAYABLE');
@@ -28,7 +33,7 @@ async function closeLocked(db:pg.PoolClient,merchant:string,orderId:string,reaso
   const updated=(await db.query<OrderRow>("UPDATE orders SET status='EXPIRED',closure_reason=$3,version=version+1 WHERE merchant_id=$1 AND id=$2 RETURNING *",[merchant,orderId,reason])).rows[0];
   await db.query("UPDATE payment_attempts SET status='EXPIRED',error=$3 WHERE merchant_id=$1 AND order_id=$2 AND status='BUILDING' AND signature IS NULL AND signed_base64 IS NULL AND transaction_base64 IS NULL",[merchant,orderId,reason==='canceled'?'Canceled before transaction issuance':'Timed out before transaction issuance']);
   await db.query('UPDATE challenges SET used_at=coalesce(used_at,clock_timestamp()) WHERE merchant_id=$1 AND order_id=$2',[merchant,orderId]);
-  if(authority){
+  if(authority&&authority.source_kind!=='online'){
     // Frozen quotes are immutable evidence; order status already invalidates payment.
     // Never rewrite valid_until on closure (the authority trigger forbids it).
     await db.query('UPDATE device_sessions SET ended_at=coalesce(ended_at,clock_timestamp()),review_quote_id=NULL WHERE merchant_id=$1 AND id IN (SELECT session_id FROM order_quotes WHERE merchant_id=$1 AND id=$2)',[merchant,authority.quote_id]);
@@ -43,7 +48,7 @@ async function closeLocked(db:pg.PoolClient,merchant:string,orderId:string,reaso
 
 export async function cancelUnpaidOrder(db:pg.PoolClient,merchant:string,device:string,orderId:string,version:number,generation:string,actor:string){
   await routingLock(db,merchant);
-  return closeLocked(db,merchant,orderId,'canceled',actor,{device,version,generation});
+  return closeLocked(db,merchant,orderId,{kind:'ROUTED_CANCEL',exact:{device,version,generation}},actor);
 }
 
 export async function expireUnpaidOrders(db:pg.PoolClient,merchant:string){
@@ -51,7 +56,12 @@ export async function expireUnpaidOrders(db:pg.PoolClient,merchant:string){
   const rows=(await db.query<{id:string}>("SELECT o.id FROM orders o WHERE o.merchant_id=$1 AND o.closure_reason IS NULL AND o.quote_expires_at<=clock_timestamp() AND (o.status IN ('AWAITING_WALLET','AWAITING_PAYMENT') OR (o.status='EXPIRED' AND EXISTS(SELECT 1 FROM device_screen_state s WHERE s.merchant_id=o.merchant_id AND s.order_id=o.id AND s.kind='order'))) ORDER BY o.id",[merchant])).rows;
   for(const row of rows){
     await db.query('SAVEPOINT unpaid_expiry');
-    try { await closeLocked(db,merchant,row.id,'timeout','worker'); await db.query('RELEASE SAVEPOINT unpaid_expiry'); }
+    try { await closeLocked(db,merchant,row.id,{kind:'QUOTE_TIMEOUT'},'worker'); await db.query('RELEASE SAVEPOINT unpaid_expiry'); }
     catch(error){ await db.query('ROLLBACK TO SAVEPOINT unpaid_expiry'); await db.query('RELEASE SAVEPOINT unpaid_expiry'); console.error('Unpaid expiry blocked; original reservation retained',row.id,(error as {code?:string}).code??'unknown'); }
   }
+}
+
+/** Merchant routing/order locks are held by the decision or reconciliation caller. */
+export async function closeTerminatedOnlineOrder(db:pg.PoolClient,merchant:string,orderId:string,actor:string){
+  return closeLocked(db,merchant,orderId,{kind:'ONLINE_ACCEPTANCE_ENDED'},actor);
 }

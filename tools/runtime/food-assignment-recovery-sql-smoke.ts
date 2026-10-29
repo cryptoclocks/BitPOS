@@ -1,0 +1,123 @@
+import assert from 'node:assert/strict';
+import {randomUUID,createHash} from 'node:crypto';
+import {readFile,writeFile} from 'node:fs/promises';
+import type pg from 'pg';
+import {FoodRecoveryReceiptSchema} from '../../packages/contracts/src/mobile-v1.generated';
+export async function verifyFoodAssignmentRecoverySql(c:{db:pg.Client;shipment:string;assignment:any;driver:string;driverActor:{account:string;access:string};dispatcher:{account:string;session:string;access:string};merchantToken:string}){
+ const {db,shipment,assignment,driver,driverActor}=c;assert.equal((await db.query('SELECT current_database() n')).rows[0].n,'bitpos_delivery_fixture');
+ const source=await readFile('supabase/migrations/080_food_assignment_recovery.sql','utf8'),hash=createHash('sha256').update(driverActor.access).digest('hex');
+ const session=(await db.query('SELECT id FROM bitpos.mobile_sessions WHERE account_id=$1 AND access_hash=$2',[driverActor.account,hash])).rows[0];assert.ok(session);
+ await db.query('BEGIN');
+ try{
+  const applied=(await db.query("SELECT source_sha256 FROM public.bitpos_migrations WHERE name='080_food_assignment_recovery.sql'")).rows[0];
+  if(applied)assert.equal(applied.source_sha256,createHash('sha256').update(source).digest('hex'),'Applied080 source drift');else await db.query(source);
+  await db.query('SET LOCAL search_path=bitpos,public');
+  const version=(await db.query('SELECT version::text FROM food_shipments WHERE id=$1',[shipment])).rows[0].version;
+  async function searchState(){return (await db.query("SELECT epoch::text,version::text,to_jsonb(s)-ARRAY['epoch','version','mode','attention_reason','next_retry_at'] stable,(SELECT jsonb_agg(to_jsonb(c) ORDER BY cycle_number) FROM food_dispatch_search_cycles c WHERE c.shipment_id=s.shipment_id) cycles FROM food_dispatch_searches s WHERE shipment_id=$1",[shipment])).rows[0]??null;}
+  const searchBefore=await searchState(),searchChecks:unknown[]=[];
+  async function verifySearch(stage:string){
+   if(!searchBefore)return;
+   const after=await searchState();assert.ok(after);assert.deepEqual(after.stable,searchBefore.stable);assert.deepEqual(after.cycles,searchBefore.cycles);
+   assert.ok(BigInt(after.epoch)>BigInt(searchBefore.epoch));assert.ok(BigInt(after.version)>BigInt(searchBefore.version));searchChecks.push({stage,before:searchBefore,after});
+  }
+  const counterexamples:string[]=[];
+  async function boundaryProbe(sql:string,args:unknown[],message:string,id:string){try{await denied(sql,args,message);}catch(error){if(error instanceof assert.AssertionError)counterexamples.push(id);else throw error;}}
+  await db.query('SET CONSTRAINTS ALL IMMEDIATE');
+  await boundaryProbe('UPDATE driver_occupancy SET assignment_generation=assignment_generation+1 WHERE driver_id=$1',[driver],'ASSIGNMENT_RECOVERY_GRAPH','080-GRAPH-02-occupancy-only');
+  await db.query('SET CONSTRAINTS ALL DEFERRED');
+  const staff=c.dispatcher,replacement=randomUUID(),replacementAccount=randomUUID();
+  await db.query('SAVEPOINT reoffer_case');
+  await db.query('INSERT INTO mobile_accounts(id,auth_subject) VALUES($1,$2)',[replacementAccount,randomUUID()]);
+  await db.query("INSERT INTO driver_profiles(id,account_id,display_name,license_expires_at,status,verified_until,verified_by,verification_reference) VALUES($1,$2,'Replacement fixture',clock_timestamp()+interval '2 days','APPROVED',clock_timestamp()+interval '1 day',$3,'Synthetic replacement, not KYC')",[replacement,replacementAccount,staff.account]);
+  await db.query("INSERT INTO driver_vehicles VALUES($1,'MOTORCYCLE','REPLACEMENT','Fixture','Purple',clock_timestamp()+interval '1 day')",[replacement]);
+  await db.query('INSERT INTO driver_occupancy(driver_id) VALUES($1)',[replacement]);
+  await db.query("INSERT INTO driver_availability(driver_id,requested_online,heartbeat_expires_at) VALUES($1,true,clock_timestamp()+interval '90 seconds')",[replacement]);
+  await db.query("INSERT INTO driver_food_service_grants SELECT $1,merchant_id,branch_id,revision,(SELECT version FROM driver_profiles WHERE id=$1),vehicle_type,enabled,valid_until,issued_by,issued_grant_id,reason FROM driver_food_service_grants WHERE driver_id=$2",[replacement,driver]);
+  await db.query("SELECT set_config('bitpos.mobile_account',$1,true),set_config('bitpos.mobile_session',$2,true),set_config('bitpos.mobile_access_hash',$3,true)",[staff.account,staff.session,createHash('sha256').update(staff.access).digest('hex')]);await db.query('SET LOCAL ROLE bitpos_app');
+  const reoffer={idempotencyKey:randomUUID(),expectedVersion:version,generation:assignment.generation,leaseGeneration:assignment.leaseGeneration,reason:'VEHICLE',driverId:replacement};
+  await db.query('RESET ROLE');await db.query('UPDATE driver_availability SET requested_online=false WHERE driver_id=$1',[replacement]);await db.query('SET LOCAL ROLE bitpos_app');
+  await denied('SELECT dispatch_food_staff_recovery($1,$2::jsonb)',[assignment.assignmentId,JSON.stringify(reoffer)],'DRIVER_UNAVAILABLE');
+  await db.query('RESET ROLE');
+  const retained=(await db.query("SELECT a.state,l.state lease,s.active_assignment_id active,s.generation::text generation,(SELECT count(*)::int FROM food_dispatch_commands WHERE actor_account_id=$2 AND idempotency_key=$3) commands FROM food_assignments a JOIN driver_assignment_leases l ON l.id=a.lease_id JOIN food_shipments s ON s.id=a.shipment_id WHERE a.id=$1",[assignment.assignmentId,staff.account,reoffer.idempotencyKey])).rows[0];
+  assert.deepEqual(retained,{state:'ACCEPTED',lease:'ACTIVE',active:assignment.assignmentId,generation:assignment.generation,commands:0});
+  await db.query('UPDATE driver_availability SET requested_online=true WHERE driver_id=$1',[replacement]);await db.query('SET LOCAL ROLE bitpos_app');
+  const replacementReceipt=FoodRecoveryReceiptSchema.parse((await db.query('SELECT dispatch_food_staff_recovery($1,$2::jsonb) value',[assignment.assignmentId,JSON.stringify(reoffer)])).rows[0].value);
+  assert.ok(replacementReceipt.replacementOffer);assert.equal(replacementReceipt.shipmentGeneration,String(BigInt(assignment.generation)+2n));
+  assert.deepEqual((await db.query('SELECT dispatch_food_staff_recovery($1,$2::jsonb) value',[assignment.assignmentId,JSON.stringify(reoffer)])).rows[0].value,replacementReceipt);
+  await db.query('RESET ROLE');await db.query('SET CONSTRAINTS ALL IMMEDIATE');
+  const replacementState=(await db.query("SELECT a.state,l.state lease,s.state shipment,s.active_assignment_id IS NULL unassigned,f.driver_id,f.state offer FROM food_assignments a JOIN driver_assignment_leases l ON l.id=a.lease_id JOIN food_shipments s ON s.id=a.shipment_id JOIN food_dispatch_offers f ON f.id=$2 WHERE a.id=$1",[assignment.assignmentId,replacementReceipt.replacementOffer.offerId])).rows[0];
+  assert.deepEqual(replacementState,{state:'RELEASED',lease:'RELEASED',shipment:'OFFERING',unassigned:true,driver_id:replacement,offer:'OFFERED'});
+  await verifySearch('atomic-staff-reoffer');
+  await db.query('ROLLBACK TO SAVEPOINT reoffer_case');await db.query('RELEASE SAVEPOINT reoffer_case');
+  await db.query('SAVEPOINT pickup_case');
+  const merchant=(await db.query('SELECT merchant_id FROM food_shipments WHERE id=$1',[shipment])).rows[0].merchant_id;
+  await db.query("SELECT set_config('bitpos.mobile_account',$1,true),set_config('bitpos.mobile_session',$2,true),set_config('bitpos.mobile_access_hash',$3,true),set_config('bitpos.merchant',$4,true)",[driverActor.account,session.id,hash,merchant]);await db.query('SET LOCAL ROLE bitpos_app');
+  await db.query('SELECT dispatch_food_arrive($1,$2::jsonb)',[assignment.assignmentId,JSON.stringify({idempotencyKey:randomUUID(),generation:assignment.generation,leaseGeneration:assignment.leaseGeneration,stage:'PICKUP'})]);
+  const proofHash=createHash('sha256').update(randomUUID()).digest('hex');
+  const proof=(await db.query("SELECT dispatch_issue_proof($1,'PICKUP',$2,$3,$4,$5,false,$6) value",[assignment.assignmentId,assignment.generation,assignment.leaseGeneration,randomUUID(),proofHash,createHash('sha256').update(c.merchantToken).digest('hex')])).rows[0].value;
+  const invalid=(await db.query('SELECT dispatch_consume_proof($1,$2,$3,$4,$5,$6) value',[assignment.assignmentId,proof.proofId,assignment.generation,assignment.leaseGeneration,randomUUID(),createHash('sha256').update('wrong-fixture-secret').digest('hex')])).rows[0].value;
+  assert.equal(invalid.accepted,false);assert.equal(invalid.attemptsRemaining,9);
+  await db.query('SAVEPOINT issued_proof_case');await db.query('RESET ROLE');
+  const readyVersion=(await db.query('SELECT version::text FROM food_shipments WHERE id=$1',[shipment])).rows[0].version;await db.query('SET LOCAL ROLE bitpos_app');
+  await db.query('SELECT dispatch_food_withdraw($1,$2::jsonb)',[assignment.assignmentId,JSON.stringify({idempotencyKey:randomUUID(),expectedVersion:readyVersion,generation:assignment.generation,leaseGeneration:assignment.leaseGeneration,reason:'SAFETY'})]);
+  await denied('SELECT dispatch_consume_proof($1,$2,$3,$4,$5,$6)',[assignment.assignmentId,proof.proofId,assignment.generation,assignment.leaseGeneration,randomUUID(),proofHash],'ASSIGNMENT_CHANGED');
+  await db.query('RESET ROLE');await db.query('SET CONSTRAINTS ALL IMMEDIATE');
+  const releaseWinner=(await db.query("SELECT a.state,l.state lease,p.revoked_at IS NOT NULL revoked,p.consumed_at IS NULL unconsumed,f.status kitchen FROM food_assignments a JOIN driver_assignment_leases l ON l.id=a.lease_id JOIN fulfillment_proofs p ON p.assignment_id=a.id JOIN food_shipments s ON s.id=a.shipment_id JOIN order_fulfillment f ON(f.merchant_id,f.order_id)=(s.merchant_id,s.order_id) WHERE p.id=$1",[proof.proofId])).rows[0];
+  assert.deepEqual(releaseWinner,{state:'RELEASED',lease:'RELEASED',revoked:true,unconsumed:true,kitchen:'READY'});
+  await boundaryProbe('UPDATE fulfillment_proofs SET revoked_at=NULL,revocation_reason=NULL WHERE id=$1',[proof.proofId],'IMMUTABLE_PROOF_HISTORY','080-HISTORY-03-revocation-clear');
+  await boundaryProbe('DELETE FROM fulfillment_proofs WHERE id=$1',[proof.proofId],'IMMUTABLE_PROOF_HISTORY','080-HISTORY-03-revoked-delete');
+  await boundaryProbe('UPDATE fulfillment_proofs SET consumed_at=clock_timestamp(),consumed_by=$2,revoked_at=NULL,revocation_reason=NULL WHERE id=$1',[proof.proofId,driverActor.account],'IMMUTABLE_PROOF_HISTORY','080-GRAPH-02-proof-only');
+  await db.query('ROLLBACK TO SAVEPOINT issued_proof_case');await db.query('RELEASE SAVEPOINT issued_proof_case');
+  const pickup=(await db.query('SELECT dispatch_consume_proof($1,$2,$3,$4,$5,$6) value',[assignment.assignmentId,proof.proofId,assignment.generation,assignment.leaseGeneration,randomUUID(),proofHash])).rows[0].value;assert.equal(pickup.accepted,true);
+  await db.query('RESET ROLE');
+  const pickedVersion=(await db.query('SELECT version::text FROM food_shipments WHERE id=$1',[shipment])).rows[0].version;
+  await db.query('SET LOCAL ROLE bitpos_app');
+  await denied('SELECT dispatch_food_withdraw($1,$2::jsonb)',[assignment.assignmentId,JSON.stringify({idempotencyKey:randomUUID(),expectedVersion:pickedVersion,generation:assignment.generation,leaseGeneration:assignment.leaseGeneration,reason:'SAFETY'})],'CUSTODY_RETAINED');
+  await db.query('RESET ROLE');await db.query('SET CONSTRAINTS ALL IMMEDIATE');
+  const pickupState=(await db.query("SELECT a.state,a.picked_up_at IS NOT NULL picked_up,l.state lease,s.state shipment,f.status kitchen FROM food_assignments a JOIN driver_assignment_leases l ON l.id=a.lease_id JOIN food_shipments s ON s.id=a.shipment_id JOIN order_fulfillment f ON(f.merchant_id,f.order_id)=(s.merchant_id,s.order_id) WHERE a.id=$1",[assignment.assignmentId])).rows[0];
+  await boundaryProbe('UPDATE fulfillment_proofs SET consumed_at=NULL,consumed_by=NULL WHERE id=$1',[proof.proofId],'IMMUTABLE_PROOF_HISTORY','080-HISTORY-03-consumed-clear');
+  await boundaryProbe('DELETE FROM fulfillment_proofs WHERE id=$1',[proof.proofId],'IMMUTABLE_PROOF_HISTORY','080-HISTORY-03-consumed-delete');
+  await boundaryProbe("UPDATE fulfillment_proofs SET consumed_at=consumed_at+interval '1 second' WHERE id=$1",[proof.proofId],'IMMUTABLE_PROOF_HISTORY','080-HISTORY-03-consumed-rewrite');
+  await boundaryProbe("UPDATE fulfillment_proofs SET kind='DELIVERY' WHERE id=$1",[proof.proofId],'IMMUTABLE_PROOF_HISTORY','080-HISTORY-03-identity-rewrite');
+  assert.deepEqual(pickupState,{state:'PICKED_UP',picked_up:true,lease:'ACTIVE',shipment:'PICKED_UP',kitchen:'COLLECTED'});
+  await db.query('ROLLBACK TO SAVEPOINT pickup_case');await db.query('RELEASE SAVEPOINT pickup_case');
+  // Safety withdrawal remains available to live owning identity after professional suspension.
+  await db.query("UPDATE driver_profiles SET status='SUSPENDED',verified_until=NULL WHERE id=$1",[driver]);
+  await db.query("SELECT set_config('bitpos.mobile_account',$1,true),set_config('bitpos.mobile_session',$2,true),set_config('bitpos.mobile_access_hash',$3,true)",[driverActor.account,session.id,hash]);await db.query('SET LOCAL ROLE bitpos_app');
+  const command={idempotencyKey:randomUUID(),expectedVersion:version,generation:assignment.generation,leaseGeneration:assignment.leaseGeneration,reason:'SAFETY'};
+  async function denied(sql:string,args:unknown[],message:string){await db.query('SAVEPOINT rejected');try{await assert.rejects(db.query(sql,args),(error:Error)=>error.message===message);}finally{await db.query('ROLLBACK TO SAVEPOINT rejected');await db.query('RELEASE SAVEPOINT rejected');}}
+  await db.query('SAVEPOINT rotated_fresh');await db.query('RESET ROLE');
+  await db.query('UPDATE mobile_sessions SET access_hash=$2 WHERE id=$1',[session.id,createHash('sha256').update(randomUUID()).digest('hex')]);await db.query('SET LOCAL ROLE bitpos_app');
+  await boundaryProbe('SELECT dispatch_food_withdraw($1,$2::jsonb)',[assignment.assignmentId,JSON.stringify(command)],'AUTH_REQUIRED','080-AUTH-01-fresh');
+  await db.query('ROLLBACK TO SAVEPOINT rotated_fresh');await db.query('RELEASE SAVEPOINT rotated_fresh');
+  await db.query("SELECT set_config('bitpos.mobile_account',$1,true)",[randomUUID()]);
+  await denied('SELECT dispatch_food_withdraw($1,$2::jsonb)',[assignment.assignmentId,JSON.stringify(command)],'AUTH_REQUIRED');
+  await db.query("SELECT set_config('bitpos.mobile_account',$1,true)",[driverActor.account]);
+  await denied('SELECT dispatch_food_staff_recovery($1,$2::jsonb)',[assignment.assignmentId,JSON.stringify(command)],'ROLE_REQUIRED');
+  await denied('SELECT dispatch_food_withdraw($1,$2::jsonb)',[assignment.assignmentId,JSON.stringify({...command,extra:'forbidden'})],'INVALID_REQUEST');
+  await denied('SELECT dispatch_food_withdraw($1,$2::jsonb)',[assignment.assignmentId,JSON.stringify({...command,expectedVersion:String(BigInt(version)+1n)})],'VERSION_CONFLICT');
+  await denied('SELECT dispatch_food_withdraw($1,$2::jsonb)',[assignment.assignmentId,JSON.stringify({...command,generation:String(BigInt(command.generation)+1n)})],'ASSIGNMENT_CHANGED');
+  const receipt=(await db.query('SELECT dispatch_food_withdraw($1,$2::jsonb) value',[assignment.assignmentId,JSON.stringify(command)])).rows[0].value;
+  assert.deepEqual((await db.query('SELECT dispatch_food_withdraw($1,$2::jsonb) value',[assignment.assignmentId,JSON.stringify(command)])).rows[0].value,receipt);
+  await denied('SELECT dispatch_food_withdraw($1,$2::jsonb)',[assignment.assignmentId,JSON.stringify({...command,reason:'OTHER'})],'IDEMPOTENCY_CONFLICT');
+  await db.query('SAVEPOINT rotated_replay');await db.query('RESET ROLE');
+  await db.query('UPDATE mobile_sessions SET access_hash=$2 WHERE id=$1',[session.id,createHash('sha256').update(randomUUID()).digest('hex')]);await db.query('SET LOCAL ROLE bitpos_app');
+  await boundaryProbe('SELECT dispatch_food_withdraw($1,$2::jsonb)',[assignment.assignmentId,JSON.stringify(command)],'AUTH_REQUIRED','080-AUTH-01-replay');
+  await db.query('ROLLBACK TO SAVEPOINT rotated_replay');await db.query('RELEASE SAVEPOINT rotated_replay');
+  await db.query('SAVEPOINT revoked_replay');await db.query('RESET ROLE');
+  await db.query('UPDATE mobile_sessions SET revoked_at=clock_timestamp() WHERE id=$1',[session.id]);await db.query('SET LOCAL ROLE bitpos_app');
+  await denied('SELECT dispatch_food_withdraw($1,$2::jsonb)',[assignment.assignmentId,JSON.stringify(command)],'AUTH_REQUIRED');
+  await db.query('ROLLBACK TO SAVEPOINT revoked_replay');await db.query('RELEASE SAVEPOINT revoked_replay');
+  await db.query('RESET ROLE');
+  const state=(await db.query("SELECT a.state,a.picked_up_at IS NULL uncollected,l.state lease,s.state shipment,s.active_assignment_id IS NULL unassigned,s.generation::text generation,(SELECT count(*)::int FROM earning_accruals e WHERE e.food_assignment_id=a.id) earnings FROM food_assignments a JOIN driver_assignment_leases l ON l.id=a.lease_id JOIN food_shipments s ON s.id=a.shipment_id WHERE a.id=$1",[assignment.assignmentId])).rows[0];
+  assert.deepEqual(state,{state:'RELEASED',uncollected:true,lease:'RELEASED',shipment:'READY_FOR_DISPATCH',unassigned:true,generation:String(BigInt(assignment.generation)+1n),earnings:0});
+  await verifySearch('suspended-owner-withdrawal');
+  await db.query('SET CONSTRAINTS ALL IMMEDIATE');
+  await denied("UPDATE driver_assignment_leases SET state='ACTIVE',released_at=NULL WHERE id=$1",[assignment.leaseId],'IMMUTABLE_LEASE_HISTORY');
+  await denied("UPDATE food_assignments SET state='ACCEPTED',closed_at=NULL WHERE id=$1",[assignment.assignmentId],'IMMUTABLE_ASSIGNMENT_HISTORY');
+  await denied("UPDATE food_shipments SET active_assignment_id=$2 WHERE id=$1",[shipment,assignment.assignmentId],'ASSIGNMENT_RECOVERY_GRAPH');
+  if(counterexamples.length){const failure={status:'FAIL_REPRODUCED_REVIEW_COUNTEREXAMPLES',counterexamples,sourceSha256:createHash('sha256').update(source).digest('hex'),fixture:true,limits:['Rollback SQL counterexamples, not actual refresh HTTP timing or public DML exploit'],physicalTesting:'deferred_by_user_2026-10-16'};await writeFile('.omp/work/flutter-delivery-20261016/evidence/dispatch080-history-before-20261018.json',JSON.stringify(failure,null,2)+'\n');console.log(JSON.stringify(failure));assert.deepEqual(counterexamples,[]);}
+  const evidence={status:'PASS_ROLLBACK_CANONICAL_SUSPENDED_OWNER_WITHDRAWAL',sourceSha256:createHash('sha256').update(source).digest('hex'),shipmentId:shipment,assignmentId:assignment.assignmentId,receipt,state,replacementReceipt,replacementState,pickupState,releaseWinner,searchChecks,fixture:true,limits:['SQL operations rollback;080 already activated only disposable local, not actual-use','Pickup winner/loser serialized; true concurrent pickup/release not yet exercised','Synthetic seeded mobile identity, not OTP/provider acceptance'],physicalTesting:'deferred_by_user_2026-10-16'};
+  await writeFile('.omp/work/flutter-delivery-20261016/evidence/'+(searchBefore?'dispatch080-search-preservation-sql-20261018.json':'dispatch080-withdrawal-sql-20261018.json'),JSON.stringify(evidence,null,2)+'\n');console.log(JSON.stringify(evidence));
+ }finally{await db.query('ROLLBACK');}
+}

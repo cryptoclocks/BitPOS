@@ -1,0 +1,35 @@
+import {readFile,writeFile,unlink,rm} from 'node:fs/promises';import {spawn} from 'node:child_process';import {once} from 'node:events';import assert from 'node:assert/strict';
+const dir='/tmp/bitpos-scheduled086-20261017',path=dir+'/restricted_release.ts';let source=(await readFile(dir+'/release_options_smoke.ts','utf8')).replaceAll('bitpos_delivery_fixture','bitpos_schedule086_fixture');
+const marker=" const f=(await db.query";assert.ok(source.includes(marker));source=source.replace(marker," await db.query(await readFile(dir+'/acl.sql','utf8'));\n"+marker);
+const role="  const lease=(await db.query";assert.ok(source.includes(role));source=source.replace(role,"  await db.query('SET LOCAL ROLE bitpos_app');\n"+role);
+const confirmation="  const intent=(await db.query";assert.ok(source.includes(confirmation));
+source=source.replace(confirmation,`  const otherAccount=randomUUID(),otherSession=randomUUID();
+  await db.query('INSERT INTO mobile_accounts(id,auth_subject) VALUES($1,$2)',[otherAccount,randomUUID()]);
+  await db.query("INSERT INTO mobile_sessions(id,account_id,device_id,access_hash,refresh_hash,access_expires_at,refresh_expires_at) VALUES($1,$2,$3,encode(gen_random_bytes(32),'hex'),encode(gen_random_bytes(32),'hex'),clock_timestamp()+interval '1 hour',clock_timestamp()+interval '1 day')",[otherSession,otherAccount,randomUUID()]);
+  await db.query('SET LOCAL ROLE bitpos_app');
+  const confirmSql='SELECT schedule086_confirm($1,$2,$3,$4,$5,$6,$7,$8) AS value';
+  const confirmArgs=[f.merchant_id,f.source_branch_id,quote,f.price_version_id,digest,policy,execution,command];
+  await db.query('SAVEPOINT wrong_account');
+  await db.query("SELECT set_config('bitpos.mobile_account',$1,true)",[randomUUID()]);
+  await assert.rejects(db.query(confirmSql,confirmArgs),(error:unknown)=>error instanceof Error&&error.message==='AUTH_REQUIRED');
+  await db.query('ROLLBACK TO SAVEPOINT wrong_account');
+  await db.query('SAVEPOINT other_valid_customer');
+  await db.query("SELECT set_config('bitpos.mobile_account',$1,true),set_config('bitpos.mobile_session',$2,true)",[otherAccount,otherSession]);
+  await assert.rejects(db.query(confirmSql,confirmArgs),(error:unknown)=>!!error&&typeof error==='object'&&'code'in error&&error.code==='P0002');
+  await db.query('ROLLBACK TO SAVEPOINT other_valid_customer');
+  receipt.checks.push({differentValidCustomerQuoteDenied:true});
+  await db.query('SAVEPOINT altered_quote');
+  await assert.rejects(db.query(confirmSql,confirmArgs.map((v,index)=>index===4?'tampered-digest':v)),(error:unknown)=>error instanceof Error&&error.message==='SCHEDULE_INVALID');
+  await db.query('ROLLBACK TO SAVEPOINT altered_quote');
+  receipt.checks.push({wrongAccountSessionRejected:true,quoteDigestTamperingRejected:true});
+`+confirmation);
+source=source.replace("assert.equal(intent.orderId,null);","assert.equal(intent.orderId,null);assert.deepEqual((await db.query(confirmSql,confirmArgs)).rows[0].value,intent);await db.query('RESET ROLE');assert.equal((await db.query('SELECT count(*)::int n FROM schedule086_intents WHERE original_quote_id=$1',[quote])).rows[0].n,1);receipt.checks.push({restrictedOwnedConfirmation:true,exactDoubleTapOneIntent:true});");
+source=source.replace("dir+'/release-options-smoke-receipt.json'","dir+'/restricted-release-receipt.json'");
+await writeFile(path,source,{flag:'wx'});
+try{
+ await rm(dir+'/restricted-release-receipt.json',{force:true});
+ const child=spawn('npx',['--no-install','tsx',path],{stdio:'inherit'});const [code]=await once(child,'exit');
+ const receipt=JSON.parse(await readFile(dir+'/restricted-release-receipt.json','utf8'));
+ await writeFile('.omp/work/flutter-delivery-20261016/evidence/schedule086-restricted-release-20261019.json',JSON.stringify({...receipt,exitCode:code,physicalTesting:'deferred_by_user_2026-10-16'},null,2)+'\n');
+ assert.equal(code,0,'Restricted actual canonical factory must still work');
+}finally{await unlink(path);}

@@ -21,6 +21,12 @@ bool bitpos_audio_is_muted(void);
 /* Soft looping attract melody on the existing audio task. Cancels immediately
  * when QR/cart/payment takes priority; never uses the PAID cue or its claims. */
 void bitpos_audio_set_attract(bool active);
+/* Invalidate queued/in-flight pickup audio when its overlay is displaced.
+ * Uses an epoch; does not cancel or alter financial success playback. */
+void bitpos_audio_set_pickup(bool active);
+/* Caller durably consumed the effect and sent a post-flush render ACK.
+ * Short original descending cue, separate from PAID/WAV and attract melody. */
+void bitpos_audio_play_pickup(const char *effect_id);
 
 /* Caller has already durably committed the once-only PAID NVS claim AND sent
  * the meaningful physical render ACK. Nonblocking queue copy; IDs are bounded

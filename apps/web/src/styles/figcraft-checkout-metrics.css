@@ -1,0 +1,9 @@
+/* Generated from reviewed WD01 native geometry. SHA256: c72077d7d91906ab9bf97ecac16db450db923e4d4559ee89691750106e41dfeb */
+.customer-checkout{
+ --bp-checkout-workspace:1248px;
+ --bp-checkout-summary-weight:744fr;
+ --bp-checkout-payment-weight:472fr;
+ --bp-checkout-gap:32px;
+ --bp-checkout-card-min-height:680px;
+ --bp-checkout-card-radius:24px;
+}

@@ -2,11 +2,13 @@ import { getWallets } from '@wallet-standard/app';
 import { Transaction, VersionedTransaction } from '@solana/web3.js';
 import bs58 from 'bs58';
 import { z } from 'zod';
+import {CUSTOMER_CONSENT_VERSION,customerAuthMessage,type CustomerConsent,type CustomerAuthVerification} from '../../../../packages/contracts/src/customer-auth';
 
 export interface ConnectedWallet {
   address: string;
   name: string;
   fixture: boolean;
+  supportsMessageSigning?: boolean;
   signMessage(message: Uint8Array): Promise<Uint8Array>;
   signTransaction(transaction: Uint8Array): Promise<Uint8Array>;
 }
@@ -14,7 +16,7 @@ export interface PhantomProvider {
   isPhantom?: boolean;
   isBitPOSTestFixture?: boolean;
   connect(): Promise<{ publicKey: { toString(): string } }>;
-  signMessage(message: Uint8Array, encoding: 'utf8'): Promise<{ signature: Uint8Array }>;
+  signMessage?(message: Uint8Array, encoding: 'utf8'): Promise<{ signature: Uint8Array }>;
   signTransaction(transaction: Transaction | VersionedTransaction): Promise<Transaction | VersionedTransaction>;
 }
 export function phantomBrowseUrl(url: string): string {
@@ -25,8 +27,8 @@ export function phantomBrowseUrl(url: string): string {
 export async function connectPhantom(provider: PhantomProvider): Promise<ConnectedWallet> {
   const { publicKey } = await provider.connect();
   return {
-    address: publicKey.toString(), name: provider.isBitPOSTestFixture ? 'TEST WALLET FIXTURE' : 'Phantom', fixture: !!provider.isBitPOSTestFixture,
-    async signMessage(message) { return (await provider.signMessage(message, 'utf8')).signature; },
+    address: publicKey.toString(), name: provider.isBitPOSTestFixture ? 'TEST WALLET FIXTURE' : 'Phantom', fixture: !!provider.isBitPOSTestFixture, supportsMessageSigning: typeof provider.signMessage === 'function',
+    async signMessage(message) { if(!provider.signMessage)throw new Error('This wallet does not support Solana signMessage. Optional personal offers are unavailable; normal payment remains available. / wallet นี้ไม่รองรับการลงนามข้อความ รับข้อเสนอส่วนตัวไม่ได้ แต่ยังชำระตามปกติได้');return (await provider.signMessage(message, 'utf8')).signature; },
     async signTransaction(bytes) {
       let transaction: Transaction | VersionedTransaction;
       try { transaction = Transaction.from(bytes); } catch { transaction = VersionedTransaction.deserialize(bytes); }
@@ -35,10 +37,10 @@ export async function connectPhantom(provider: PhantomProvider): Promise<Connect
     },
   };
 }
-interface StandardAccount { address: string; chains: readonly string[] }
+interface StandardAccount { address: string; chains: readonly string[]; features?: readonly string[] }
 interface SolanaFeatures {
   'standard:connect': { connect(): Promise<{ accounts: StandardAccount[] }> };
-  'solana:signMessage': { signMessage(input: { account: StandardAccount; message: Uint8Array }): Promise<{ signature: Uint8Array }[]> };
+  'solana:signMessage'?: { signMessage(input: { account: StandardAccount; message: Uint8Array }): Promise<{ signature: Uint8Array }[]> };
   'solana:signTransaction': { signTransaction(input: { account: StandardAccount; transaction: Uint8Array; chain: string }): Promise<{ signedTransaction: Uint8Array }[]> };
 }
 export type PaymentRequest = <T>(path: string, body: unknown) => Promise<T>;
@@ -50,15 +52,17 @@ export interface TestWalletProvider {
   signTransaction(transaction: Uint8Array): Promise<Uint8Array>;
 }
 export async function discoverWallets(): Promise<WalletChoice[]> {
-  const wallets = getWallets().get().filter(wallet => wallet.features['standard:connect'] && wallet.features['solana:signMessage'] && wallet.features['solana:signTransaction']);
+  const wallets = getWallets().get().filter(wallet => wallet.features['standard:connect'] && wallet.features['solana:signTransaction']);
   const choices = wallets.map(wallet => ({ name: wallet.name, async connect(): Promise<ConnectedWallet> {
     // Capability-filtered Wallet Standard feature contracts.
     const features = wallet.features as unknown as SolanaFeatures;
     const { accounts } = await features['standard:connect'].connect();
     const account = accounts.find(candidate => candidate.chains.includes('solana:devnet'));
     if (!account) throw new Error('Wallet must support Solana devnet');
-    return { address: account.address, name: wallet.name, fixture: false,
-      async signMessage(message) { const [result] = await features['solana:signMessage'].signMessage({ account, message }); return result.signature; },
+    const messageFeature=features['solana:signMessage'];
+    const supportsMessageSigning=!!messageFeature&&(!account.features||account.features.includes('solana:signMessage'));
+    return { address: account.address, name: wallet.name, fixture: false, supportsMessageSigning,
+      async signMessage(message) { if(!messageFeature||!supportsMessageSigning)throw new Error('This wallet/account does not support Solana signMessage. Optional personal offers are unavailable; normal payment remains available. / wallet หรือบัญชีนี้ไม่รองรับการลงนามข้อความ ยังชำระตามปกติได้');const [result] = await messageFeature.signMessage({ account, message });if(!result)throw new Error('Wallet returned no message signature');return result.signature; },
       async signTransaction(transaction) { const [result] = await features['solana:signTransaction'].signTransaction({ account, transaction, chain: 'solana:devnet' }); return result.signedTransaction; },
     };
   } }));
@@ -81,6 +85,30 @@ export async function bindWallet(token: string, wallet: ConnectedWallet, request
   if (Date.parse(challenge.expiresAt) <= Date.now()) throw new Error('Wallet challenge expired');
   const signature = await wallet.signMessage(new TextEncoder().encode(challenge.message));
   return z.object({ payer: z.string().min(1), avatar: z.string() }).parse(await request<unknown>(`${root}/bind`, { challengeId: challenge.id, signature: bs58.encode(signature) }));
+}
+const customerSessionSchema=z.object({
+  sessionId:z.string().uuid(),customerId:z.string().uuid(),walletAddress:z.string().min(32).max(44),
+  consentVersion:z.literal(CUSTOMER_CONSENT_VERSION),consentedPurchaseContext:z.literal(true),
+  merchantId:z.string().uuid(),origin:z.string().url(),expiresAt:z.iso.datetime({offset:true}),
+});
+export function decodeCustomerAuthSession(input:unknown){return customerSessionSchema.parse(input);}
+export async function authenticateCustomerWallet(accessToken:string,orderId:string,wallet:ConnectedWallet,consent:CustomerConsent,request:PaymentRequest):Promise<CustomerAuthVerification> {
+  if(wallet.supportsMessageSigning===false)throw new Error('This wallet does not support Solana signMessage. Optional personal offers are unavailable; normal payment remains available. / wallet นี้ไม่รองรับการลงนามข้อความ ยังชำระตามปกติได้');
+  const root=`/pay/${encodeURIComponent(accessToken)}/customer`;
+  const challenge=z.object({
+    challengeId:z.string().uuid(),origin:z.string().url(),merchantId:z.string().uuid(),
+    walletAddress:z.literal(wallet.address),order:z.object({orderId:z.literal(orderId),requestHash:z.string().min(1),createdAt:z.iso.datetime({offset:true}),occupancyId:z.string().uuid().nullable(),occupancyGeneration:z.string().regex(/^[1-9][0-9]*$/).nullable()}).strict(),
+    nonce:z.string().regex(/^[A-Za-z0-9_-]{43}$/),issuedAt:z.iso.datetime({offset:true}),expiresAt:z.iso.datetime({offset:true}),
+    consentVersion:z.literal(CUSTOMER_CONSENT_VERSION),message:z.string().min(1),
+  }).strict().parse(await request<unknown>(`${root}/challenge`,{walletAddress:wallet.address}));
+  const issued=Date.parse(challenge.issuedAt),expires=Date.parse(challenge.expiresAt);
+  if(challenge.origin!==location.origin||challenge.message!==customerAuthMessage(challenge)||expires<=Date.now()||expires<=issued||expires-issued>300000)throw new Error('Customer sign-in challenge origin, message or expiry is invalid / ข้อความยืนยันตัวตนหรือเวลาหมดอายุไม่ถูกต้อง');
+  if(consent.version!==challenge.consentVersion||consent.profile!==true||consent.purchaseHistory!==true)throw new Error('Explicit personal-offers consent is required / ต้องยินยอมรับข้อเสนอส่วนตัวอย่างชัดเจน');
+  const signature=await wallet.signMessage(new TextEncoder().encode(challenge.message));
+  if(signature.length!==64)throw new Error('Wallet returned an invalid Ed25519 message signature');
+  const result=customerSessionSchema.extend({sessionToken:z.string().regex(/^[A-Za-z0-9_-]{43}$/)}).parse(await request<unknown>(`${root}/verify`,{challengeId:challenge.challengeId,walletAddress:wallet.address,signature:bs58.encode(signature),consent}));
+  if(result.walletAddress!==wallet.address||result.merchantId!==challenge.merchantId||result.origin!==challenge.origin||Date.parse(result.expiresAt)<=Date.now())throw new Error('Customer session scope does not match this wallet / session ไม่ตรงกับ wallet นี้');
+  return result;
 }
 const signedPendingSchema=z.object({address:z.string().min(1),attemptId:z.string().min(1),base64:z.string().min(1).max(8192)}).strict();
 const pendingKey=(token:string)=>'bitpos-signed-payment:'+token;

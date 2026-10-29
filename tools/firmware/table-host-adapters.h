@@ -13,6 +13,7 @@
 #include <inttypes.h>
 #include "lvgl.h"
 #include "bitpos_table.h"
+#include "bitpos_promotion.h"
 #define MALLOC_CAP_SPIRAM 1
 #define MALLOC_CAP_8BIT 2
 static size_t heap_caps_get_free_size(unsigned caps){(void)caps;return 4*1024*1024;}
@@ -37,9 +38,15 @@ enum { ESP_OK=0,ESP_ERR_NVS_NOT_FOUND=1,NVS_READWRITE=2,pdTRUE=1,pdFALSE=0 };
 #define ESP_LOGI(...) ((void)0)
 static unsigned host_lock_depth,host_flushes,host_audio,host_claims,host_commits,host_writes,host_sends;
 static unsigned host_serial,host_ack_at,host_audio_at,host_flush_at;
+static unsigned host_pickup_audio,host_pickup_audio_at,host_commit_at;
+static bool host_pickup_active;
 static bool host_transfer=true,host_network=true,host_storage=true,host_muted,photos_ready=true;
+static unsigned host_fail_render_acks,host_render_ack_failures;
+static bool host_wire_stdio;
 static uint32_t host_random=1;
 static uint8_t host_slots[2][4096];static size_t host_sizes[2];
+static char host_pickup_record[320];static size_t host_pickup_size;
+static char host_promotion_record[160];static size_t host_promotion_size;
 static char host_paid_keys[64][16];static uint32_t host_paid_versions[64];static unsigned host_paid_count;
 static char host_sent[128][7169];
 static uint8_t photo_pixels[192000];
@@ -51,6 +58,8 @@ static bool host_attract_active;
 static void bitpos_audio_set_attract(bool active){host_attract_active=active;}
 static void bitpos_audio_set_muted(bool mute){assert(!host_lock_depth);host_muted=mute;}
 static void bitpos_audio_play_success(const char *order,uint32_t version){assert(!host_lock_depth&&order[0]&&version);host_audio++;host_audio_at=++host_serial;assert(host_ack_at&&host_ack_at<host_audio_at);}
+static void bitpos_audio_set_pickup(bool active){host_pickup_active=active;}
+static void bitpos_audio_play_pickup(const char *effect){assert(!host_lock_depth&&effect[0]&&host_pickup_active);host_pickup_audio++;host_pickup_audio_at=++host_serial;assert(host_ack_at&&host_ack_at<host_pickup_audio_at&&host_commit_at<host_pickup_audio_at);}
 static bool display_engine_lock(unsigned timeout){(void)timeout;host_lock_depth++;if(host_lock_hook)host_lock_hook();return true;}
 static void display_engine_unlock(void){assert(host_lock_depth);host_lock_depth--;}
 static unsigned display_engine_get_flush_count(void){return host_flushes;}
@@ -58,19 +67,34 @@ static lv_display_t *display_engine_get_disp(void){return lv_display_get_default
 static void ccp_board_set_brightness(unsigned brightness){assert(brightness==85);}
 static int64_t esp_timer_get_time(void){return (int64_t)lv_tick_get()*1000;}
 static void esp_fill_random(void *out,size_t length){uint8_t *p=out;for(size_t i=0;i<length;i++){host_random=host_random*1664525+1013904223;p[i]=(uint8_t)(host_random>>24);}}
+#ifdef BITPOS_HOST_REAL_SHA
+#include "mbedtls/sha256.h"
+#else
 /* Deterministic stand-in for the SDK SHA primitive ONLY in the host adapter.
  * Actual claim_paid code/NVS behavior is exercised; this is not SHA proof. */
-static int mbedtls_sha256(const unsigned char *data,size_t length,unsigned char hash[32],int mode){(void)mode;memset(hash,0,32);for(size_t i=0;i<length;i++)hash[i%32]=(uint8_t)(hash[i%32]*33+data[i]);return 0;}
+static int mbedtls_sha256(const unsigned char *data,size_t length,unsigned char hash[32],int mode){(void)mode;uint64_t state=14695981039346656037ULL;for(size_t i=0;i<length;i++){state^=data[i];state*=1099511628211ULL;}for(size_t i=0;i<32;i++){hash[i]=(uint8_t)(state>>(8*(i%8)));if(i%8==7)state=state*6364136223846793005ULL+1;}return 0;}
+#endif
 static esp_err_t nvs_open_from_partition(const char *partition,const char *space,int mode,nvs_handle_t *handle){assert(!host_lock_depth&&!strcmp(partition,"bitpos_nvs")&&!strcmp(space,"ordering")&&mode==NVS_READWRITE);*handle=2;return host_storage?ESP_OK:3;}
-static esp_err_t nvs_get_blob(nvs_handle_t handle,const char *key,void *out,size_t *length){assert(handle==2);unsigned slot=!strcmp(key,"slot_b");if(!host_sizes[slot])return ESP_ERR_NVS_NOT_FOUND;if(*length<host_sizes[slot])return 3;*length=host_sizes[slot];memcpy(out,host_slots[slot],*length);return ESP_OK;}
-static esp_err_t nvs_set_blob(nvs_handle_t handle,const char *key,const void *data,size_t length){assert(!host_lock_depth&&handle==2&&length<=4096);host_writes++;if(!host_storage)return 3;unsigned slot=!strcmp(key,"slot_b");memcpy(host_slots[slot],data,length);host_sizes[slot]=length;return ESP_OK;}
-static esp_err_t nvs_commit(nvs_handle_t handle){assert(!host_lock_depth&&(handle==1||handle==2));host_commits++;return host_storage?ESP_OK:3;}
+static esp_err_t nvs_get_blob(nvs_handle_t handle,const char *key,void *out,size_t *length){
+ if(handle==1&&!strcmp(key,"promotion_open")){if(!host_promotion_size)return ESP_ERR_NVS_NOT_FOUND;if(*length<host_promotion_size)return 3;*length=host_promotion_size;memcpy(out,host_promotion_record,*length);return ESP_OK;}
+ if(handle==1){assert(!strcmp(key,"pickup_ack"));if(!host_pickup_size)return ESP_ERR_NVS_NOT_FOUND;if(*length<host_pickup_size)return 3;*length=host_pickup_size;memcpy(out,host_pickup_record,*length);return ESP_OK;}
+ assert(handle==2);unsigned slot=!strcmp(key,"slot_b");if(!host_sizes[slot])return ESP_ERR_NVS_NOT_FOUND;if(*length<host_sizes[slot])return 3;*length=host_sizes[slot];memcpy(out,host_slots[slot],*length);return ESP_OK;}
+static esp_err_t nvs_set_blob(nvs_handle_t handle,const char *key,const void *data,size_t length){
+ assert(!host_lock_depth&&(handle==1||handle==2)&&length<=4096);host_writes++;if(!host_storage)return 3;
+ if(handle==1&&!strcmp(key,"promotion_open")){assert(length<=sizeof(host_promotion_record));memcpy(host_promotion_record,data,length);host_promotion_size=length;return ESP_OK;}
+ if(handle==1){assert(!strcmp(key,"pickup_ack")&&length<=sizeof(host_pickup_record));memcpy(host_pickup_record,data,length);host_pickup_size=length;return ESP_OK;}
+ unsigned slot=!strcmp(key,"slot_b");memcpy(host_slots[slot],data,length);host_sizes[slot]=length;return ESP_OK;}
+static esp_err_t nvs_commit(nvs_handle_t handle){assert(!host_lock_depth&&(handle==1||handle==2));host_commits++;if(host_storage)host_commit_at=++host_serial;return host_storage?ESP_OK:3;}
 static esp_err_t nvs_get_u32(nvs_handle_t handle,const char *key,uint32_t *out){assert(!host_lock_depth&&handle==1);for(unsigned i=0;i<host_paid_count;i++)if(!strcmp(host_paid_keys[i],key)){*out=host_paid_versions[i];return ESP_OK;}return ESP_ERR_NVS_NOT_FOUND;}
 static esp_err_t nvs_set_u32(nvs_handle_t handle,const char *key,uint32_t value){assert(!host_lock_depth&&handle==1&&host_paid_count<64);if(!host_storage)return 3;strcpy(host_paid_keys[host_paid_count],key);host_paid_versions[host_paid_count++]=value;host_claims++;return ESP_OK;}
 static bool esp_websocket_client_is_connected(esp_websocket_client_handle_t socket){return socket&&host_network;}
-static int esp_websocket_client_send_text(esp_websocket_client_handle_t socket,const char *data,int length,unsigned timeout){(void)timeout;assert(!host_lock_depth&&socket&&length>0&&length<=7168&&host_sends<128);if(!host_network)return -1;memcpy(host_sent[host_sends],data,(size_t)length);host_sent[host_sends++][length]=0;cJSON *j=cJSON_Parse(data);assert(j);const char *type=cJSON_GetObjectItem(j,"type")->valuestring;
+static int esp_websocket_client_send_text(esp_websocket_client_handle_t socket,const char *data,int length,unsigned timeout){(void)timeout;assert(!host_lock_depth&&socket&&length>0&&length<=7168&&host_sends<128);if(!host_network)return -1;cJSON *j=cJSON_Parse(data);assert(j);const char *type=cJSON_GetObjectItem(j,"type")->valuestring;
+ if(!strcmp(type,"ACK")&&cJSON_IsNull(cJSON_GetObjectItem(j,"orderId"))&&host_fail_render_acks){host_fail_render_acks--;host_render_ack_failures++;cJSON_Delete(j);return -1;}
+ memcpy(host_sent[host_sends],data,(size_t)length);host_sent[host_sends++][length]=0;
  if(!strncmp(type,"CART_",5)||!strcmp(type,"ORDER_SUBMIT")||!strcmp(type,"ORDER_DISMISS")){assert(host_commits);table_durable_t saved;uint64_t seq;bool persisted=false;for(unsigned i=0;i<2;i++)if(host_sizes[i]&&table_journal_decode(host_slots[i],host_sizes[i],&saved,&seq)&&saved.pending.kind&&!strcmp(saved.pending.request,cJSON_GetObjectItem(j,"requestId")->valuestring))persisted=true;assert(persisted);}
- if(!strcmp(type,"ACK")){assert(host_flush_at);host_ack_at=++host_serial;assert(host_flush_at<host_ack_at);}cJSON_Delete(j);return length;}
+ if(!strcmp(type,"PICKUP_ACK")){assert(host_pickup_size);cJSON *saved=cJSON_Parse(host_pickup_record);assert(saved&&cJSON_Compare(cJSON_GetObjectItem(saved,"requestId"),cJSON_GetObjectItem(j,"requestId"),true)&&cJSON_Compare(cJSON_GetObjectItem(saved,"notificationId"),cJSON_GetObjectItem(j,"notificationId"),true));cJSON_Delete(saved);}
+ if(!strcmp(type,"ACK")){assert(host_flush_at);host_ack_at=++host_serial;assert(host_flush_at<host_ack_at);}
+ if(host_wire_stdio){printf("%.*s\n",length,data);fflush(stdout);}cJSON_Delete(j);return length;}
 static void esp_websocket_client_stop(esp_websocket_client_handle_t socket){(void)socket;host_network=false;}
 static void esp_websocket_client_start(esp_websocket_client_handle_t socket){(void)socket;host_network=true;}
 typedef struct { size_t item,capacity,count,start;uint8_t *bytes; } host_queue_t;
@@ -80,3 +104,6 @@ static unsigned uxQueueMessagesWaiting(QueueHandle_t q){return q?(unsigned)q->co
 static int xQueueSend(QueueHandle_t q,const void *value,unsigned wait){(void)wait;if(q->count==q->capacity)return pdFALSE;memcpy(q->bytes+((q->start+q->count)%q->capacity)*q->item,value,q->item);q->count++;return pdTRUE;}
 static int xQueueReceive(QueueHandle_t q,void *value,unsigned wait){(void)wait;if(!q->count)return pdFALSE;memcpy(value,q->bytes+q->start*q->item,q->item);q->count--;q->start=(q->start+1)%q->capacity;return pdTRUE;}
 static void xQueueReset(QueueHandle_t q){q->start=q->count=0;}
+#ifdef BITPOS_PROMOTION_TEST
+#include "promotion-host-adapters.h"
+#endif

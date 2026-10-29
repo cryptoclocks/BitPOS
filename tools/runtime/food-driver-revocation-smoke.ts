@@ -1,0 +1,16 @@
+import assert from 'node:assert/strict';
+import {randomUUID} from 'node:crypto';
+import {writeFile} from 'node:fs/promises';
+import type pg from 'pg';
+type Call=(path:string,method?:string,body?:unknown,token?:string,status?:number)=>Promise<any>;
+export async function reproduceFoodDriverRevocation(c:{db:pg.Client;shipment:string;driver:string;assignment:any;driverActor:{access:string};call:Call}){
+ const {db,shipment,driver,assignment,driverActor,call}=c,checks:string[]=[];
+ assert.equal((await db.query('SELECT current_database() n')).rows[0].n,'bitpos_delivery_fixture');
+ const before=await call('/api/mobile/v1/driver/food/work','GET',undefined,driverActor.access);assert.equal(before.assignment.id,assignment.assignmentId);assert.ok(before.assignment.phone&&before.assignment.addressText);
+ await db.query('BEGIN');await db.query('SELECT 1 FROM bitpos.driver_occupancy WHERE driver_id=$1 FOR UPDATE',[driver]);await db.query("UPDATE bitpos.driver_profiles SET status='SUSPENDED',verified_until=NULL,decision_reason='Synthetic078 revocation counterexample' WHERE id=$1",[driver]);await db.query('COMMIT');
+ const work=await call('/api/mobile/v1/driver/food/work','GET',undefined,driverActor.access);assert.equal(work.assignment.id,assignment.assignmentId);assert.equal(work.assignment.phone,before.assignment.phone);assert.equal(work.assignment.addressText,before.assignment.addressText);checks.push('REPRODUCED suspended assigned driver still receives phone/address/destination through actual work API');
+ const arrived=await call('/api/mobile/v1/driver/food/assignments/'+assignment.assignmentId+'/arrive','POST',{idempotencyKey:randomUUID(),generation:assignment.generation,leaseGeneration:assignment.leaseGeneration,stage:'PICKUP'},driverActor.access);assert.equal(arrived.state,'AT_PICKUP');checks.push('REPRODUCED suspended driver still performs new arrival transition through actual API');
+ await call('/api/mobile/v1/driver/food/assignments/'+assignment.assignmentId+'/location','POST',{generation:assignment.generation,leaseGeneration:assignment.leaseGeneration,sequence:'1',capturedAt:new Date().toISOString(),latitudeE7:137560000,longitudeE7:1005018000,accuracyMm:5000,headingMdeg:null,speedMmS:null},driverActor.access);checks.push('REPRODUCED suspended driver starts fresh assigned location publication');
+ const persisted=(await db.query("SELECT a.state,(SELECT count(*)::int FROM bitpos.driver_assignment_leases l WHERE l.id=a.lease_id AND l.state='ACTIVE') active_leases FROM bitpos.food_assignments a WHERE a.id=$1",[assignment.assignmentId])).rows[0];assert.equal(persisted.active_leases,1);
+ const receipt={status:'REPRODUCED_ACTIVE_DRIVER_REVOCATION_GAP',shipmentId:shipment,assignmentId:assignment.assignmentId,checks,persisted,fixture:true,limits:['Raw synthetic phone/address/coordinates deliberately excluded from receipt','Prepickup case only; no proof/custody release performed','Counterexample, not live privacy fencing implementation'],physicalTesting:'deferred_by_user_2026-10-16'};await writeFile('.omp/work/flutter-delivery-20261016/evidence/dispatch078-driver-revocation-before-20261018.json',JSON.stringify(receipt,null,2)+'\n');console.log(JSON.stringify(receipt));
+}

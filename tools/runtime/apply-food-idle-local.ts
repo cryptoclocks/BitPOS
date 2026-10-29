@@ -1,0 +1,11 @@
+import assert from 'node:assert/strict';
+import {createHash} from 'node:crypto';
+import {readFile,writeFile} from 'node:fs/promises';
+import pg from 'pg';
+const connectionString='postgresql://cryptoclock@127.0.0.1:55436/bitpos_delivery_fixture',name=process.argv.includes('--assignment-recovery')?'080_food_assignment_recovery.sql':process.argv.includes('--customer-authority-projection')?'079_food_customer_authority_projection.sql':process.argv.includes('--driver-authority')?'078_food_driver_authority.sql':process.argv.includes('--offer-lifecycle')?'077_food_offer_lifecycle.sql':process.argv.includes('--ranking-fences')?'076_food_ranking_fences.sql':process.argv.includes('--ranking')?'075_food_dispatch_ranking.sql':process.argv.includes('--search')?'074_food_dispatch_search.sql':process.argv.includes('--policy')?'073_food_dispatch_policy.sql':process.argv.includes('--authorization')?'072_food_idle_authorization.sql':'071_food_idle_discovery.sql',source=await readFile('supabase/migrations/'+name,'utf8'),sha256=createHash('sha256').update(source).digest('hex');
+const db=new pg.Client({connectionString});await db.connect();
+try{await db.query('BEGIN');assert.equal((await db.query('SELECT current_database() n')).rows[0].n,'bitpos_delivery_fixture');await db.query("SELECT pg_advisory_xact_lock(hashtextextended('bitpos.local.food-dispatch.migrations',0))");
+ const prior=(await db.query('SELECT source_sha256 FROM public.bitpos_migrations WHERE name=$1',[name])).rows[0];
+ if(prior)assert.equal(prior.source_sha256,sha256,'Applied local071 source drift');else{await db.query(source);await db.query('INSERT INTO public.bitpos_migrations(name,source_sha256) VALUES($1,$2)',[name,sha256]);}
+ await db.query('COMMIT');const receipt={status:'PASS_LOCAL_SCHEMA_ONLY',name,sha256,mode:prior?'already_applied_identical':'applied',database:'127.0.0.1:55436/bitpos_delivery_fixture',production:false,limits:['Disposable local activation only; no071 end-to-end or review acceptance'],physicalTesting:'deferred_by_user_2026-10-16'};await writeFile(`.omp/work/flutter-delivery-20261016/evidence/dispatch${name.slice(0,3)}-local-apply-20261018.json`,JSON.stringify(receipt,null,2)+'\n');console.log(JSON.stringify(receipt));
+}catch(error){await db.query('ROLLBACK');throw error;}finally{await db.end();}

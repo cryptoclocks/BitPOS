@@ -1,0 +1,3 @@
+#!/bin/zsh
+set -eu
+exec /opt/homebrew/bin/node "${0:A:h}/pace.mjs" "$@"

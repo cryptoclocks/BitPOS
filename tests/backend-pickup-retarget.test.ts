@@ -1,0 +1,23 @@
+import test, {after} from 'node:test';
+import assert from 'node:assert/strict';
+import {randomUUID} from 'node:crypto';
+import {publicPickupFixture} from './backend-pickup-fixture';
+import {success} from './backend-table-fixture';
+const integration={skip:process.env.BITPOS_BACKEND_INTEGRATION!=='1'};
+after(async()=>{if(process.env.BITPOS_BACKEND_INTEGRATION==='1'){const {pool}=await import('../apps/api/src/db');await pool.end();}});
+test('staff explicitly confirms replacement table device without rewriting original guest or bill',integration,async()=>{
+ const f=await publicPickupFixture(),before=await f.financial();
+ success(await f.command(f.b.id,{type:'CAPABILITIES',capabilities:['pickup_ready_v1']}));
+ await f.kitchen('PREPARING',0);await f.kitchen('READY',1);await f.reconcile();
+ const old=await f.notice();assert.equal(old.state,'DELIVERED');
+ await f.reg('/api/devices/'+f.b.id,'PATCH',{tableId:null,expectedAssignmentGeneration:'1'});
+ await f.reg('/api/devices/'+f.c.id,'PATCH',{tableId:f.table.id,expectedAssignmentGeneration:'1'});
+ await f.reconcile();assert.equal((await f.notice()).state,'TARGET_CHANGED');
+ success(await f.command(f.c.id,{type:'CAPABILITIES',capabilities:['pickup_ready_v1']}));
+ await f.tenant(f.merchant,db=>f.api.fulfillmentRequest(db,f.merchant,f.actor,'staff',f.order.id,true,{expectedVersion:2,idempotencyKey:randomUUID(),targetDeviceId:f.c.id,assignmentGeneration:'2',confirmTarget:true}));
+ const confirmed=await f.notice();assert.equal(confirmed.target_device_id,f.c.id);assert.equal(confirmed.visit_id,f.originalBinding.id);assert.equal(confirmed.binding_confirmed_by,f.actor);
+ await f.tenant(f.merchant,db=>f.api.reconcilePickup(db,f.merchant,f.c.id,f.devices.get(f.c.id)!.connectionGeneration));
+ const delivered=await f.notice();assert.equal(delivered.state,'DELIVERED');
+ const event=await f.event(delivered.last_event_id);assert.equal(event.target_device_id,f.c.id);assert.equal(event.payload.payload.orderId,f.order.id);
+ assert.deepEqual(await f.financial(),before,'immutable original guest/bill/stock evidence survives notification-only rebind');
+});

@@ -1,0 +1,13 @@
+import assert from 'node:assert/strict';
+import {readFile,writeFile,unlink} from 'node:fs/promises';
+import {spawn} from 'node:child_process';
+const fixed=process.argv.includes('--expect-fixed'),path='.omp/work/flutter-delivery-20261016/ranking-deadline-probe-'+process.pid+'.ts',source=await readFile('tools/runtime/food-ranking-sql-smoke.ts','utf8'),seam='const valid=await claim(),offered=await finish(valid.runId,routes(valid));',start=source.indexOf(seam),end=source.indexOf('}finally{',start);assert.ok(start>0&&end>start);
+const probe=`const valid=await claim();
+ await db.query("CREATE FUNCTION pg_temp.delay_ranking_offer() RETURNS trigger LANGUAGE plpgsql AS $$BEGIN PERFORM pg_sleep(0.6);RETURN NEW;END $$");
+ await db.query('CREATE TRIGGER ranking_deadline_fixture BEFORE INSERT ON food_dispatch_offers FOR EACH ROW EXECUTE FUNCTION pg_temp.delay_ranking_offer()');
+ await db.query("UPDATE food_dispatch_rank_runs SET expires_at=clock_timestamp()+interval '500 milliseconds' WHERE id=$1",[valid.runId]);
+ const offered=await finish(valid.runId,routes(valid));const persisted=(await db.query('SELECT (SELECT count(*)::int FROM food_dispatch_offers WHERE shipment_id=$1) offers,(SELECT offers_remaining FROM food_dispatch_searches WHERE shipment_id=$1) budget,(SELECT expires_at<clock_timestamp() FROM food_dispatch_rank_runs WHERE id=$2) expired',[shipment,valid.runId])).rows[0];assert.equal(persisted.expired,true);
+ if(${fixed}){assert.deepEqual(offered,{status:'STALE',offerId:null});assert.equal(persisted.offers,0);assert.equal(persisted.budget,originalSearch.offers_remaining);}else{assert.equal(offered.status,'OFFERED');assert.equal(persisted.offers,1);assert.equal(persisted.budget,originalSearch.offers_remaining-1);}
+ await db.query('ROLLBACK');const report={status:${JSON.stringify(fixed?'PASS_RANK_DEADLINE_CROSSING':'REPRODUCED_RANK_DEADLINE_CROSSING_OFFER_AND_BUDGET')},offered,persisted,fixture:true,rollback:true,fixtureTiming:'Injected500ms claim expiry plus actual600ms BEFORE INSERT wait, not fake clock',physicalTesting:'deferred_by_user_2026-10-16'};await writeFile('.omp/work/flutter-delivery-20261016/evidence/dispatch075-ranking-deadline-${fixed?'after':'before'}-20261018.json',JSON.stringify(report,null,2)+'\\n');console.log(JSON.stringify(report));
+`;
+try{await writeFile(path,source.slice(0,start)+probe+source.slice(end));const child=spawn('npx',['--no-install','tsx',path],{stdio:'inherit'});const code=await new Promise<number|null>((resolve,reject)=>{child.once('error',reject);child.once('exit',resolve);});assert.equal(code,0);}finally{await unlink(path).catch(()=>{});}

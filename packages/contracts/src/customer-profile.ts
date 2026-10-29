@@ -1,0 +1,7 @@
+import {z} from 'zod';
+const short=z.string().max(200).default('');
+export const customerCrm=z.object({fullName:short,birthday:z.string().max(10).refine(v=>v===''||/^\d{4}-\d{2}-\d{2}$/.test(v)).default(''),lineId:short,address:z.string().max(1000).default(''),company:short,preferredDrink:short,sweetness:short,milk:short,allergies:z.string().max(1000).default(''),tags:short,preferredLanguage:z.enum(['','th','en']).default('')}).strict();
+export type CustomerCrm=z.infer<typeof customerCrm>;
+export const customerAvatar=z.object({preset:z.enum(['auto','coffee','cat','flower','star','person']).default('auto'),photo:z.string().max(140000).refine(v=>{if(v==='')return true;try{const m=v.match(/^data:image\/(png|jpeg|webp);base64,([A-Za-z0-9+/]+={0,2})$/);if(!m)return false;const bytes=Uint8Array.from(atob(m[2]),c=>c.charCodeAt(0));if(bytes.length>100000)return false;return m[1]==='png'?bytes.slice(0,8).join(',')==='137,80,78,71,13,10,26,10':m[1]==='jpeg'?bytes[0]===255&&bytes[1]===216&&bytes[2]===255:String.fromCharCode(...bytes.slice(0,4))==='RIFF'&&String.fromCharCode(...bytes.slice(8,12))==='WEBP';}catch{return false;}}).default('')}).strict();
+export type CustomerAvatarData=z.infer<typeof customerAvatar>;
+export const customerProfileInput=z.object({name:z.string().max(120).optional(),phone:z.string().max(40).optional(),email:z.string().max(254).optional(),notes:z.string().max(2000).optional(),crm:customerCrm.optional(),avatar:customerAvatar.optional()}).strict();

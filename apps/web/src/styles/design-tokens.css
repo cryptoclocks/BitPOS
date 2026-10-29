@@ -1,0 +1,39 @@
+/* Generated from approved FigCraft tokens. OS safe areas are not design chrome. */
+@font-face{font-family:'Noto Sans Thai';src:url('/fonts/bitpos-noto-sans-thai-variable.ttf') format('truetype');font-style:normal;font-weight:100 900;font-display:swap}
+@font-face{font-family:'Inter';src:url('/fonts/bitpos-inter-variable.ttf') format('truetype');font-style:normal;font-weight:100 900;font-display:swap}
+:root{
+ --bp-primary:#64188A;
+ --bp-action:#7145D6;
+ --bp-orange:#FF8500;
+ --bp-orange-ink:#A94800;
+ --bp-ink:#29183F;
+ --bp-muted:#7B7088;
+ --bp-bg:#F8F5FC;
+ --bp-white:#FFFFFF;
+ --bp-line:#E9E1F1;
+ --bp-tint:#EFE6F8;
+ --bp-peach:#FFF0DF;
+ --bp-green:#217657;
+ --bp-greenbg:#E8F5ED;
+ --bp-red:#B63E50;
+ --bp-redbg:#FCECEF;
+ --bp-blue:#446A9F;
+ --bp-bluebg:#EBF1FB;
+ --bp-dark:#21152D;
+ --bp-space-4:4px;
+ --bp-space-8:8px;
+ --bp-space-12:12px;
+ --bp-space-16:16px;
+ --bp-space-20:20px;
+ --bp-space-24:24px;
+ --bp-space-32:32px;
+ --bp-space-40:40px;
+ --bp-space-48:48px;
+ --bp-space-64:64px;
+ --bp-radius-control:14px;
+ --bp-radius-card:20px;
+ --bp-radius-sheet:28px;
+ --bp-font-thai:'Noto Sans Thai';
+ --bp-font-latin:'Inter';
+ --bp-mobile-margin:24px; --bp-touch-min:48px; --bp-desktop-margin:32px; --bp-sidebar:232px;
+}

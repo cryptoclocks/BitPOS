@@ -1,0 +1,10 @@
+import test,{after} from 'node:test';import assert from 'node:assert/strict';import {promotionFixture} from './backend-promotions-fixture';
+const integration={skip:process.env.BITPOS_BACKEND_INTEGRATION!=='1',timeout:120000};
+after(async()=>{if(process.env.BITPOS_BACKEND_INTEGRATION==='1'){const {pool}=await import('../apps/api/src/db');await pool.end();}});
+test('validated snapshot receipt projection counts only the exact current idle playlist, not stale or altered content',integration,async()=>{const f=await promotionFixture();try{const campaign=(await f.publish(await f.approve(await f.generate()))).campaign;const {streamEvent}=await import('../apps/api/src/orders');const original=await f.playlist();const actor=f.devices.get(f.b.id)!;
+async function ack(content:unknown){const current=(await f.inspect('SELECT s.screen_generation::text,d.assignment_generation::text FROM device_screen_state s JOIN devices d ON d.id=s.device_id WHERE s.device_id=$1',[f.b.id])).rows[0];const screen=current.screen_generation;const event=await f.tenant(f.merchant,db=>streamEvent(db,f.merchant,f.b.id,current.assignment_generation,screen,'CONFIG',{promotionPlaylist:content},undefined,new Date().toISOString(),String(actor.authGeneration)));await f.inspect("INSERT INTO device_event_deliveries(merchant_id,device_id,event_id,device_seq,connection_generation) VALUES($1,$2,$3,$4,$5)",[f.merchant,f.b.id,event.eventId,event.deviceSeq,actor.connectionGeneration]);const {promotionPlaylistRendered}=await import('../apps/api/src/promotion-playlists');await f.tenant(f.merchant,db=>promotionPlaylistRendered(db,f.merchant,f.b.id,event.eventId,new Date().toISOString()));}
+async function state(){return (await f.campaign(campaign.id)).playlistTargets!.find(t=>t.deviceId===f.b.id)!.state;}
+const stale=structuredClone(original);stale.generation=String(BigInt(stale.generation)+1n);await ack(stale);assert.equal(await state(),'DELIVERED');
+const altered=structuredClone(original);altered.items[0].copy='Untrusted altered copy';await ack(altered);assert.equal(await state(),'DELIVERED');
+await ack(original);assert.equal(await state(),'RENDERED');
+}finally{await f.close();}});

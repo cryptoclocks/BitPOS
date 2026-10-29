@@ -1,0 +1,5 @@
+import {test} from 'node:test';import assert from 'node:assert/strict';
+import {promotionGenerateSchema} from '../apps/api/src/promotions';
+const id='00000000-0000-4000-8000-000000000001';
+const body={productIds:[id],goal:'Move stock',maxDiscountPercent:15,requestedDiscountPercent:15,startsAt:'2026-10-14T00:00:00Z',expiresAt:'2026-10-14T01:00:00Z',idempotencyKey:'test',audience:'daily',minimumUnitMinor:'1',daily:{timezone:'Asia/Bangkok',lookbackWeeks:6}};
+test('one product per draft with optional explicit screen fence',()=>{assert.equal(promotionGenerateSchema.safeParse(body).success,true);assert.equal(promotionGenerateSchema.safeParse({...body,productIds:[id,'00000000-0000-4000-8000-000000000002']}).success,false);assert.equal(promotionGenerateSchema.safeParse({...body,destination:{deviceId:id,tableId:id,assignmentGeneration:'1',authGeneration:'1'}}).success,true);assert.equal(promotionGenerateSchema.safeParse({...body,destination:{deviceId:id,tableId:id,assignmentGeneration:'0',authGeneration:'1'}}).success,false);});

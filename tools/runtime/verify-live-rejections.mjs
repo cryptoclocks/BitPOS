@@ -4,11 +4,13 @@ import pg from 'pg';
 import {setTimeout as delay} from 'node:timers/promises';
 import {Keypair} from '@solana/web3.js';
 import {verifyTransfer,PaymentProofError,assertCluster} from '../../apps/api/src/payments.ts';
+import {frozenAttempt} from '../../apps/api/src/payment-assets.ts';
 await assertCluster();
-const db=new pg.Client({connectionString:process.env.ADMIN_DATABASE_URL});await db.connect();
-const attempts=(await db.query("SELECT * FROM bitpos.payment_attempts WHERE status='FINALIZED' AND signed_base64 IS NOT NULL ORDER BY created_at DESC LIMIT 2")).rows;await db.end();assert.equal(attempts.length,2);
+const db=new pg.Client({connectionString:process.env.ADMIN_DATABASE_URL,options:'-c search_path=bitpos,public'});await db.connect();
+const rows=(await db.query("SELECT * FROM bitpos.payment_attempts WHERE status='FINALIZED' AND signed_base64 IS NOT NULL ORDER BY created_at DESC LIMIT 2")).rows;assert.equal(rows.length,2);
+const attempts=[];try{for(const row of rows)attempts.push(await frozenAttempt(db,row));}finally{await db.end();}
 const attempt=attempts[0];assert.ok(await verifyTransfer(attempt.signature,attempt,'finalized'),'actual finalized chain payment required as baseline');
-const cases=[['wrong_amount',{amount_minor:(BigInt(attempt.amount_minor)+1n).toString()}],['wrong_mint',{mint:Keypair.generate().publicKey.toBase58()}],['wrong_token_program',{token_program:'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'}],['wrong_recipient',{recipient:Keypair.generate().publicKey.toBase58()}],['wrong_reference',{reference:Keypair.generate().publicKey.toBase58()}],['wrong_payer',{payer:Keypair.generate().publicKey.toBase58()}],['missing_frozen_signed_proof',{signed_base64:null}]];
+const cases=[['wrong_amount',{amount_minor:(BigInt(attempt.amount_minor)+1n).toString()}],['wrong_mint',{mint:Keypair.generate().publicKey.toBase58()}],['wrong_token_program',{token_program:attempt.token_program==='TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'?'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb':'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'}],['wrong_recipient',{recipient:Keypair.generate().publicKey.toBase58()}],['wrong_reference',{reference:Keypair.generate().publicKey.toBase58()}],['wrong_payer',{payer:Keypair.generate().publicKey.toBase58()}],['missing_frozen_signed_proof',{signed_base64:null}]];
 const results=[];
 // Historical proof checks are deliberately paced, not burst alongside worker RPC.
 for(const [name,mutation] of cases){await delay(5000);await assert.rejects(verifyTransfer(attempt.signature,{...attempt,...mutation},'finalized'),PaymentProofError);results.push({name,rejected:true});}

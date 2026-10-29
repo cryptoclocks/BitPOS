@@ -1,0 +1,11 @@
+import {readFile,writeFile} from 'node:fs/promises';
+const path='packages/openapi/mobile-v1.json',spec=JSON.parse(await readFile(path,'utf8'));
+const ref=(name:string)=>({$ref:`#/components/schemas/${name}`}),object=(properties:Record<string,unknown>)=>({type:'object',additionalProperties:false,required:Object.keys(properties),properties}),uuid={type:'string',format:'uuid'},version={type:'string',pattern:'^(0|[1-9][0-9]{0,18})$'},positive={type:'string',pattern:'^[1-9][0-9]{0,18}$'},bounded=(minimum:number,maximum:number)=>({type:'integer',minimum,maximum});
+const fields={enabled:{type:'boolean'},vehicleType:{type:'string',enum:['MOTORCYCLE','CAR']},offerBudget:bounded(1,6),cycleSeconds:bounded(60,300),overallSeconds:bounded(60,900),maxCycles:bounded(1,3),shortlistSize:bounded(1,6),maxPickupSeconds:bounded(60,3600),validUntil:{type:'string',format:'date-time'},reason:{type:'string',minLength:1,maxLength:500}};
+spec.components.schemas.FoodDispatchPolicyCommand=object({idempotencyKey:uuid,expectedVersion:version,...fields});
+spec.components.schemas.FoodDispatchPolicy=object({id:uuid,live:{type:'boolean'},...fields});
+spec.components.schemas.FoodDispatchPolicySnapshot=object({revision:version,policy:{anyOf:[ref('FoodDispatchPolicy'),{type:'null'}]}});
+spec.components.schemas.FoodDispatchPolicyReceipt=object({revision:positive,policyId:uuid});
+function operation(id:string,output:string,input?:string){return {operationId:id,security:[{mobileBearer:[]}],...(input?{requestBody:{required:true,content:{'application/json':{schema:ref(input)}}}}:{}),responses:{'200':{description:'Scoped immutable automatic FOOD search policy only; does not dispatch, accept, cancel, refund or transfer funds.',content:{'application/json':{schema:ref(output)}}}}};}
+spec.paths['/platform/merchants/{merchantId}/branches/{branchId}/food-dispatch-policy']={parameters:['merchantId','branchId'].map(name=>({name,in:'path',required:true,schema:uuid})),get:operation('foodDispatchPolicySnapshot','FoodDispatchPolicySnapshot'),put:operation('foodDispatchPolicyPublish','FoodDispatchPolicyReceipt','FoodDispatchPolicyCommand')};
+await writeFile(path,JSON.stringify(spec,null,2)+'\n');console.log('Published scoped immutable FOOD dispatch policy contracts');

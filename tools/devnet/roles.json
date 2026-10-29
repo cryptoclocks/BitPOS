@@ -169,5 +169,23 @@
     "purpose": "Intentionally zero SOL; test sponsored payments or missing-fee UX",
     "targetTestUsdg": 100,
     "starterSol": 0
+  },
+  {
+    "id": "rider-1",
+    "label": "Rider 1",
+    "kind": "identity",
+    "targetSol": 0.25,
+    "purpose": "Rider/driver payout beneficiary and wallet-proof test identity; app permissions still require Auth/RBAC",
+    "targetTestUsdg": 100,
+    "starterSol": 0.02
+  },
+  {
+    "id": "rider-2",
+    "label": "Rider 2",
+    "kind": "identity",
+    "targetSol": 0.25,
+    "purpose": "Rider/driver payout beneficiary and wallet-proof test identity; app permissions still require Auth/RBAC",
+    "targetTestUsdg": 100,
+    "starterSol": 0.02
   }
 ]

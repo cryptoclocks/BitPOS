@@ -1,0 +1,6 @@
+---
+import CouponSelection from '../../components/CouponSelection';
+if (!import.meta.env.DEV) return new Response('Not found',{status:404});
+const coupons=[{id:'breakfast',title:'มื้อเช้าคู่โปรด · ลด ฿20',terms:'ตัวอย่าง · ขั้นต่ำ ฿150 · ตรวจสิทธิ์จากเซิร์ฟเวอร์ก่อนใช้',eligible:true},{id:'delivery',title:'ส่งฟรีใกล้บ้าน',terms:'ตัวอย่าง · ดูเงื่อนไขร้านที่ร่วมรายการ',eligible:true}];
+---
+<html lang="th"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>BitPOS W22 UI preview</title><style>body{margin:0;background:#f8f5fc}</style></head><body><CouponSelection coupons={coupons} preview client:load /></body></html>

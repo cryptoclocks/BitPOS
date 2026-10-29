@@ -2,15 +2,17 @@ import type pg from 'pg';
 import {z} from 'zod';
 import {audit} from './db';
 import {discountedMinor,effectivePrice,priceLease,type ProductOffer} from '../../../packages/domain/src/pricing';
-import type {Money,ActiveFoodPromotion} from '../../../packages/contracts/src/index';
+import type {Money,ActiveFoodPromotion,ScopedPromotionLine} from '../../../packages/contracts/src/index';
+import type {DailyPromotionLine} from '../../../packages/contracts/src/daily-promotions';
+import type {PersonalPromotionLine} from '../../../packages/contracts/src/personal-promotions';
 import {money} from '../../../packages/domain/src/table-pricing';
 import {fail,routingLock,requireRole,uuid,integer,positive} from './authority';
 import {effectiveCatalog} from './catalog';
 
-export interface EffectiveMenu {
+export interface EffectiveMenu {bundles?:import('../../../packages/contracts/src/bundle-promotions').BundleOffer[];
  merchant:{id:string;name:string};asOf:string;priceValidUntil:string;
  menuVersion:string;priceVersion:string|null;pricingRevision:string;currency:'USD'|'USDG'|null;decimals:number|null;
- products:{id:string;catalogKey:string|null;name:string;nameEn:string;emoji:string;available:number;imageUrl:unknown;category:unknown;description:unknown;basePrice:Money|null;unitPrice:Money|null;promotion:(ActiveFoodPromotion&{priceVersion:string})|null}[];
+ products:{id:string;catalogKey:string|null;name:string;nameEn:string;emoji:string;available:number;imageUrl:unknown;category:unknown;description:unknown;basePrice:Money|null;unitPrice:Money|null;promotion:(ActiveFoodPromotion&{priceVersion:string})|null;scopedPromotion?:ScopedPromotionLine;dailyPromotion?:DailyPromotionLine;personalPromotion?:PersonalPromotionLine}[];
 }
 const discount=z.discriminatedUnion('kind',[
  z.object({kind:z.literal('amount'),amountMinor:positive}).strict(),
@@ -33,7 +35,7 @@ export async function productOffer(db:pg.PoolClient,merchant:string,actor:string
  if(!['GET','PUT','PATCH'].includes(method))fail('RESOURCE_NOT_FOUND',404);
  const active=(await db.query('SELECT active_price_version_id FROM merchant_pricing WHERE merchant_id=$1',[merchant])).rows[0]?.active_price_version_id;
  const version=d?.priceVersion??requestedVersion??active;if(!version)fail('SETUP_REQUIRED');uuid.parse(version);
- const p=(await db.query('SELECT c.unit_minor::text,v.currency FROM catalog_prices c JOIN catalog_price_versions v ON v.merchant_id=c.merchant_id AND v.id=c.price_version_id WHERE c.merchant_id=$1 AND c.product_id=$2 AND c.price_version_id=$3',[merchant,productId,version])).rows[0];if(!p)fail('RESOURCE_NOT_FOUND',404);
+ const p=(await db.query('SELECT c.unit_minor::text,v.currency,v.decimals FROM catalog_prices c JOIN catalog_price_versions v ON v.merchant_id=c.merchant_id AND v.id=c.price_version_id WHERE c.merchant_id=$1 AND c.product_id=$2 AND c.price_version_id=$3',[merchant,productId,version])).rows[0];if(!p)fail('RESOURCE_NOT_FOUND',404);
  let row=(await db.query('SELECT * FROM versioned_product_offers WHERE merchant_id=$1 AND product_id=$2 AND price_version_id=$3 ORDER BY revision DESC LIMIT 1',[merchant,productId,version])).rows[0];
  const asOf=new Date((await db.query('SELECT clock_timestamp() AS now')).rows[0].now);
  if(d){
@@ -43,6 +45,6 @@ export async function productOffer(db:pg.PoolClient,merchant:string,actor:string
  await db.query('UPDATE merchant_pricing SET revision=revision+1 WHERE merchant_id=$1',[merchant]);await audit(db,merchant,actor,d.enabled?'product.offer.enable':'product.offer.disable',productId);
  }
  const offer=offerFromRow(row);const e=effectivePrice(BigInt(p.unit_minor),offer,asOf);
- return {productId,priceVersion:version,asOf:asOf.toISOString(),offer:offer?{priceVersion:version,revision:offer.revision,enabled:offer.enabled,basePriceMinor:offer.baseMinor.toString(),currentPriceMinor:offer.currentMinor.toString(),expiresAt:offer.expiresAt,discount:offer.discount}:null,active:e.promotion!==null,effective:{basePrice:money(p.currency,e.basePriceMinor),unitPrice:money(p.currency,e.priceMinor),promotion:e.promotion?{...e.promotion,priceVersion:version}:null}};
+ return {productId,priceVersion:version,asOf:asOf.toISOString(),offer:offer?{priceVersion:version,revision:offer.revision,enabled:offer.enabled,basePriceMinor:offer.baseMinor.toString(),currentPriceMinor:offer.currentMinor.toString(),expiresAt:offer.expiresAt,discount:offer.discount}:null,active:e.promotion!==null,effective:{basePrice:money(p.currency,e.basePriceMinor,p.decimals),unitPrice:money(p.currency,e.priceMinor,p.decimals),promotion:e.promotion?{...e.promotion,priceVersion:version}:null}};
 }
 export const effectiveMenu=effectiveCatalog;

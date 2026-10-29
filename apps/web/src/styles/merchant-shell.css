@@ -1,0 +1,38 @@
+/* Sidebar shell for Overview and Sales on wide screens; mirrors the Order center rules and is only rendered when the viewport is >=1100px. */
+@media(min-width:1100px){
+ .shell[data-merchant-shell]{padding-left:232px;background:var(--bp-bg)}
+ .shell[data-merchant-shell]>header{height:86px;min-height:86px;box-sizing:border-box;padding:16px 32px;margin:0;background:var(--bp-white);border-bottom:1px solid var(--bp-line);font-family:var(--bp-font-thai),var(--bp-font-latin),sans-serif}
+ .shell[data-merchant-shell]>.workspace-bar{margin:0;padding:0;max-width:none;display:block}
+ .shell[data-merchant-shell]>.workspace-bar>.workspace-register,.shell[data-merchant-shell]>.workspace-bar>.workspace-status{display:none}
+ /* Sales needs a register before it can take an order; keep its picker and status visible there (they stay hidden on the other sidebar pages). */
+ .shell[data-merchant-shell]>.workspace-bar.with-register>.workspace-register{display:flex;align-items:center;gap:12px;padding:12px 32px 0}
+ .shell[data-merchant-shell]>.workspace-bar.with-register>.workspace-register select{min-width:200px}
+ .shell[data-merchant-shell]>.workspace-bar.with-register>.workspace-status{display:block;margin:8px 32px 0}
+ .shell[data-merchant-shell] .workspace-tabs{position:fixed;inset:0 auto 0 0;z-index:4;box-sizing:border-box;width:232px;display:flex;flex-direction:column;justify-content:flex-start;align-items:stretch;gap:14px;padding:144px 16px 32px;background:var(--bp-white);border:0;border-right:1px solid var(--bp-line);border-radius:0;overflow-y:auto;font-family:var(--bp-font-thai),var(--bp-font-latin),sans-serif}
+ .shell[data-merchant-shell] .workspace-tabs button{flex:none;justify-content:flex-start;min-height:52px;min-width:0;padding:12px 16px;border-radius:14px;font-size:15px;white-space:normal}
+ .shell[data-merchant-shell]>footer{padding:16px 32px}
+ .shell[data-merchant-shell] .workspace-tabs{gap:0;padding:0 16px 24px}
+ .shell[data-merchant-shell] .workspace-tabs>.merchant-sidebar-logo{flex:none;display:flex;align-items:center;height:86px;padding:0 12px;margin-inline:-16px;padding-inline:28px;border-bottom:1px solid var(--bp-line)}
+ .shell[data-merchant-shell] .workspace-tabs>.merchant-sidebar-account{box-sizing:border-box;height:88px;padding:18px 12px;flex:none}
+ .shell[data-merchant-shell] .workspace-tabs>button{min-height:50px;height:50px;padding:12px 16px;margin-bottom:6px;font-size:14px;line-height:22px;gap:12px;border-radius:12px}
+ .shell[data-merchant-shell] .workspace-tabs>button:disabled{opacity:.48;background:transparent;cursor:not-allowed}
+ .shell[data-merchant-shell] .workspace-tabs>button[aria-current=page]{background:var(--bp-tint);color:var(--bp-primary);border-color:transparent}
+ .shell[data-merchant-shell] .workspace-tabs>.merchant-sidebar-limit{margin:12px 12px 8px}
+ .shell[data-merchant-shell]>header>.brand{font-size:0}
+ .shell[data-merchant-shell]>header>.brand small{font-size:16px;font-weight:600;color:var(--bp-ink)}
+ .shell[data-merchant-shell]>main,.shell[data-merchant-shell]>.menu-pane,.shell[data-merchant-shell]>.section-heading{max-width:none;margin:0;padding-left:32px;padding-right:32px;box-sizing:border-box}
+}
+
+/* Sales heading and filters follow the FigCraft P02 layout: title and subtitle, then one full-width search/category row. */
+.menu-pane .sales-heading{display:flex;flex-direction:column;align-items:stretch;gap:16px}
+.menu-pane .sales-heading h1{margin:0}
+.menu-pane .sales-sub{margin:4px 0 0;color:#7a7089;font-size:14px}
+.menu-pane .sales-heading .menu-filters{display:flex;flex-wrap:wrap;gap:12px;align-items:center;width:100%}
+.menu-pane .sales-heading .menu-filters input{flex:1 1 320px;min-width:0}
+.menu-pane .sales-heading .menu-filters select{flex:0 1 220px}
+
+@media(min-width:1100px){.shell[data-merchant-shell] .settings-workspace{margin-top:24px}}
+
+/* Opening-hours day groups: rounded cards like the rest of Settings instead of the browser's square fieldset outline. */
+.opening-day{margin:0 0 14px;padding:12px 16px 16px;border:1px solid var(--bp-line,#e9e1f1);border-radius:16px;background:#fff}
+.opening-day>legend{padding:0 8px;font-weight:700;color:var(--bp-ink,#321b50)}

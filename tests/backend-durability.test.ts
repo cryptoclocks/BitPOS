@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {randomUUID} from 'node:crypto';
 import {tableFixture,success} from './backend-table-fixture';
+import {fixturePaymentAttempt} from './backend-payment-fixture';
 const integration={skip:process.env.BITPOS_BACKEND_INTEGRATION!=='1'};
 // Fixtures are dedicated test-DB records, retained because authority/history is immutable.
 test('counter/local race has one screen owner and no invisible reservation; replay survives re-pair and reprice',integration,async()=>{
@@ -14,7 +15,7 @@ test('counter/local race has one screen owner and no invisible reservation; repl
  assert.equal(await f.tenant(f.other,async db=>(await db.query('SELECT id FROM orders WHERE id=$1',[first.order.id])).rowCount),0);
 });
 test('settlement duplicates race submit locks without duplicate stock/payment; ACK is required before dismissal',integration,async()=>{
- const f=await tableFixture(3);const first=await f.create(await f.quote(2));const attempt=await f.tenant(f.merchant,async db=>(await db.query("INSERT INTO payment_attempts(merchant_id,order_id,reference,payer,recipient,amount_minor,mint,token_program,signature,status) VALUES($1,$2,$3,'fixture-payer','fixture-recipient',$4,'fixture-mint','fixture-program',$5,'SUBMITTED') RETURNING *",[f.merchant,first.order.id,randomUUID(),first.order.settlement.amountMinor,randomUUID()])).rows[0]);
+ const f=await tableFixture(3);const first=await f.create(await f.quote(2));const attempt=await f.tenant(f.merchant,async db=>(await fixturePaymentAttempt(db,{merchant:f.merchant,order:first.order.id,reference:randomUUID(),status:"SUBMITTED",amount:String(first.order.settlement.amountMinor),signature:randomUUID()})).rows[0]);
  // Loading boundary: skipped tests must not load private runtime configuration.
  const {settleAttempt,dismissOrder}=await import('../apps/api/src/orders');
  const submitLocks=f.tenant(f.merchant,async db=>{await db.query('SELECT id FROM orders WHERE id=$1 FOR UPDATE',[first.order.id]);await db.query('SELECT id FROM payment_attempts WHERE id=$1 FOR UPDATE',[attempt.id]);});
@@ -23,11 +24,11 @@ test('settlement duplicates race submit locks without duplicate stock/payment; A
  await assert.rejects(f.tenant(f.merchant,db=>dismissOrder(db,f.merchant,f.a.id,first.order.id,event.order_version,String(event.screen_generation))),/PAYMENT_PENDING/);
  await f.tenant(f.merchant,db=>db.query('INSERT INTO device_event_deliveries(merchant_id,device_id,event_id,device_seq,connection_generation) VALUES($1,$2,$3,$4,1)',[f.merchant,f.a.id,event.id,event.device_seq]));const ack={type:'ACK',eventId:event.id,deviceSeq:String(event.device_seq),orderId:first.order.id,orderVersion:event.order_version,screenGeneration:String(event.screen_generation),rendered:true};assert.equal((await f.command(f.b.id,ack)).result.ok,false);assert.equal((await f.command(f.a.id,ack)).result.ok,true);await f.tenant(f.merchant,db=>dismissOrder(db,f.merchant,f.a.id,first.order.id,event.order_version,String(event.screen_generation)));const sync=success(await f.command(f.a.id,{type:'SESSION_SYNC',sessionId:null,pendingRequestId:null,pendingSubmissionKey:null}));assert.ok('screen' in sync);assert.equal(sync.screen.kind,'idle');
 });
-test('safe expiry retains ambiguous payment owner; late finalization requires audited recovery acknowledgement',integration,async()=>{const f=await tableFixture();const first=await f.create(await f.quote());const {releaseReservation,dismissOrder,settleAttempt}=await import('../apps/api/src/orders');const attempt=await f.tenant(f.merchant,async db=>{const o=(await db.query('SELECT * FROM orders WHERE id=$1 FOR UPDATE',[first.order.id])).rows[0];await releaseReservation(db,o);await db.query("UPDATE orders SET status='EXPIRED',version=version+1 WHERE id=$1",[o.id]);return (await db.query("INSERT INTO payment_attempts(merchant_id,order_id,reference,payer,recipient,amount_minor,mint,token_program,signature,status) VALUES($1,$2,$3,'p','r',$4,'m','t',$5,'SUBMITTED') RETURNING *",[f.merchant,o.id,randomUUID(),o.usdg_minor,randomUUID()])).rows[0];});await assert.rejects(f.tenant(f.merchant,db=>dismissOrder(db,f.merchant,f.a.id,first.order.id,2,'2')),/PAYMENT_PENDING/);await f.tenant(f.merchant,db=>settleAttempt(db,attempt,true));const o=await f.tenant(f.merchant,async db=>(await db.query('SELECT * FROM orders WHERE id=$1',[first.order.id])).rows[0]);assert.equal(o.status,'RECOVERY');await assert.rejects(f.tenant(f.merchant,db=>dismissOrder(db,f.merchant,f.a.id,o.id,o.version,'2')),/RECOVERY_REQUIRED/);assert.equal(await f.tenant(f.merchant,async db=>(await db.query('SELECT reserved FROM products WHERE id=$1',[f.product])).rows[0].reserved),0);});
+test('safe expiry retains ambiguous payment owner; late finalization requires audited recovery acknowledgement',integration,async()=>{const f=await tableFixture();const first=await f.create(await f.quote());const {releaseReservation,dismissOrder,settleAttempt}=await import('../apps/api/src/orders');const attempt=await f.tenant(f.merchant,async db=>{const o=(await db.query('SELECT * FROM orders WHERE id=$1 FOR UPDATE',[first.order.id])).rows[0];await releaseReservation(db,o);await db.query("UPDATE orders SET status='EXPIRED',version=version+1 WHERE id=$1",[o.id]);return (await fixturePaymentAttempt(db,{merchant:f.merchant,order:o.id,reference:randomUUID(),status:"SUBMITTED",amount:String(o.usdg_minor),signature:randomUUID()})).rows[0];});await assert.rejects(f.tenant(f.merchant,db=>dismissOrder(db,f.merchant,f.a.id,first.order.id,2,'2')),/PAYMENT_PENDING/);await f.tenant(f.merchant,db=>settleAttempt(db,attempt,true));const o=await f.tenant(f.merchant,async db=>(await db.query('SELECT * FROM orders WHERE id=$1',[first.order.id])).rows[0]);assert.equal(o.status,'RECOVERY');await assert.rejects(f.tenant(f.merchant,db=>dismissOrder(db,f.merchant,f.a.id,o.id,o.version,'2')),/RECOVERY_REQUIRED/);assert.equal(await f.tenant(f.merchant,async db=>(await db.query('SELECT reserved FROM products WHERE id=$1',[f.product])).rows[0].reserved),0);});
 test('compact settlement preserves verifier time, exact sequence, bill and durable sound consumption',integration,async()=>{
  // Intentional module loading boundary: a skipped integration test must not load required private runtime configuration.
  const f=await tableFixture(3);const first=await f.create(await f.quote(2));const {settleAttempt,deviceOrderView,orderView,streamEvent}=await import('../apps/api/src/orders');
- const attempt=await f.tenant(f.merchant,async db=>(await db.query("INSERT INTO payment_attempts(merchant_id,order_id,reference,payer,recipient,amount_minor,mint,token_program,signature,status) VALUES($1,$2,$3,'p','r',$4,'m','t',$5,'SUBMITTED') RETURNING *",[f.merchant,first.order.id,randomUUID(),first.order.settlement.amountMinor,randomUUID()])).rows[0]);
+ const attempt=await f.tenant(f.merchant,async db=>(await fixturePaymentAttempt(db,{merchant:f.merchant,order:first.order.id,reference:randomUUID(),status:"SUBMITTED",amount:String(first.order.settlement.amountMinor),signature:randomUUID()})).rows[0]);
  const sequence='9007199254740993';await f.tenant(f.merchant,db=>db.query('UPDATE device_event_counters SET device_seq=$2 WHERE device_id=$1',[f.a.id,sequence]));
  const verifiedAt=new Date().toISOString();
  await f.tenant(f.merchant,db=>settleAttempt(db,attempt,true,verifiedAt));
@@ -41,8 +42,8 @@ test('compact settlement preserves verifier time, exact sequence, bill and durab
  assert.equal(event.payload.payload.effectId,state.effect.effect_id);assert.equal(event.payload.payload.sound,true);assert.equal(event.payload.payload.canDismiss,false);assert.deepEqual(event.payload.payload.total,first.order.pricing.total);assert.deepEqual(event.payload.payload.settlement,first.order.settlement);assert.equal(event.payload.payload.items[0],'2 x Coffee');assert.equal(state.payment.state,'SETTLED');assert.equal(state.payment.amount_minor,first.order.settlement.amountMinor);
  await f.tenant(f.merchant,async db=>{
  const full=await orderView(db,state.order);assert.deepEqual(full.pricing,first.order.pricing);assert.deepEqual(full.authority,first.order.authority);
- const silent=await deviceOrderView(db,state.order);assert.equal(silent.sound,false);assert.equal(silent.effectId,null);assert.equal('payer' in silent,false);assert.equal('customerId' in silent,false);
- await db.query('UPDATE device_sound_effects SET consumed_at=clock_timestamp() WHERE effect_id=$1',[state.effect.effect_id]);const consumed=await deviceOrderView(db,state.order,true);assert.equal(consumed.sound,false);assert.equal(consumed.effectId,null);
+ const silent=await deviceOrderView(db,state.order);assert.equal(silent.sound,false);assert.equal('payer' in silent,false);assert.equal('customerId' in silent,false);
+ await db.query('UPDATE device_sound_effects SET consumed_at=clock_timestamp() WHERE effect_id=$1',[state.effect.effect_id]);const consumed=await deviceOrderView(db,state.order,true);assert.equal(consumed.sound,false);
  });
  await f.tenant(f.merchant,db=>settleAttempt(db,attempt,false));await f.tenant(f.merchant,db=>settleAttempt(db,attempt,true));
  assert.equal(await f.tenant(f.merchant,async db=>(await db.query("SELECT count(*)::int AS n FROM outbox_events WHERE order_id=$1 AND payload->'payload'->>'status'='PAID'",[first.order.id])).rows[0].n),1);
@@ -55,7 +56,7 @@ test('late duplicate finalization leaves a newer order reservation and original 
  const f=await tableFixture(3);const first=await f.create(await f.quote());const {releaseReservation,settleAttempt}=await import('../apps/api/src/orders');
  const attempt=await f.tenant(f.merchant,async db=>{
  const old=(await db.query('SELECT * FROM orders WHERE id=$1 FOR UPDATE',[first.order.id])).rows[0];await releaseReservation(db,old);await db.query("UPDATE orders SET status='EXPIRED',version=version+1 WHERE id=$1",[old.id]);
- return (await db.query("INSERT INTO payment_attempts(merchant_id,order_id,reference,payer,recipient,amount_minor,mint,token_program,signature,status) VALUES($1,$2,$3,'p','r',$4,'m','t',$5,'SUBMITTED') RETURNING *",[f.merchant,old.id,randomUUID(),old.usdg_minor,randomUUID()])).rows[0];
+ return (await fixturePaymentAttempt(db,{merchant:f.merchant,order:old.id,reference:randomUUID(),status:"SUBMITTED",amount:String(old.usdg_minor),signature:randomUUID()})).rows[0];
  });
  await f.reg('/api/registers/'+f.register.id+'/pairing','PUT',{deviceId:f.c.id,expectedPairingGeneration:'2'});const next=await f.create(await f.quote());
  await Promise.all([f.tenant(f.merchant,db=>settleAttempt(db,attempt,true)),f.tenant(f.merchant,db=>settleAttempt(db,attempt,true))]);
@@ -81,7 +82,7 @@ test('finalization uses post-lock wall time for expiry, not transaction-start ti
  assert.equal(o.after_transaction_start,true);
  await db.query('UPDATE products SET reserved=reserved+2 WHERE id=$1',[f.product]);
  await db.query("INSERT INTO order_items(merchant_id,order_id,product_id,name,name_en,qty,unit_minor) VALUES($1,$2,$3,'กาแฟ','Coffee',2,3500)",[f.merchant,o.id,f.product]);
- const a=(await db.query("INSERT INTO payment_attempts(merchant_id,order_id,reference,payer,recipient,amount_minor,mint,token_program,signature,status) VALUES($1,$2,$3,'p','fixture-recipient',$4,'m','t',$5,'SUBMITTED') RETURNING *",[f.merchant,o.id,randomUUID(),o.usdg_minor,randomUUID()])).rows[0];
+ const a=(await fixturePaymentAttempt(db,{merchant:f.merchant,order:o.id,reference:randomUUID(),status:"SUBMITTED",amount:String(o.usdg_minor),signature:randomUUID()})).rows[0];
  await settleAttempt(db,a,true);
  return {order:o.id,attempt:a.id};
  });

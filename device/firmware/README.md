@@ -17,6 +17,12 @@ npx --yes lv_font_conv@1.5.3 --font device/firmware/fonts/Sarabun-Regular.ttf --
 ```
 
 ## Runtime
+### Post-submission payment assets — source, physical verification pending
+
+The settlement parser accepts only pinned devnet USDG Token-2022, official Circle devnet USDC SPL, and the separately created BitPOS-issued `usdt-test-devnet` SPL mint. USDT test is not Tether-issued; its settlement must carry the explicit BitPOS test label and asset ID. Mint/program/genesis fences remain mandatory. New settlements carry an exact integer numerator/denominator denomination policy; non-divisible values and overflow are rejected. Historical no-policy USDG and explicit legacy THB presentation remain readable.
+
+Payment scenes display the selected settlement denomination rather than changing the frozen catalog bill. The compiled production parser host smoke covers canonical USDC/USDT-test, wrong mint/issuer label, rational remainder and overflow. This does not prove physical display, a chain payment, deployment or a hardware install.
+
 
 ### Table ordering — source 0.3.0, integration verification pending
 
@@ -145,3 +151,130 @@ Coordinator independently built/app-only byte-verified0.2.4 with ESP-IDF5.5.1; a
 Default idle alternates the cafe clock/animation with current product photos and verified offers. One touch opens the table ordering QR; idle QR returns after30seconds when no cart/order/pending request owns the device. A bounded quiet melody repeats every16seconds, stops when ordering/payment begins, and can be muted in the hamburger menu. The success cue keeps its durable once-only claim and priority.
 
 Bill, pay QR/cancel, confirming, received, expiry/recovery and reconnect use short copy, bounded supported-font labels, and a scrollable bill with explicit phone overflow. Serving place is displayed once. Build/host UI/owned app-only install and real framebuffer evidence are recorded in `docs/CHECKPOINT.md`; host tap/audio adapters and historical paid receipts must not be presented as fresh0.3.3 human interaction or chain-payment proof.
+
+### Post-submission C — promotion consumer (integrated; focused host/build proof)
+
+`PROMOTION` is nonfinancial presentation state. Authenticated CONFIG supplies the
+device, canonical HTTPS payment origin, table entry and authentication generation.
+The production parser fences connection/device/assignment/auth/screen/sequence,
+exact opaque menu query, supported ASCII/Thai copy, USD Money, integer discount,
+expiry and image metadata. Existing USDG/USDC/USDT settlement policy and BPT2 bytes
+are unchanged. Capability `promotion_v1` is sent only after the real bounded image
+worker/buffers start, HTTPS CONFIG and positive authenticated auth generation.
+No promotion path claims payment, changes a bill or calls a sound effect.
+
+Priority is actual order/cart/recovery/pending journal, then pickup, then promotion,
+then carousel. The 480x320 surface retains the board/display/header provenance;
+280x200 real photo at (12,52), readable dark discount/headline overlay, server USD
+price, explicit fallback, menu QR and 44px View menu action. Long headline scrolls
+instead of silently clipping. View menu alone acquires CART_OPEN with the matching
+validated opaque `offerToken`; rendering/scanning is not an automatic claim.
+Optional open-command metadata is persisted separately under `promotion_open` in
+BitPOS state NVS before the unchanged financial journal/send, preserving exact
+request replay after restart without a journal format migration.
+
+Matching cancellation clears only the original target/campaign. Expiry, replaced
+connection and assignment/auth/screen changes silently invalidate presentation.
+ACK uses the original event/request/seq after successful meaningful full-frame
+flush. First failed flush or WebSocket enqueue retries on the existing connection;
+correlated receipt completion suppresses duplicate ACK. No synthetic READY or
+extra server event is generated. Busy notices cannot ACK a financial/pickup scene.
+
+Image work runs on an independent lower-priority task, never under LVGL lock.
+Only HTTPS CONFIG origin plus `/api/promotions/media/:opaque43/image.rgb565` is
+accepted: no redirects, foreign origin, cookies or credential forwarding.
+Production HTTP validation requires status200, `application/octet-stream`,
+Content-Length112000, unique `X-Content-SHA256` lowercase64 matching metadata,
+no chunked response, complete bounded payload and real mbedTLS payload SHA256.
+Socket timeout is1s, total download deadline8s; each2KiB read observes priority
+cancellation. Missing photo/network/hash/storage yields explicit truthful fallback.
+
+Two persistent112000-byte PSRAM slots use atomic FREE/LOADING/READY/PINNED
+ownership. Only validated bytes are published; LVGL pins pixels until widget
+teardown. The inherited `/sdcard` VFS and RAM LVGL M driver remain read-only.
+The smallest writable cutover is worker-only raw FatFs access to the literal
+`bitpos/promotions/v1/{0,1}.{tmp,rgb}` paths: sync inactive temporary file, rename,
+read back and verify before descriptor publication. Disk writes are enabled only
+during that controlled operation; TRIM/erase is always refused. No mount adoption,
+format, legacy file write/deletion or arbitrary writable LVGL driver. Cache bound:
+two112064-byte records plus one transient112064-byte record; boot cache misses are
+safe and recoverable, not proof of crash-atomic FAT rename. FatFs thread safety is
+the pinned SDK's `FF_FS_REENTRANT=1`; board pins/partition/config are not changed.
+
+Coordinator proof commands after integration authorization (not run by this writer):
+
+```sh
+bash tools/firmware/build.sh
+python3 tools/firmware/parser-smoke.py
+python3 tools/firmware/ui-smoke.py
+python3 tools/firmware/ui-smoke.py --promotion-photo motion-lab/assets/photos/latte.jpg \
+  --evidence-dir .omp/work/post-submit-20261012/evidence
+swift tools/firmware/decode-qr.swift \
+  .omp/work/post-submit-20261012/evidence/host-ui-promotion-real-product-photo.png
+```
+
+Build uses only BitPOS ESP-IDF5.5.1/LVGL9.2.2, `esp_http_client`, certificate bundle
+and mbedTLS. Host promotion mode compiles the actual parser, consumer, surface,
+flush/ACK retry, real mbedTLS SHA, production HTTPS header/read loop, disk gate and
+fixed-slot FatFs cache with explicit host HTTPS/SD/NVS/display adapters. Fixture
+photograph is real catalog photography; no host TLS/socket/SD/touch/acoustic/
+physical ACK claim. Guards exercise stale/busy/expired/foreign origin/hash/size/
+redirect/timeouts/cache sync/rename failures/cancellation/duplicate receipts/no
+sound and framebuffer photograph pixels. Python Pillow, CMake/compiler, pinned
+LVGL/SDK sources and macOS Vision are proof prerequisites. Coordinator ran the
+promotion host contracts:55 cases passed with ASan/UBSan and real mbedTLS SHA256
+(`.omp/work/post-submit-20261012/evidence/promotion-host-smoke.json`); inspected the
+actual photo framebuffer and decoded its expected scoped menu URL with macOS
+Vision. Coordinator also reports the independent ESP-IDF build passed, app size
+`0x191ea0`. Initial host/build compilation failed because this writer used the
+nonexistent LVGL9.2.2 constant `LV_LABEL_LONG_SCROLL_CIRC`; coordinator corrected
+it to `LV_LABEL_LONG_SCROLL_CIRCULAR` before those passes. Normal full host
+regressions and backend integration are still pending at this checkpoint.
+Actual API bridge/TLS/physical SD/display/touch/acoustic/render-ACK acceptance
+remains unproved. No deployment, provisioning or flashing was performed.
+
+### C-01 scoped catalog repair — source and regression artifacts, not a checked release
+
+`scopedPromotion` is separate from the global `promotion` revision. Catalog rows
+accept its percent discount only with `promotion:null`, canonical integer
+`base - floor(base * percent / 100)` arithmetic, positive bounded campaign version,
+UUID target/campaign/session, and a maximum ten-minute target lifetime. The
+authenticated CONFIG auth generation and observed cart session/lease fence the
+catalog; the selected target/campaign/product and first catalog version are
+pinned in volatile state. Catalog validity is capped by the cart lease. Scoped
+pages also require synchronized current time in the actual consumer. They never
+fabricate global revisions or weaken undiscounted/global percent/amount checks.
+Photo price badges recognize the distinct scoped flag.
+
+Observed carts remain observers, not local editable carts. Session/target/version
+metadata is outside `table_durable_t` and BPT2; no journal format or financial
+recovery changes. Idle or auth/assignment replacement invalidates scoped display
+state. Existing board/display/partition provenance is unchanged.
+
+Coordinator-only proof commands after integration (not executed by this writer):
+
+```sh
+python3 tools/firmware/ui-smoke.py \
+  --pickup-transport-output /tmp/bitpos-scoped-catalog-consumer
+BITPOS_BACKEND_INTEGRATION=1 pnpm exec tsx \
+  tools/firmware/scoped-catalog-seam.ts /tmp/bitpos-scoped-catalog-consumer
+python3 tools/firmware/parser-smoke.py
+python3 tools/firmware/ui-smoke.py
+python3 tools/firmware/ui-smoke.py --promotion-photo motion-lab/assets/photos/latte.jpg \
+  --evidence-dir .omp/work/post-submit-20261012/evidence
+bash tools/firmware/build.sh
+```
+
+The new seam requires the coordinator's disposable migrated backend integration
+database/config, SDK/LVGL sources and normal host build dependencies. It obtains
+an actual authenticated server CONFIG, feeds actual CART_OPEN and CATALOG_PAGE
+responses into the compiled production consumer, checks USD2.70→USD2.30 scoped
+pricing, and derives rejection/global/ordinary guard cases from that actual
+catalog. It checks the server one-item quote limit and unrelated-register price,
+then feeds the actual frozen unpaid order and QUOTE_PAGE to the consumer. This
+uses the existing explicitly labelled fixture AI provider; it performs no real
+model call or chain payment. Host request correlation is an explicit replay
+adapter, not a physical WebSocket/display proof. Financial journal invariance is
+checked around catalog consumption and negative parser cases, not falsely
+claimed across ordinary order ownership changes. No build/test/physical/flash/
+deployment acceptance is claimed for this repair until the coordinator runs it.

@@ -32,6 +32,8 @@ with SerialPort() as port,a.output.open('a') as output:
   if not public:
    public=re.search(r'(BITPOS_MEMORY internal_free=\d+ internal_largest=\d+ inbox_psram_bytes=\d+)',raw)
   if not public:
+   public=re.search(r'(BITPOS_PICKUP_SOUND effect=[\w-]+ bytes=\d+ cue=pickup)',raw)
+  if not public:
    public=re.search(r'(BITPOS_ATTRACT_SOUND bytes=\d+)',raw)
   if public:
    line=time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime())+' '+public.group(0)

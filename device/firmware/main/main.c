@@ -29,6 +29,7 @@
 #include "cJSON.h"
 #include "mbedtls/sha256.h"
 #include "bitpos_table.h"
+#include "bitpos_promotion.h"
 #include "esp_random.h"
 #include <inttypes.h>
 #include "ccp_board.h"
@@ -37,7 +38,7 @@ LV_FONT_DECLARE(bitpos_font_20);
 LV_FONT_DECLARE(bitpos_clock_64);
 LV_IMAGE_DECLARE(bitpos_logo);
 
-#define MESSAGE_MAX 8192
+#define MESSAGE_MAX 16384
 #define URL_MAX 768
 #define ID_MAX 96
 static QueueHandle_t inbox;
@@ -48,7 +49,7 @@ static table_state_t table;
 static QueueHandle_t touches;
 typedef struct { int action; unsigned index; uint32_t generation; } touch_t;
 static atomic_uint touch_generation;
-enum { T_NAV=1,T_MENU,T_SOUND,T_MOTION,T_VIEW,T_DISMISS,T_IDLE,T_CANCEL };
+enum { T_NAV=1,T_MENU,T_SOUND,T_MOTION,T_VIEW,T_DISMISS,T_IDLE,T_CANCEL,T_PICKUP_ACK,T_PROMOTION_MENU,T_DEVICE_STATUS };
 static atomic_bool resync;
 static nvs_handle_t ordering_nvs;
 static uint64_t journal_sequence;
@@ -62,17 +63,44 @@ static void touch_send(int action,unsigned index) {
 }
 static bool connected;
 typedef struct { int kind; int64_t received_us; char json[MESSAGE_MAX]; } message_t;
+static message_t *ws_assembly,*consumer_message;
 typedef struct {
     char event[ID_MAX], order[ID_MAX], date[40], status[24], label[96], amount[32], qr[URL_MAX], items[6][96];
     uint32_t version; bool snapshot, sound; unsigned item_count;
     uint64_t connection, screen, seq;
-    table_money_t total;
+    table_money_t total,settlement;
     char quote[TABLE_UUID], effect[ID_MAX];
     unsigned line_count, page_count;
     int64_t quote_until_ms;
     bool can_dismiss, can_cancel;
 } order_t;
+typedef struct {
+    char notification[TABLE_UUID], order[TABLE_UUID], code[17], effect[ID_MAX];
+    int64_t expires_ms;
+    uint64_t screen, assignment;
+    bool active, sound, canceled;
+} pickup_t;
 static order_t current;
+static pickup_t pickup;
+static promotion_t promotion;
+static struct {
+    promotion_playlist_t value;
+    uint64_t connection,occupancy_floor;
+    uint32_t switched;
+    unsigned phase,daily_index;
+    int selected;
+    bool authorized,requires_newer,occupancy_closed;
+} promotion_playlist;
+static unsigned promotion_revision;
+/* Separate nonfinancial retry record; never occupies or changes BPT2 pending. */
+static struct {
+    char request[TABLE_UUID], notification[TABLE_UUID];
+    uint64_t screen, assignment;
+    uint32_t sent_at;
+    bool storage_ok;
+} pickup_ack;
+static char capability_request[TABLE_UUID];
+static uint32_t capability_sent_at;
 static int page; /* 0 clock, 1 bill, 2 QR, 3 server status/receipt */
 static uint32_t last_flush_ms;
 
@@ -105,8 +133,8 @@ static bool parse_view(cJSON *p,order_t *o) {
     if(!text(cJSON_GetObjectItemCaseSensitive(authority,"serving"),"label",o->label,sizeof(o->label))||!table_display_text(o->label))return false;
     table_money_t settlement;
     if(!table_settlement(cJSON_GetObjectItemCaseSensitive(p,"settlement"),&settlement))return false;
-    if((!strcmp(o->total.currency,"USD")&&(o->total.minor>UINT64_MAX/10000||settlement.minor!=o->total.minor*10000))||
-       (!strcmp(o->total.currency,"USDG")&&settlement.minor!=o->total.minor))return false;
+    if(!table_settlement_matches(cJSON_GetObjectItemCaseSensitive(p,"settlement"),&o->total,&settlement))return false;
+    o->settlement=settlement;
     snprintf(o->amount,sizeof(o->amount),"%" PRIu64,settlement.minor);
     if(!table_timestamp(p,"quoteExpiresAt",&o->quote_until_ms))return false;
     const char *statuses[]={"AWAITING_WALLET","AWAITING_PAYMENT","CONFIRMING","PAID","EXPIRED","RECOVERY"};
@@ -133,6 +161,25 @@ static bool parse(cJSON *j,order_t *o) {
     else if(strcmp(type,"ORDER"))return false;
     return parse_view(p,o);
 }
+static bool parse_pickup(cJSON *j,pickup_t *notice) {
+    cJSON *p=cJSON_GetObjectItemCaseSensitive(j,"payload");
+    cJSON *sound=cJSON_GetObjectItemCaseSensitive(p,"sound");
+    char state[16];
+    if(!text(p,"notificationId",notice->notification,sizeof(notice->notification))||!table_uuid(notice->notification)||
+       !text(p,"orderId",notice->order,sizeof(notice->order))||!table_uuid(notice->order)||
+       !text(p,"pickupCode",notice->code,sizeof(notice->code))||!notice->code[0]||
+       !text(p,"effectId",notice->effect,sizeof(notice->effect))||!notice->effect[0]||
+       !table_timestamp(p,"expiresAt",&notice->expires_ms)||!cJSON_IsBool(sound)||
+       !text(p,"state",state,sizeof(state))||(strcmp(state,"READY")&&strcmp(state,"CANCELED"))||
+       !table_integer(j,"screenGeneration",&notice->screen)||notice->screen!=table.screen)return false;
+    for(const char *s=notice->code;*s;s++)if(!((*s>='A'&&*s<='Z')||(*s>='a'&&*s<='z')||(*s>='0'&&*s<='9')||*s=='-'))return false;
+    for(const char *s=notice->effect;*s;s++)if((unsigned char)*s<33||(unsigned char)*s>126)return false;
+    notice->assignment=table.assignment;
+    cJSON *assignment=cJSON_GetObjectItemCaseSensitive(j,"assignmentGeneration");
+    if(assignment&&(!table_integer(j,"assignmentGeneration",&notice->assignment)||notice->assignment!=table.assignment))return false;
+    notice->canceled=!strcmp(state,"CANCELED");notice->sound=cJSON_IsTrue(sound);notice->active=!notice->canceled;
+    return true;
+}
 /* UI ownership: only consumer/display task under the recursive display lock.
  * Every rebuild cancels scene timers/animations and releases the idle decoder
  * BEFORE deleting widgets. No timer captures a transient order or widget.
@@ -154,7 +201,7 @@ static lv_obj_t *label(lv_obj_t *parent,const char *s,int x,int y,int width,cons
 enum { INK=0x1d0c2b, PANEL=0x301441, PURPLE=0x7542ac,
        ORANGE=0xffa352, MUTED=0xc0a8cb, LINE=0x573367 };
 typedef enum { UI_IDLE, UI_PHOTO, UI_BILL, UI_QR, UI_CONFIRMING, UI_PAID,
-               UI_EXPIRED, UI_RECOVERY, UI_OFFLINE, UI_ENTRY } scene_kind_t;
+               UI_EXPIRED, UI_RECOVERY, UI_OFFLINE, UI_ENTRY, UI_PICKUP, UI_PROMOTION } scene_kind_t;
 static struct {
     scene_kind_t kind;
     uint32_t generation, started, navigation_started, paid_started, last_motion;
@@ -162,7 +209,9 @@ static struct {
     lv_obj_t *ring, *check, *particles[12], *gif, *attract;
     lv_timer_t *motion_timer, *clock_timer;
     char hh[3], mm[3], day[64], bill[6][96], amount[64];
-    bool entering, celebrating, gif_attempted;
+    bool entering, celebrating, gif_attempted, promotion_qr, promotion_photo;
+    char promotion_target[TABLE_UUID];
+    uint64_t promotion_generation;
     unsigned promo_index;
     time_t clock_minute;
 } ui;
@@ -217,6 +266,7 @@ static void stop_scene(void) {
     cancel_animations(lv_screen_active());
     /* lv_obj_clean invokes GIF's destructor, releasing decoder/cache/timer. */
     lv_obj_clean(lv_screen_active());
+    promotion_image_release(); /* No widget references worker pixels after teardown. */
     uint32_t generation=ui.generation+1;
     memset(&ui,0,sizeof(ui));
     ui.generation=generation;
@@ -228,6 +278,21 @@ static int64_t wall_ms(void) {
     struct timeval now;gettimeofday(&now,NULL);
     return (int64_t)now.tv_sec*1000+now.tv_usec/1000;
 }
+static bool pickup_idle(void) {
+    return connected&&table.synchronized&&!table.cart_owner&&!table.observed_cart&&!table.order_owner&&
+        !table.needs_resume&&!table.saved.pending.kind&&!table.view&&!current.order[0];
+}
+static bool pickup_visible(void) {
+    return pickup.active&&pickup_idle()&&atomic_load(&clock_synced)&&pickup.expires_ms>wall_ms()&&
+        pickup.screen==table.screen&&pickup.assignment==table.assignment;
+}
+static bool promotion_visible(void) {
+    return promotion_item_current(&promotion,wall_ms())&&pickup_idle()&&!pickup_visible()&&atomic_load(&clock_synced)&&
+        promotion.screen==table.screen&&promotion.assignment==table.assignment&&promotion.auth==table.auth&&
+        (!promotion.playlist_generation||(promotion_playlist.authorized&&
+         promotion_playlist.connection==table.connection&&promotion.playlist_generation==promotion_playlist.value.generation&&
+         promotion.occupancy==promotion_playlist.value.occupancy&&!strcmp(promotion.table_id,promotion_playlist.value.table_id)));
+}
 static bool catalog_valid(void) {
     return bitpos_media_photos_available()&&atomic_load(&clock_synced)&&table.rows_count&&
         wall_ms()>=table.menu_generated_ms&&wall_ms()<table.menu_until_ms;
@@ -235,7 +300,7 @@ static bool catalog_valid(void) {
 static bool idle_eligible(void) {
     return !atomic_load(&receiving)&&uxQueueMessagesWaiting(inbox)==0&&
         connected&&table.synchronized&&!table.cart_owner&&!table.observed_cart&&!table.order_owner&&!table.needs_resume&&
-        !table.saved.pending.kind&&table.view==0&&!current.order[0];
+        !table.saved.pending.kind&&table.view==0&&!current.order[0]&&!pickup.active&&!promotion.active;
 }
 static void pause_carousel(void) {
     presentation.paused=true;presentation.touched=lv_tick_get();
@@ -258,6 +323,7 @@ static void record_paid_flush(bool rendered) {
     }
 }
 static void preempt_order(bool same_order) {
+    pickup.active=false;bitpos_audio_set_pickup(false);
     presentation.photo=false;
     presentation.entry=false;bitpos_audio_set_attract(false);
     if(!same_order) {
@@ -302,6 +368,27 @@ static void close_menu(lv_event_t *e) {
 static void toggle_menu(lv_event_t *e) {
     (void)e;touch_send(T_MENU,1);
 }
+static void device_status(lv_event_t *e) {
+    (void)e;touch_send(T_DEVICE_STATUS,0);
+}
+static void device_status_render(void) {
+    /* Read-only overlay: never change order, quote, playlist or ACK ownership. */
+    if(menu_shade){lv_obj_delete(menu_shade);menu_shade=NULL;}
+    menu_shade=box(lv_screen_active(),0,44,480,276,INK,0);
+    lv_obj_set_style_bg_opa(menu_shade,LV_OPA_80,0);
+    lv_obj_add_flag(menu_shade,LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_add_event_cb(menu_shade,close_menu,LV_EVENT_CLICKED,NULL);
+    lv_obj_t *panel=box(menu_shade,100,10,280,256,PANEL,12);
+    lv_obj_add_flag(panel,LV_OBJ_FLAG_CLICKABLE);
+    label(panel,"Device status",20,16,240,&lv_font_montserrat_20);
+    tint(label(panel,"Server",20,56,110,&lv_font_montserrat_14),MUTED);
+    tint(label(panel,connected?"Online":"Reconnecting",132,54,130,&lv_font_montserrat_14),connected?ORANGE:MUTED);
+    tint(label(panel,"Table",20,91,110,&lv_font_montserrat_14),MUTED);
+    label(panel,table.synchronized?"Ready":"Synchronizing",132,91,130,&lv_font_montserrat_14);
+    tint(label(panel,"Payment",20,126,110,&lv_font_montserrat_14),MUTED);
+    label(panel,current.order[0]?"Bill on screen":"No active bill",132,126,130,&lv_font_montserrat_14);
+    action(panel,"Close",20,194,240,close_menu,NULL,false);
+}
 static void menu_render(void) {
     pause_carousel();
     if(presentation.photo){presentation.photo=false;presentation.switched=lv_tick_get();page=0;render(false);}
@@ -315,12 +402,18 @@ static void menu_render(void) {
     lv_obj_add_flag(panel,LV_OBJ_FLAG_CLICKABLE);
     action(panel,"Home",8,8,204,navigate,(void *)(intptr_t)4,false);
     if(table.order_owner||table.saved.pending.kind||!table.synchronized)lv_obj_add_state(lv_obj_get_child(panel,0),LV_STATE_DISABLED);
-    action(panel,"Bill",8,60,204,navigate,(void *)(intptr_t)1,false);
-    action(panel,payable()?"Pay QR":!strcmp(current.status,"PAID")?"Receipt":"Status",
-           8,112,204,navigate,(void *)(intptr_t)(payable()?2:3),payable());
-    action(panel,bitpos_audio_is_muted()?"Sound: off":"Sound: on",8,164,204,toggle_sound,NULL,false);
-    action(panel,reduced_motion?"Motion: reduced":"Motion: on",8,216,204,toggle_motion,NULL,false);
-    if(!current.order[0]){lv_obj_add_state(lv_obj_get_child(panel,1),LV_STATE_DISABLED);lv_obj_add_state(lv_obj_get_child(panel,2),LV_STATE_DISABLED);}
+    if(current.order[0]) {
+        action(panel,"Bill",8,60,204,navigate,(void *)(intptr_t)1,false);
+        action(panel,payable()?"Pay QR":!strcmp(current.status,"PAID")?"Receipt":"Status",
+               8,112,204,navigate,(void *)(intptr_t)(payable()?2:3),payable());
+        action(panel,"Device status",8,164,204,device_status,NULL,false);
+        action(panel,bitpos_audio_is_muted()?"Sound off":"Sound on",8,216,100,toggle_sound,NULL,false);
+        action(panel,reduced_motion?"Less motion":"Motion on",112,216,100,toggle_motion,NULL,false);
+    } else {
+        action(panel,"Status",8,60,204,device_status,NULL,false);
+        action(panel,bitpos_audio_is_muted()?"Sound: off":"Sound: on",8,112,204,toggle_sound,NULL,false);
+        action(panel,reduced_motion?"Motion: reduced":"Motion: on",8,164,204,toggle_motion,NULL,false);
+    }
     ESP_LOGI("BitPOS","BITPOS_MENU open=1");
 }
 static void hamburger(lv_obj_t *root) {
@@ -500,7 +593,7 @@ static void idle_advance(void) {
     if(presentation.photo&&(!valid||!eligible||presentation.paused)) {
         presentation.photo=false;presentation.switched=now;page=0;render(false);return;
     }
-    if(!eligible||presentation.paused||presentation.entry||menu_shade)return;
+    if(!eligible||pickup.active||presentation.paused||presentation.entry||menu_shade)return;
     /* Ownership is released only by an explicit accepted ORDER_DISMISS. */
     if(page!=0||!valid||now-presentation.switched<10000)return;
     if(presentation.photo) {
@@ -585,7 +678,7 @@ static void attract_scene(bool photo) {
         lv_obj_t *name=label(ui.body,p->name,20,232,282,&bitpos_font_20);lv_obj_set_height(name,28);lv_label_set_long_mode(name,LV_LABEL_LONG_DOT);
         char price[64];table_format_money(&p->unit,price,sizeof(price));
         lv_obj_t *amount=label(ui.body,price,300,232,160,&lv_font_montserrat_20);tint(amount,ORANGE);lv_obj_set_style_text_align(amount,LV_TEXT_ALIGN_RIGHT,0);
-        if(p->promotion){char offer[40];if(p->percent)snprintf(offer,sizeof(offer),"%u%% OFF",p->percent);else strcpy(offer,"SPECIAL OFFER");box(ui.body,18,65,146,36,ORANGE,8);tint(label(ui.body,offer,28,73,132,&lv_font_montserrat_20),INK);}
+        if(p->promotion||p->scoped_promotion||p->daily_promotion){char offer[40];if(p->percent)snprintf(offer,sizeof(offer),"%u%% OFF",p->percent);else strcpy(offer,"SPECIAL OFFER");box(ui.body,18,65,146,36,ORANGE,8);tint(label(ui.body,offer,28,73,132,&lv_font_montserrat_20),INK);}
     }else{
         strcpy(ui.hh,"--");strcpy(ui.mm,"--");strcpy(ui.day,"TIME UNSYNCED / BKK");
         ui.hours=label(ui.body,ui.hh,22,87,132,&bitpos_clock_64);ui.minutes=label(ui.body,ui.mm,164,87,132,&bitpos_clock_64);
@@ -689,6 +782,68 @@ static void paid_scene(void) {
     lv_obj_set_height(summary,25);lv_label_set_long_mode(summary,LV_LABEL_LONG_DOT);
     table_button("Done",332,252,116,T_DISMISS,0,connected&&table.can_dismiss&&!table.saved.pending.kind);
 }
+static void pickup_scene(void) {
+    /* Original vector cup/check: no extra image/font asset or transient points. */
+    static const lv_point_precise_t cup[]={{0,0},{5,46},{48,46},{53,0},{0,0}};
+    static const lv_point_precise_t handle[]={{53,8},{68,8},{68,29},{51,29}};
+    const lv_point_precise_t *paths[]={cup,handle,check_points};
+    const unsigned counts[]={5,4,3};
+    const int x[]={42,42,52},y[]={109,109,113};
+    for(unsigned i=0;i<3;i++){
+        lv_obj_t *line=lv_line_create(ui.body);lv_obj_remove_style_all(line);
+        lv_line_set_points(line,paths[i],counts[i]);lv_obj_set_pos(line,x[i],y[i]);
+        lv_obj_set_style_line_width(line,i==2?4:3,0);lv_obj_set_style_line_rounded(line,true,0);
+        lv_obj_set_style_line_color(line,lv_color_hex(ORANGE),0);
+    }
+    char code[32];snprintf(code,sizeof(code),"Order #%s",pickup.code);
+    const lv_font_t *font=&lv_font_montserrat_28;
+    if(lv_text_get_width(code,(uint32_t)strlen(code),font,0)>324)font=&lv_font_montserrat_20;
+    if(lv_text_get_width(code,(uint32_t)strlen(code),font,0)>324)font=&lv_font_montserrat_14;
+    label(ui.body,code,138,87,324,font);
+    tint(label(ui.body,"Ready for pickup",138,134,324,&lv_font_montserrat_20),ORANGE);
+    label(ui.body,"Please collect at the counter",20,195,440,&lv_font_montserrat_20);
+    table_button("Got it",166,253,148,T_PICKUP_ACK,0,connected&&table.synchronized&&pickup_ack.storage_ok&&!pickup_ack.request[0]);
+}
+/* Display the catalog menu name once; old campaign headlines remain a safe
+ * fallback when the bounded catalog page does not contain this product. */
+static const char *promotion_menu_name(void) {
+    if(!strchr(promotion.headline,'%'))return promotion.headline;
+    for(unsigned i=0;i<table.rows_count;i++)if(!strcmp(table.rows[i].product,promotion.product)&&table.rows[i].name[0])return table.rows[i].name;
+    return promotion.headline;
+}
+static void promotion_scene(void) {
+    const lv_image_dsc_t *photo=promotion.has_image?promotion_image_acquire(&promotion):NULL;
+    ui.promotion_photo=photo!=NULL;strcpy(ui.promotion_target,promotion.target);
+    ui.promotion_generation=promotion.playlist_generation;
+    box(ui.body,12,52,280,200,PANEL,8);
+    if(photo){lv_obj_t *image=lv_image_create(ui.body);lv_image_set_src(image,photo);lv_obj_set_pos(image,12,52);}
+    else {
+        lv_obj_t *fallback=label(ui.body,promotion.has_image?promotion_image_fallback():"Photo unavailable",24,82,256,&lv_font_montserrat_14);
+        lv_label_set_long_mode(fallback,LV_LABEL_LONG_WRAP);lv_obj_set_height(fallback,54);tint(fallback,MUTED);
+    }
+    lv_obj_t *overlay=box(ui.body,12,171,280,81,INK,0);lv_obj_set_style_bg_opa(overlay,LV_OPA_90,0);
+    char discount[32];if(promotion.bundle)snprintf(discount,sizeof(discount),"%s",promotion.discount_label);else snprintf(discount,sizeof(discount),"%u%% OFF",promotion.percent);
+    tint(label(overlay,discount,12,7,256,&lv_font_montserrat_20),ORANGE);
+    lv_obj_t *headline=label(overlay,promotion_menu_name(),12,32,256,&bitpos_font_20);
+    lv_label_set_long_mode(headline,LV_LABEL_LONG_SCROLL_CIRCULAR);lv_obj_set_height(headline,36);
+    lv_obj_t *copy=label(ui.body,promotion.copy,12,259,280,&bitpos_font_20);
+    lv_label_set_long_mode(copy,LV_LABEL_LONG_SCROLL_CIRCULAR);lv_obj_set_height(copy,36);
+    if(promotion.menu_url[0]){
+        lv_obj_t *panel=box(ui.body,304,52,164,164,0xffffff,8);
+        lv_obj_t *qr=lv_qrcode_create(panel);lv_qrcode_set_size(qr,148);lv_obj_set_pos(qr,8,8);
+        lv_qrcode_set_dark_color(qr,lv_color_hex(INK));lv_qrcode_set_light_color(qr,lv_color_white());
+        ui.promotion_qr=lv_qrcode_update(qr,promotion.menu_url,strlen(promotion.menu_url))==LV_RESULT_OK;
+        if(!ui.promotion_qr){lv_obj_delete(qr);tint(label(panel,"Menu QR unavailable",8,61,148,&lv_font_montserrat_14),INK);}
+    }else{
+        lv_obj_t *caption=label(ui.body,"Order at the counter",304,98,164,&bitpos_font_20);
+        lv_label_set_long_mode(caption,LV_LABEL_LONG_WRAP);lv_obj_set_height(caption,92);tint(caption,ORANGE);
+    }
+    char price[64];table_format_money(&promotion.unit,price,sizeof(price));
+    lv_obj_t *amount=label(ui.body,price,304,222,164,&lv_font_montserrat_20);
+    lv_label_set_long_mode(amount,LV_LABEL_LONG_WRAP);lv_obj_set_height(amount,46);
+    if(promotion.menu_url[0])
+        table_button("View menu",304,272,164,T_PROMOTION_MENU,0,connected&&table.synchronized&&ui.promotion_qr);
+}
 static void confirming_scene(void) {
     ui.ring=ring(ui.body,STATUS_RING_X,STATUS_RING_Y,STATUS_RING_SIZE,false);
     label(ui.body,"Confirming payment",138,104,324,&lv_font_montserrat_20);
@@ -744,7 +899,15 @@ static void render(bool navigation) {
     /* Body is behind header controls, so controls stay hit-testable/unchanged. */
     lv_obj_move_to_index(ui.body,0);
     ui.started=lv_tick_get();
-    table_format_money(&current.total,ui.amount,sizeof(ui.amount));
+    table_format_money(!strcmp(current.total.currency,"THB")?&current.total:&current.settlement,ui.amount,sizeof(ui.amount));
+    if(pickup_visible()){
+        ui.kind=UI_PICKUP;presentation.photo=false;presentation.entry=false;
+        bitpos_audio_set_attract(false);pickup_scene();return;
+    }
+    if(promotion_visible()){
+        ui.kind=UI_PROMOTION;presentation.photo=false;presentation.entry=false;
+        bitpos_audio_set_attract(false);promotion_scene();return;
+    }
     if(!current.order[0]){
         bool entry=presentation.entry||table.observed_cart||table.saved.pending.kind||table.needs_resume;
         ui.kind=entry?UI_ENTRY:presentation.photo&&catalog_valid()?UI_PHOTO:UI_IDLE;
@@ -804,6 +967,16 @@ static bool claim_paid(const order_t *o) {
      * A reset may lose an optional effect, but can never replay a claimed one. */
     return nvs_set_u32(state_nvs,key,o->version)==ESP_OK&&nvs_commit(state_nvs)==ESP_OK;
 }
+static bool claim_pickup(const pickup_t *notice) {
+    unsigned char hash[32];
+    if(mbedtls_sha256((const unsigned char *)notice->effect,strlen(notice->effect),hash,0))return false;
+    char key[16];snprintf(key,sizeof(key),"u%02x%02x%02x%02x%02x%02x%02x",hash[0],hash[1],hash[2],hash[3],hash[4],hash[5],hash[6]);
+    uint32_t prior;esp_err_t found=nvs_get_u32(state_nvs,key,&prior);
+    if(found!=ESP_ERR_NVS_NOT_FOUND)return false;
+    /* Consume even silent reconnect effects before optional audio enqueue.
+     * A crash may miss the cue, never intentionally replay a consumed cue. */
+    return nvs_set_u32(state_nvs,key,1)==ESP_OK&&nvs_commit(state_nvs)==ESP_OK;
+}
 static bool log_id(const char *s) {
     for(;*s;s++)if(!isalnum((unsigned char)*s)&&*s!='-'&&*s!='_')return false;
     return true;
@@ -812,20 +985,20 @@ static bool log_id(const char *s) {
 /* WebSocket callbacks only assemble bounded text and enqueue; never touch LVGL/NVS/audio. */
 static void ws_event(void *arg,esp_event_base_t base,int32_t id,void *data) {
     (void)arg;(void)base;
-    static message_t assembly;static table_fragment_t fragment;
+    message_t *assembly=ws_assembly;static table_fragment_t fragment;
     if(id==WEBSOCKET_EVENT_CONNECTED||id==WEBSOCKET_EVENT_DISCONNECTED||id==WEBSOCKET_EVENT_ERROR||id==WEBSOCKET_EVENT_CLOSED) {
-        assembly.kind=id==WEBSOCKET_EVENT_CONNECTED?1:2;
-        if(xQueueSend(inbox,&assembly,0)!=pdTRUE)atomic_store(&resync,true);
+        assembly->kind=id==WEBSOCKET_EVENT_CONNECTED?1:2;
+        if(xQueueSend(inbox,assembly,0)!=pdTRUE)atomic_store(&resync,true);
         memset(&fragment,0,sizeof(fragment));atomic_store(&receiving,false);return;
     }
     if(id!=WEBSOCKET_EVENT_DATA)return;
     esp_websocket_event_data_t *e=data;
-    int result=table_fragment(&fragment,assembly.json,e->op_code,e->fin,e->payload_len,e->payload_offset,e->data_ptr,e->data_len);
+    int result=table_fragment(&fragment,assembly->json,e->op_code,e->fin,e->payload_len,e->payload_offset,e->data_ptr,e->data_len);
     atomic_store(&receiving,fragment.active);
     if(result<0){atomic_store(&resync,true);return;}
     if(result==1) {
-        assembly.kind=0;assembly.received_us=esp_timer_get_time();
-        if(xQueueSend(inbox,&assembly,0)!=pdTRUE)atomic_store(&resync,true);
+        assembly->kind=0;assembly->received_us=esp_timer_get_time();
+        if(xQueueSend(inbox,assembly,0)!=pdTRUE)atomic_store(&resync,true);
     }
 }
 static void wifi_event(void *arg,esp_event_base_t base,int32_t id,void *data) {
@@ -864,8 +1037,12 @@ void app_main(void) {
     static StaticQueue_t inbox_control;
     uint8_t *inbox_storage=heap_caps_malloc(8*sizeof(message_t),MALLOC_CAP_SPIRAM|MALLOC_CAP_8BIT);
     configASSERT(inbox_storage);
+    ws_assembly=heap_caps_calloc(1,sizeof(message_t),MALLOC_CAP_SPIRAM|MALLOC_CAP_8BIT);
+    consumer_message=heap_caps_calloc(1,sizeof(message_t),MALLOC_CAP_SPIRAM|MALLOC_CAP_8BIT);
+    configASSERT(ws_assembly&&consumer_message);
     inbox=xQueueCreateStatic(8,sizeof(message_t),inbox_storage,&inbox_control);
     configASSERT(inbox);physical_render();
+    bitpos_promotion_images_start(); /* Bounded async worker; never network under LVGL lock. */
     if(display_engine_lock(2000)) {
         presentation.switched=lv_tick_get();
         lv_timer_create(idle_tick,250,NULL); /* Boot lifetime, outside ui memset. */
