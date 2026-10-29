@@ -8,7 +8,8 @@ import {createHash} from 'node:crypto';
 import QRCode from 'qrcode';
 import type {MetaRouteDeps} from './routes';
 import {agentDepsOf} from './shop';
-import {cartForStaff,CartError,startCart,type CartLine} from './cart';
+import {cartForStaff,CartError,handOverCart,refundCart,startCart,type CartLine} from './cart';
+import {handOver,listTapOrders,type StaffView} from './staff';
 import {staffSessionFor} from './staff';
 import {staffCookie} from './routes';
 
@@ -62,6 +63,24 @@ export async function servePosApi(req:http.IncomingMessage,res:http.ServerRespon
  }
  const one=path.match(/^\/meta\/staff\/api\/counter\/([0-9a-f-]{36})$/);
  if(one&&method==='GET'){const v=await bill(one[1]);return v?json(res,200,v):json(res,404,{error:'NOT_FOUND'});}
+ // Meta orders (NFC tap, Messenger, AI agents, table, web and Stripe counter bills) for the POS order center.
+ const view:StaffView={merchantId:me.merchantId,userId:me.userId,role:me.role,sessionId:''};
+ if(path==='/meta/staff/api/orders'&&method==='GET'){
+  if(!deps.staff)return json(res,503,{error:'UNAVAILABLE'});
+  return json(res,200,{orders:await listTapOrders(deps.staff,view),canRefund:me.role!=='staff'});
+ }
+ const act=path.match(/^\/meta\/staff\/api\/orders\/([0-9a-f-]{36})\/(handover|refund)$/);
+ if(act&&method==='POST'){
+  if(!deps.staff)return json(res,503,{error:'UNAVAILABLE'});
+  if(act[2]==='handover'){
+   let r=await handOver(deps.staff,view,act[1]);
+   if(r==='NOT_FOUND')r=await handOverCart(deps.identity.db,me.merchantId,me.userId,act[1]);
+   return r==='HANDED_OVER'||r==='ALREADY'?json(res,200,{ok:true}):json(res,r==='NOT_FOUND'?404:409,{error:r});
+  }
+  if(me.role==='staff')return json(res,403,{error:'ROLE_REQUIRED'});
+  try{await refundCart(agent,me.merchantId,act[1]);log('Cart order refunded from the POS screens');return json(res,200,{ok:true});}
+  catch(e){if(e instanceof CartError)return json(res,409,{error:e.code});log('Refund failed');return json(res,502,{error:'STRIPE_FAILED'});}
+ }
  if(path==='/meta/staff/api/devices'&&method==='GET'){
   const rows=(await deps.identity.db.tenant(me.merchantId,c=>c.query<{id:string;label:string}>('SELECT id,label FROM devices WHERE revoked_at IS NULL ORDER BY label'))).rows;
   return json(res,200,{devices:rows});

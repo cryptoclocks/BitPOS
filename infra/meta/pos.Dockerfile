@@ -14,7 +14,8 @@ COPY data ./data
 COPY device/firmware/fonts ./device/firmware/fonts
 COPY tsconfig.json ./
 COPY tools/meta/meta-pos-theme.mjs ./tools/meta/meta-pos-theme.mjs
-RUN node tools/meta/meta-pos-theme.mjs apps/web/src && cp apps/web/public/images/meta/bitpos-muse-logo.png apps/web/public/images/bitpos-logo.png
+RUN node tools/meta/meta-pos-theme.mjs apps/web/src \
+ && grep -rl '/images/bitpos-logo.png' apps/web/src | xargs sed -i 's#/images/bitpos-logo.png#/images/meta/bitpos-muse-logo.png#g'
 ENV PUBLIC_URL=https://meta-pos.cashlessthailand.com PUBLIC_BITPOS_EDITION=meta BITPOS_EDITION=meta
 RUN pnpm build
 CMD ["node", "apps/web/dist/server/entry.mjs"]

@@ -48,3 +48,5 @@ input:not([type="checkbox"]):not([type="radio"]),select{border-color:var(--bp-li
 .meta-hub{display:grid;gap:12px}.meta-hub-head h2{margin:2px 0}.meta-hub-head p{margin:0;color:var(--muted)}
 .meta-hub-tabs{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px}.meta-hub-tabs button{flex:none;width:auto;white-space:nowrap}
 .meta-frame{width:100%;height:calc(100vh - 260px);min-height:520px;border:0;border-radius:16px;background:transparent}
+/* Meta edition: Meta orders above the POS order center (MetaOrders.tsx). */
+.meta-orders{margin-bottom:16px}.meta-orders .order-row{cursor:default;display:grid;gap:8px}.meta-orders .order-row-end{display:flex;flex-wrap:wrap;align-items:center;gap:8px}.meta-orders .order-row-end button{width:auto}
