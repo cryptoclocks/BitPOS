@@ -93,6 +93,10 @@
 .incoming-board .notice{border-radius:18px;padding:18px;background:var(--bp-tint);overflow-wrap:anywhere}
 .incoming-board .incoming-browser>.notice,.incoming-board .incoming-browser>.error{margin:0 0 20px}
 .incoming-board .incoming-browser>.fulfillment-pending+button{margin:0 0 20px}
+.incoming-board .incoming-detail-read{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;border:1px solid var(--bp-line);border-radius:18px;background:var(--bp-white)}
+.incoming-board .incoming-detail-read>.notice{flex:1;margin:0}
+.shell .incoming-board .incoming-detail-read>button{flex:none;min-height:44px}
+.incoming-board .order-detail-refresh-error{margin:0}
 .shell .incoming-board :focus-visible{outline:3px solid var(--bp-primary);outline-offset:3px}
 
 /* Existing navigation is reused, not replaced by inert design destinations. */
@@ -142,6 +146,8 @@
  .incoming-board .order-pagination>div{flex-wrap:wrap}
 }
 @media(max-width:600px){
+ .incoming-board .incoming-detail-read{align-items:stretch;flex-direction:column}
+ .shell .incoming-board .incoming-detail-read>button{width:100%}
  .shell:has(>.incoming-board){background:var(--bp-bg)}
  .shell:has(>.incoming-board)>.workspace-bar{margin:0 24px 24px}
  .shell .incoming-board .order-lane{padding:0;background:transparent}
@@ -251,7 +257,7 @@
 .merchant-sidebar-account{display:flex;flex-direction:column;gap:3px}
 .merchant-sidebar-account strong{font-size:14px;line-height:22px}
 .merchant-sidebar-account small,.merchant-sidebar-limit{font-size:11px;line-height:17px;color:var(--bp-muted)}
-.workspace-tabs .merchant-navigation-extras>button:not(:nth-child(2)){display:none}
+.workspace-tabs .merchant-navigation-extras>button:not(:nth-child(5)){display:none}
 @media(min-width:1100px){
  .shell:has(>.incoming-board) .workspace-tabs{gap:0;padding:0 16px 24px}
  .shell:has(>.incoming-board) .workspace-tabs>.merchant-sidebar-logo{flex:none;display:flex;align-items:center;height:86px;padding:0 12px;margin-inline:-16px;padding-inline:28px;border-bottom:1px solid var(--bp-line)}
@@ -342,4 +348,9 @@
  .incoming-board .fulfillment-detail .preparation-estimate{padding:16px 0;font-size:14px;line-height:22px}
  .incoming-board .preparation-estimate>small{margin-top:6px;font-size:12px;line-height:20px}
  .incoming-board .preparation-unavailable>strong{font-weight:500;color:var(--bp-muted)}
+}
+
+@media(min-width:1100px){
+ .kitchen-board .incoming-heading .eyebrow{display:none}
+ .kitchen-board .order-toolbar{padding-bottom:0;border-bottom:0;margin-bottom:24px}
 }

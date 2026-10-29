@@ -32,7 +32,7 @@ export default function OrderBill({ order, language = 'en', publicView = false, 
     <p className="bill-reference">#{order.id.slice(0,8)} · {order.authority.serving.label}</p>
     <div className="bill-status-row">{order.authority.source.kind==='online'&&<span className="bill-channel">{order.authority.serving.kind==='delivery'?text('แอพจัดส่ง','App delivery'):text('แอพรับเอง','App pickup')}</span>}<p className={`status ${order.status.toLowerCase()}`} role="status">{status}</p></div>
     <div className="bill-column-head" aria-hidden="true"><span>{text('รายการ','Item')}</span><span>{text('จำนวน','Quantity')}</span><span>{text('ยอด','Amount')}</span></div>
-    {order.configuredFood?<><ConfiguredBillLines snapshot={order.configuredFood} language={language}/><ConfiguredBillBreakdown snapshot={order.configuredFood} language={language}/></>:<ul className="bill">{order.pricing.lines.map(line => <li key={line.productId}><span><span className="bill-inline-quantity">{line.qty} × </span>{language === 'th' ? line.name : line.nameEn || line.name}</span><span className="bill-column-quantity" hidden>{line.qty}</span><strong>{formatMoney(lineTotal(line))}</strong></li>)}</ul>}
+    {order.configuredFood?<><ConfiguredBillLines snapshot={order.configuredFood} language={language}/><ConfiguredBillBreakdown snapshot={order.configuredFood} language={language}/></>:<ul className="bill">{order.pricing.lines.map(line => <li key={line.productId}><span><span className="bill-inline-quantity">{line.qty} × </span>{language === 'th' ? line.name : line.nameEn || line.name}<small> · {formatMoney(line.unitPrice)} {text('ต่อชิ้น','each')}</small></span><span className="bill-column-quantity" hidden>{line.qty}</span><strong>{formatMoney(lineTotal(line))}</strong></li>)}</ul>}
     <div className="total"><span>{text('ยอดรวมบิล','Bill total')}</span><strong>{formatMoney(order.pricing.total)}</strong></div>
   </>;
   const amount=<div className="total settlement-total"><span>{order.status==='PAID'?text('ชำระแล้ว','Amount paid'):text('ยอดชำระ','Payment amount')}</span><strong>{formatMoney(order.settlement)}</strong></div>;
@@ -45,8 +45,7 @@ export default function OrderBill({ order, language = 'en', publicView = false, 
       <p>{text('ที่อยู่และค่าธรรมเนียมยืนยันตั้งแต่ขอราคา การแก้สมุดที่อยู่ภายหลังไม่เปลี่ยนบิลนี้','Destination and fees were frozen with the quote. Later address-book edits do not change this bill.')}</p>
     </details>}
     <details className="bill-details"><summary>{text('รายละเอียดธุรกรรม','Payment details')}</summary>
-      <p className="mono">{text('ออร์เดอร์','Order')}: {order.id}</p>
-      {!order.configuredFood&&<ul className="bill">{order.pricing.lines.map(line=><li key={line.productId}><span>{language==='th'?line.name:line.nameEn||line.name}</span><span>{formatMoney(line.unitPrice)} {text('ต่อชิ้น','each')}</span></li>)}</ul>}
+      <p className="mono">{text('ออเดอร์','Order')}: {order.id}</p>
       {!publicView && <FrozenRouting authority={order.authority} language={language} />}
       <SettlementTrust settlement={order.settlement} language={language} />
     </details>

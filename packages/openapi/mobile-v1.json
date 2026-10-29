@@ -823,6 +823,996 @@
         }
       }
     },
+    "/account/rewards": {
+      "get": {
+        "operationId": "getRewards",
+        "security": [
+          {
+            "mobileBearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Derived points: one point per whole currency unit of each paid online food order without a refund obligation, per currency. Read-only; nothing is stored or redeemable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileRewards"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/rides/quote": {
+      "post": {
+        "operationId": "quoteRide",
+        "security": [
+          {
+            "mobileBearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MobileRideQuoteRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Server fare for the active published rate. 409 FARES_UNPUBLISHED until platform staff publish a rate; the client never sends a fare.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileRideQuote"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/rides": {
+      "post": {
+        "operationId": "requestRide",
+        "security": [
+          {
+            "mobileBearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MobileRideRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Creates the trip with the server-computed fare. The arrival PIN is returned once; a replay of the same idempotencyKey returns the trip with pin=null. One open trip per rider.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileRideRequested"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/rides/open": {
+      "get": {
+        "operationId": "listOpenRides",
+        "security": [
+          {
+            "mobileBearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Open requests for approved drivers (pickup coordinates only; never the PIN).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileRideOpen"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/rides/{tripId}": {
+      "parameters": [
+        {
+          "name": "tripId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      ],
+      "get": {
+        "operationId": "getRide",
+        "security": [
+          {
+            "mobileBearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Trip as seen by its rider or matched driver.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileRideTrip"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/rides/{tripId}/accept": {
+      "parameters": [
+        {
+          "name": "tripId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      ],
+      "post": {
+        "operationId": "acceptRide",
+        "security": [
+          {
+            "mobileBearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Approved driver takes an open request; exactly one concurrent driver wins; a busy driver is refused.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileRideTrip"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/rides/{tripId}/arrive": {
+      "parameters": [
+        {
+          "name": "tripId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      ],
+      "post": {
+        "operationId": "arriveRide",
+        "security": [
+          {
+            "mobileBearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Matched driver reports arrival at pickup.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileRideTrip"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/rides/{tripId}/start": {
+      "parameters": [
+        {
+          "name": "tripId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      ],
+      "post": {
+        "operationId": "startRide",
+        "security": [
+          {
+            "mobileBearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MobileRideStart"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Matched driver starts the trip with the rider's PIN; wrong attempts are counted and the PIN locks after 3.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileRideTrip"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/rides/{tripId}/complete": {
+      "parameters": [
+        {
+          "name": "tripId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      ],
+      "post": {
+        "operationId": "completeRide",
+        "security": [
+          {
+            "mobileBearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Matched driver completes an in-progress trip. No payment or earning is attached.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileRideTrip"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/rides/{tripId}/cancel": {
+      "parameters": [
+        {
+          "name": "tripId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      ],
+      "post": {
+        "operationId": "cancelRide",
+        "security": [
+          {
+            "mobileBearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Rider or matched driver cancels before the trip starts.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileRideTrip"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/rides/shared/{token}": {
+      "parameters": [
+        {
+          "name": "token",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{20,64}$"
+          }
+        }
+      ],
+      "get": {
+        "operationId": "getSharedRide",
+        "responses": {
+          "200": {
+            "description": "Public read for a safety-share link holder: trip state and last update only, never people, places or fare. 404 once expired or revoked.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileRideShared"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/rides/{tripId}/share": {
+      "parameters": [
+        {
+          "name": "tripId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      ],
+      "post": {
+        "operationId": "shareRide",
+        "security": [
+          {
+            "mobileBearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Rider creates an expiring (6h) revocable safety-share link; the token is returned once and stored as a hash.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileRideShare"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/rides/{tripId}/share/revoke": {
+      "parameters": [
+        {
+          "name": "tripId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      ],
+      "post": {
+        "operationId": "revokeRideShares",
+        "security": [
+          {
+            "mobileBearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Rider revokes every live share link for the trip.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileRideShareRevoked"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/rides/{tripId}/incidents": {
+      "parameters": [
+        {
+          "name": "tripId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      ],
+      "post": {
+        "operationId": "reportRideIncident",
+        "security": [
+          {
+            "mobileBearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MobileRideIncident"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Either party reports an incident on their own trip; append-only, idempotent by key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileRideIncidentReceipt"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/rides/fare": {
+      "get": {
+        "operationId": "getRideFare",
+        "security": [
+          {
+            "mobileBearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Platform administrators read the active passenger fare rate (null until one is published).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileRideFareState"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "publishRideFare",
+        "security": [
+          {
+            "mobileBearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MobileRideFarePublish"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Platform administrators publish the single active passenger fare rate, naming the rate being replaced (409 FARE_CHANGED otherwise). Old rates are kept for past trips.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileRideFare"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/rides/incidents": {
+      "get": {
+        "operationId": "listRideIncidents",
+        "security": [
+          {
+            "mobileBearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Platform support/administrators read unreviewed passenger incidents, oldest first (up to 50).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileRideIncidentQueue"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/rides/incidents/{incidentId}/review": {
+      "parameters": [
+        {
+          "name": "incidentId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      ],
+      "post": {
+        "operationId": "reviewRideIncident",
+        "security": [
+          {
+            "mobileBearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MobileRideIncidentReview"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Records one append-only review (a note, never a refund, fare change or penalty). 409 ALREADY_REVIEWED on repeat.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileRideIncidentReviewed"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/rides/current": {
+      "get": {
+        "operationId": "getCurrentRide",
+        "security": [
+          {
+            "mobileBearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The caller's most recent unfinished trip as rider or matched driver, or null.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileRideCurrent"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/groups": {
+      "get": {
+        "operationId": "listGroups",
+        "security": [
+          {
+            "mobileBearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Your open or locked group carts (up to 20).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileGroups"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createGroup",
+        "security": [
+          {
+            "mobileBearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Creates an open group cart owned by you (at most 5 open at once). Selection intents only: no price, payment or order.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileGroup"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/groups/join": {
+      "post": {
+        "operationId": "joinGroup",
+        "security": [
+          {
+            "mobileBearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MobileGroupJoin"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Joins with an invite token (12 members max). Rejoining is a no-op; a locked or cancelled group refuses new members.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileGroup"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/groups/{groupId}": {
+      "parameters": [
+        {
+          "name": "groupId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      ],
+      "get": {
+        "operationId": "getGroup",
+        "security": [
+          {
+            "mobileBearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Group state, members, every member's lines and a per-branch roll-up. Members only.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileGroup"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/groups/{groupId}/invite": {
+      "parameters": [
+        {
+          "name": "groupId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      ],
+      "post": {
+        "operationId": "inviteToGroup",
+        "security": [
+          {
+            "mobileBearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Owner creates a 24h invite; the token is returned once and stored as a hash.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileGroupInvite"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/groups/{groupId}/lines": {
+      "parameters": [
+        {
+          "name": "groupId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      ],
+      "post": {
+        "operationId": "setGroupLine",
+        "security": [
+          {
+            "mobileBearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MobileGroupLineSet"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "A member sets their own line for an enabled branch and live product; qty 0 removes it.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileGroup"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/groups/{groupId}/members/{memberId}": {
+      "parameters": [
+        {
+          "name": "groupId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        {
+          "name": "memberId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      ],
+      "post": {
+        "operationId": "removeGroupMemberLine",
+        "security": [
+          {
+            "mobileBearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MobileGroupLineSet"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Owner removes a member's line (qty must be 0).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileGroup"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/groups/{groupId}/lock": {
+      "parameters": [
+        {
+          "name": "groupId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      ],
+      "post": {
+        "operationId": "lockGroup",
+        "security": [
+          {
+            "mobileBearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MobileGroupLock"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Owner freezes the group at the version they saw (409 GROUP_CHANGED otherwise); needs at least one line; revokes invites.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileGroup"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/groups/{groupId}/cancel": {
+      "parameters": [
+        {
+          "name": "groupId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      ],
+      "post": {
+        "operationId": "cancelGroup",
+        "security": [
+          {
+            "mobileBearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Owner cancels the group; idempotent.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileGroup"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/groups/{groupId}/leave": {
+      "parameters": [
+        {
+          "name": "groupId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      ],
+      "post": {
+        "operationId": "leaveGroup",
+        "security": [
+          {
+            "mobileBearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A non-owner member leaves an open group and their lines are removed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileGroupLeft"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/account/erase": {
+      "post": {
+        "operationId": "eraseAccountData",
+        "security": [
+          {
+            "mobileBearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MobileAccountErase"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Own account anonymised and signed out: display name cleared, addresses blanked and archived, favourites deleted, push and sessions revoked, account disabled. Order, payment and refund records are financial facts and are kept. Refused with 409 while orders or refunds are still open.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAccountErased"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/account/export": {
+      "get": {
+        "operationId": "exportAccountData",
+        "security": [
+          {
+            "mobileBearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Own account data copy: profile, addresses, favourites, first page of orders and support cases. Bounded lists; no payment secrets. Reading it changes nothing.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAccountExport"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/account": {
       "get": {
         "operationId": "getAccount",
@@ -4569,7 +5559,7 @@
             "mobileBearer": []
           }
         ],
-        "x-bitpos-admission": "Return+finance+BITPOS_FOOD_REFUND_EXECUTION_READ_ENABLED=1; reviewed108–116 schema/grants; scoped administrator; default disabled",
+        "x-bitpos-admission": "Return+finance+BITPOS_FOOD_REFUND_EXECUTION_READ_ENABLED=1; reviewed108\u2013116 schema/grants; scoped administrator; default disabled",
         "responses": {
           "200": {
             "description": "Return operational authority; financial review pending is not refund execution.",
@@ -4906,6 +5896,123 @@
           },
           "503": {
             "description": "Return admission disabled or schema not configured"
+          }
+        }
+      }
+    },
+    "/rides/{tripId}/location": {
+      "get": {
+        "operationId": "getRideLocation",
+        "security": [
+          {
+            "mobileBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "tripId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current trip location; opt-in and TTL enforced",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileRideLocation"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "postRideLocation",
+        "security": [
+          {
+            "mobileBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "tripId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current trip location; opt-in and TTL enforced",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileRideLocationConsent"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MobileRidePoint"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/rides/{tripId}/location/consent": {
+      "put": {
+        "operationId": "putRideLocationConsent",
+        "security": [
+          {
+            "mobileBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "tripId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current trip location; opt-in and TTL enforced",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileRideLocationConsent"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MobileRideLocationConsent"
+              }
+            }
           }
         }
       }
@@ -5890,40 +6997,104 @@
       "FoodPreparationEstimate": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["minutes", "recordedAt"],
+        "required": [
+          "minutes",
+          "recordedAt"
+        ],
         "properties": {
-          "minutes": {"type": "integer", "minimum": 1, "maximum": 1440},
-          "recordedAt": {"type": "string", "format": "date-time"}
+          "minutes": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1440
+          },
+          "recordedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
         }
       },
       "FoodAcceptanceCommand": {
-        "type": "object", "additionalProperties": false,
-        "required": ["status", "expectedVersion", "idempotencyKey", "preparationMinutes"],
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "status",
+          "expectedVersion",
+          "idempotencyKey",
+          "preparationMinutes"
+        ],
         "properties": {
-          "status": {"type": "string", "enum": ["ACCEPTED"]},
-          "expectedVersion": {"type": "integer", "minimum": 0},
-          "idempotencyKey": {"type": "string", "format": "uuid"},
-          "preparationMinutes": {"type": "integer", "minimum": 1, "maximum": 1440}
+          "status": {
+            "type": "string",
+            "enum": [
+              "ACCEPTED"
+            ]
+          },
+          "expectedVersion": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "preparationMinutes": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1440
+          }
         }
       },
       "FoodRejectionCommand": {
-        "type": "object", "additionalProperties": false,
-        "required": ["status", "expectedVersion", "idempotencyKey", "reason"],
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "status",
+          "expectedVersion",
+          "idempotencyKey",
+          "reason"
+        ],
         "properties": {
-          "status": {"type": "string", "enum": ["REJECTED"]},
-          "expectedVersion": {"type": "integer", "minimum": 0},
-          "idempotencyKey": {"type": "string", "format": "uuid"},
-          "reason": {"type": "string", "minLength": 1, "maxLength": 300, "pattern": "\\S"}
+          "status": {
+            "type": "string",
+            "enum": [
+              "REJECTED"
+            ]
+          },
+          "expectedVersion": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 300,
+            "pattern": "\\S"
+          }
         }
       },
       "FoodMerchantAcceptanceCommand": {
-        "oneOf": [{"$ref": "#/components/schemas/FoodAcceptanceCommand"}, {"$ref": "#/components/schemas/FoodRejectionCommand"}],
-        "discriminator": {"propertyName": "status"}
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/FoodAcceptanceCommand"
+          },
+          {
+            "$ref": "#/components/schemas/FoodRejectionCommand"
+          }
+        ],
+        "discriminator": {
+          "propertyName": "status"
+        }
       },
       "FoodMerchantRider": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["displayName"],
+        "required": [
+          "displayName"
+        ],
         "properties": {
           "displayName": {
             "type": "string",
@@ -6993,6 +8164,1095 @@
           "refreshExpiresAt": {
             "type": "string",
             "format": "date-time"
+          }
+        }
+      },
+      "MobileExportFavourite": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "merchantId",
+          "branchId",
+          "createdAt"
+        ],
+        "properties": {
+          "merchantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "branchId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "MobileExportSupportCase": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "subject",
+          "state",
+          "createdAt",
+          "orderId"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "subject": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "OPEN",
+              "WAITING_CUSTOMER",
+              "RESOLVED"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "orderId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      "MobileRewardTotal": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "currency",
+          "decimals",
+          "orders",
+          "points"
+        ],
+        "properties": {
+          "currency": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 8
+          },
+          "decimals": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 8
+          },
+          "orders": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "points": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      },
+      "MobileRewards": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "generatedAt",
+          "totals"
+        ],
+        "properties": {
+          "generatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "totals": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MobileRewardTotal"
+            },
+            "maxItems": 20
+          }
+        }
+      },
+      "MobileRidePoint": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "latitudeE7",
+          "longitudeE7"
+        ],
+        "properties": {
+          "latitudeE7": {
+            "type": "integer",
+            "minimum": -900000000,
+            "maximum": 900000000
+          },
+          "longitudeE7": {
+            "type": "integer",
+            "minimum": -1800000000,
+            "maximum": 1800000000
+          }
+        }
+      },
+      "MobileRideQuoteRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "distanceMetres",
+          "durationSeconds",
+          "seats",
+          "shared"
+        ],
+        "properties": {
+          "distanceMetres": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 500000
+          },
+          "durationSeconds": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 86400
+          },
+          "seats": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 6
+          },
+          "shared": {
+            "type": "boolean"
+          }
+        }
+      },
+      "MobileRideRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "idempotencyKey",
+          "distanceMetres",
+          "durationSeconds",
+          "seats",
+          "shared",
+          "pickup",
+          "dropoff"
+        ],
+        "properties": {
+          "idempotencyKey": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "distanceMetres": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 500000
+          },
+          "durationSeconds": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 86400
+          },
+          "seats": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 6
+          },
+          "shared": {
+            "type": "boolean"
+          },
+          "pickup": {
+            "$ref": "#/components/schemas/MobileRidePoint"
+          },
+          "dropoff": {
+            "$ref": "#/components/schemas/MobileRidePoint"
+          }
+        }
+      },
+      "MobileRideQuote": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "rateId",
+          "fare",
+          "seats",
+          "shared"
+        ],
+        "properties": {
+          "rateId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "fare": {
+            "$ref": "#/components/schemas/MobileMoney"
+          },
+          "seats": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 6
+          },
+          "shared": {
+            "type": "boolean"
+          }
+        }
+      },
+      "MobileRideTrip": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "state",
+          "seats",
+          "shared",
+          "fare",
+          "distanceMetres",
+          "durationSeconds",
+          "pickup",
+          "dropoff",
+          "version",
+          "riderAccountId",
+          "driverAccountId"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "REQUESTED",
+              "MATCHED",
+              "ARRIVED",
+              "IN_TRIP",
+              "COMPLETED",
+              "CANCELLED"
+            ]
+          },
+          "seats": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 6
+          },
+          "shared": {
+            "type": "boolean"
+          },
+          "fare": {
+            "$ref": "#/components/schemas/MobileMoney"
+          },
+          "distanceMetres": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 500000
+          },
+          "durationSeconds": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 86400
+          },
+          "pickup": {
+            "$ref": "#/components/schemas/MobileRidePoint"
+          },
+          "dropoff": {
+            "$ref": "#/components/schemas/MobileRidePoint"
+          },
+          "version": {
+            "type": "string",
+            "pattern": "^(0|[1-9][0-9]*)$",
+            "maxLength": 19
+          },
+          "riderAccountId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "driverAccountId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      "MobileRideRequested": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "trip",
+          "pin"
+        ],
+        "properties": {
+          "trip": {
+            "$ref": "#/components/schemas/MobileRideTrip"
+          },
+          "pin": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]{4}$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      "MobileRideOpen": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "trips"
+        ],
+        "properties": {
+          "trips": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MobileRideTrip"
+            },
+            "maxItems": 50
+          }
+        }
+      },
+      "MobileRideStart": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "pin"
+        ],
+        "properties": {
+          "pin": {
+            "type": "string",
+            "pattern": "^[0-9]{4}$"
+          }
+        }
+      },
+      "MobileRideShare": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "token",
+          "expiresAt"
+        ],
+        "properties": {
+          "token": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{20,64}$"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "MobileRideShareRevoked": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "revoked"
+        ],
+        "properties": {
+          "revoked": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      },
+      "MobileRideShared": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "state",
+          "updatedAt",
+          "expiresAt"
+        ],
+        "properties": {
+          "state": {
+            "type": "string",
+            "enum": [
+              "REQUESTED",
+              "MATCHED",
+              "ARRIVED",
+              "IN_TRIP",
+              "COMPLETED",
+              "CANCELLED"
+            ]
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "MobileRideIncident": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "idempotencyKey",
+          "kind",
+          "body"
+        ],
+        "properties": {
+          "idempotencyKey": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "SAFETY",
+              "CONDUCT",
+              "FARE",
+              "OTHER"
+            ]
+          },
+          "body": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          }
+        }
+      },
+      "MobileRideIncidentReceipt": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "kind",
+          "createdAt"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "SAFETY",
+              "CONDUCT",
+              "FARE",
+              "OTHER"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "MobileRideFarePublish": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "expectedRateId",
+          "currency",
+          "decimals",
+          "baseMinor",
+          "perKmMinor",
+          "perMinuteMinor",
+          "minimumMinor",
+          "sharedDiscountBps"
+        ],
+        "properties": {
+          "expectedRateId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "currency": {
+            "type": "string",
+            "enum": [
+              "THB",
+              "USD",
+              "USDG",
+              "USDC",
+              "USDT"
+            ]
+          },
+          "decimals": {
+            "type": "integer",
+            "enum": [
+              2,
+              4,
+              6
+            ]
+          },
+          "baseMinor": {
+            "type": "string",
+            "pattern": "^(0|[1-9][0-9]*)$",
+            "maxLength": 16
+          },
+          "perKmMinor": {
+            "type": "string",
+            "pattern": "^(0|[1-9][0-9]*)$",
+            "maxLength": 16
+          },
+          "perMinuteMinor": {
+            "type": "string",
+            "pattern": "^(0|[1-9][0-9]*)$",
+            "maxLength": 16
+          },
+          "minimumMinor": {
+            "type": "string",
+            "pattern": "^(0|[1-9][0-9]*)$",
+            "maxLength": 16
+          },
+          "sharedDiscountBps": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9000
+          }
+        }
+      },
+      "MobileRideFare": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "rateId",
+          "currency",
+          "decimals",
+          "baseMinor",
+          "perKmMinor",
+          "perMinuteMinor",
+          "minimumMinor",
+          "sharedDiscountBps",
+          "publishedAt"
+        ],
+        "properties": {
+          "rateId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "currency": {
+            "type": "string",
+            "enum": [
+              "THB",
+              "USD",
+              "USDG",
+              "USDC",
+              "USDT"
+            ]
+          },
+          "decimals": {
+            "type": "integer",
+            "enum": [
+              2,
+              4,
+              6
+            ]
+          },
+          "baseMinor": {
+            "type": "string",
+            "pattern": "^(0|[1-9][0-9]*)$",
+            "maxLength": 16
+          },
+          "perKmMinor": {
+            "type": "string",
+            "pattern": "^(0|[1-9][0-9]*)$",
+            "maxLength": 16
+          },
+          "perMinuteMinor": {
+            "type": "string",
+            "pattern": "^(0|[1-9][0-9]*)$",
+            "maxLength": 16
+          },
+          "minimumMinor": {
+            "type": "string",
+            "pattern": "^(0|[1-9][0-9]*)$",
+            "maxLength": 16
+          },
+          "sharedDiscountBps": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9000
+          },
+          "publishedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "MobileRideFareState": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "fare"
+        ],
+        "properties": {
+          "fare": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MobileRideFare"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      "MobileRideIncidentItem": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "tripId",
+          "kind",
+          "body",
+          "reporterRole",
+          "createdAt"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "tripId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "SAFETY",
+              "CONDUCT",
+              "FARE",
+              "OTHER"
+            ]
+          },
+          "body": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          },
+          "reporterRole": {
+            "type": "string",
+            "enum": [
+              "RIDER",
+              "DRIVER"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "MobileRideIncidentQueue": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "incidents"
+        ],
+        "properties": {
+          "incidents": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MobileRideIncidentItem"
+            },
+            "maxItems": 100
+          }
+        }
+      },
+      "MobileRideIncidentReview": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "outcome",
+          "note"
+        ],
+        "properties": {
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "NO_ACTION",
+              "FOLLOW_UP",
+              "ESCALATED"
+            ]
+          },
+          "note": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          }
+        }
+      },
+      "MobileRideIncidentReviewed": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "incidentId",
+          "outcome",
+          "reviewedAt"
+        ],
+        "properties": {
+          "incidentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "NO_ACTION",
+              "FOLLOW_UP",
+              "ESCALATED"
+            ]
+          },
+          "reviewedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "MobileRideCurrent": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "trip"
+        ],
+        "properties": {
+          "trip": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MobileRideTrip"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      "MobileGroupLine": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "accountId",
+          "branchId",
+          "productId",
+          "qty"
+        ],
+        "properties": {
+          "accountId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "branchId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "productId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "qty": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 99
+          }
+        }
+      },
+      "MobileGroupBranch": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "branchId",
+          "qty",
+          "members"
+        ],
+        "properties": {
+          "branchId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "qty": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "members": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 12
+          }
+        }
+      },
+      "MobileGroup": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "ownerAccountId",
+          "state",
+          "version",
+          "youAreOwner",
+          "members",
+          "lines",
+          "branches"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "ownerAccountId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "OPEN",
+              "LOCKED",
+              "CANCELLED"
+            ]
+          },
+          "version": {
+            "type": "string",
+            "pattern": "^[1-9][0-9]*$",
+            "maxLength": 19
+          },
+          "youAreOwner": {
+            "type": "boolean"
+          },
+          "members": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "maxItems": 12
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MobileGroupLine"
+            },
+            "maxItems": 100
+          },
+          "branches": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MobileGroupBranch"
+            },
+            "maxItems": 100
+          }
+        }
+      },
+      "MobileGroups": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "groups"
+        ],
+        "properties": {
+          "groups": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MobileGroup"
+            },
+            "maxItems": 20
+          }
+        }
+      },
+      "MobileGroupInvite": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "token",
+          "expiresAt"
+        ],
+        "properties": {
+          "token": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{20,64}$"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "MobileGroupJoin": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "token"
+        ],
+        "properties": {
+          "token": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{20,64}$"
+          }
+        }
+      },
+      "MobileGroupLineSet": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "branchId",
+          "productId",
+          "qty"
+        ],
+        "properties": {
+          "branchId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "productId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "qty": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 99
+          }
+        }
+      },
+      "MobileGroupLock": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "expectedVersion"
+        ],
+        "properties": {
+          "expectedVersion": {
+            "type": "string",
+            "pattern": "^[1-9][0-9]*$",
+            "maxLength": 19
+          }
+        }
+      },
+      "MobileGroupLeft": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "left"
+        ],
+        "properties": {
+          "left": {
+            "type": "boolean"
+          }
+        }
+      },
+      "MobileAccountErase": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "idempotencyKey",
+          "confirm"
+        ],
+        "properties": {
+          "idempotencyKey": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "confirm": {
+            "type": "string",
+            "enum": [
+              "ERASE"
+            ]
+          }
+        }
+      },
+      "MobileAccountErased": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "erasedAt",
+          "addressesBlanked",
+          "favouritesDeleted"
+        ],
+        "properties": {
+          "erasedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "addressesBlanked": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "favouritesDeleted": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      },
+      "MobileAccountExport": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "generatedAt",
+          "profile",
+          "addresses",
+          "favourites",
+          "orders",
+          "supportCases",
+          "truncated"
+        ],
+        "properties": {
+          "generatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "profile": {
+            "$ref": "#/components/schemas/MobileProfile"
+          },
+          "addresses": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MobileAddress"
+            },
+            "maxItems": 200
+          },
+          "favourites": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MobileExportFavourite"
+            },
+            "maxItems": 500
+          },
+          "orders": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MobileFoodOrderSummary"
+            },
+            "maxItems": 30
+          },
+          "supportCases": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MobileExportSupportCase"
+            },
+            "maxItems": 100
+          },
+          "truncated": {
+            "type": "boolean"
           }
         }
       },
@@ -8240,7 +10500,14 @@
         ],
         "properties": {
           "preparation": {
-            "anyOf": [{"$ref": "#/components/schemas/FoodPreparationEstimate"}, {"type": "null"}]
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FoodPreparationEstimate"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "id": {
             "type": "string",
@@ -15285,6 +17552,65 @@
           },
           "selection": {
             "$ref": "#/components/schemas/FoodSelectedRefund"
+          }
+        }
+      },
+      "MobileRideLocationConsent": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "enabled"
+        ],
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          }
+        }
+      },
+      "MobileRideLocation": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "enabled",
+          "point",
+          "receivedAt",
+          "expiresAt"
+        ],
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "point": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MobileRidePoint"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "receivedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "expiresAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         }
       }

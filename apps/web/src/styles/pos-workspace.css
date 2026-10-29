@@ -1,6 +1,6 @@
 @font-face{font-family:BitPOS Thai;src:url('../assets/bitpos-sarabun-regular.ttf') format('truetype');font-style:normal;font-weight:400;font-display:swap}
 @font-face{font-family:BitPOS Thai;src:url('../assets/bitpos-sarabun-semibold.ttf') format('truetype');font-style:normal;font-weight:600 900;font-display:swap}
-.shell[lang=th]{font-family:BitPOS Thai,system-ui,sans-serif;line-height:1.65}
+.shell[lang=th]{font-family:var(--bp-font-thai),var(--bp-font-latin),sans-serif;line-height:1.65}
 .shell>header{min-height:76px;padding-top:14px;padding-bottom:14px}
 .shell .workspace-help{background:#f4eef9;font-size:13px;font-weight:600;padding:10px 12px}
 .shell .workspace-bar{margin-top:20px;gap:16px 20px}

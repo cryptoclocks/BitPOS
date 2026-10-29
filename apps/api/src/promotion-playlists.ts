@@ -53,13 +53,16 @@ async function deviceState(db:pg.PoolClient,merchant:string,device:string){
 export async function currentPromotionPlaylist(db:pg.PoolClient,merchant:string,device:string,force=false):Promise<DevicePromotionPlaylist>{
  await db.query('INSERT INTO device_promotion_playlist_state(merchant_id,device_id) VALUES($1,$2) ON CONFLICT DO NOTHING',[merchant,device]);
  const state=(await db.query('SELECT * FROM device_promotion_playlist_state WHERE merchant_id=$1 AND device_id=$2 FOR UPDATE',[merchant,device])).rows[0],d=await deviceState(db,merchant,device);
- const targets=(await db.query(`SELECT t.*,c.state AS campaign_state,c.starts_at,c.expires_at AS campaign_expires,c.asset_token,r.content,scope.minimum_unit_minor::text,
+ const published=(await db.query(`SELECT t.*,c.state AS campaign_state,c.starts_at,c.expires_at AS campaign_expires,c.asset_token,r.content,scope.minimum_unit_minor::text,
  bitpos.playlist_target_current(t.merchant_id,t.id) AS binding_current,coalesce(x.binding->'placement'->>'kind'='table',false) AS table_local
  FROM promotion_playlist_targets t JOIN promotion_campaigns c ON c.merchant_id=t.merchant_id AND c.id=t.campaign_id
  JOIN promotion_revisions r ON r.merchant_id=t.merchant_id AND r.campaign_id=t.campaign_id AND r.version=t.campaign_version
  JOIN promotion_scopes scope ON scope.merchant_id=t.merchant_id AND scope.campaign_id=t.campaign_id
  LEFT JOIN promotion_scope_placements x ON x.merchant_id=t.merchant_id AND x.campaign_id=t.campaign_id
  WHERE t.merchant_id=$1 AND t.target_device_id=$2 AND t.state IN ('QUEUED','DEFERRED_BUSY','DEFERRED_OFFLINE','DELIVERED','RENDERED','UNSUPPORTED') ORDER BY coalesce(x.binding->'placement'->>'kind'='table',false) ASC,t.created_at ASC,t.id`,[merchant,device])).rows;
+ // Only one personal offer may be current. The most recently published one replaces earlier ones, which stay as inspectable overflow; daily order is unchanged.
+ const newestPersonal=published.filter(t=>t.audience==='personal').reverse();let personalAt=0;
+ const targets=published.map(t=>t.audience==='personal'?newestPersonal[personalAt++]:t);
  const menu=await effectiveCatalog(db,merchant,d.table_id),publicMenu=d.table_id?await effectiveCatalog(db,merchant):menu,items:PlaylistPromotion[]=[],localProducts=new Set<string>();let daily=0,personal=0;
  for(const t of targets){
   const expiry=Math.min(new Date(t.expires_at).getTime(),new Date(t.campaign_expires).getTime());

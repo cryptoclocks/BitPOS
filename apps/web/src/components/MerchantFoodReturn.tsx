@@ -41,7 +41,7 @@ export default function MerchantFoodReturn({session,orderId,assignmentId,languag
  const record=snapshot?.case;
  return <>
  <details className="bill-details"><summary>{t('สถานะการคืนเงิน','Refund execution status')}</summary>
- <button disabled={busy} onClick={()=>void readExecution()}>{t('ตรวจผลคืนเงินของออร์เดอร์','Check order refund execution')}</button>
+ <button disabled={busy} onClick={()=>void readExecution()}>{t('ตรวจผลคืนเงินของออเดอร์','Check order refund execution')}</button>
  {execution&&<p role="status">{execution.state==='SELECTED_FINALIZED'?t('ยืนยันคืนเฉพาะรายการที่เลือก ไม่ใช่ยอดชำระทั้งหมด','Selected line refunded; not all original payments'):execution.state==='FINALIZED'?t('ยืนยันคืนครบจากหลักฐานแล้ว','All payments refunded with finalized evidence'):execution.state==='RECONCILIATION_REQUIRED'?t('ผลคืนเงินต้องตรวจสอบ ยังยืนยันว่าคืนครบไม่ได้','Reconciliation required; refund completion unconfirmed'):execution.state==='PARTIAL'?t('ยืนยันคืนบางรายการ ยังไม่ครบ','Some payments refunded; incomplete'):t('ยังไม่มีหลักฐานยืนยันคืนครบ','Full refund completion unconfirmed')} · {execution.finalizedCount}/{execution.allocationCount}{execution.selectedRefund&&<> · {formatMoney(execution.selectedRefund.refundAmount)}</>}</p>}
  {executionError&&<div role="alert"><p>{t('ตรวจผลคืนเงินไม่สำเร็จ ลองตรวจอีกครั้ง','Could not check refund execution. Try again.')}</p><details><summary>{t('รายละเอียด','Details')}</summary>{executionError}</details></div>}
  </details>

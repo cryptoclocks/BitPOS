@@ -104,7 +104,14 @@ export function attachDevices(server:http.Server){
  if(!claimed.refresh)committed={events:claimed.events,state:streamMetadata(a,claimed.row)};
  }
  if(!committed)committed=await tenant(a.merchant,async db=>{
- await routingLock(db,a.merchant);await currentPromotionPlaylist(db,a.merchant,a.device);let state=await streamState(db,a);
+ await routingLock(db,a.merchant);
+ // The idle catalog read must never hold routing authority: if the catalog is locked, skip this refresh (a later stream pass retries) instead of blocking CONFIG, payments and ACKs behind it.
+ const lockTimeout=(await db.query("SELECT current_setting('lock_timeout') AS value")).rows[0].value as string;
+ await db.query('SAVEPOINT idle_catalog_refresh');
+ try{await db.query("SELECT set_config('lock_timeout','150ms',true)");await currentPromotionPlaylist(db,a.merchant,a.device);await db.query('RELEASE SAVEPOINT idle_catalog_refresh');}
+ catch(error){if((error as {code?:string}).code!=='55P03')throw error;await db.query('ROLLBACK TO SAVEPOINT idle_catalog_refresh');}
+ await db.query("SELECT set_config('lock_timeout',$1,true)",[lockTimeout]);
+ let state=await streamState(db,a);
  if(state.row.expired){await expireCart(db,a.merchant,a.device);state=await streamState(db,a);}
  await db.query('SAVEPOINT device_stream_refresh');
  if(!initialized)await db.query("INSERT INTO device_event_deliveries(merchant_id,device_id,event_id,device_seq,connection_generation,status) SELECT merchant_id,target_device_id,id,device_seq,$3,'superseded' FROM outbox_events WHERE merchant_id=$1 AND target_device_id=$2 ON CONFLICT DO NOTHING",[a.merchant,a.device,a.connectionGeneration]);

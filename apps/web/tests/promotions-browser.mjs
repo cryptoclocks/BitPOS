@@ -14,7 +14,7 @@ export default async function promotionsBrowserContracts(page, origin, screensho
   const originalProduct = { ...product, id: originalProductId, name: 'เอสเปรสโซทดสอบ', nameEn: 'Fixture espresso', imageUrl: '/images/menu/espresso.jpg' };
   let priceVersion = id(4), discounted = { ...money, amountMinor: '270' };
   const menu = () => ({ merchant: { name: 'PROMOTION DOM FIXTURE' }, products: [product, originalProduct], asOf: new Date().toISOString(), priceValidUntil: new Date(Date.now() + 60000).toISOString(), menuVersion: 'fixture-menu', priceVersion, pricingRevision: '1', currency: 'USD', decimals: 2 });
-  let role = 'owner', configured = true, losePublish = true, loseDerive = true;
+  let role = 'owner', configured = true, losePublish = true, loseDerive = true, populatedFloor = false;
   let devices = [
     { deviceId: id(30), label: 'FIXTURE original screen', tableId, tableLabel: 'FIXTURE Table 4', online: true, busy: false, capable: true, assignmentGeneration: '5', authGeneration: '2', screenGeneration: '8' },
     { deviceId: id(31), label: 'FIXTURE busy counter', tableId: null, tableLabel: null, online: true, busy: true, capable: true, assignmentGeneration: '1', authGeneration: '1', screenGeneration: '3' },
@@ -52,8 +52,8 @@ export default async function promotionsBrowserContracts(page, origin, screensho
     if (path === '/demo-session') return reply({ enabled: false });
     if (path === '/session') return reply({ token: 'FIXTURE-no-credential', merchantId: 'fixture-merchant', userId: `fixture-${role}`, role });
     if (path === '/menu') return reply(menu());
-    if (path === '/tables') return reply({ tables: [{ id: tableId, label: 'FIXTURE Table 4', retiredAt: null, occupancy: { active: true, generation: '3' } }] });
-    if (path === '/devices') return reply({ devices: devices.map(device => ({ id: device.deviceId, label: device.label, tableId: device.tableId, tableLabel: device.tableLabel, assignmentGeneration: device.assignmentGeneration, authGeneration: device.authGeneration, revokedAt: null, online: device.online, lastSeenAt: null, connectionGeneration: 'fixture-connection', screen: { kind: 'idle', screenGeneration: device.screenGeneration, orderId: null, sessionId: null } })) });
+    if (path === '/tables') return reply({ tables: populatedFloor ? [{ id: tableId, label: 'FIXTURE Table 4', retiredAt: null, occupancy: { active: true, generation: '3', joined: false, openedAt: '2026-10-24T00:00:00.000Z', lastActivityAt: '2026-10-24T00:00:00.000Z', timeoutMinutes: 60 } }] : [] });
+    if (path === '/devices') return reply({ devices: populatedFloor ? devices.map(device => ({ id: device.deviceId, label: device.label, tableId: device.tableId, tableLabel: device.tableLabel, assignmentGeneration: device.assignmentGeneration, authGeneration: device.authGeneration, revokedAt: null, online: device.online, lastSeenAt: null, connectionGeneration: 'fixture-connection', screen: { kind: 'idle', screenGeneration: device.screenGeneration, orderId: null, sessionId: null } })) : [] });
     if (['/registers', '/orders', '/customers'].includes(path)) return reply({ [path.slice(1)]: [] });
     if (path === '/promotions/recipients') return reply(recipients);
     if (path === '/promotions' && method === 'GET') return reply({ provider: { configured, blocker: configured ? null : 'Fixture provider configuration absent' }, jobs: [...jobs.values()], campaigns: [...campaigns.values()], devices });
@@ -111,16 +111,15 @@ export default async function promotionsBrowserContracts(page, origin, screensho
     } else {
       assert.ok(['owner', 'manager'].includes(role), 'Staff cannot generate/edit/preview/approve/revoke');
       if (path.endsWith('/revoke')) next = { ...campaign, version: campaign.version + 1, state: 'REVOKED', playlistTargets: campaign.playlistTargets.map(target => ({ ...target, state: 'REVOKED' })) };
-      else {
+      else if (path.endsWith('/derive')) {
+        assert.equal(method, 'POST'); assert.equal(body.confirmScope, true);
+        next = { ...campaign, version: campaign.version + 1, state: 'DRAFT', startsAt: new Date().toISOString(), expiresAt: expiry() };
+      } else {
         assert.equal(campaign.state, 'DRAFT');
         if (path.endsWith('/approve')) {
           if (campaign.priceVersion !== priceVersion || campaign.basePrice.amountMinor !== product.basePrice.amountMinor || campaign.stockSnapshot !== product.available) return refusal('PROMOTION_REVIEW_REQUIRED');
           next = { ...campaign, version: campaign.version + 1, state: 'APPROVED' };
         } else if (path.endsWith('/preview')) next = { ...campaign, version: campaign.version + 1, basePrice: product.basePrice, unitPrice: discounted, priceVersion, stockSnapshot: product.available };
-        else if (path.endsWith('/derive')) {
-          assert.equal(method, 'POST'); assert.equal(body.confirmScope, true);
-          next = { ...campaign, version: campaign.version + 1, state: 'DRAFT', startsAt: new Date().toISOString(), expiresAt: expiry() };
-        }
         else {
           assert.equal(method, 'PATCH'); assert.equal(path, `/promotions/${campaignId}`);
           const { expectedVersion, idempotencyKey, ...edit } = body;
@@ -198,42 +197,15 @@ export default async function promotionsBrowserContracts(page, origin, screensho
   await selectCampaign(dailyId);
   await workspace.getByText('Campaign draft review', { exact: false }).waitFor();
   assert.equal(await library.count(), 0, 'P34 review hides the P33 library instead of stacking it below the active screen');
+  if (screenshotDirectory) await page.screenshot({ path: `${screenshotDirectory}/p34-draft-en1440.png`, fullPage: false });
   await workspace.getByRole('button', { name: 'Back to campaign library', exact: true }).click();
   await library.waitFor(); assert.equal(await library.getByLabel('Search campaigns', { exact: true }).inputValue(), '');
   await library.getByRole('button', { name: /Create promotion/ }).click();
   assert.equal(await library.count(), 0, 'P33 create hides the library while the creation screen is active');
   await workspace.getByRole('button', { name: 'Back to campaign library', exact: true }).click(); await library.waitFor();
-  await library.getByRole('button', { name: /Create promotion/ }).click();
-  const floor = workspace.getByRole('region', { name: 'Promotion floor', exact: true });
-  await floor.getByLabel('Select device: FIXTURE original screen', { exact: true }).click();
-  const inspection = workspace.getByRole('complementary', { name: 'FIXTURE original screen', exact: true });
-  await inspection.getByRole('button', { name: 'Refresh device playlist', exact: true }).waitFor();
-  await inspection.getByText('Campaign details & scheduled items', { exact: true }).click();
-  await inspection.getByRole('button', { name: 'Open campaign', exact: true }).click();
-  await workspace.getByRole('heading', { name: campaigns.get(dailyId).headline, exact: true }).waitFor();
-  assert.equal(await floor.count(), 0, 'Floor-origin Open campaign exits inspection before mounting P34');
-  await workspace.getByRole('button', { name: 'Back to campaign library', exact: true }).click(); await library.waitFor();
-  await library.getByRole('button', { name: /Create promotion/ }).click();
-  await floor.getByLabel('Select device: FIXTURE original screen', { exact: true }).click();
-  await inspection.getByText('Campaign details & scheduled items', { exact: true }).click();
-  await inspection.getByRole('button', { name: 'Edit as new draft', exact: true }).click();
-  await workspace.getByRole('radio', { name: 'All campaign devices', exact: true }).check();
-  await workspace.getByRole('checkbox', { name: 'I confirm this draft scope. Creating does not approve or send.', exact: true }).check();
-  const derive = workspace.getByRole('button', { name: 'Create editable draft · do not send', exact: true });
-  await derive.click(); await workspace.getByRole('alert').first().waitFor();
-  const deriveCalls = () => mutationCalls('/derive');
-  assert.equal(deriveCalls().length, 1, 'Ambiguous floor derive is saved exactly once and not automatically resent');
-  await workspace.getByRole('button', { name: 'Back to campaign library', exact: true }).click(); await library.waitFor();
-  const resolve = workspace.getByRole('button', { name: 'Resolve / retry exact action', exact: true });
-  await resolve.waitFor();
-  await resolve.click();
-  await workspace.getByRole('heading', { name: campaigns.get(dailyId).headline, exact: true }).waitFor();
-  assert.equal(deriveCalls().length, 2, 'Visible recovery replays the exact retained floor derive once');
-  assert.deepEqual(deriveCalls()[1], deriveCalls()[0], 'Floor recovery preserves the original derive method, path, payload and key');
-  await workspace.getByRole('button', { name: 'Back to campaign library', exact: true }).click(); await library.waitFor();
   await library.locator('.promotion-library-item').filter({ has: page.getByText(campaigns.get(dailyId).headline, { exact: true }) }).click();
   await workspace.getByText('Campaign draft review', { exact: false }).waitFor();
-  if (screenshotDirectory) await page.screenshot({ path: `${screenshotDirectory}/terra-pos-campaign-p34-desktop-correction-medium-20261024.png`, fullPage: true });
+  if (screenshotDirectory) await page.screenshot({ path: `${screenshotDirectory}/terra-pos-campaign-p34-desktop-medium-20261024T2200.png`, fullPage: true });
   const image = workspace.locator('.promotion-preview img');
   await image.waitFor(); assert.equal(await image.getAttribute('src'), '/images/menu/latte.jpg');
   assert.equal(await image.getAttribute('width'), '480'); assert.equal(await image.getAttribute('height'), '320');
@@ -283,6 +255,41 @@ export default async function promotionsBrowserContracts(page, origin, screensho
   devices = devices.map((device, index) => index ? device : { ...device, screenGeneration: String(BigInt(device.screenGeneration) + 1n) });
   assert.equal(await command(workspace.getByRole('button', { name: 'Resolve / retry exact action', exact: true }), `/promotions/${dailyId}/publish`), 200);
   assert.deepEqual(mutationCalls('/publish')[1], original, 'Lost-response reload replays exact method/path/payload/key');
+  populatedFloor = true; await page.reload(); await signIn();
+
+  await library.getByRole('button', { name: /Create promotion/ }).click();
+  const floor = workspace.getByRole('region', { name: 'Promotion floor', exact: true });
+  await floor.getByLabel('Select device: FIXTURE original screen', { exact: true }).click();
+  const inspection = workspace.getByRole('complementary', { name: 'FIXTURE original screen', exact: true });
+  await inspection.getByRole('button', { name: 'Refresh device playlist', exact: true }).waitFor();
+  await inspection.getByText('Campaign details & scheduled items', { exact: true }).click();
+  await inspection.getByRole('button', { name: 'Open campaign', exact: true }).click();
+  await workspace.getByRole('heading', { name: campaigns.get(dailyId).headline, exact: true }).waitFor();
+  assert.equal(await floor.count(), 0, 'Floor-origin Open campaign exits inspection before mounting P34');
+  await workspace.getByRole('button', { name: 'Back to campaign library', exact: true }).click(); await library.waitFor();
+  await library.getByRole('button', { name: /Create promotion/ }).click();
+  await floor.getByLabel('Select device: FIXTURE original screen', { exact: true }).click();
+  await inspection.getByText('Campaign details & scheduled items', { exact: true }).click();
+  await inspection.getByRole('button', { name: 'Edit as new draft', exact: true }).click();
+  await workspace.getByRole('radio', { name: 'All campaign devices', exact: true }).check();
+  await workspace.getByRole('checkbox', { name: 'I confirm this draft scope. Creating does not approve or send.', exact: true }).check();
+  const derive = workspace.getByRole('button', { name: 'Create editable draft · do not send', exact: true });
+  await derive.click(); await workspace.getByRole('alert').first().waitFor();
+  const deriveCalls = () => mutationCalls('/derive');
+  assert.equal(deriveCalls().length, 1, 'Ambiguous floor derive is saved exactly once and not automatically resent');
+  await workspace.getByRole('button', { name: 'Back to campaign library', exact: true }).click(); await library.waitFor();
+  const resolve = workspace.getByRole('button', { name: 'Resolve / retry exact action', exact: true });
+  await resolve.waitFor();
+  await resolve.click();
+  await workspace.getByRole('heading', { name: campaigns.get(dailyId).headline, exact: true }).waitFor();
+  assert.equal(deriveCalls().length, 2, 'Visible recovery replays the exact retained floor derive once');
+  assert.deepEqual(deriveCalls()[1], deriveCalls()[0], 'Floor recovery preserves the original derive method, path, payload and key');
+  await workspace.getByRole('button', { name: 'Back to campaign library', exact: true }).click(); await library.waitFor();
+  populatedFloor = false; await page.reload(); await signIn();
+  await library.locator('.promotion-library-item').filter({ has: page.getByText(campaigns.get(dailyId).headline, { exact: true }) }).click();
+  await workspace.getByText('Campaign draft review', { exact: false }).waitFor(); await page.waitForFunction(() => {
+    const fieldset = document.querySelector('#campaign-review fieldset'); return fieldset instanceof HTMLFieldSetElement && !fieldset.disabled;
+  });
   await selectCampaign(dailyId);
   campaigns.set(dailyId, { ...campaigns.get(dailyId), expiresAt: new Date(Date.now() - 1000).toISOString() });
   await refresh(); assert.equal(await send.isEnabled(), false, 'Expired campaigns cannot publish');
@@ -350,7 +357,6 @@ export default async function promotionsBrowserContracts(page, origin, screensho
     assert.deepEqual(mutationCalls('/publish').at(-1).body.targets, fences([originalDevice]));
     assert.deepEqual(await deliveryStates(), ['DELIVERED']); assert.equal(publishCount(), before + 1);
   }
-
   await page.getByRole('button', { name: 'Log out', exact: true }).click(); role = 'staff';
   campaigns.set(dailyId, { ...campaigns.get(dailyId), state: 'DRAFT', version: campaigns.get(dailyId).version + 1, playlistTargets: [] });
   await signIn(); await selectCampaign(dailyId);
@@ -381,18 +387,18 @@ export default async function promotionsBrowserContracts(page, origin, screensho
     assert.ok(bounds.every(([left, right]) => left >= 0 && right <= width), `${width}px campaign cards remain fully visible`);
     assert.equal(await library.locator('.promotion-library-columns').isVisible(), false, `${width}px uses the compact campaign-card header`);
   }
-  if (screenshotDirectory) await page.screenshot({ path: `${screenshotDirectory}/terra-pos-campaign-p33-mobile-th-correction-medium-20261024.png`, fullPage: true });
+  if (screenshotDirectory) await page.screenshot({ path: `${screenshotDirectory}/terra-pos-campaign-p33-mobile-th-medium-20261024T2200.png`, fullPage: true });
   await library.locator('.promotion-library-item').first().click();
   await workspace.getByRole('heading', { name: 'ตรวจร่างแคมเปญ', exact: true }).waitFor();
   const reviewBounds = await workspace.locator('.promotion-review-preview').boundingBox();
   assert.ok(reviewBounds && reviewBounds.x >= 0 && reviewBounds.x + reviewBounds.width <= 390, '390px selected Thai P34 preview stays within the review viewport');
-  if (screenshotDirectory) await page.screenshot({ path: `${screenshotDirectory}/terra-pos-campaign-p34-mobile-th-correction-medium-20261024.png`, fullPage: true });
+  if (screenshotDirectory) await page.screenshot({ path: `${screenshotDirectory}/terra-pos-campaign-p34-mobile-th-medium-20261024T2200.png`, fullPage: true });
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, '390px workspace has no horizontal overflow');
   assert.equal(calls.filter(call => /\/products\/.*\/offer/.test(call.path) && call.method !== 'GET').length, 0, 'No global offer mutation');
   assert.equal(calls.filter(call => /\/quotes$|\/orders$|\/pay\//.test(call.path) && call.method !== 'GET').length, 0, 'Campaign actions never create quotes/orders/payments');
   return {
     fixture: true, actualProvider: false, actualAndroid: false, actualBackendEligibility: false, actualPhysicalACK: false,
-    checks: ['P33 active library search/filter and P34 review/back navigation', 'P33 create/back navigation', 'desktop and compact P34 review grouping', '390/768/820 campaign card visibility and compact headers', 'daily/customer/from_order scoped audiences', 'generation/edit/preview never publish', 'changed canonical price/stock forces explicit renewed review', 'daily explicit frozen assignment/auth/screen fences', 'personal explicit recipient and original-device-only publication', 'no auto-selected customer/table/guest/order', 'occupancy change invalidates recipient confirmation', 'original order products excluded', 'lost-response exact outbound replay command', 'staff access limits', 'provider disabled in EN/TH', 'campaign actions never create quotes/orders/payments'],
+    checks: ['P33 active library search/filter and P34 review/back navigation', 'P33 create/back navigation', 'floor Open→P34→Back and lost floor-derive exact recovery', 'desktop and compact P34 review grouping', '390/768/820 campaign card visibility and compact headers', 'daily/customer/from_order scoped audiences', 'generation/edit/preview never publish', 'changed canonical price/stock forces explicit renewed review', 'daily explicit frozen assignment/auth/screen fences', 'personal explicit recipient and original-device-only publication', 'no auto-selected customer/table/guest/order', 'occupancy change invalidates recipient confirmation', 'original order products excluded', 'lost-response exact outbound replay command', 'staff access limits', 'provider disabled in EN/TH', 'campaign actions never create quotes/orders/payments'],
     evidence: { generationAudiences: mutationCalls('/generate').map(call => call.body.audience), lostResponseRequest: original, replayRequest: mutationCalls('/publish')[1], publicationRequests: publishCount() },
   };
 }

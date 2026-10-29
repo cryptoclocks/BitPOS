@@ -488,6 +488,255 @@ export const MobileSessionSchema=z.object({
  refreshExpiresAt:z.string().datetime({offset:true}).regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/),
 }).strict();
 export type MobileSession=z.infer<typeof MobileSessionSchema>;
+export const MobileExportFavouriteSchema=z.object({
+ merchantId:z.string().uuid(),
+ branchId:z.string().uuid(),
+ createdAt:z.string().datetime({offset:true}).regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/),
+}).strict();
+export type MobileExportFavourite=z.infer<typeof MobileExportFavouriteSchema>;
+export const MobileExportSupportCaseSchema=z.object({
+ id:z.string().uuid(),
+ subject:z.string().min(1).max(160),
+ state:z.string().refine(value => ["OPEN","WAITING_CUSTOMER","RESOLVED"].includes(value)),
+ createdAt:z.string().datetime({offset:true}).regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/),
+ orderId:z.string().uuid().nullable(),
+}).strict();
+export type MobileExportSupportCase=z.infer<typeof MobileExportSupportCaseSchema>;
+export const MobileRewardTotalSchema=z.object({
+ currency:z.string().min(3).max(8),
+ decimals:z.number().int().safe().min(0).max(8),
+ orders:z.number().int().safe().min(0),
+ points:z.number().int().safe().min(0),
+}).strict();
+export type MobileRewardTotal=z.infer<typeof MobileRewardTotalSchema>;
+export const MobileRewardsSchema=z.object({
+ generatedAt:z.string().datetime({offset:true}).regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/),
+ totals:z.array(MobileRewardTotalSchema).max(20),
+}).strict();
+export type MobileRewards=z.infer<typeof MobileRewardsSchema>;
+export const MobileRidePointSchema=z.object({
+ latitudeE7:z.number().int().safe().min(-900000000).max(900000000),
+ longitudeE7:z.number().int().safe().min(-1800000000).max(1800000000),
+}).strict();
+export type MobileRidePoint=z.infer<typeof MobileRidePointSchema>;
+export const MobileRideQuoteRequestSchema=z.object({
+ distanceMetres:z.number().int().safe().min(1).max(500000),
+ durationSeconds:z.number().int().safe().min(1).max(86400),
+ seats:z.number().int().safe().min(1).max(6),
+ shared:z.boolean(),
+}).strict();
+export type MobileRideQuoteRequest=z.infer<typeof MobileRideQuoteRequestSchema>;
+export const MobileRideRequestSchema=z.object({
+ idempotencyKey:z.string().uuid(),
+ distanceMetres:z.number().int().safe().min(1).max(500000),
+ durationSeconds:z.number().int().safe().min(1).max(86400),
+ seats:z.number().int().safe().min(1).max(6),
+ shared:z.boolean(),
+ pickup:MobileRidePointSchema,
+ dropoff:MobileRidePointSchema,
+}).strict();
+export type MobileRideRequest=z.infer<typeof MobileRideRequestSchema>;
+export const MobileRideQuoteSchema=z.object({
+ rateId:z.string().uuid(),
+ fare:MobileMoneySchema,
+ seats:z.number().int().safe().min(1).max(6),
+ shared:z.boolean(),
+}).strict();
+export type MobileRideQuote=z.infer<typeof MobileRideQuoteSchema>;
+export const MobileRideTripSchema=z.object({
+ id:z.string().uuid(),
+ state:z.string().refine(value => ["REQUESTED","MATCHED","ARRIVED","IN_TRIP","COMPLETED","CANCELLED"].includes(value)),
+ seats:z.number().int().safe().min(1).max(6),
+ shared:z.boolean(),
+ fare:MobileMoneySchema,
+ distanceMetres:z.number().int().safe().min(1).max(500000),
+ durationSeconds:z.number().int().safe().min(1).max(86400),
+ pickup:MobileRidePointSchema,
+ dropoff:MobileRidePointSchema,
+ version:z.string().regex(new RegExp("^(0|[1-9][0-9]*)$")).max(19),
+ riderAccountId:z.string().uuid(),
+ driverAccountId:z.string().uuid().nullable(),
+}).strict();
+export type MobileRideTrip=z.infer<typeof MobileRideTripSchema>;
+export const MobileRideRequestedSchema=z.object({
+ trip:MobileRideTripSchema,
+ pin:z.string().regex(new RegExp("^[0-9]{4}$")).nullable(),
+}).strict();
+export type MobileRideRequested=z.infer<typeof MobileRideRequestedSchema>;
+export const MobileRideOpenSchema=z.object({
+ trips:z.array(MobileRideTripSchema).max(50),
+}).strict();
+export type MobileRideOpen=z.infer<typeof MobileRideOpenSchema>;
+export const MobileRideStartSchema=z.object({
+ pin:z.string().regex(new RegExp("^[0-9]{4}$")),
+}).strict();
+export type MobileRideStart=z.infer<typeof MobileRideStartSchema>;
+export const MobileRideShareSchema=z.object({
+ token:z.string().regex(new RegExp("^[A-Za-z0-9_-]{20,64}$")),
+ expiresAt:z.string().datetime({offset:true}).regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/),
+}).strict();
+export type MobileRideShare=z.infer<typeof MobileRideShareSchema>;
+export const MobileRideShareRevokedSchema=z.object({
+ revoked:z.number().int().safe().min(0),
+}).strict();
+export type MobileRideShareRevoked=z.infer<typeof MobileRideShareRevokedSchema>;
+export const MobileRideSharedSchema=z.object({
+ state:z.string().refine(value => ["REQUESTED","MATCHED","ARRIVED","IN_TRIP","COMPLETED","CANCELLED"].includes(value)),
+ updatedAt:z.string().datetime({offset:true}).regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/),
+ expiresAt:z.string().datetime({offset:true}).regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/),
+}).strict();
+export type MobileRideShared=z.infer<typeof MobileRideSharedSchema>;
+export const MobileRideIncidentSchema=z.object({
+ idempotencyKey:z.string().uuid(),
+ kind:z.string().refine(value => ["SAFETY","CONDUCT","FARE","OTHER"].includes(value)),
+ body:z.string().min(1).max(500),
+}).strict();
+export type MobileRideIncident=z.infer<typeof MobileRideIncidentSchema>;
+export const MobileRideIncidentReceiptSchema=z.object({
+ id:z.string().uuid(),
+ kind:z.string().refine(value => ["SAFETY","CONDUCT","FARE","OTHER"].includes(value)),
+ createdAt:z.string().datetime({offset:true}).regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/),
+}).strict();
+export type MobileRideIncidentReceipt=z.infer<typeof MobileRideIncidentReceiptSchema>;
+export const MobileRideFarePublishSchema=z.object({
+ expectedRateId:z.string().uuid().nullable(),
+ currency:z.string().refine(value => ["THB","USD","USDG","USDC","USDT"].includes(value)),
+ decimals:z.number().int().safe().refine(value => [2,4,6].includes(value)),
+ baseMinor:z.string().regex(new RegExp("^(0|[1-9][0-9]*)$")).max(16),
+ perKmMinor:z.string().regex(new RegExp("^(0|[1-9][0-9]*)$")).max(16),
+ perMinuteMinor:z.string().regex(new RegExp("^(0|[1-9][0-9]*)$")).max(16),
+ minimumMinor:z.string().regex(new RegExp("^(0|[1-9][0-9]*)$")).max(16),
+ sharedDiscountBps:z.number().int().safe().min(0).max(9000),
+}).strict();
+export type MobileRideFarePublish=z.infer<typeof MobileRideFarePublishSchema>;
+export const MobileRideFareSchema=z.object({
+ rateId:z.string().uuid(),
+ currency:z.string().refine(value => ["THB","USD","USDG","USDC","USDT"].includes(value)),
+ decimals:z.number().int().safe().refine(value => [2,4,6].includes(value)),
+ baseMinor:z.string().regex(new RegExp("^(0|[1-9][0-9]*)$")).max(16),
+ perKmMinor:z.string().regex(new RegExp("^(0|[1-9][0-9]*)$")).max(16),
+ perMinuteMinor:z.string().regex(new RegExp("^(0|[1-9][0-9]*)$")).max(16),
+ minimumMinor:z.string().regex(new RegExp("^(0|[1-9][0-9]*)$")).max(16),
+ sharedDiscountBps:z.number().int().safe().min(0).max(9000),
+ publishedAt:z.string().datetime({offset:true}).regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/),
+}).strict();
+export type MobileRideFare=z.infer<typeof MobileRideFareSchema>;
+export const MobileRideFareStateSchema=z.object({
+ fare:MobileRideFareSchema.nullable(),
+}).strict();
+export type MobileRideFareState=z.infer<typeof MobileRideFareStateSchema>;
+export const MobileRideIncidentItemSchema=z.object({
+ id:z.string().uuid(),
+ tripId:z.string().uuid(),
+ kind:z.string().refine(value => ["SAFETY","CONDUCT","FARE","OTHER"].includes(value)),
+ body:z.string().min(1).max(500),
+ reporterRole:z.string().refine(value => ["RIDER","DRIVER"].includes(value)),
+ createdAt:z.string().datetime({offset:true}).regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/),
+}).strict();
+export type MobileRideIncidentItem=z.infer<typeof MobileRideIncidentItemSchema>;
+export const MobileRideIncidentQueueSchema=z.object({
+ incidents:z.array(MobileRideIncidentItemSchema).max(100),
+}).strict();
+export type MobileRideIncidentQueue=z.infer<typeof MobileRideIncidentQueueSchema>;
+export const MobileRideIncidentReviewSchema=z.object({
+ outcome:z.string().refine(value => ["NO_ACTION","FOLLOW_UP","ESCALATED"].includes(value)),
+ note:z.string().min(1).max(500),
+}).strict();
+export type MobileRideIncidentReview=z.infer<typeof MobileRideIncidentReviewSchema>;
+export const MobileRideIncidentReviewedSchema=z.object({
+ incidentId:z.string().uuid(),
+ outcome:z.string().refine(value => ["NO_ACTION","FOLLOW_UP","ESCALATED"].includes(value)),
+ reviewedAt:z.string().datetime({offset:true}).regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/),
+}).strict();
+export type MobileRideIncidentReviewed=z.infer<typeof MobileRideIncidentReviewedSchema>;
+export const MobileRideCurrentSchema=z.object({
+ trip:MobileRideTripSchema.nullable(),
+}).strict();
+export type MobileRideCurrent=z.infer<typeof MobileRideCurrentSchema>;
+export const MobileGroupLineSchema=z.object({
+ accountId:z.string().uuid(),
+ branchId:z.string().uuid(),
+ productId:z.string().uuid(),
+ qty:z.number().int().safe().min(1).max(99),
+}).strict();
+export type MobileGroupLine=z.infer<typeof MobileGroupLineSchema>;
+export const MobileGroupBranchSchema=z.object({
+ branchId:z.string().uuid(),
+ qty:z.number().int().safe().min(1),
+ members:z.number().int().safe().min(1).max(12),
+}).strict();
+export type MobileGroupBranch=z.infer<typeof MobileGroupBranchSchema>;
+export const MobileGroupSchema=z.object({
+ id:z.string().uuid(),
+ ownerAccountId:z.string().uuid(),
+ state:z.string().refine(value => ["OPEN","LOCKED","CANCELLED"].includes(value)),
+ version:z.string().regex(new RegExp("^[1-9][0-9]*$")).max(19),
+ youAreOwner:z.boolean(),
+ members:z.array(z.string().uuid()).max(12),
+ lines:z.array(MobileGroupLineSchema).max(100),
+ branches:z.array(MobileGroupBranchSchema).max(100),
+}).strict();
+export type MobileGroup=z.infer<typeof MobileGroupSchema>;
+export const MobileGroupsSchema=z.object({
+ groups:z.array(MobileGroupSchema).max(20),
+}).strict();
+export type MobileGroups=z.infer<typeof MobileGroupsSchema>;
+export const MobileGroupInviteSchema=z.object({
+ token:z.string().regex(new RegExp("^[A-Za-z0-9_-]{20,64}$")),
+ expiresAt:z.string().datetime({offset:true}).regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/),
+}).strict();
+export type MobileGroupInvite=z.infer<typeof MobileGroupInviteSchema>;
+export const MobileGroupJoinSchema=z.object({
+ token:z.string().regex(new RegExp("^[A-Za-z0-9_-]{20,64}$")),
+}).strict();
+export type MobileGroupJoin=z.infer<typeof MobileGroupJoinSchema>;
+export const MobileGroupLineSetSchema=z.object({
+ branchId:z.string().uuid(),
+ productId:z.string().uuid(),
+ qty:z.number().int().safe().min(0).max(99),
+}).strict();
+export type MobileGroupLineSet=z.infer<typeof MobileGroupLineSetSchema>;
+export const MobileGroupLockSchema=z.object({
+ expectedVersion:z.string().regex(new RegExp("^[1-9][0-9]*$")).max(19),
+}).strict();
+export type MobileGroupLock=z.infer<typeof MobileGroupLockSchema>;
+export const MobileGroupLeftSchema=z.object({
+ left:z.boolean(),
+}).strict();
+export type MobileGroupLeft=z.infer<typeof MobileGroupLeftSchema>;
+export const MobileAccountEraseSchema=z.object({
+ idempotencyKey:z.string().uuid(),
+ confirm:z.string().refine(value => ["ERASE"].includes(value)),
+}).strict();
+export type MobileAccountErase=z.infer<typeof MobileAccountEraseSchema>;
+export const MobileAccountErasedSchema=z.object({
+ erasedAt:z.string().datetime({offset:true}).regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/),
+ addressesBlanked:z.number().int().safe().min(0),
+ favouritesDeleted:z.number().int().safe().min(0),
+}).strict();
+export type MobileAccountErased=z.infer<typeof MobileAccountErasedSchema>;
+export const MobileFoodOrderSummarySchema=z.object({
+ id:z.string().uuid(),
+ merchantId:z.string().uuid(),
+ branchId:z.string().uuid(),
+ merchantName:z.string().max(320),
+ createdAt:z.string().datetime({offset:true}).regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/),
+ status:z.string().refine(value => ["AWAITING_WALLET","AWAITING_PAYMENT","CONFIRMING","PAID","EXPIRED","RECOVERY"].includes(value)),
+ acceptanceStatus:z.string().refine(value => ["PENDING","ACCEPTED","REJECTED","TIMED_OUT"].includes(value)),
+ fulfillmentStatus:z.string().refine(value => ["RECEIVED","PREPARING","READY","COLLECTED"].includes(value)),
+ total:MobileMoneySchema,
+}).strict();
+export type MobileFoodOrderSummary=z.infer<typeof MobileFoodOrderSummarySchema>;
+export const MobileAccountExportSchema=z.object({
+ generatedAt:z.string().datetime({offset:true}).regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/),
+ profile:MobileProfileSchema,
+ addresses:z.array(MobileAddressSchema).max(200),
+ favourites:z.array(MobileExportFavouriteSchema).max(500),
+ orders:z.array(MobileFoodOrderSummarySchema).max(30),
+ supportCases:z.array(MobileExportSupportCaseSchema).max(100),
+ truncated:z.boolean(),
+}).strict();
+export type MobileAccountExport=z.infer<typeof MobileAccountExportSchema>;
 export const MobileAccountSchema=z.object({
  id:z.string().uuid(),
  displayName:z.string().max(320),
@@ -761,18 +1010,6 @@ export const MobileFoodOrderResultSchema=z.object({
  replayed:z.boolean(),
 }).strict();
 export type MobileFoodOrderResult=z.infer<typeof MobileFoodOrderResultSchema>;
-export const MobileFoodOrderSummarySchema=z.object({
- id:z.string().uuid(),
- merchantId:z.string().uuid(),
- branchId:z.string().uuid(),
- merchantName:z.string().max(320),
- createdAt:z.string().datetime({offset:true}).regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/),
- status:z.string().refine(value => ["AWAITING_WALLET","AWAITING_PAYMENT","CONFIRMING","PAID","EXPIRED","RECOVERY"].includes(value)),
- acceptanceStatus:z.string().refine(value => ["PENDING","ACCEPTED","REJECTED","TIMED_OUT"].includes(value)),
- fulfillmentStatus:z.string().refine(value => ["RECEIVED","PREPARING","READY","COLLECTED"].includes(value)),
- total:MobileMoneySchema,
-}).strict();
-export type MobileFoodOrderSummary=z.infer<typeof MobileFoodOrderSummarySchema>;
 export const MobileFoodOrdersSchema=z.object({
  orders:z.array(MobileFoodOrderSummarySchema).max(30),
  nextCursor:z.string().uuid().nullable(),
@@ -2076,3 +2313,14 @@ export const FoodDriverCompensationSchema=z.object({
  execution:FoodCompensationExecutionSchema.nullable(),
 }).strict();
 export type FoodDriverCompensation=z.infer<typeof FoodDriverCompensationSchema>;
+export const MobileRideLocationConsentSchema=z.object({
+ enabled:z.boolean(),
+}).strict();
+export type MobileRideLocationConsent=z.infer<typeof MobileRideLocationConsentSchema>;
+export const MobileRideLocationSchema=z.object({
+ enabled:z.boolean(),
+ point:MobileRidePointSchema.nullable(),
+ receivedAt:z.string().datetime({offset:true}).regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/).nullable(),
+ expiresAt:z.string().datetime({offset:true}).regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/).nullable(),
+}).strict();
+export type MobileRideLocation=z.infer<typeof MobileRideLocationSchema>;

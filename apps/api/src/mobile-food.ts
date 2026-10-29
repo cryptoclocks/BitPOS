@@ -42,6 +42,9 @@ async function quoteProjection(db:pg.PoolClient,q:QuoteRow,branchId:string){
  const v=quoteView(q),{snapshot:configured}=await configuredQuote(db,q.merchant_id,q.id);
  return MobileFoodQuoteSchema.parse({id:v.id,merchantId:q.merchant_id,branchId,priceVersion:v.priceVersion,pricingRevision:v.pricingRevision,quotedAt:v.quotedAt,validUntil:v.validUntil,lines:linesProjection(v.lines),subtotal:configured.subtotal,discount:configured.discount,fees:configured.fees,tax:configured.tax,total:v.total,settlement:settlementProjection(v.settlement),configured,delivery:q.authority.serving.kind==='delivery'?deliveryProjection(await deliverySnapshot(db,q.merchant_id,q.id)):null});
 }
+import{boundary as couponBoundary}from'./coupon-quote-candidate';
+/** Coupon admission failures are SQL-gate refusals (QUOTE_CHANGED/CONFIGURATION_REQUIRED), never a 500. */
+function couponCheckoutBoundary(error:unknown):never{if(error instanceof Error&&error.message.startsWith('COUPON_'))couponBoundary(error);throw error;}
 export async function mobileOrderProjection(db:pg.PoolClient,o:OrderRow,account?:string):Promise<MobileFoodOrder>{
  await db.query('SELECT id FROM orders WHERE merchant_id=$1 AND id=$2 FOR SHARE',[o.merchant_id,o.id]);
  const lifecycle=(await db.query('SELECT * FROM online_food_orders WHERE merchant_id=$1 AND order_id=$2 AND ($3::uuid IS NULL OR account_id=$3)',[o.merchant_id,o.id,account??null])).rows[0];
@@ -159,7 +162,7 @@ export async function mobileFoodRequest(url:URL,method:string,input:unknown,bear
    if(!q)fail('RESOURCE_NOT_FOUND',404);if(q.price_version_id!==data.priceVersion)fail('PRICE_VERSION_CHANGED');
    if(q.authority.serving.kind==='delivery'?!b.delivery_enabled:!b.pickup_enabled)fail('SERVING_UNAVAILABLE');
    await validateQuote(db,merchant,q);const customer=await customerLink(db,merchant,actor.accountId);
-   const o=await createQuotedOrder(db,merchant,{quote:q,customerId:customer,idempotencyKey:data.idempotencyKey,requestHash:digest,screenGeneration:null});
+   const o=await createQuotedOrder(db,merchant,{quote:q,customerId:customer,idempotencyKey:data.idempotencyKey,requestHash:digest,screenGeneration:null}).catch(couponCheckoutBoundary);
    await emitOrder(db,o);return MobileFoodOrderResultSchema.parse({order:await mobileOrderProjection(db,o,actor.accountId),replayed:false});
   });
  }
