@@ -73,6 +73,16 @@ export async function servePosApi(req:http.IncomingMessage,res:http.ServerRespon
   const stages=await kitchenStages(deps.identity.db,me.merchantId);
   return json(res,200,{orders:(await listTapOrders(deps.staff,view)).map(o=>({...o,stage:o.handedOverAt?'COLLECTED':stages.get(o.id)??'RECEIVED'})),canRefund:me.role!=='staff'});
  }
+ const detail=path.match(/^\/meta\/staff\/api\/orders\/([0-9a-f-]{36})$/);
+ if(detail&&method==='GET'){
+  // Details: cart orders carry their lines; tap and agent orders are one item.
+  if(!deps.staff)return json(res,503,{error:'UNAVAILABLE'});
+  const o=(await listTapOrders(deps.staff,view)).find(x=>x.id===detail[1]);
+  if(!o)return json(res,404,{error:'NOT_FOUND'});
+  const cart=await cartForStaff(deps.identity.db,me.merchantId,o.id);
+  const stages=await kitchenStages(deps.identity.db,me.merchantId);
+  return json(res,200,{...o,stage:o.handedOverAt?'COLLECTED':stages.get(o.id)??'RECEIVED',lines:cart?.lines??null,discount:cart?.discount??null,total:cart?.total??null,tableLabel:cart?.tableLabel??null,canRefund:me.role!=='staff'&&!!cart});
+ }
  const stage=path.match(/^\/meta\/staff\/api\/orders\/([0-9a-f-]{36})\/stage$/);
  if(stage&&method==='POST'){
   const b=await body(req) as {stage?:unknown}|null;

@@ -48,6 +48,9 @@ input:not([type="checkbox"]):not([type="radio"]),select{border-color:var(--bp-li
 .meta-hub{display:grid;gap:12px}.meta-hub-head h2{margin:2px 0}.meta-hub-head p{margin:0;color:var(--muted)}
 .meta-hub-tabs{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px}.meta-hub-tabs button{flex:none;width:auto;white-space:nowrap}
 .meta-frame{width:100%;height:calc(100vh - 260px);min-height:520px;border:0;border-radius:16px;background:transparent}
-/* Meta edition: Meta orders above the POS order center (MetaOrders.tsx). */
-.meta-orders{margin-bottom:16px}.meta-orders .order-row{cursor:default;display:grid;gap:8px}.meta-orders .order-row-end{display:flex;flex-wrap:wrap;align-items:center;gap:8px}.meta-orders .order-row-end button{width:auto}
-.meta-other{margin-top:12px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}.meta-other h3{width:100%;margin:0;font-size:14px}.meta-chip{font-size:12px;padding:4px 10px;border-radius:999px;background:var(--surface-soft,#eef2fb);color:var(--muted)}
+/* Meta edition: order center (MetaOrders.tsx) uses the POS order-center classes; only these are extra. */
+.meta-lane-empty{margin:8px 0;padding:22px 12px;border:2px dashed #d7e1f2;border-radius:16px;text-align:center;color:var(--muted);font-size:.85rem}
+.order-lane.is-drop-target .meta-lane-empty{border-color:var(--purple);color:var(--purple)}
+.meta-other{margin-top:16px}.meta-other summary{cursor:pointer;font-weight:650}.meta-other>div{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}.meta-chip{font-size:.78rem;padding:6px 12px}
+.meta-steps{list-style:none;display:flex;gap:6px;padding:0;margin:8px 0 14px;flex-wrap:wrap}.meta-steps li{flex:1;min-width:84px;text-align:center;font-size:.78rem;padding:8px 6px;border-radius:10px;background:#eef2fa;color:var(--muted)}.meta-steps li.done{background:#e5f5ed;color:#197b57;font-weight:650}
+.fulfillment-detail button{margin:6px 6px 0 0}
