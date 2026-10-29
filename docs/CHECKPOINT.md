@@ -91,11 +91,11 @@
     - Messenger: after a tap, the chosen offer's animation, then the offer card, then the live pair's animation and an "Add both" button.
     - meta-pay: the menu shows the pair card with its animation and "Add both"; an item on offer shows its animation; the cart shows a "Pair deal" line.
     - BitPOS Mini: the idle screen and the welcome-after-tap screen get `anim`, which is the tapped customer's offer, else the pair, else a live offer.
-  - **Firmware (`bitpos_meta.c`):** downloads the same-origin path into PSRAM (at most 900 KB, must start with `GIF8`, retried every 30 s), plays it with `lv_gif` from memory at 240×240 with the text on the right, and frees the old buffer after the swap. It builds (1.44 MB, 31% of the slot free). **Not flashed:** the Mini is not connected.
+  - **Firmware (`bitpos_meta.c`):** downloads the same-origin path into PSRAM (at most 900 KB, must start with `GIF8`, retried every 30 s), plays it with `lv_gif` from memory at 240×240 with the text on the right, and frees the old buffer after the swap. It builds (1.44 MB, 31% of the slot free). Flashed on 30 October into app1 of the owner's Mini (MAC checked; the previous app1 was saved privately in `~/.bitpos-meta/firmware-backups/`, mode 600; write hash verified). After boot the Mini downloaded `/meta/anim/combo/…/240-<tag>.gif` once and kept polling `/meta/device/state` every ~6 s with no reboot.
   - **Live on OCI:** migration 322 applied after backup `bitpos-20261029T185016Z-pre322.dump`. Muse Spark paired Latte + Croissant −10% for 4 h, the owner approved it, and Muse Image drew the picture in 10 s (WebP). The animation is served at 480 px (1.35 MB, ~4 s the first time) and 240 px (326 KB). The meta-pay cart showed −$0.90 for one pair.
   - **Tests:** `tests/meta-combos.test.ts` checks that the GIF round-trips through a decoder past the 4096-code reset, pair pricing, RLS, the cache, and the device path filter. Meta tests 95/95.
   - **Open:**
-    - Flash and watch the Mini.
+    - The owner should confirm by eye that the animation plays smoothly on the Mini's screen.
     - Messenger animation on a real tap.
 - Next: NTAG424 sticker provisioning tool; Muse Connector (MCP); Allow All UI; demo video.
 - Superseded (kept for history): Messenger (needs the owner signed in to Facebook to create a Page and Meta app), paying a hosted Checkout by hand, a real Messenger app/page and webhook delivery, NTAG424 sticker configuration, Muse connector review, routing `/meta/*` to the API in the tunnel. Next: live Muse Spark call, sticker provisioning tool, Stripe checkout on the tap page.
