@@ -1,0 +1,25 @@
+# Meta hackathon work (2026-10-26..11-04). See meta-hackathon/PROVENANCE.md.
+# meta-pos = the POS (Meta edition, infra/meta/pos.Dockerfile) as its own compose project beside bitpos-runtime and
+# bitpos-meta. API on 127.0.0.1:3011, web on 127.0.0.1:4331; the Meta server (bitpos-meta, :3102) answers the
+# meta-pos host and forwards everything outside /meta/ here. No worker (the runtime's worker serves the shared
+# database), no Solana keys mounted. The env file is private (mode 600): a copy of the runtime API settings with
+# the Meta overrides (PUBLIC_URL, ports, BITPOS_EDITION=meta, demo shop = Muse Café).
+name: bitpos-meta-pos
+services:
+  api:
+    image: ${META_POS_IMAGE:-bitpos-meta-pos:current}
+    network_mode: host
+    restart: unless-stopped
+    env_file: /home/ubuntu/bitpos-private/meta/meta-pos.env
+    command: ["node", "--import", "tsx", "apps/api/src/index.ts"]
+    volumes:
+      - /home/ubuntu/bitpos-private/meta/demo-login-meta.json:/app/local/private/demo-login.json:ro
+    mem_limit: 512m
+    logging: {driver: json-file, options: {max-size: "10m", max-file: "3"}}
+  web:
+    image: ${META_POS_IMAGE:-bitpos-meta-pos:current}
+    network_mode: host
+    restart: unless-stopped
+    env_file: /home/ubuntu/bitpos-private/meta/meta-pos.env
+    mem_limit: 384m
+    logging: {driver: json-file, options: {max-size: "10m", max-file: "3"}}

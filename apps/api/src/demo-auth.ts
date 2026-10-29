@@ -11,13 +11,15 @@ export function allowedDemoOrigins(){
  const origins=[config.PUBLIC_URL,'http://localhost:4321','http://127.0.0.1:4321'];
  // Explicitly authorized public devnet demo; no arbitrary Origin or merchant input.
  if(process.env.BITPOS_DEMO_PUBLIC_ORIGIN==='https://pos.cashlessthailand.com')origins.push('https://pos.cashlessthailand.com');
+ // Meta edition (meta-pos): its own public origin and demo shop, set by the deployment.
+ if(process.env.BITPOS_EDITION==='meta'&&process.env.BITPOS_DEMO_PUBLIC_ORIGIN===new URL(config.PUBLIC_URL).origin)origins.push(new URL(config.PUBLIC_URL).origin);
  return origins;
 }
 export function demoAccessEnabled(){
  const url=new URL(config.PUBLIC_URL);const h=url.hostname;
  const privateHost=h==='localhost'||h==='127.0.0.1'||h==='[::1]'||/^192\.168\.\d{1,3}\.\d{1,3}$/.test(h)||/^10\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(h)||/^172\.(1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3}$/.test(h);
  const localOrigin=url.protocol==='http:'&&url.port==='4321'&&privateHost;
- const authorizedPublicDevnet=url.origin==='https://pos.cashlessthailand.com'&&process.env.BITPOS_DEMO_PUBLIC_ORIGIN===url.origin;
+ const authorizedPublicDevnet=(url.origin==='https://pos.cashlessthailand.com'||process.env.BITPOS_EDITION==='meta')&&process.env.BITPOS_DEMO_PUBLIC_ORIGIN===url.origin;
  return config.BITPOS_DEMO_QUICK_SIGNIN==='1'&&process.env.NODE_ENV!=='production'&&(localOrigin||authorizedPublicDevnet);
 }
 export async function demoCredentials(req:http.IncomingMessage,input:unknown){
@@ -33,6 +35,7 @@ export async function demoCredentials(req:http.IncomingMessage,input:unknown){
  if(!permitted.rowCount)fail('AUTH_REQUIRED',429);
  const path='local/private/demo-login.json';const stat=fs.lstatSync(path);if(!stat.isFile()||stat.isSymbolicLink()||(stat.mode&0o077)!==0)fail('AUTH_REQUIRED',503);
  const credentials=z.array(z.object({email:z.string().email(),password:z.string().min(1),role:z.string()})).parse(JSON.parse(fs.readFileSync(path,'utf8')));
- const email={owner:'owner@bitpos.test',manager:'manager@bitpos.test',staff:'staff@bitpos.test'}[role];const selected=credentials.find(c=>c.email===email&&c.role===role);if(!selected)fail('AUTH_REQUIRED',503);
- return {credentials:{email:selected.email,password:selected.password,merchantId:MERCHANT_A},role};
+ const meta=process.env.BITPOS_EDITION==='meta'&&/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(process.env.BITPOS_DEMO_MERCHANT??'');
+ const email={owner:'owner@bitpos.test',manager:'manager@bitpos.test',staff:'staff@bitpos.test'}[role];const selected=meta?credentials.find(c=>c.role===role):credentials.find(c=>c.email===email&&c.role===role);if(!selected)fail('AUTH_REQUIRED',503);
+ return {credentials:{email:selected.email,password:selected.password,merchantId:meta?process.env.BITPOS_DEMO_MERCHANT!:MERCHANT_A},role};
 }
