@@ -4,7 +4,7 @@ import {z} from 'zod';
 import {pool,tenant,audit} from './db';
 import {cart,uuid,fail,routingLock} from './authority';
 import {effectiveCatalog,captureQuote,quoteView} from './catalog';
-import {resolveRoute,createRoutedOrder,orderView,dismissOrder,streamEvent} from './orders';
+import {resolveRoute,createRoutedOrder,orderView,dismissOrder,streamEvent,releaseEligible} from './orders';
 import {currentScreen} from './device-commands';
 import {ensureDevice,expireCart} from './registry';
 import type {OrderRow,QuoteRow} from './types';
@@ -26,7 +26,10 @@ async function currentEntry(db:pg.PoolClient,e:Entry){
 }
 async function occupancy(db:pg.PoolClient,e:Entry,visit?:Visit){
  const state=(await db.query('SELECT s.*,coalesce(p.connected_until>clock_timestamp(),false) AS online FROM device_screen_state s LEFT JOIN device_presence p USING(merchant_id,device_id) WHERE s.merchant_id=$1 AND s.device_id=$2',[e.merchant_id,e.device_id])).rows[0];
- return {state,available:state?.kind==='idle'||state?.kind==='cart'&&state.session_id===visit?.session_id,online:!!state?.online};
+ // A PAID bill whose receipt the device has already rendered no longer owns the table screen: the next guest may start a new order. Unpaid/ambiguous bills stay protected.
+ const paid=state?.kind==='order'&&state.order_id?(await db.query<OrderRow>("SELECT * FROM orders WHERE merchant_id=$1 AND id=$2 AND status='PAID'",[e.merchant_id,state.order_id])).rows[0]:undefined;
+ const releasable=!!paid&&await releaseEligible(db,paid,e.device_id);
+ return {state,paid:releasable?paid:undefined,available:state?.kind==='idle'||releasable||state?.kind==='cart'&&state.session_id===visit?.session_id,online:!!state?.online};
 }
 function liveVisit(v:Visit){if(v.expires_at.getTime()<=Date.now())fail('LEASE_EXPIRED');}
 async function view(db:pg.PoolClient,e:Entry,v:Visit){
@@ -101,6 +104,9 @@ export async function tableRequest(path:string,method:string,input:unknown){
   const group=await tableOccupancyView(db,merchant,e.table_id,v.id);
   if(group.active&&!group.joined&&!d.confirmJoin)fail('TABLE_JOIN_CONFIRMATION_REQUIRED');
   const route=await resolveRoute(db,merchant,'device',e.device_id);
+  if(o.paid){
+   await dismissOrder(db,merchant,e.device_id,o.paid.id,o.paid.version,String(o.state.screen_generation));await audit(db,merchant,'public-table-guest','order.dismiss_paid_for_new_order',o.paid.id);o.state={...o.state,kind:'idle'};
+  }
   if(o.state.kind==='idle'){
    v.session_id=randomUUID();await db.query('INSERT INTO device_sessions(merchant_id,id,device_id,assignment_generation,public_visit_id) VALUES($1,$2,$3,$4,$5)',[merchant,v.session_id,e.device_id,e.assignment_generation,v.id]);await db.query("UPDATE device_screen_state SET kind='cart',session_id=$3,lease_until=clock_timestamp()+interval '120 seconds',screen_generation=screen_generation+1 WHERE merchant_id=$1 AND device_id=$2",[merchant,e.device_id,v.session_id]);
   }
