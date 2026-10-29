@@ -3534,3 +3534,8 @@ Method: the real debug apps (`flutter build apk --debug` with `BITPOS_FIXTURE` a
 - Commit `ed661ca` web part: 9 files under `apps/web/src/components` (dry-run showed only these differed); no migration. Only `web` recreated (`bitpos-runtime:current` = a329f13bca64); api, worker, customer, merchant, tunnel and `bitpos-meta-meta-1` untouched.
 - Rollback: previous image tagged `bitpos-runtime:rollback-20261029h` (8107119d573d); replaced files in `/home/ubuntu/bitpos-runtime.rollback10-20261029/components`.
 - Verified: `https://pos.cashlessthailand.com/` 200, `/api/returns` without session 401, host `127.0.0.1:4321/platform` 200. Disk 88% (25 GB free).
+
+## 2026-10-29 checklist verification (4 subagents + focused run)
+- Subagents reviewed all 188 unticked DIRECT_SESSION_CHECKLIST_TH boxes; most KEEP (unbuilt, fixture-only, or needs pixel diff/real device/API).
+- Ticked 6 with test evidence: DS50 1172/1173 (group-cart + backend-mobile-groups), DS40 973/974 (driver-settlement-worker), DS43 1032 (support/review/chat-image), DS47 1115 (passenger-trip PIN). Focused run: 44 pass, 0 fail, 2 skipped (DB-backed).
+- Not ticked: "actual render vs FigCraft" boxes (comparison so far is static); DB-backed boxes with only recorded evidence (DS40 972, DS44 1052, DS46 1092/1094/1095, DS48 1132/1135) pending a DB-backed rerun.
