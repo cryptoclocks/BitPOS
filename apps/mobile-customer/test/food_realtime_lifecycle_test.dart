@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:bitpos_customer/food_delivery_panel.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mobile_shared/mobile_api.dart';
@@ -46,9 +47,9 @@ void main(){
  testWidgets('disconnect clears active proof secret and its open replacement modal',(tester) async {
   final api=SecretApi();addTearDown(api.close);await fixture.mount(tester,api);
   final issue=find.text('Issue delivery proof');await tester.ensureVisible(issue);await tester.tap(issue);await tester.pumpAndSettle();
-  expect(find.text('fixture-original-assignment-secret'),findsOneWidget);
+  expect(find.text(DeliveryCodeCard.grouped('fixture-original-assignment-secret')),findsOneWidget);
   final replace=find.text('Replace delivery proof');await tester.ensureVisible(replace);await tester.tap(replace);await tester.pumpAndSettle();expect(find.byType(AlertDialog),findsOneWidget);
   api.updates.add(const FoodRealtimeDisconnected(MobileApiException('REALTIME_DISCONNECTED',503)));await tester.pumpAndSettle();
-  expect(find.byType(AlertDialog),findsNothing);expect(find.text('fixture-original-assignment-secret'),findsNothing);expect(find.text('No current confirmed snapshot'),findsOneWidget);
+  expect(find.byType(AlertDialog),findsNothing);expect(find.text(DeliveryCodeCard.grouped('fixture-original-assignment-secret')),findsNothing);expect(find.text('No current confirmed snapshot'),findsOneWidget);
  });
 }

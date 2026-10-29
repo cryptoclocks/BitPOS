@@ -2014,7 +2014,7 @@ class _CustodyProofDialogState extends State<_CustodyProofDialog> {
         child: Text(t('ยกเลิก', 'Cancel')),
       ),
       FilledButton(
-        onPressed: () => Navigator.pop(context, _controller.text.trim()),
+        onPressed: () => Navigator.pop(context, _controller.text.replaceAll(RegExp(r'\s+'), '')),
         child: Text(t('ยืนยัน', 'Confirm')),
       ),
     ],

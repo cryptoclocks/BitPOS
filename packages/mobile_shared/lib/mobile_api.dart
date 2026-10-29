@@ -466,12 +466,23 @@ class MobileApi {
   FoodArrivalMutation arriveFoodCommand(FoodDriverAssignment assignment,String stage)=>FoodArrivalMutation(assignment.id,FoodArrivalCommand(idempotencyKey:const Uuid().v4(),generation:assignment.generation,leaseGeneration:assignment.leaseGeneration,stage:stage));
   FoodConsumeMutation consumeFoodCommand(FoodDriverAssignment assignment,FoodDriverProof proof,String secret)=>FoodConsumeMutation(assignment.id,FoodProofConsumeCommand(idempotencyKey:const Uuid().v4(),proofId:proof.id,generation:assignment.generation,leaseGeneration:assignment.leaseGeneration,secret:secret));
   FoodDeliveryProofMutation deliveryProofCommand(FoodCustomerAssignment assignment,{required bool rotate})=>FoodDeliveryProofMutation(assignment.id,FoodProofIssueCommand(idempotencyKey:const Uuid().v4(),generation:assignment.generation,leaseGeneration:assignment.leaseGeneration,rotate:rotate));
-  Future<Object> submitFoodDispatch(FoodDispatchMutation mutation){
+  Future<Object> submitFoodDispatch(FoodDispatchMutation mutation)async{
+    // Rotate an expiring access token BEFORE the unresolved-command marker is written and the session
+    // identity is captured: a refresh (ours or the realtime watcher's) that lands after the marker used
+    // to throw SESSION_CHANGED with nothing sent, stranding a "pending" command that never reached the server.
+    if(_session!=null&&!DateTime.parse(_session!.accessExpiresAt).isAfter(DateTime.now().add(const Duration(seconds:30)))){
+      await (_refreshing??=_refresh().whenComplete(()=>_refreshing=null));
+    }
     final owner=_session,key=_dispatchMutationKey,encoded=jsonEncode(mutation.toJson());
     return _accountOperation(() async{
       if(!identical(owner,_session))throw const MobileApiException('SESSION_CHANGED',409);
       final saved=await storage.read(key:key);if(saved!=null&&saved!=encoded)throw const MobileApiException('PENDING_DISPATCH_RECOVERY_REQUIRED',409);
-      await storage.write(key:key,value:encoded);if(!identical(owner,_session))throw const MobileApiException('SESSION_CHANGED',409);
+      await storage.write(key:key,value:encoded);
+      if(!identical(owner,_session)){
+        // Nothing has been sent yet, so a marker written only for this attempt is not an unresolved command.
+        if(saved==null)await storage.delete(key:key);
+        throw const MobileApiException('SESSION_CHANGED',409);
+      }
       try{
         final value=await _request(mutation.path,method:'POST',body:mutation.body,authenticated:true);
         final Object receipt=switch(mutation){
