@@ -16,8 +16,8 @@ export const profile={
  greeting:[{locale:'default',text:'สวัสดีค่ะ {{user_first_name}} ☕ Muse Café · สั่ง จองโต๊ะ รับโปร ได้ในแชท (ร้านเดโม Stripe sandbox) · Order, book and get offers right here.'}],
  // Conversation starters shown on the empty chat screen; each arrives as a postback.
  ice_breakers:[{locale:'default',call_to_actions:[
-  {question:'☕ ดูเมนูวันนี้',payload:'BITPOS_MENU'},{question:'🗓️ จองโต๊ะ',payload:'BITPOS_BOOK'},
-  {question:'🧾 ออเดอร์ของฉัน',payload:'BITPOS_MY_ORDERS'},{question:'👋 เริ่มต้นใช้งาน',payload:'BITPOS_HELP'}]}],
+  {question:'✨ ไม่รู้จะกินอะไร ช่วยเลือกให้หน่อย',payload:'BITPOS_SUGGEST'},  {question:'☕ ดูเมนูวันนี้',payload:'BITPOS_MENU'},{question:'🗓️ จองโต๊ะ',payload:'BITPOS_BOOK'},
+  {question:'🧾 ออเดอร์ของฉัน',payload:'BITPOS_MY_ORDERS'},{question:'👋 เริ่มต้นใช้งาน',payload:'BITPOS_HELP'}].slice(0,4)}],
  persistent_menu:[{locale:'default',composer_input_disabled:false,call_to_actions:[
   {type:'postback',title:'👋 หน้าแรก / Home',payload:'BITPOS_HELP'},
   {type:'postback',title:'☕ เมนู / Menu',payload:'BITPOS_MENU'},

@@ -8,6 +8,7 @@ import {randomUUID} from 'node:crypto';
 import QRCode from 'qrcode';
 import type {MetaRouteDeps} from './routes';
 import {formatTapAmount,listTapOrders,pickupCode,type StaffDeps,type StaffOrder,type StaffView} from './staff';
+import {samCount} from './vision';
 import {floorPlan,screenTags,staffReservations,type FloorTable} from './reservations';
 import {screenKey} from './screen';
 import {listMenu} from './agent-orders';
@@ -39,7 +40,7 @@ const handover=(o:StaffOrder)=>o.status==='PAID'&&!o.handedOverAt?`<form method=
 /** Returns true when it answered the request. */
 export async function servePos(req:http.IncomingMessage,res:http.ServerResponse,deps:MetaRouteDeps,staff:StaffDeps,whoami:()=>Promise<StaffView|null>,url:URL,log:(m:string)=>void):Promise<boolean>{
  const path=url.pathname,method=req.method??'GET';
- const known=path==='/meta/staff'||/^\/meta\/staff\/(overview|counter|kitchen|bookings|menu|customers|connector|reports|payouts|users|settings|order)(\/|$)/.test(path);
+ const known=path==='/meta/staff'||/^\/meta\/staff\/(overview|counter|kitchen|bookings|menu|customers|connector|reports|payouts|users|settings|order|stockcount)(\/|$)/.test(path);
  if(!known)return false;
  const me=await whoami();
  if(!me){go(res,'/meta/staff');return true;}
@@ -55,10 +56,11 @@ async function pages(req:http.IncomingMessage,res:http.ServerResponse,deps:MetaR
  const path=url.pathname,method=req.method??'GET';
  const db=deps.identity.db,agent=agentDepsOf(deps),boss=me.role!=='staff';
  const shop=(await db.tenant(me.merchantId,c=>c.query<{name:string}>('SELECT name FROM merchants WHERE id=$1',[me.merchantId]))).rows[0]?.name??'';
- const send=(status:number,active:string,title:string,html:string,o:{sub?:string;actions?:string;refresh?:number}={})=>{
-  res.writeHead(status,{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store','Content-Security-Policy':"default-src 'none'; style-src 'unsafe-inline'; img-src 'self' https: data:; form-action 'self'",
+ const send=(status:number,active:string,title:string,html:string,o:{sub?:string;actions?:string;refresh?:number;script?:string}={})=>{
+  const nonce=o.script?randomUUID().replace(/-/g,''):'';
+  res.writeHead(status,{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store','Content-Security-Policy':`default-src 'none'; style-src 'unsafe-inline'; img-src 'self' https: data: blob:; form-action 'self'${nonce?`; script-src 'nonce-${nonce}'`:''}`,
    'Referrer-Policy':'same-origin','X-Content-Type-Options':'nosniff',...(o.refresh?{Refresh:String(o.refresh)}:{})});
-  res.end(staffHtml({title,active,role:me.role,shop,sub:o.sub,actions:o.actions},html));return true;
+  res.end(staffHtml({title,active,role:me.role,shop,sub:o.sub,actions:o.actions,nonce:nonce||undefined,script:o.script},html));return true;
  };
  const ownerOnly=()=>send(403,'/meta/staff/overview','ต้องเป็นเจ้าของหรือผู้จัดการ',`<div class="card">ทำได้เฉพาะเจ้าของหรือผู้จัดการ / Owner or manager only.</div><a class="btn g inline" href="/meta/staff">← ออเดอร์</a>`);
 
@@ -167,6 +169,24 @@ ${row({href:'/meta/staff/offers',icon:'✨',title:`${r.drafts} ร่างโ�
    await c.query("INSERT INTO meta_stock_movements(merchant_id,product_id,delta,reason,order_kind,order_id) VALUES(current_setting('bitpos.merchant')::uuid,$1,$2,'staff_adjust','staff',$3)",[stock[1],n-cur.stock,randomUUID()]);
   });
   log('Stock counted');go(res,'/meta/staff/menu?saved=1');return true;
+ }
+ if(path==='/meta/staff/stockcount'){
+  // Count stock from a photo of the display case with SAM 3.1; staff see the boxes and an owner/manager confirms.
+  if(!agent)return send(503,path,'นับสต็อกจากรูป','<div class="card">ระบบเมนูยังไม่พร้อม</div>');
+  const menu=await listMenu(agent,me.merchantId);
+  const pick=`<form method="post" action="/meta/staff/stockcount" id="sf"><label>${L('เมนูที่จะนับ','Item to count')}</label><select name="id">${menu.map(m=>`<option value="${m.productId}">${esc(nm(m.name,m.nameEn))} · ${L('สต็อกตอนนี้','now')} ${m.available}</option>`).join('')}</select>
+<input type="hidden" name="img" id="img"><input type="file" id="cam" accept="image/*" capture="environment" hidden><button type="button" id="shot">📷 ${L('ถ่ายรูปตู้แล้วนับ','Photograph the case and count')}</button><p class="mu" id="st">${L('SAM 3.1 นับชิ้นที่เห็นในรูป · ตรวจกรอบก่อนกดยืนยัน · ไม่เก็บรูป','SAM 3.1 counts what it sees · check the boxes before confirming · the photo is not kept')}</p></form>`;
+  const script=`(()=>{const cam=document.getElementById('cam'),st=document.getElementById('st');document.getElementById('shot').onclick=()=>cam.click();cam.onchange=()=>{const f=cam.files&&cam.files[0];if(!f)return;st.textContent='…';const im=new Image(),u=URL.createObjectURL(f);im.onload=()=>{const k=Math.min(1,1024/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);c.getContext('2d').drawImage(im,0,0,c.width,c.height);URL.revokeObjectURL(u);document.getElementById('img').value=c.toDataURL('image/jpeg',0.85);st.textContent='SAM 3.1 …';document.getElementById('sf').submit();};im.src=u;};})();`;
+  if(method==='GET')return send(200,path,L('นับสต็อกจากรูป','Count stock from a photo'),`<div class="card">${pick}</div>`,{sub:L('SAM 3.1 · เจ้าของหรือผู้จัดการยืนยันก่อนเปลี่ยนสต็อก','SAM 3.1 · an owner or manager confirms before stock changes'),script});
+  const parts:Buffer[]=[];let n=0;for await(const c of req){n+=c.length;if(n>1_500_000)return send(413,path,'รูปใหญ่เกินไป','<div class="card">ลองรูปที่เล็กลง</div>');parts.push(c);}
+  const f=new URLSearchParams(Buffer.concat(parts).toString('utf8')),item=menu.find(m=>m.productId===f.get('id')),img=f.get('img')??'';
+  if(!item||!/^data:image\/jpeg;base64,/.test(img))return send(400,path,L('นับสต็อกจากรูป','Count stock from a photo'),`<div class="card">${L('เลือกเมนูและถ่ายรูปใหม่','Pick an item and take the photo again')}</div>${pick}`,{script});
+  if(!deps.asr)return send(503,path,L('นับสต็อกจากรูป','Count stock from a photo'),'<div class="card">SAM 3.1 ยังไม่ได้ตั้งค่า</div>');
+  let r;try{r=await samCount(deps.asr,img,item.nameEn);log(`Stock counted with SAM (${r.count})`);}catch{log('SAM count failed');return send(502,path,L('นับสต็อกจากรูป','Count stock from a photo'),`<div class="card">${L('SAM 3.1 นับไม่สำเร็จ ลองอีกครั้ง','SAM 3.1 could not count; try again')}</div>${pick}`,{script});}
+  const w=r.w||1024,h=r.h||768;
+  const overlay=`<div style="position:relative;max-width:640px"><img src="${esc(img)}" alt="" style="width:100%;display:block;border-radius:16px"><svg viewBox="0 0 ${w} ${h}" style="position:absolute;inset:0;width:100%;height:100%">${r.boxes.map((b,i)=>`<rect x="${b.x1}" y="${b.y1}" width="${b.x2-b.x1}" height="${b.y2-b.y1}" fill="rgba(26,113,255,.12)" stroke="#1a71ff" stroke-width="${Math.max(2,w/300)}" rx="8"/><text x="${b.x1+8}" y="${b.y1+Math.max(18,w/40)}" font-size="${Math.max(16,w/40)}" fill="#fff" stroke="#1a71ff" stroke-width="3" paint-order="stroke">${i+1}</text>`).join('')}</svg></div>`;
+  const confirm=boss?`<form method="post" action="/meta/staff/menu/${item.productId}/stock" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><label>${L('ตั้งสต็อกเป็น','Set stock to')}</label><input name="stock" value="${r.count}" inputmode="numeric" style="width:100px;margin:0"><button class="inline">${L('ยืนยัน','Confirm')}</button></form>`:`<p class="mu">${L('ให้เจ้าของหรือผู้จัดการยืนยัน','Ask an owner or manager to confirm')}</p>`;
+  return send(200,path,L('นับสต็อกจากรูป','Count stock from a photo'),`<div class="grid g2"><div>${overlay}</div><div class="card"><h2>${esc(nm(item.name,item.nameEn))}: ${r.count} ${L('ชิ้น','pcs')}</h2><p class="mu">${L('สต็อกในระบบตอนนี้','Stock in the system now')} ${item.available} · ${L('SAM 3.1 นับจากกรอบที่เห็น ตรวจก่อนยืนยัน','counted by SAM 3.1 from the boxes shown; check before confirming')}</p>${confirm}</div></div><div class="card">${pick}</div>`,{script});
  }
  if(path==='/meta/staff/menu'){
   if(!agent)return send(503,path,'เมนูและสต็อก','<div class="card">ระบบเมนูยังไม่พร้อม</div>');

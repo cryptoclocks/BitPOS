@@ -41,7 +41,10 @@ function ProductPrice({ product, language }: { product: Product; language: 'th' 
   return <span className="product-price">{product.promotion && product.basePrice && <><del>{formatMoney(product.basePrice)}</del><span className="promotion-badge">{product.promotion.discount.kind === 'percent' ? `${t('ลด ', '')}${product.promotion.discount.percent}%${t('', ' off')}` : `${t('ลด ', '')}${formatMoney({ ...product.basePrice, amountMinor: product.promotion.discount.amountMinor })}${t('', ' off')}`}</span></>}<span>{formatMoney(product.unitPrice)}</span></span>;
 }
 export default function Pos() {
-  const [session, setSession] = useState<Session>(); const [language, setLanguage] = useState<'th' | 'en'>('en');
+  const [session, setSession] = useState<Session>();
+  // Meta edition: keep the sign-in across a page refresh in this tab only (sessionStorage), checked again with the server.
+  useEffect(()=>{if(!META)return;try{const raw=sessionStorage.getItem('bitpos-meta-session');if(!raw)return;const saved=JSON.parse(raw) as Session;void api<unknown>('/session',undefined,saved.token).then(()=>setSession(saved)).catch(()=>{try{sessionStorage.removeItem('bitpos-meta-session');}catch{}});}catch{}},[]);
+  useEffect(()=>{if(!META)return;try{if(session)sessionStorage.setItem('bitpos-meta-session',JSON.stringify(session));else sessionStorage.removeItem('bitpos-meta-session');}catch{}},[session]); const [language, setLanguage] = useState<'th' | 'en'>('en');
   const [guideOpen, setGuideOpen] = useState(false);
   const [workspaceExpanded,setWorkspaceExpanded]=useState(false);
   const [demoEnabled, setDemoEnabled] = useState(false);

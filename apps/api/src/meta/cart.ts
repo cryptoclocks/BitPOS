@@ -14,7 +14,7 @@ export type CartChannel='table'|'counter'|'web'|'chat';
 export interface CartLine {productId:string;quantity:number}
 export interface CartOrderView {orderId:string;code:string;channel:CartChannel;status:'PENDING'|'PAID'|'CANCELLED'|'EXPIRED';currency:Currency;amountMinor:string;total:string;
  discount:string;checkoutUrl:string|null;paidAt:string|null;handedOverAt:string|null;stockShort:boolean;tableLabel:string|null;
- lines:{name:string;nameEn:string;emoji:string;quantity:number;unit:string;amount:string;offer:boolean}[]}
+ lines:{productId:string;name:string;nameEn:string;emoji:string;quantity:number;unit:string;amount:string;offer:boolean}[]}
 export class CartError extends Error {constructor(readonly code:'EMPTY'|'INVALID_INPUT'|'NOT_FOUND'|'OUT_OF_STOCK'|'MIXED_CURRENCY'|'BELOW_MINIMUM'|'PAYMENTS_UNAVAILABLE'|'NOT_CANCELLABLE'|'ENDED'){super(code);}}
 
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
@@ -112,11 +112,11 @@ async function viewOf(c:pg.PoolClient,orderId:string):Promise<CartOrderView|null
   `SELECT o.id,o.channel,o.status,(o.status='PENDING' AND o.expires_at<clock_timestamp()) AS expired,o.currency,o.amount_minor::text,o.discount_minor::text,o.checkout_url,o.paid_at,o.handed_over_at,o.stock_short,t.label
    FROM meta_cart_orders o LEFT JOIN merchant_tables t ON t.merchant_id=o.merchant_id AND t.id=o.table_id WHERE o.id=$1`,[orderId])).rows[0];
  if(!o)return null;
- const lines=(await c.query<{name:string;name_en:string;emoji:string;quantity:number;unit_minor:string;base_minor:string}>('SELECT name,name_en,emoji,quantity,unit_minor::text,base_minor::text FROM meta_cart_items WHERE order_id=$1 ORDER BY line',[orderId])).rows;
+ const lines=(await c.query<{product_id:string;name:string;name_en:string;emoji:string;quantity:number;unit_minor:string;base_minor:string}>('SELECT product_id,name,name_en,emoji,quantity,unit_minor::text,base_minor::text FROM meta_cart_items WHERE order_id=$1 ORDER BY line',[orderId])).rows;
  const f=(m:string|bigint)=>formatTapAmount(m.toString(),o.currency);
  return {orderId:o.id,code:cartCode(o.id),channel:o.channel,status:o.expired?'EXPIRED':o.status,currency:o.currency,amountMinor:o.amount_minor,total:f(o.amount_minor),discount:f(o.discount_minor),
   checkoutUrl:o.status==='PENDING'&&!o.expired?o.checkout_url:null,paidAt:o.paid_at?.toISOString()??null,handedOverAt:o.handed_over_at?.toISOString()??null,stockShort:o.stock_short,tableLabel:o.label,
-  lines:lines.map(l=>({name:l.name,nameEn:l.name_en,emoji:l.emoji,quantity:l.quantity,unit:f(l.unit_minor),amount:f(BigInt(l.unit_minor)*BigInt(l.quantity)),offer:BigInt(l.base_minor)>BigInt(l.unit_minor)}))};
+  lines:lines.map(l=>({productId:l.product_id,name:l.name,nameEn:l.name_en,emoji:l.emoji,quantity:l.quantity,unit:f(l.unit_minor),amount:f(BigInt(l.unit_minor)*BigInt(l.quantity)),offer:BigInt(l.base_minor)>BigInt(l.unit_minor)}))};
 }
 /** The customer's receipt page: needs the access token from the return link; asks Stripe once if still pending. */
 export async function cartReceipt(deps:AgentDeps,orderId:string,access:string|null,checkoutId:string|null):Promise<CartOrderView|null>{

@@ -40,6 +40,17 @@
 - 29 October (later): three Muse additions on meta-pay, each checked with one real call.
 - 29 October (later): meta-pos is responsive and bilingual, English by default (owner request).
 - 29 October (evening): meta-pos now uses the real POS screens (owner decision, option 2/1). The current POS was imported unchanged from `codex/bitpos-h2-local-scope-20261027` at `a3e50d7` (see PROVENANCE), with H2 migrations 138–169 applied to the local test DB. Meta changes on top:
+- 30 October: the remaining software (owner: software first, then docs and video; stickers later):
+  - **meta-pos sign-in:** kept across a refresh in this tab only (sessionStorage, re-checked with /session).
+  - **Muse tab:** order and kitchen sub-tabs dropped (the POS order center has them); framed pages use POS headings and spacing; new "Count stock (SAM)" sub-tab.
+  - **Chat:** "Reorder" on paid cart orders in My orders.
+  - **Voice page:** 🔊 reads the reply with the device voice.
+  - **What to eat (`suggestItems`):** Muse Spark picks ≤3 listed items with digit-free reasons, using time of day, offers and the customer's own past orders, with a fallback. Messenger chip/ice breaker, plus a voice-page chip.
+  - **Tourist mode (`translate.ts`, migration 318):** meta-pay menu in ja/zh/ko/fr/de/es. Names are translated once per language and cached by the English-name hash; names carrying a price are refused. Checked live: Japanese, 9 names.
+  - **Whole table (`splitTableOrder`):** one clip → Muse Voice Transcribe DIARIZATION → one cart per speaker (one Spark call or matcher) → a QR per person (`/meta/order/group`, `/meta/order/split`). Real API with two synthetic voices: 2 turns, A Thai and B English, 2.6 s.
+  - **Stock count (`vision.ts` `samCount`, `/meta/staff/stockcount`):** SAM 3.1 through /v1/responses, streamed. `include_confidence` is refused (400) so it is not sent. Boxes are drawn over the photo; an owner or manager confirms. Real call: 9 croissants in 2.7 s.
+  - **Offer banners (`banners.ts`, migration 319):** Muse Image `/v1/images/edits` adds the offer badge to the real menu photo, only for live applied offers. Banners are PENDING until owner/manager approval; meta-pay shows them with an AI-edited label while the offer lasts. Checked live end to end: draft → approve → banner → approve → meta-pay menu shows /meta/banner/… (200 webp).
+  - **OCI:** migrations 318–319 applied after backup `bitpos-20261029T103719Z-pre318.dump`. Meta tests 86/86.
   - **Edition and theme:** `PUBLIC_BITPOS_EDITION=meta` (`apps/web/src/lib/edition.ts`). A build step `tools/meta/meta-pos-theme.mjs` recolours purple → Meta blue in the build copy only, and the logo becomes `images/meta/bitpos-muse-logo.png`.
   - **Payments:** the counter sale charges through Stripe via `/meta/staff/api/counter` (`pos-api.ts`), which reads the POS Bearer token against `sessions`. The bill shows in `MetaCounterBill.tsx` and polls until PAID (webhook/lookup only). The Payment wallet section and the USDG options are hidden; the footer reads Stripe sandbox.
   - **Muse tab:** `MetaHub.tsx` shows Meta orders, kitchen, bookings floor, Muse Spark offers, Messenger customers, Connector, AI evidence, payouts and devices/Messenger in frames. `/meta/staff/api/sso` exchanges the POS session for the Meta staff cookie, and Meta pages hide their own bars when `Sec-Fetch-Dest: iframe`.

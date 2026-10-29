@@ -32,10 +32,12 @@ export function wavValid(b:Buffer):boolean{
  return false;
 }
 
-export async function transcribe(config:AsrConfig,wav:Buffer,keywords:string[],fetchImpl:AsrFetch=fetch):Promise<{transcript:string;durationMs:number;sessionId:string}>{
+export interface Turn {speaker:string;transcript:string}
+/** mode DIARIZATION also returns who said what (turns with speaker labels), for ordering for a whole table. */
+export async function transcribe(config:AsrConfig,wav:Buffer,keywords:string[],fetchImpl:AsrFetch=fetch,mode:'PUSH_TO_TALK'|'DIARIZATION'='PUSH_TO_TALK'):Promise<{transcript:string;durationMs:number;sessionId:string;turns:Turn[]}>{
  if(!wavValid(wav))throw new AsrError('AUDIO_INVALID');
  const form=new FormData();
- form.append('request',new Blob([JSON.stringify({model:config.model,audioEncoding:'WAV',mode:'PUSH_TO_TALK',languageBias:['Thai','English'],
+ form.append('request',new Blob([JSON.stringify({model:config.model,audioEncoding:'WAV',mode,languageBias:['Thai','English'],
   keywords:[...new Set(keywords.map(k=>k.trim()).filter(k=>k&&k.length<=40))].slice(0,40)})],{type:'application/json'}));
  form.append('audio',new Blob([new Uint8Array(wav)],{type:'audio/wav'}),'order.wav');
  const sessionId=randomUUID();
@@ -48,5 +50,6 @@ export async function transcribe(config:AsrConfig,wav:Buffer,keywords:string[],f
  if(!res.ok)throw new AsrError('FAILED');
  let body:any;try{body=await res.json();}catch{throw new AsrError('FAILED');}
  if(typeof body?.transcript!=='string')throw new AsrError('FAILED');
- return {transcript:body.transcript.trim().slice(0,300),durationMs:Number(body.audioDurationMs)||0,sessionId};
+ const turns=(Array.isArray(body.turns)?body.turns:[]).slice(0,40).flatMap((t:any)=>typeof t?.transcript==='string'&&t.transcript.trim()?[{speaker:String(t.speaker??'unknown').slice(0,20),transcript:t.transcript.trim().slice(0,300)}]:[]);
+ return {transcript:body.transcript.trim().slice(0,mode==='DIARIZATION'?2000:300),durationMs:Number(body.audioDurationMs)||0,sessionId,turns};
 }

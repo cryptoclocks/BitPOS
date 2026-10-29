@@ -11,7 +11,7 @@ import type {MetaDb,OfferDeps,IdentityDeps} from '../apps/api/src/meta/identity'
 import {handleMessengerEvents} from '../apps/api/src/meta/identity';
 import {messengerImageUrl,parseMessengerWebhook,sendMessenger} from '../apps/api/src/meta/messenger';
 import type {EffectiveMenu} from '../apps/api/src/offers';
-import {decideStep,handleAgentRequest,matchItem,planPhotoOrder,type ChatAgentDeps} from '../apps/api/src/meta/agent';
+import {decideStep,handleAgentRequest,matchItem,planPhotoOrder,splitTableOrder,suggestItems,type ChatAgentDeps} from '../apps/api/src/meta/agent';
 import {agentReceipt,listMenu,reconcileAgentCheckout} from '../apps/api/src/meta/agent-orders';
 import {cartChatReceipt} from '../apps/api/src/meta/cart';
 import {wavValid} from '../apps/api/src/meta/voice';
@@ -207,7 +207,7 @@ test('menu cards, one-tap order and My orders: no model call; receipt template w
  const [quote]=await handleAgentRequest(deps,{merchantId:A,linkId,psid:PSID,kind:'agent_add',productId:latte}) as any[];
  assert.equal(quote.kind,'cards');assert.match(quote.cards[0].buttons[0].payload,/^BITPOS_AGENT_PAY:/);
  const [mine,mineCards]=await handleAgentRequest(deps,{merchantId:A,linkId,psid:PSID,kind:'my_orders'}) as any[];
- assert.equal(mineCards.kind,'cards');assert.match(mineCards.cards[0].title,/#[0-9A-F]{4}/);assert.deepEqual(mineCards.quick.map((q:any)=>q.payload),['BITPOS_MENU','BITPOS_MY_ORDERS','BITPOS_BOOK'],'chips under the last reply');
+ assert.equal(mineCards.kind,'cards');assert.match(mineCards.cards[0].title,/#[0-9A-F]{4}/);assert.deepEqual(mineCards.quick.map((q:any)=>q.payload),['BITPOS_SUGGEST','BITPOS_MENU','BITPOS_MY_ORDERS','BITPOS_BOOK'],'chips under the last reply');
  assert.match(mine.text,/รายการล่าสุด/);
  assert.equal(routerCalls,calls0,'menu, one-tap order and My orders never call the model');
  // Receipt: Messenger receipt template; if Messenger refuses it, the same facts go out as text.
@@ -302,4 +302,26 @@ test('photo order: Messenger CDN images only; Muse Spark picks a listed item; th
  const out=await handleAgentRequest(pd,{merchantId:A,linkId,psid:PSID,kind:'photo',url:'https://scontent.xx.fbcdn.net/v/a.jpg'}) as any[];
  assert.match(out[0].text,/ไม่แน่ใจ/,'medium confidence is said');assert.equal(out[1].cards[0].buttons[0].payload,`BITPOS_CART_ADD:${latte}:1`);
  const none=await planPhotoOrder({...deps,router:null},A,linkId,'data:image/jpeg;base64,/9j/AAAA');assert.equal(none.kind,'error','no model, no guess');
+});
+
+test('what to eat: listed items only, digit-free reasons, fallback without a model; Messenger chip',{skip},async()=>{
+ assert.equal(msg(PSID,{postback:{payload:'BITPOS_SUGGEST'}},90)[0].event.kind,'suggest');
+ const router={invoke:async()=>({value:{picks:[{productId:latte,reasonTh:'อุ่นๆ ช่วงบ่าย',reasonEn:'Warm for the afternoon'},{productId:latte,reasonTh:'ซ้ำ',reasonEn:'dup'}]},invocation:{id:randomUUID()},attempts:[]})} as any;
+ const r=await suggestItems({...deps,router,modelCallsPerHour:50},A,linkId);
+ assert.equal(r.by,'Muse Spark');assert.equal(r.picks.length,1,'duplicates dropped');assert.equal(r.picks[0].item.productId,latte);
+ const bad={invoke:async()=>({value:{picks:[{productId:latte,reasonTh:'ลด 20%',reasonEn:'20% off'}]},invocation:{id:randomUUID()},attempts:[]})} as any;
+ assert.equal((await suggestItems({...deps,router:bad,modelCallsPerHour:50},A,linkId)).picks[0].reasonEn,'Recommended by the shop','no numbers from the model');
+ const none=await suggestItems({...deps,router:null},A,linkId);assert.equal(none.by,'');assert.ok(none.picks.length>=1);
+ const [t,cards]=await handleAgentRequest({...deps,router,modelCallsPerHour:50},{merchantId:A,linkId,psid:PSID,kind:'suggest'}) as any[];
+ assert.match(t.text,/Muse Spark/);assert.match(cards.cards[0].subtitle,/afternoon/);
+});
+
+test('table order: one cart per speaker; model output limited to listed items and speakers; matcher fallback',{skip},async()=>{
+ const turns=[{speaker:'A',transcript:'ผมเอา Latte สองแก้ว'},{speaker:'B',transcript:'ฉันเอา Latte หนึ่ง'},{speaker:'A',transcript:'แค่นั้นครับ'}];
+ const router={invoke:async(r:any)=>{const u=JSON.parse(r.messages[1].content);assert.equal(u.speakers.length,2,'turns grouped per speaker');
+  return {value:{people:[{speaker:'A',labelTh:'คนที่ 1',labelEn:'Person 1',lines:[{productId:latte,quantity:2}]},{speaker:'B',labelTh:'คนที่ 2',labelEn:'Person 2',lines:[{productId:latte,quantity:1}]},{speaker:'A',labelTh:'x',labelEn:'x',lines:[]}]},invocation:{id:randomUUID()},attempts:[]};}} as any;
+ const r=await splitTableOrder({...deps,router,modelCallsPerHour:50},A,linkId,turns);
+ assert.equal(r.by,'Muse Spark');assert.deepEqual(r.people.map(p=>[p.speaker,p.lines[0].quantity]),[['A',2],['B',1]],'duplicate speaker dropped');
+ const f=await splitTableOrder({...deps,router:null},A,linkId,turns);
+ assert.deepEqual(f.people.map(p=>[p.labelEn,p.lines[0].quantity]),[['Person 1',2],['Person 2',1]]);
 });

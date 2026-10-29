@@ -141,6 +141,60 @@ export async function matchPhoto(router:MetaRouter,merchantId:string,items:MenuI
  }
 }
 
+const SUGGEST_SYSTEM=`You help a cafe customer who does not know what to order.
+Pick one to three items from the list that suit the time of day and the customer's past orders (if any); prefer items on offer when they fit.
+Use only productIds from the list. For each pick write a short reason in Thai (reasonTh) and English (reasonEn), under 80 characters each.
+Never write numbers, prices, discounts, currency symbols or health claims in the reasons.`;
+export interface Suggestion {item:MenuItem;reasonTh:string;reasonEn:string}
+/** "What should I eat?": up to three listed items with reasons (Muse Spark, or offers first then past orders). */
+export async function suggestItems(deps:ChatAgentDeps,merchantId:string,linkId:string|null,deadlineMs=10000):Promise<{picks:Suggestion[];by:string}>{
+ const items=(await listMenu(deps,merchantId)).filter(i=>i.payable);
+ if(!items.length)return {picks:[],by:''};
+ const past=linkId?(await deps.db.tenant(merchantId,c=>c.query<{product_id:string}>(`SELECT i.product_id FROM meta_cart_items i JOIN meta_cart_orders o ON o.merchant_id=i.merchant_id AND o.id=i.order_id WHERE o.link_id=$1 AND o.status='PAID'
+   UNION ALL SELECT product_id FROM meta_agent_orders WHERE link_id=$1 AND status='CONFIRMED' LIMIT 20`,[linkId]))).rows.map(r=>r.product_id):[];
+ const fallback=()=>{const seen=new Set<string>();const order=[...items.filter(i=>i.offer),...past.map(id=>items.find(i=>i.productId===id)).filter((i):i is MenuItem=>!!i),...items];
+  return order.filter(i=>!seen.has(i.productId)&&seen.add(i.productId)).slice(0,3).map(item=>({item,reasonTh:item.offer?'มีโปรวันนี้':'เมนูที่ลูกค้าชอบ',reasonEn:item.offer?'On offer today':'A shop favourite'}));};
+ if(!deps.router||linkId&&!allowModelCall(linkId,deps.modelCallsPerHour??10))return {picks:fallback(),by:''};
+ const ids=items.map(i=>i.productId) as [string,...string[]];
+ const schema=z.object({picks:z.array(z.object({productId:z.enum(ids),reasonTh:z.string().trim().min(1).max(160),reasonEn:z.string().trim().min(1).max(160)}).strict()).min(1).max(3)}).strict();
+ const jsonSchema={type:'object',additionalProperties:false,required:['picks'],properties:{picks:{type:'array',minItems:1,maxItems:3,items:{type:'object',additionalProperties:false,required:['productId','reasonTh','reasonEn'],properties:{productId:{type:'string',enum:ids},reasonTh:{type:'string',maxLength:160},reasonEn:{type:'string',maxLength:160}}}}}};
+ const hour=Number(new Intl.DateTimeFormat('en-GB',{hour:'2-digit',hour12:false,timeZone:TZ}).format(new Date()));
+ try{
+  const r=await deps.router.invoke({task:'agent_order',merchantId,messages:[{role:'system',content:SUGGEST_SYSTEM},{role:'user',content:JSON.stringify({localHour:hour,timeZone:TZ,pastOrders:past.map(id=>items.find(i=>i.productId===id)?.nameEn).filter(Boolean),menu:items.map(i=>({productId:i.productId,item:i.nameEn,itemTh:i.name,category:i.category,onOffer:!!i.offer}))})}],
+   output:{name:'suggestions',schema,jsonSchema},maxOutputTokens:1200,reasoningEffort:'minimal',deadlineMs});
+  const seen=new Set<string>();
+  const picks=r.value.picks.filter(p=>!seen.has(p.productId)&&seen.add(p.productId)).map(p=>{const ok=!NO_DIGITS.test(p.reasonTh)&&!NO_DIGITS.test(p.reasonEn)&&!FORBIDDEN.test(p.reasonTh)&&!FORBIDDEN.test(p.reasonEn);
+   return {item:items.find(i=>i.productId===p.productId)!,reasonTh:ok?p.reasonTh:'แนะนำจากร้าน',reasonEn:ok?p.reasonEn:'Recommended by the shop'};});
+  return {picks,by:'Muse Spark'};
+ }catch(e){if(e instanceof MetaRouterError)return {picks:fallback(),by:''};throw e;}
+}
+
+const SPLIT_SYSTEM=`Several people at one cafe table said what they want; each speaker is one person paying their own bill.
+For each speaker, list the items from the menu they asked for, with quantities (1-10). Skip speakers who ordered nothing.
+Use only productIds from the list; never invent items. Name each person with a short neutral label in Thai (labelTh) and English (labelEn) such as "คนที่ 1" / "Person 1".`;
+export interface SplitPerson {speaker:string;labelTh:string;labelEn:string;said:string;lines:CartLine[]}
+/** Ordering for a whole table: what each speaker said → one cart per person (one Muse Spark call, or the name matcher). */
+export async function splitTableOrder(deps:ChatAgentDeps,merchantId:string,linkId:string,turns:{speaker:string;transcript:string}[],deadlineMs=15000):Promise<{people:SplitPerson[];by:string}>{
+ const items=(await listMenu(deps,merchantId)).filter(i=>i.payable);
+ const bySpeaker=new Map<string,string[]>();for(const t of turns)bySpeaker.set(t.speaker,[...(bySpeaker.get(t.speaker)??[]),t.transcript]);
+ const speakers=[...bySpeaker].slice(0,6).map(([speaker,texts])=>({speaker,said:texts.join(' ').slice(0,400)}));
+ const fallback=()=>speakers.map((p,i)=>{const st=matchItem(p.said,items);const lines=st.action==='cart'?st.lines:st.action==='quote'?[{productId:st.productId,quantity:st.quantity}]:[];
+  return {speaker:p.speaker,labelTh:`คนที่ ${i+1}`,labelEn:`Person ${i+1}`,said:p.said,lines:lines.filter(l=>CART_ID.test(l.productId))};}).filter(p=>p.lines.length);
+ if(!items.length||!speakers.length)return {people:[],by:''};
+ if(!deps.router||!allowModelCall(linkId,deps.modelCallsPerHour??10))return {people:fallback(),by:''};
+ const ids=items.map(i=>i.productId) as [string,...string[]],sp=speakers.map(p=>p.speaker) as [string,...string[]];
+ const schema=z.object({people:z.array(z.object({speaker:z.enum(sp),labelTh:z.string().trim().min(1).max(30),labelEn:z.string().trim().min(1).max(30),lines:z.array(z.object({productId:z.enum(ids),quantity:z.number().int().min(1).max(10)}).strict()).max(5)}).strict()).max(6)}).strict();
+ const jsonSchema={type:'object',additionalProperties:false,required:['people'],properties:{people:{type:'array',maxItems:6,items:{type:'object',additionalProperties:false,required:['speaker','labelTh','labelEn','lines'],properties:{speaker:{type:'string',enum:sp},labelTh:{type:'string',maxLength:30},labelEn:{type:'string',maxLength:30},lines:{type:'array',maxItems:5,items:{type:'object',additionalProperties:false,required:['productId','quantity'],properties:{productId:{type:'string',enum:ids},quantity:{type:'integer',minimum:1,maximum:10}}}}}}}}};
+ try{
+  const r=await deps.router.invoke({task:'agent_order',merchantId,messages:[{role:'system',content:SPLIT_SYSTEM},{role:'user',content:JSON.stringify({speakers,menu:items.map(i=>({productId:i.productId,item:i.nameEn,itemTh:i.name}))})}],
+   output:{name:'table_split',schema,jsonSchema},maxOutputTokens:2000,reasoningEffort:'minimal',deadlineMs});
+  const seen=new Set<string>();
+  const people=r.value.people.filter(p=>!seen.has(p.speaker)&&seen.add(p.speaker)).map(p=>{const merged=new Map<string,number>();for(const l of p.lines)merged.set(l.productId,Math.min(10,(merged.get(l.productId)??0)+l.quantity));
+   return {speaker:p.speaker,labelTh:NO_DIGITS.test(p.labelTh.replace(/\d+$/,''))?'ลูกค้า':p.labelTh,labelEn:p.labelEn,said:speakers.find(x=>x.speaker===p.speaker)?.said??'',lines:[...merged].map(([productId,quantity])=>({productId,quantity})).filter(l=>CART_ID.test(l.productId))};}).filter(p=>p.lines.length);
+  return {people,by:'Muse Spark'};
+ }catch(e){if(e instanceof MetaRouterError)return {people:fallback(),by:''};throw e;}
+}
+
 /** One customer message → one step (Muse Spark or the free matcher) → a server-priced quote or the menu. */
 export async function planChatOrder(deps:ChatAgentDeps,merchantId:string,linkId:string,text:string):Promise<ChatPlan>{
  try{
@@ -170,7 +224,7 @@ function imageFor(deps:ChatAgentDeps,i:MenuItem):string|undefined{
 const CART_ID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 const CART_LINES=10;
 /** The chip row under the last reply (design C08/C15). */
-export const QUICK:QuickReply[]=[{title:'เมนู',payload:'BITPOS_MENU'},{title:'ออเดอร์ของฉัน',payload:'BITPOS_MY_ORDERS'},{title:'จองโต๊ะ',payload:'BITPOS_BOOK'}];
+export const QUICK:QuickReply[]=[{title:'ไม่รู้จะกินอะไร',payload:'BITPOS_SUGGEST'},{title:'เมนู',payload:'BITPOS_MENU'},{title:'ออเดอร์ของฉัน',payload:'BITPOS_MY_ORDERS'},{title:'จองโต๊ะ',payload:'BITPOS_BOOK'}];
 const plus=(cart:CartLine[],productId:string,n=1):CartLine[]|null=>{
  if(!CART_ID.test(productId))return null;
  const has=cart.some(l=>l.productId===productId);
@@ -266,6 +320,14 @@ async function agentReplies(deps:ChatAgentDeps,req:AgentRequest):Promise<Outgoin
     return [{kind:'buttons',psid,text:`ยอดรวมจากร้าน · จ่ายทีเดียวบนหน้า Stripe Checkout\nPay the whole cart on Stripe Checkout.\n${LABEL}`,buttons:[{type:'web_url',title:'จ่าย / Pay',url:r.checkoutUrl}]}];
    }catch(e){if(e instanceof CartError)return [{kind:'text',psid,text:CART_ERR[e.code]}];throw e;}
   }
+  if(req.kind==='suggest'){
+   const {picks,by}=await suggestItems(deps,merchantId,linkId);
+   if(!picks.length)return [{kind:'text',psid,text:'ตอนนี้ยังไม่มีเมนูที่สั่งได้ค่ะ / Nothing can be ordered right now.'}];
+   const cards=menuCards(deps,psid,picks.map(p=>p.item),[],merchantId) as Extract<Outgoing,{kind:'cards'}>;
+   cards.cards.forEach((c,i)=>{c.subtitle=`${picks[i].reasonTh} · ${picks[i].reasonEn}`.slice(0,80);});
+   return [{kind:'text',psid,text:`ลองเมนูเหล่านี้ไหมคะ 👇${by?` · ${by}`:''}
+How about these?`},cards];
+  }
   if(req.kind==='photo'){
    const p=await planPhotoOrder(deps,merchantId,linkId,req.url);
    if(p.kind==='error')return [{kind:'text',psid,text:p.text}];
@@ -293,7 +355,8 @@ async function agentReplies(deps:ChatAgentDeps,req:AgentRequest):Promise<Outgoin
     ...bookings.map(b=>({title:`🗓️ #${b.code} โต๊ะ ${b.tableLabel} · ${when(b.startsAt)}`,subtitle:`${b.partySize} คน · ${RES_STATUS[b.status]}${b.status==='HELD'?` · เช็กอิน ${hhmm(b.checkInFrom)}–${hhmm(b.checkInUntil)}`:''}`,
      buttons:b.status==='HELD'?[{type:'postback' as const,title:'ยกเลิกการจอง / Cancel',payload:`BITPOS_BOOK_CANCEL:${b.id}`}]:[]})),
     ...carts.map(c=>({title:`🧾 #${c.code} ${c.lines.map(l=>`${l.emoji} ${l.name} ×${l.quantity}`).join(', ')}`,subtitle:`${c.total} · ${c.handedOverAt?'🤝 รับแล้ว / picked up':CS[c.status]??c.status}${c.status==='PAID'&&!c.handedOverAt?(stages.get(c.orderId)==='READY'?' · ✅ พร้อมรับที่เคาน์เตอร์ / ready':' · 👩‍🍳 กำลังเตรียม / preparing'):''}`,
-     buttons:c.checkoutUrl?[{type:'web_url' as const,title:'จ่าย / Pay',url:c.checkoutUrl}]:[]})),
+     // Reorder: the same lines go back into the chat cart; the server prices them again from today's menu.
+     buttons:c.checkoutUrl?[{type:'web_url' as const,title:'จ่าย / Pay',url:c.checkoutUrl}]:c.status==='PAID'&&c.lines.every(l=>CART_ID.test(l.productId))?[{type:'postback' as const,title:'สั่งแบบเดิม / Reorder',payload:`BITPOS_CART_ADD:${formatCart(c.lines.slice(0,CART_LINES).map(l=>({productId:l.productId,quantity:Math.min(20,l.quantity)})))}`}]:[]})),
     ...orders.map(o=>({title:`🧾 #${o.code} ${o.line}`,subtitle:o.handedOver?'🤝 รับแล้ว / picked up':STATUS[o.status],buttons:[]}))].slice(0,10);
    return [{kind:'text',psid,text:'รายการล่าสุดของคุณค่ะ / Your latest orders and bookings'},{kind:'cards',psid,cards}];
   }

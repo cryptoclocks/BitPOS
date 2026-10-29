@@ -7,8 +7,10 @@ import {cartOrderMerchant,cartReceipt,CartError,formatCart,parseCart,quoteCart,s
 import {listMenu,type AgentDeps,type MenuItem} from './agent-orders';
 import {customerHtml,esc,photo,pill,row,status} from './ui';
 import type {MetaRouteDeps} from './routes';
+import {isTourist,menuNames,TOURIST,TOURIST_UI,type TouristLang} from './translate';
+import {liveBanners} from './banners';
 
-const CART='bitpos_meta_cart',TABLE='bitpos_meta_table',MAX_FORM=4096;
+const CART='bitpos_meta_cart',TABLE='bitpos_meta_table',LANG='bitpos_meta_lang',MAX_FORM=4096;
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 const CATS:[string,string][]=[['','ทั้งหมด'],['Coffee','กาแฟ'],['Tea & Chocolate','ชาและโกโก้'],['Bakery','เบเกอรี่'],['Desserts','ของหวาน']];
 const ERR:Record<CartError['code'],string>={EMPTY:'ตะกร้ายังว่าง / Your cart is empty.',INVALID_INPUT:'คำขอไม่ถูกต้อง / Invalid request.',NOT_FOUND:'บางเมนูไม่มีแล้ว / An item is no longer on the menu.',
@@ -47,7 +49,14 @@ export async function serveShop(req:http.IncomingMessage,res:http.ServerResponse
  if(!deps||!merchant||!agent){send(res,503,customerHtml({title:'ยังไม่พร้อม'},status('🛠️','am','ร้านยังไม่พร้อม',['Shop not configured on this server.'])));return true;}
  if(method==='POST'&&req.headers.origin!==deps.identity.publicOrigin){send(res,403,customerHtml({title:'ไม่อนุญาต',nav:[['เปิดหน้าร้านใหม่','/'],['ช่วยเหลือ','/help']]},status('🛡️','rd','คำขอไม่ถูกต้อง',['ฟอร์มต้องส่งจากหน้าของร้านเอง เปิดหน้าใหม่แล้วลองอีกครั้ง','Same-origin request required.'])));return true;}
  const cart=parseCart(cookie(req,CART));const count=cart.reduce((n,l)=>n+l.quantity,0);
- const cartBar=(total?:string)=>count?`<a class="bar" href="/cart"><span>ตะกร้า · ${count} รายการ</span><span>${total?esc(total)+' ':''}→</span></a>`:'';
+ // Tourist mode: ?l=ja|zh|ko|fr|de|es picks a language (remembered), ?l=th goes back to Thai/English.
+ const ql=url.searchParams.get('l'),saved=cookie(req,LANG);
+ const lang:TouristLang|null=isTourist(ql)?ql:ql==='th'?null:isTourist(saved)?saved:null;
+ const langCookie=ql===null?null:setCookie(deps,LANG,lang??'',lang?30*86400:0);
+ const ui=lang?TOURIST_UI[lang]:null;
+ const names=async(items:MenuItem[])=>lang?menuNames(deps.identity.db,deps.offers?.router??null,merchant,lang,items):new Map<string,string>();
+ const langChips=(here:string)=>`<div class="chips">${[['th','ไทย · EN'],...Object.entries(TOURIST).map(([k,v])=>[k,v[0]])].map(([k,l])=>`<a class="pill${(lang??'th')===k?'':' mu'}" href="${here}${here.includes('?')?'&':'?'}l=${k}">${k==='th'?'🌐 ':''}${esc(l)}</a>`).join('')}</div>`;
+ const cartBar=(total?:string)=>count?`<a class="bar" href="/cart"><span>${ui?esc(ui.cart):'ตะกร้า'} · ${count}${ui?'':' รายการ'}</span><span>${total?esc(total)+' ':''}→</span></a>`:'';
  try{
   if(path==='/'&&method==='GET'){
    let tableCookie:string|null=null,tableLabel:string|null=null;const want=url.searchParams.get('table');
@@ -59,21 +68,21 @@ ${row({icon:'📶',title:'แตะมือถือที่เครื่อ
    send(res,200,customerHtml({title:'Muse Café',nav:[['ดูเมนู / Menu','/menu'],['ช่วยเหลือ / Help','/help']]},body),tableCookie?{'Set-Cookie':setCookie(deps,TABLE,tableCookie,6*3600)}:{});return true;
   }
   if(path==='/menu'&&method==='GET'){
-   const cat=url.searchParams.get('c')??'',menu=await listMenu(agent,merchant);
-   const chips=`<div class="chips">${CATS.map(([k,t])=>`<a class="pill${k===cat?'':' mu'}" href="/menu${k?`?c=${encodeURIComponent(k)}`:''}">${esc(t)}</a>`).join('')}</div>`;
-   const items=menu.filter(m=>!cat||m.category===cat).map(m=>row({href:`/item/${m.productId}`,img:photo(m.imageUrl),title:`${m.name} · ${m.nameEn}`,
+   const cat=url.searchParams.get('c')??'',menu=await listMenu(agent,merchant),tr=await names(menu),bn=await liveBanners(deps.identity.db,merchant);
+   const chips=`<div class="chips">${CATS.map(([k,t])=>`<a class="pill${k===cat?'':' mu'}" href="/menu${k?`?c=${encodeURIComponent(k)}`:''}">${esc(ui?k||'All':t)}</a>`).join('')}</div>`;
+   const items=menu.filter(m=>!cat||m.category===cat).map(m=>row({href:`/item/${m.productId}`,img:bn.has(m.productId)?`/meta/banner/${bn.get(m.productId)}`:photo(m.imageUrl),title:lang?`${tr.get(m.productId)??m.nameEn} · ${m.nameEn}`:`${m.name} · ${m.nameEn}`,
     sub:`${m.offer?`<span class="pill rd">โปร −${m.offer.discountPercent}%</span>`:''}${m.available>0?'':'<span class="pill mu">หมด</span>'}`,right:price(m)})).join('');
    const added=url.searchParams.get('added')?'<div class="note" style="background:var(--grb);color:var(--gr)">ใส่ตะกร้าแล้ว ✓ / Added to cart</div>':'';
-   send(res,200,customerHtml({title:'เมนู',back:'/',nav:[['สั่งด้วยเสียง/พิมพ์ (ต้องเชื่อมต่อ)','/meta/order'],['หน้าร้าน / Shop','/']]},`<h1>เมนู / Menu</h1>${added}${chips}${items?`<div class="lst">${items}</div>`:'<p class="mu">ยังไม่มีเมนูในหมวดนี้</p>'}${cartBar()}`));return true;
+   send(res,200,customerHtml({title:'เมนู',back:'/',nav:ui?[['Voice order (Messenger customers)','/meta/order'],['Shop','/']]:[['สั่งด้วยเสียง/พิมพ์ (ต้องเชื่อมต่อ)','/meta/order'],['หน้าร้าน / Shop','/']]},`<h1>${ui?esc(ui.menu):'เมนู / Menu'}</h1>${langChips('/menu')}${added}${chips}${ui?`<p class="mu">${esc(ui.note)}</p>`:''}${items?`<div class="lst">${items}</div>`:'<p class="mu">ยังไม่มีเมนูในหมวดนี้</p>'}${cartBar()}`),langCookie?{'Set-Cookie':langCookie}:{});return true;
   }
   const item=path.match(/^\/item\/([0-9a-f-]{36})$/);
   if(item&&method==='GET'){
-   const m=(await listMenu(agent,merchant)).find(x=>x.productId===item[1]);
+   const all=await listMenu(agent,merchant),m=all.find(x=>x.productId===item[1]),tr=await names(m?[m]:[]),bn=await liveBanners(deps.identity.db,merchant);
    if(!m){send(res,404,customerHtml({title:'ไม่พบเมนู',back:'/menu',nav:[['กลับไปเมนู','/menu']]},status('🔎','am','ไม่พบเมนูนี้',['เมนูอาจถูกนำออกแล้ว'])));return true;}
-   const img=photo(m.imageUrl);
-   const body=`${img?`<img class="hero" src="${esc(img)}" alt="">`:''}<div class="card"><h1>${esc(m.name)} · ${esc(m.nameEn)}</h1><p style="font-size:22px;font-weight:800;color:var(--p)">${price(m)}</p>
+   const live=bn.get(m.productId),img=live?`/meta/banner/${live}`:photo(m.imageUrl);
+   const body=`${img?`<img class="hero" src="${esc(img)}" alt="">${live?'<small class="mu">🎨 ภาพแก้ด้วย AI (Muse Image) · AI-edited photo</small>':''}`:''}<div class="card"><h1>${lang?esc(tr.get(m.productId)??m.nameEn):esc(m.name)} · ${esc(m.nameEn)}</h1><p style="font-size:22px;font-weight:800;color:var(--p)">${price(m)}</p>
 ${m.offer?`${pill(`โปร −${m.offer.discountPercent}% ที่ร้านอนุมัติ`,'rd')}`:''}<p class="mu">ราคาจากร้าน ส่วนลดคิดโดยเซิร์ฟเวอร์ · Prices from the server</p></div>
-${m.payable?`<form method="post" action="/cart/add"><input type="hidden" name="id" value="${m.productId}"><label>จำนวน / Quantity</label><select name="q">${[1,2,3,4,5].map(n=>`<option>${n}</option>`).join('')}</select><button>ใส่ตะกร้า / Add to cart</button></form>`:'<div class="note">เมนูนี้หมดหรือสั่งไม่ได้ตอนนี้ / Not available now.</div>'}`;
+${m.payable?`<form method="post" action="/cart/add"><input type="hidden" name="id" value="${m.productId}"><label>จำนวน / Quantity</label><select name="q">${[1,2,3,4,5].map(n=>`<option>${n}</option>`).join('')}</select><button>${ui?esc(ui.add):'ใส่ตะกร้า / Add to cart'}</button></form>`:'<div class="note">เมนูนี้หมดหรือสั่งไม่ได้ตอนนี้ / Not available now.</div>'}`;
    send(res,200,customerHtml({title:m.nameEn,back:'/menu',nav:[['กลับไปเมนู / Menu','/menu'],['ตะกร้า / Cart','/cart']]},body));return true;
   }
   if(path==='/cart/add'&&method==='POST'){
@@ -89,11 +98,12 @@ ${m.payable?`<form method="post" action="/cart/add"><input type="hidden" name="i
   if(path==='/cart'&&method==='GET'){
    if(!cart.length){send(res,200,customerHtml({title:'ตะกร้า',back:'/menu',nav:[['ดูเมนู / Menu','/menu'],['หน้าร้าน / Shop','/']]},status('🛒','ti','ตะกร้ายังว่าง',['เลือกเมนูที่ชอบได้เลย / Your cart is empty.'])));return true;}
    let q;try{q=await quoteCart(agent,merchant,cart);}catch(e){if(e instanceof CartError){send(res,409,customerHtml({title:'ตะกร้า',back:'/menu',nav:[['กลับไปเมนู','/menu']]},status('⚠️','am','ตรวจรายการอีกครั้ง',[esc(ERR[e.code])]))+'',{'Set-Cookie':e.code==='NOT_FOUND'?setCookie(deps,CART,'',0):''});return true;}throw e;}
-   const lines=q.lines.map(l=>`${row({img:photo(l.imageUrl),title:`${l.name} × ${l.quantity}`,sub:`${esc(l.unit)} / ชิ้น${l.offer?' · <span class="pill rd">โปร</span>':''}`,right:esc(l.amount)})}
+   const tr=lang?await names(await listMenu(agent,merchant)):new Map<string,string>();
+   const lines=q.lines.map(l=>`${row({img:photo(l.imageUrl),title:`${lang?tr.get(l.productId)??l.nameEn:l.name} × ${l.quantity}`,sub:`${esc(l.unit)} / ชิ้น${l.offer?' · <span class="pill rd">โปร</span>':''}`,right:esc(l.amount)})}
 <div class="qty" style="justify-content:flex-end;margin:-2px 4px 8px">${[l.quantity-1,l.quantity+1].map((n,i)=>`<form method="post" action="/cart/set"><input type="hidden" name="id" value="${l.productId}"><input type="hidden" name="q" value="${n}"><button aria-label="${i?'เพิ่ม':'ลด'}">${i?'+':'−'}</button></form>`).join('')}</div>`).join('');
    const body=`<h1>ตรวจรายการ / Review</h1><div class="cols"><div>${lines}</div><div><div class="card">${q.discount!=='$0.00'?`<div class="tot"><span class="mu">ส่วนลดที่ร้านอนุมัติ</span><span style="color:var(--gr)">−${esc(q.discount)}</span></div>`:''}<div class="tot b"><span>รวม / Total</span><span style="color:var(--p)">${esc(q.total)}</span></div>
 <small>ราคาล็อกเมื่อกดจ่าย (30 นาที) · ถ้าราคาเปลี่ยน ระบบคิดใหม่ก่อนเสมอ</small></div><div class="note">Stripe sandbox · บัตรทดสอบ 4242 4242 4242 4242 · ไม่มีเงินจริง</div>
-<form method="post" action="/checkout"><button>จ่าย ${esc(q.total)} ด้วย Stripe</button></form></div></div>`;
+<form method="post" action="/checkout"><button>${ui?`${esc(ui.pay)} · ${esc(q.total)}`:`จ่าย ${esc(q.total)} ด้วย Stripe`}</button></form></div></div>`;
    send(res,200,customerHtml({title:'ตะกร้า',back:'/menu',navPrimary:false,nav:[['เพิ่มเมนู / Add more','/menu']]},body));return true;
   }
   if(path==='/checkout'&&method==='POST'){

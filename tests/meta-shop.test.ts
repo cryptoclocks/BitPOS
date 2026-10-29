@@ -1,6 +1,8 @@
 // Meta hackathon work (2026-10-26..11-04). See meta-hackathon/PROVENANCE.md.
 // meta-pay shop and cart orders (migration 313) and the meta-pos pages, against a disposable PostgreSQL with
 // migrations 001–313 applied; Stripe and Supabase Auth are stubbed. Queries run as `bitpos_app` under RLS.
+import {menuNames} from '../apps/api/src/meta/translate';
+import {listMenu} from '../apps/api/src/meta/agent-orders';
 import {test,before,after} from 'node:test';
 import assert from 'node:assert/strict';
 import {createHmac,randomUUID} from 'node:crypto';
@@ -131,7 +133,7 @@ test('HTTP: shop pages always offer a way on; same-origin POSTs; staff pages nee
   assert.match(await (await fetch(base+'/meta/staff/overview',{redirect:'follow'})).text(),/name="password"/);
   const login=await fetch(base+'/meta/staff/login',{method:'POST',body:'email=owner@shop.test&password=x',redirect:'manual',headers:{'content-type':'application/x-www-form-urlencoded',origin:'https://pos.example.test'}});
   assert.equal(login.status,303);const sc=login.headers.get('set-cookie')!.split(';')[0];
-  for(const p of ['/meta/staff','/meta/staff/overview','/meta/staff/counter','/meta/staff/kitchen','/meta/staff/bookings','/meta/staff/menu','/meta/staff/customers','/meta/staff/connector','/meta/staff/reports','/meta/staff/settings','/meta/staff/users','/meta/staff/payouts','/meta/staff/offers','/meta/staff/ledger']){
+  for(const p of ['/meta/staff','/meta/staff/overview','/meta/staff/counter','/meta/staff/kitchen','/meta/staff/bookings','/meta/staff/menu','/meta/staff/customers','/meta/staff/connector','/meta/staff/reports','/meta/staff/settings','/meta/staff/users','/meta/staff/payouts','/meta/staff/stockcount','/meta/staff/offers','/meta/staff/ledger']){
    const r=await fetch(base+p,{headers:{cookie:sc}});assert.equal(r.status,200,p);const h=await r.text();assert.match(h,/class="side"/,`${p} has the meta-pos sidebar`);assert.doesNotMatch(h,/USDG|USDC|Solana|devnet/i,p);
    // English by default with nothing Thai left (menu names in English too); Thai when chosen.
    const thai=h.match(/[\u0e00-\u0e7f][\u0e00-\u0e7f ]*/g)?.filter(x=>x!=='ไทย')??[];assert.deepEqual(thai,[],`${p} has Thai left in English`);assert.match(h,/<html lang="en">/);
@@ -169,4 +171,15 @@ test('BitPOS Mini Meta screens: device key required; idle, counter Stripe QR, pa
   const paid=await deviceView(db,dev,'https://pay.example.test');assert.deepEqual([paid?.screen,paid?.tone],['paid','green']);
   for(const v of [idle,qr!,paid!])for(const f of ['table','title','line1','line2','big'] as const)assert.match((v as any)[f],/^[\x20-\x7e\u0e00-\u0e7f]*$/,`${f}: ${(v as any)[f]}`);
  }finally{server.close();}
+});
+
+test('tourist mode: names translated once per language and cached; renamed items again; prices never from the model',{skip},async()=>{
+ let calls=0;
+ const router={invoke:async(r:any)=>{calls++;const items=JSON.parse(r.messages[1].content).items;return {value:{names:items.map((i:any)=>({productId:i.productId,name:i.english==='Latte'?'ラテ':i.english==='Cake'?'$5 ケーキ':'名'}))},invocation:{id:randomUUID()},attempts:[]};}} as any;
+ const menu=await listMenu(deps,M);
+ const first=await menuNames(db,router,M,'ja',menu);assert.equal(first.get(latte),'ラテ');assert.equal(calls,1);
+ assert.ok(![...first.values()].some(v=>v.includes('$')),'a name with a price is refused');
+ const again=await menuNames(db,router,M,'ja',menu);assert.equal(again.get(latte),'ラテ');
+ const before=calls;await menuNames(db,router,M,'ja',menu.map(i=>i.productId===latte?{...i,nameEn:'Caffe Latte'}:i));assert.ok(calls>before,'renamed item is translated again');
+ assert.equal((await menuNames(db,null,M,'fr',menu)).size,0,'no model: English names stay');
 });
