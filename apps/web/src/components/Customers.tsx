@@ -95,6 +95,8 @@ function CustomerWorkspace({session,language}:{session:Session;language:'en'|'th
   try{
    const name=draft.name.trim();
    if(!name)throw Error(t('ใส่ชื่อเล่นก่อนบันทึก','Enter a nickname before saving.'));
+   const email=draft.email.trim();
+   if(email&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))throw Error(t('รูปแบบอีเมลไม่ถูกต้อง','Enter a valid email address, or leave it empty.'));
    if(creating){
     try{sessionStorage.setItem(outcomeKey,createIntent);if(sessionStorage.getItem(outcomeKey)!==createIntent)throw Error();}
     catch{throw Error(t('ไม่สามารถบันทึกสถานะคำขอได้ ยังไม่ได้ส่งข้อมูล กรุณาเปิดใช้พื้นที่จัดเก็บของเบราว์เซอร์','Cannot persist request status. Nothing was submitted. Enable browser session storage.'));}
