@@ -7,7 +7,8 @@ process.env.DOTENV_CONFIG_PATH='/dev/null';
 // Emulator/phone HTTP clients reuse idle sockets; keep them alive longer than the 5s Node default.
 const listen=http.Server.prototype.listen;
 http.Server.prototype.listen=function(this:http.Server,...args:unknown[]){this.keepAliveTimeout=120000;this.headersTimeout=125000;return (listen as (...a:unknown[])=>http.Server).apply(this,args);} as typeof http.Server.prototype.listen;
-const DB='bitpos_try_fixture',DB_PORT=55440,AUTH_PORT=Number(process.env.BITPOS_TRY_AUTH_PORT??'3044'),API_PORT=Number(process.env.BITPOS_TRY_API_PORT??'3043');
+const DB=process.env.BITPOS_TRY_DB??'bitpos_try_fixture',DB_PORT=55440,AUTH_PORT=Number(process.env.BITPOS_TRY_AUTH_PORT??'3044'),API_PORT=Number(process.env.BITPOS_TRY_API_PORT??'3043');
+if(!['bitpos_try_fixture','bitpos_fix_fixture'].includes(process.env.BITPOS_TRY_DB??'bitpos_try_fixture'))throw Error('Refusing database '+process.env.BITPOS_TRY_DB);
 export const FIXTURE_CODE='123456';
 Object.assign(process.env,{
  DATABASE_URL:`postgresql://bitpos_app@127.0.0.1:${DB_PORT}/${DB}`,

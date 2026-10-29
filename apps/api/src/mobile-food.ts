@@ -1,3 +1,4 @@
+import {createHash} from 'node:crypto';
 import type pg from 'pg';
 import {z} from 'zod';
 import {hash} from '../../../packages/domain/src/index';
@@ -47,13 +48,15 @@ import{boundary as scheduleBoundary}from'./food-schedule-candidate';
 import{MobileCouponApplyRequestSchema,MobileCouponQuoteSchema,MobileScheduleSlotsSchema,MobileScheduleHoldRequestSchema,MobileScheduleHoldSchema}from'../../../packages/contracts/src/mobile-v1.generated';
 /** Coupon/schedule admission failures are SQL-gate refusals (QUOTE_CHANGED/CONFIGURATION_REQUIRED), never a 500. */
 function couponCheckoutBoundary(error:unknown):never{if(error instanceof Error&&error.message.startsWith('COUPON_'))couponBoundary(error);if(error instanceof Error&&error.message.startsWith('SCHEDULE_'))scheduleBoundary(error);throw error;}
-const setMobile=(db:pg.PoolClient,actor:MobilePrincipal)=>db.query("SELECT set_config('bitpos.mobile_account',$1,true),set_config('bitpos.mobile_session',$2,true)",[actor.accountId,actor.sessionId]);
+/** The 171 wrappers authenticate through dispatch_realtime_actor(), which also needs the sha256 of the presented access token (as food-discovery/food-reviews set it); without it every call is AUTH_REQUIRED. */
+const accessHashOf=(bearer:string|undefined)=>bearer?createHash('sha256').update(bearer.slice(7)).digest('hex'):undefined;
+const setMobile=async(db:pg.PoolClient,actor:MobilePrincipal,accessHash?:string)=>{await db.query("SELECT set_config('bitpos.mobile_account',$1,true),set_config('bitpos.mobile_session',$2,true)",[actor.accountId,actor.sessionId]);if(accessHash)await db.query("SELECT set_config('bitpos.mobile_access_hash',$1,true)",[accessHash]);};
 const couponReceipt=z.object({quoteId:z.string().uuid(),sourceQuoteId:z.string().uuid(),holdId:z.string().uuid(),checkoutReady:z.literal(false)}).strict();
 const scheduleReceipt=z.object({id:z.string().uuid(),slotId:z.string().uuid(),quoteId:z.string().uuid(),state:z.enum(['HELD','RELEASED','EXPIRED']),expiresAt:z.string(),startsAt:z.string(),endsAt:z.string(),replayed:z.boolean(),checkoutReady:z.literal(false)}).strict();
 const iso=(value:string)=>new Date(value).toISOString();
 /** Attach a merchant-funded coupon code to an own quote. The discount, minimum, quota, expiry and non-zero payable are all decided by migration 167/098 SQL; the client only names a code. */
-export async function applyFoodCoupon(db:pg.PoolClient,actor:MobilePrincipal,branchId:string,quoteId:string,input:unknown){
- const data=MobileCouponApplyRequestSchema.parse(input);await setMobile(db,actor);
+export async function applyFoodCoupon(db:pg.PoolClient,actor:MobilePrincipal,branchId:string,quoteId:string,input:unknown,accessHash?:string){
+ const data=MobileCouponApplyRequestSchema.parse(input);await setMobile(db,actor,accessHash);
  const merchant=(await db.query<{m:string}>("SELECT current_setting('bitpos.merchant',true) m")).rows[0].m;
  await routingLock(db,merchant);
  let receipt:z.infer<typeof couponReceipt>;
@@ -69,14 +72,15 @@ export async function applyFoodCoupon(db:pg.PoolClient,actor:MobilePrincipal,bra
  return MobileCouponQuoteSchema.parse({couponCode:data.code.trim().toUpperCase(),sourceQuoteId:quoteId,quote:await quoteProjection(db,q,branchId)});
 }
 /** Published, still-bookable slots (empty = the branch publishes none). Window times and capacity are server-owned. */
-export async function branchScheduleSlots(db:pg.PoolClient,actor:MobilePrincipal,branchId:string,serving:string){
- await setMobile(db,actor);
- const slots=(await db.query<{value:{id:string;startsAt:string;endsAt:string;bookingClosesAt:string;timezone:string}[]}>('SELECT bitpos.mobile_schedule_slots($1,$2) value',[branchId,serving])).rows[0].value;
+export async function branchScheduleSlots(db:pg.PoolClient,actor:MobilePrincipal,branchId:string,serving:string,accessHash?:string){
+ await setMobile(db,actor,accessHash);
+ let slots:{id:string;startsAt:string;endsAt:string;bookingClosesAt:string;timezone:string}[];
+ try{slots=(await db.query<{value:typeof slots}>('SELECT bitpos.mobile_schedule_slots($1,$2) value',[branchId,serving])).rows[0].value;}catch(error){return scheduleBoundary(error);}
  return MobileScheduleSlotsSchema.parse({branchId,serving,slots:slots.map(s=>({...s,startsAt:iso(s.startsAt),endsAt:iso(s.endsAt),bookingClosesAt:iso(s.bookingClosesAt)}))});
 }
 /** Hold one published slot for an own quote; the later order creation binds it (migration 168). */
-export async function holdScheduleSlot(db:pg.PoolClient,actor:MobilePrincipal,quoteId:string,input:unknown){
- const data=MobileScheduleHoldRequestSchema.parse(input);await setMobile(db,actor);
+export async function holdScheduleSlot(db:pg.PoolClient,actor:MobilePrincipal,quoteId:string,input:unknown,accessHash?:string){
+ const data=MobileScheduleHoldRequestSchema.parse(input);await setMobile(db,actor,accessHash);
  const merchant=(await db.query<{m:string}>("SELECT current_setting('bitpos.merchant',true) m")).rows[0].m;
  await routingLock(db,merchant);
  try{
@@ -190,19 +194,19 @@ export async function mobileFoodRequest(url:URL,method:string,input:unknown,bear
  if(couponRoute&&method==='POST'){
   if(url.search)fail('INVALID_REQUEST',422);const actor=await mobilePrincipal(bearer),id=uuid.parse(couponRoute[1]);
   const location=(await pool.query<{merchant_id:string;branch_id:string}>('SELECT * FROM bitpos.mobile_owned_quote_location($1,$2,$3)',[actor.accountId,actor.sessionId,id])).rows[0];if(!location)fail('RESOURCE_NOT_FOUND',404);
-  return tenant(location.merchant_id,db=>applyFoodCoupon(db,actor,location.branch_id,id,input));
+  return tenant(location.merchant_id,db=>applyFoodCoupon(db,actor,location.branch_id,id,input,accessHashOf(bearer)));
  }
  const holdRoute=/^\/api\/mobile\/v1\/food\/quotes\/([0-9a-f-]{36})\/schedule-hold$/.exec(path);
  if(holdRoute&&method==='POST'){
   if(url.search)fail('INVALID_REQUEST',422);const actor=await mobilePrincipal(bearer),id=uuid.parse(holdRoute[1]);
   const location=(await pool.query<{merchant_id:string;branch_id:string}>('SELECT * FROM bitpos.mobile_owned_quote_location($1,$2,$3)',[actor.accountId,actor.sessionId,id])).rows[0];if(!location)fail('RESOURCE_NOT_FOUND',404);
-  return tenant(location.merchant_id,db=>holdScheduleSlot(db,actor,id,input));
+  return tenant(location.merchant_id,db=>holdScheduleSlot(db,actor,id,input,accessHashOf(bearer)));
  }
  const slotsRoute=/^\/api\/mobile\/v1\/branches\/([0-9a-f-]{36})\/schedule-slots$/.exec(path);
  if(slotsRoute&&method==='GET'){
   for(const key of url.searchParams.keys())if(key!=='serving'||url.searchParams.getAll(key).length!==1)fail('INVALID_REQUEST',422);
   const serving=z.enum(['pickup','delivery']).parse(url.searchParams.get('serving')),actor=await mobilePrincipal(bearer),id=uuid.parse(slotsRoute[1]),b=await publicBranch(id);
-  return tenant(b.merchant_id,db=>branchScheduleSlots(db,actor,id,serving));
+  return tenant(b.merchant_id,db=>branchScheduleSlots(db,actor,id,serving,accessHashOf(bearer)));
  }
  if(path==='/api/mobile/v1/food/orders'&&method==='POST'){
   if(url.search)fail('INVALID_REQUEST',422);const actor=await mobilePrincipal(bearer),data=MobileFoodOrderRequestSchema.parse(input);
