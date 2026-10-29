@@ -1,4 +1,5 @@
 import 'presentation/cart_coupon_page.dart';
+import 'presentation/schedule_slot_picker.dart';
 
 import 'dart:async';
 
@@ -298,6 +299,14 @@ class _FoodPageState extends State<FoodPage> with WidgetsBindingObserver {
   MobileMenu? _menu;
   List<MobileProduct> _products = [];
   MobileFoodQuote? _quote;
+  // The quote that carries a server-applied coupon; a refreshed quote never inherits it.
+  String? _couponQuoteId, _couponCode;
+  ScheduleAvailability _scheduleAvailability = ScheduleAvailability.loading;
+  List<MobileScheduleSlot> _slots = const [];
+  MobileScheduleSlot? _selectedSlot;
+  // Held slot command per quote+slot so a retried confirm replays the same server hold.
+  ({String quoteId, String slotId, String key})? _slotCommand;
+  MobileScheduleSlot? _scheduledSlot;
   bool _cartReview = false;
   bool _delivery = false;
   MobileCustomerDeliveryPolicy? _deliveryPolicy;
@@ -962,6 +971,69 @@ class _FoodPageState extends State<FoodPage> with WidgetsBindingObserver {
       );
     }
     _setCartReview(true);
+    unawaited(_loadSlots(menu.branch.id, _delivery ? 'delivery' : 'pickup'));
+  }
+
+  /// Slots are optional: any failure leaves the order immediate and says so.
+  Future<void> _loadSlots(String branchId, String serving) async {
+    if (mounted) setState(() => _scheduleAvailability = ScheduleAvailability.loading);
+    ScheduleAvailability result;
+    var slots = <MobileScheduleSlot>[];
+    try {
+      final published = await widget.api.scheduleSlots(branchId, serving);
+      if (published.branchId != branchId || published.serving != serving) {
+        throw const FormatException('Schedule slots identity mismatch');
+      }
+      slots = published.slots;
+      result = slots.isEmpty ? ScheduleAvailability.none : ScheduleAvailability.published;
+    } catch (_) {
+      result = ScheduleAvailability.failed;
+    }
+    if (!mounted) return;
+    setState(() {
+      _slots = slots;
+      _scheduleAvailability = result;
+      final chosen = _selectedSlot;
+      if (chosen != null && !slots.any((s) => s.id == chosen.id)) _selectedSlot = null;
+    });
+  }
+
+  Future<void> _openCoupon(MobileFoodQuote q) async {
+    final applied = _couponQuoteId == q.id ? _couponCode : null;
+    final result = await Navigator.of(context).push<Object>(
+      MaterialPageRoute<Object>(
+        builder: (_) => CartCouponPage(
+          thai: widget.thai,
+          appliedCode: applied,
+          newKey: widget.api.newCommandKey,
+          onApply: (code, key) => widget.api.applyFoodCoupon(
+            q.id,
+            MobileCouponApplyRequest(code: code, idempotencyKey: key),
+          ),
+        ),
+      ),
+    );
+    if (!mounted || !_current) return;
+    if (result is MobileCouponQuote) {
+      setState(() {
+        _quote = result.quote;
+        _couponQuoteId = result.quote.id;
+        _couponCode = result.couponCode;
+        _error = null;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            t(
+              'ใช้คูปอง ${result.couponCode} แล้ว ยอดใหม่ ${money(result.quote.total)}',
+              'Coupon ${result.couponCode} applied. New total ${money(result.quote.total)}',
+            ),
+          ),
+        ),
+      );
+    } else if (result is CouponRemoveRequest) {
+      await _run(_review);
+    }
   }
 
   Future<void> _submit() async {
@@ -969,6 +1041,28 @@ class _FoodPageState extends State<FoodPage> with WidgetsBindingObserver {
     if (_pending == null) {
       if (q == null || !DateTime.parse(q.validUntil).isAfter(DateTime.now()))
         throw const MobileApiException('QUOTE_EXPIRED', 409);
+      final slot = _selectedSlot;
+      if (slot != null) {
+        var command = _slotCommand;
+        if (command == null || command.quoteId != q.id || command.slotId != slot.id) {
+          command = (quoteId: q.id, slotId: slot.id, key: widget.api.newCommandKey());
+          _slotCommand = command;
+        }
+        try {
+          // Server-side capacity and window; an exhausted/closed slot refuses before any order exists.
+          await widget.api.holdScheduleSlot(
+            q.id,
+            MobileScheduleHoldRequest(slotId: slot.id, idempotencyKey: command.key),
+          );
+        } on MobileApiException catch (error) {
+          if (error.reason != null && error.reason!.startsWith('SCHEDULE_')) {
+            _selectedSlot = null;
+            _slotCommand = null;
+            unawaited(_loadSlots(q.branchId, q.delivery != null ? 'delivery' : 'pickup'));
+          }
+          rethrow;
+        }
+      }
       // The transport saves this UUID before sending, including process-death recovery.
       _pending = widget.api.newFoodOrderCommand(
         branchId: q.branchId,
@@ -980,6 +1074,9 @@ class _FoodPageState extends State<FoodPage> with WidgetsBindingObserver {
       final result = await widget.api.submitFoodOrder(_pending!);
       if (!mounted) return;
       _pending = null;
+      _scheduledSlot = _selectedSlot;
+      _selectedSlot = null;
+      _slotCommand = null;
       _order = result.order;
       _timeline = null;
       _quote = null;
@@ -1091,6 +1188,7 @@ class _FoodPageState extends State<FoodPage> with WidgetsBindingObserver {
     if (selected != null) {
       final detail = await widget.api.foodOrder(selected);
       if (!_current) return;
+      _scheduledSlot = null;
       _order = detail;
       _timeline = null;
       _quote = null;
@@ -1584,7 +1682,7 @@ class _FoodPageState extends State<FoodPage> with WidgetsBindingObserver {
                       const SizedBox(width: 10),
                       Expanded(
                         child: Text(
-                          foodErrorMessage(_error!, widget.thai),
+                          checkoutRefusalMessage(_error!, widget.thai),
                           style: TextStyle(
                             color: Theme.of(context)
                                 .colorScheme
@@ -1843,6 +1941,11 @@ class _FoodPageState extends State<FoodPage> with WidgetsBindingObserver {
                           ),
                           children: [
                             const Divider(height: 28),
+                            if (_scheduledSlot case final slot?)
+                              Text(
+                                key: const ValueKey('order-scheduled-slot'),
+                                '${t('นัดเวลา', 'Scheduled for')}: ${ScheduleSlotTile.format(slot, widget.thai)} · ${t('เวลาตามที่ร้านกำหนด', 'time set by the merchant')}',
+                              ),
                             Text(
                               '${t('การชำระ', 'Payment')}: ${foodStateLabel(o.status, widget.thai)}',
                             ),
@@ -2013,6 +2116,7 @@ class _FoodPageState extends State<FoodPage> with WidgetsBindingObserver {
                       ? null
                       : () => _run(() async {
                           await widget.api.forgetFoodOrder();
+                          _scheduledSlot = null;
                           _recoverOrderId = null;
                           _order = null;
                           _timeline = null;
@@ -2063,16 +2167,30 @@ class _FoodPageState extends State<FoodPage> with WidgetsBindingObserver {
                       child: const Icon(Icons.local_offer_outlined),
                     ),
                     title: Text(t('ใช้คูปองส่วนลด', 'Discount coupons')),
-                    subtitle: Text(t('ยังไม่เปิดใช้งาน', 'Not available yet')),
+                    subtitle: Text(
+                      _couponQuoteId == q.id
+                          ? t(
+                              'ใช้คูปอง $_couponCode · ลด ${money(q.discount)}',
+                              'Coupon $_couponCode · saves ${money(q.discount)}',
+                            )
+                          : t('ใส่รหัสคูปอง', 'Enter a coupon code'),
+                    ),
                     trailing: const Icon(Icons.chevron_right),
                     onTap: _busy || _pending != null
                         ? null
-                        : () => Navigator.of(context).push(
-                            MaterialPageRoute<void>(
-                              builder: (_) => CartCouponPage(thai: widget.thai),
-                            ),
-                          ),
+                        : () => _openCoupon(q),
                   ),
+                ),
+                ScheduleSlotTile(
+                  thai: widget.thai,
+                  availability: _scheduleAvailability,
+                  slots: _slots,
+                  selected: _selectedSlot,
+                  enabled: !_busy && _pending == null,
+                  onChanged: (slot) => setState(() {
+                    _selectedSlot = slot;
+                    _slotCommand = null;
+                  }),
                 ),
                 TextButton.icon(
                   onPressed: _busy || _pending != null
@@ -2129,6 +2247,16 @@ class _FoodPageState extends State<FoodPage> with WidgetsBindingObserver {
                 Text(
                   'Solana devnet · ${t('ไม่ใช่เงินจริง', 'not real money')}',
                 ),
+                if (_couponQuoteId == q.id)
+                  Text(
+                    key: const ValueKey('review-coupon-line'),
+                    '${t('คูปอง', 'Coupon')} $_couponCode: -${money(q.discount)}',
+                  ),
+                if (_selectedSlot case final slot?)
+                  Text(
+                    key: const ValueKey('review-scheduled-slot'),
+                    '${t('นัดเวลา', 'Scheduled for')}: ${ScheduleSlotTile.format(slot, widget.thai)}',
+                  ),
                 if (!widget.rootOwnsHeader)
                   QuoteConfirmation(
                     key: ValueKey(q.id),
@@ -2490,7 +2618,7 @@ class _FoodPageState extends State<FoodPage> with WidgetsBindingObserver {
                       ? BitPosStateKind.error
                       : BitPosStateKind.offline,
                   thai: widget.thai,
-                  message: foodErrorMessage(_error!, widget.thai),
+                  message: checkoutRefusalMessage(_error!, widget.thai),
                   actionLabel: t('ลองอีกครั้ง', 'Try again'),
                   onAction: () => _run(_reloadBranches),
                 ),

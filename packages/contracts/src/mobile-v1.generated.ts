@@ -2326,3 +2326,44 @@ export const MobileRideLocationSchema=z.object({
  expiresAt:z.string().datetime({offset:true}).regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/).nullable(),
 }).strict();
 export type MobileRideLocation=z.infer<typeof MobileRideLocationSchema>;
+export const MobileCouponApplyRequestSchema=z.object({
+ code:z.string().regex(new RegExp("^[A-Za-z0-9][A-Za-z0-9_-]{2,31}$")).min(3).max(32),
+ idempotencyKey:z.string().uuid(),
+}).strict();
+export type MobileCouponApplyRequest=z.infer<typeof MobileCouponApplyRequestSchema>;
+export const MobileCouponQuoteSchema=z.object({
+ couponCode:z.string().regex(new RegExp("^[A-Z0-9][A-Z0-9_-]{2,31}$")).min(3).max(32),
+ sourceQuoteId:z.string().uuid(),
+ quote:MobileFoodQuoteSchema,
+}).strict();
+export type MobileCouponQuote=z.infer<typeof MobileCouponQuoteSchema>;
+export const MobileScheduleSlotSchema=z.object({
+ id:z.string().uuid(),
+ startsAt:z.string().datetime({offset:true}).regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/),
+ endsAt:z.string().datetime({offset:true}).regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/),
+ bookingClosesAt:z.string().datetime({offset:true}).regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/),
+ timezone:z.string().min(1).max(64),
+}).strict();
+export type MobileScheduleSlot=z.infer<typeof MobileScheduleSlotSchema>;
+export const MobileScheduleSlotsSchema=z.object({
+ branchId:z.string().uuid(),
+ serving:z.string().refine(value => ["pickup","delivery"].includes(value)),
+ slots:z.array(MobileScheduleSlotSchema).max(48),
+}).strict();
+export type MobileScheduleSlots=z.infer<typeof MobileScheduleSlotsSchema>;
+export const MobileScheduleHoldRequestSchema=z.object({
+ slotId:z.string().uuid(),
+ idempotencyKey:z.string().uuid(),
+}).strict();
+export type MobileScheduleHoldRequest=z.infer<typeof MobileScheduleHoldRequestSchema>;
+export const MobileScheduleHoldSchema=z.object({
+ id:z.string().uuid(),
+ slotId:z.string().uuid(),
+ quoteId:z.string().uuid(),
+ state:z.string().refine(value => ["HELD","RELEASED","EXPIRED"].includes(value)),
+ expiresAt:z.string().datetime({offset:true}).regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/),
+ startsAt:z.string().datetime({offset:true}).regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/),
+ endsAt:z.string().datetime({offset:true}).regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/),
+ replayed:z.boolean(),
+}).strict();
+export type MobileScheduleHold=z.infer<typeof MobileScheduleHoldSchema>;

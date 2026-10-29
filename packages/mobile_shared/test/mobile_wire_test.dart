@@ -13,6 +13,10 @@ void main() {
   'FoodMerchantAssignment':(json)=>FoodMerchantAssignment.fromJson(json).toJson(),
   'FoodPreparationEstimate':(json)=>FoodPreparationEstimate.fromJson(json).toJson(),
   'FoodMerchantAcceptanceCommand':(json)=>FoodMerchantAcceptanceCommand.fromJson(json).toJson(),
+  'MobileCouponApplyRequest':(json)=>MobileCouponApplyRequest.fromJson(json).toJson(),
+  'MobileScheduleSlots':(json)=>MobileScheduleSlots.fromJson(json).toJson(),
+  'MobileScheduleHoldRequest':(json)=>MobileScheduleHoldRequest.fromJson(json).toJson(),
+  'MobileScheduleHold':(json)=>MobileScheduleHold.fromJson(json).toJson(),
  };
  final fixtures=jsonDecode(File('../openapi/fixtures/mobile-wire.json').readAsStringSync()) as Map<String,dynamic>;
  for(final raw in fixtures['cases'] as List) {

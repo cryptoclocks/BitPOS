@@ -217,13 +217,13 @@ void main() {
         await capture('cart');
         await tap(find.byKey(const ValueKey('cart-coupon-entry')));
         await tester.pumpAndSettle();
+        // The fake API publishes no coupon route result, but the entry form itself is real.
+        expect(find.byKey(const ValueKey('coupon-code-field')), findsOneWidget);
         expect(
-          find.text(
-            thai ? 'ยังใช้คูปองไม่ได้' : 'Coupons are not available yet',
-          ),
+          find.text(thai ? 'ใช้คูปอง' : 'Apply coupon'),
           findsOneWidget,
         );
-        await capture('coupon-unavailable');
+        await capture('coupon-entry');
         await tap(find.text(thai ? 'กลับไปตะกร้า' : 'Back to cart'));
         await tester.pumpAndSettle();
         expect(find.byType(ConfiguredFoodLines), findsOneWidget);

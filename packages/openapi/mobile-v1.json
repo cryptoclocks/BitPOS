@@ -6016,6 +6016,139 @@
           }
         }
       }
+    },
+    "/food/quotes/{quoteId}/coupon": {
+      "parameters": [
+        {
+          "name": "quoteId",
+          "in": "path",
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "required": true
+        }
+      ],
+      "post": {
+        "operationId": "applyFoodCoupon",
+        "security": [
+          {
+            "mobileBearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MobileCouponApplyRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Replacement server quote with the coupon discount computed in integer minor units (merchant-funded, non-zero payable only); refusals are QUOTE_CHANGED with reasonCode or CONFIGURATION_REQUIRED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileCouponQuote"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/food/quotes/{quoteId}/schedule-hold": {
+      "parameters": [
+        {
+          "name": "quoteId",
+          "in": "path",
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "required": true
+        }
+      ],
+      "post": {
+        "operationId": "holdFoodScheduleSlot",
+        "security": [
+          {
+            "mobileBearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MobileScheduleHoldRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Server-held schedule slot bound to the quote; capacity and release instants are server-owned",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileScheduleHold"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/branches/{branchId}/schedule-slots": {
+      "parameters": [
+        {
+          "name": "branchId",
+          "in": "path",
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "required": true
+        }
+      ],
+      "get": {
+        "operationId": "branchScheduleSlots",
+        "security": [
+          {
+            "mobileBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "serving",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "pickup",
+                "delivery"
+              ]
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Currently bookable published slots; an empty list means the branch publishes none",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileScheduleSlots"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -17634,6 +17767,182 @@
                 "type": "null"
               }
             ]
+          }
+        }
+      },
+      "MobileCouponApplyRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "idempotencyKey"
+        ],
+        "properties": {
+          "code": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{2,31}$",
+            "minLength": 3,
+            "maxLength": 32
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "MobileCouponQuote": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "couponCode",
+          "sourceQuoteId",
+          "quote"
+        ],
+        "properties": {
+          "couponCode": {
+            "type": "string",
+            "pattern": "^[A-Z0-9][A-Z0-9_-]{2,31}$",
+            "minLength": 3,
+            "maxLength": 32
+          },
+          "sourceQuoteId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "quote": {
+            "$ref": "#/components/schemas/MobileFoodQuote"
+          }
+        }
+      },
+      "MobileScheduleSlot": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "startsAt",
+          "endsAt",
+          "bookingClosesAt",
+          "timezone"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "startsAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "endsAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "bookingClosesAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "timezone": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          }
+        }
+      },
+      "MobileScheduleSlots": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "branchId",
+          "serving",
+          "slots"
+        ],
+        "properties": {
+          "branchId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "serving": {
+            "type": "string",
+            "enum": [
+              "pickup",
+              "delivery"
+            ]
+          },
+          "slots": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MobileScheduleSlot"
+            },
+            "maxItems": 48
+          }
+        }
+      },
+      "MobileScheduleHoldRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "slotId",
+          "idempotencyKey"
+        ],
+        "properties": {
+          "slotId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "MobileScheduleHold": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "slotId",
+          "quoteId",
+          "state",
+          "expiresAt",
+          "startsAt",
+          "endsAt",
+          "replayed"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "slotId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "quoteId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "HELD",
+              "RELEASED",
+              "EXPIRED"
+            ]
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "startsAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "endsAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "replayed": {
+            "type": "boolean"
           }
         }
       }

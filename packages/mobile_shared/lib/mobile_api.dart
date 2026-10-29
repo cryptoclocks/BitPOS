@@ -19,9 +19,18 @@ const _configuredResponseBytes=24*1024*1024;
 class MobileApiException implements Exception {
   final String code;
   final int status;
-  const MobileApiException(this.code, this.status);
+  /// Server refusal reason (for example COUPON_ACCOUNT_LIMIT) when the error carries one.
+  final String? reason;
+  const MobileApiException(this.code, this.status, [this.reason]);
   @override
   String toString() => code;
+}
+
+String? _refusalReason(Object? error) {
+  if (error is! Map) return null;
+  final details = error['details'];
+  final reason = details is Map ? details['reasonCode'] : error['message'];
+  return reason is String && RegExp(r'^(COUPON|SCHEDULE)_[A-Z_]+$').hasMatch(reason) ? reason : null;
 }
 
 enum MobilePushApp {customer,driver}
@@ -154,7 +163,7 @@ class MobileApi {
         await _writeSession(requestSession,null);
       }
       final error = decoded['error'];
-      throw MobileApiException(error is Map && error['code'] is String ? error['code'] as String : 'REQUEST_FAILED', streamed.statusCode);
+      throw MobileApiException(error is Map && error['code'] is String ? error['code'] as String : 'REQUEST_FAILED', streamed.statusCode, _refusalReason(error));
     }
     return decoded;
   }
@@ -658,6 +667,16 @@ class MobileApi {
     final key=_activeFoodKey;
     return _foodOperation(()=>storage.delete(key:key));
   }
+  /// Fresh account-scoped idempotency key for a coupon or slot command.
+  String newCommandKey() => const Uuid().v4();
+  /// Attach a coupon code to a quote. The server returns a replacement quote whose discount and total it computed.
+  Future<MobileCouponQuote> applyFoodCoupon(String quoteId, MobileCouponApplyRequest request) async => MobileCouponQuote.fromJson(
+    await _request('food/quotes/${Uri.encodeComponent(quoteId)}/coupon', method: 'POST', body: request.toJson(), authenticated: true,maxResponseBytes:_configuredResponseBytes));
+  /// Currently bookable slots the branch has published; an empty list means none are published.
+  Future<MobileScheduleSlots> scheduleSlots(String branchId, String serving) async => MobileScheduleSlots.fromJson(
+    await _request('branches/${Uri.encodeComponent(branchId)}/schedule-slots?serving=${Uri.encodeQueryComponent(serving)}', authenticated: true));
+  Future<MobileScheduleHold> holdScheduleSlot(String quoteId, MobileScheduleHoldRequest request) async => MobileScheduleHold.fromJson(
+    await _request('food/quotes/${Uri.encodeComponent(quoteId)}/schedule-hold', method: 'POST', body: request.toJson(), authenticated: true));
   Future<MobileFoodOrderResult> submitFoodOrder(MobileFoodOrderRequest command) {
     final owner=_session;
     return _foodOperation(() {

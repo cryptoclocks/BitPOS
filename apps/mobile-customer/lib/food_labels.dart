@@ -133,3 +133,32 @@ String merchantBranchLabel({
   }
   return thai ? 'สาขายังไม่มีชื่อ' : 'Unnamed branch';
 }
+
+/// Customer text for a server refusal while attaching a coupon or holding a slot.
+/// Only the server decides eligibility; these strings explain its typed reason.
+String checkoutRefusalMessage(Object error, bool thai) {
+  final reason = error is MobileApiException ? error.reason : null;
+  final code = error is MobileApiException ? error.code : 'NETWORK';
+  final labels = switch (reason) {
+    'COUPON_NOT_FOUND' => ('ไม่พบรหัสคูปองนี้ ตรวจตัวสะกดแล้วลองใหม่', 'Coupon code not found. Check it and try again.'),
+    'COUPON_INELIGIBLE' => ('ออเดอร์นี้ยังไม่เข้าเงื่อนไขคูปอง', 'This order does not meet the coupon conditions.'),
+    'COUPON_ACCOUNT_LIMIT' => ('คุณใช้สิทธิ์คูปองนี้ครบแล้ว', 'You have used all of your uses of this coupon.'),
+    'COUPON_GLOBAL_LIMIT' || 'COUPON_BUDGET_LIMIT' => ('คูปองนี้ถูกใช้ครบแล้ว', 'This coupon has been fully redeemed.'),
+    'COUPON_ALREADY_APPLIED' => ('ราคานี้ใช้คูปองไปแล้ว กรุณาอัปเดตราคาก่อนเปลี่ยนคูปอง', 'A coupon is already on this price. Refresh the price to change it.'),
+    'COUPON_COLLECTION_REVIEW_REQUIRED' => ('ออเดอร์แบบนี้ยังใช้คูปองไม่ได้', 'Coupons cannot be used with this kind of order yet.'),
+    'COUPON_ZERO_ORDER_REQUIRES_COMPLETION' => ('คูปองนี้ทำให้ยอดเป็นศูนย์ ซึ่งยังไม่รองรับ', 'This coupon would make the order free, which is not supported yet.'),
+    'COUPON_PLATFORM_FUNDING_REQUIRED' => ('คูปองที่แพลตฟอร์มออกเงินให้ยังไม่เปิดใช้งาน', 'Platform-funded coupons are not enabled yet.'),
+    'SCHEDULE_CAPACITY_EXHAUSTED' => ('ช่วงเวลานี้เต็มแล้ว กรุณาเลือกช่วงอื่น', 'That time slot is full. Choose another.'),
+    'SCHEDULE_SLOT_UNAVAILABLE' || 'SCHEDULE_HOLD_UNAVAILABLE' => ('ช่วงเวลานี้ปิดรับแล้ว กรุณาเลือกช่วงอื่น', 'That time slot is no longer open. Choose another.'),
+    'SCHEDULE_QUOTE_ALREADY_HELD' || 'SCHEDULE_ALREADY_BOOKED' => ('ราคานี้จองช่วงเวลาไว้แล้ว กรุณาอัปเดตราคาก่อนเปลี่ยนช่วงเวลา', 'This price already holds a slot. Refresh the price to change it.'),
+    _ => null,
+  };
+  if (labels != null) return thai ? labels.$1 : labels.$2;
+  if (code == 'CONFIGURATION_REQUIRED') {
+    return thai ? 'ร้านนี้ยังไม่เปิดฟีเจอร์นี้' : 'This feature is not enabled for this merchant yet.';
+  }
+  if (code == 'RESOURCE_NOT_FOUND') {
+    return thai ? 'ไม่พบราคานี้ กรุณาอัปเดตราคา' : 'This price is no longer available. Refresh the price.';
+  }
+  return foodErrorMessage(error, thai);
+}

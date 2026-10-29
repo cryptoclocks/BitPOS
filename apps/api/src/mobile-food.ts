@@ -43,8 +43,48 @@ async function quoteProjection(db:pg.PoolClient,q:QuoteRow,branchId:string){
  return MobileFoodQuoteSchema.parse({id:v.id,merchantId:q.merchant_id,branchId,priceVersion:v.priceVersion,pricingRevision:v.pricingRevision,quotedAt:v.quotedAt,validUntil:v.validUntil,lines:linesProjection(v.lines),subtotal:configured.subtotal,discount:configured.discount,fees:configured.fees,tax:configured.tax,total:v.total,settlement:settlementProjection(v.settlement),configured,delivery:q.authority.serving.kind==='delivery'?deliveryProjection(await deliverySnapshot(db,q.merchant_id,q.id)):null});
 }
 import{boundary as couponBoundary}from'./coupon-quote-candidate';
-/** Coupon admission failures are SQL-gate refusals (QUOTE_CHANGED/CONFIGURATION_REQUIRED), never a 500. */
-function couponCheckoutBoundary(error:unknown):never{if(error instanceof Error&&error.message.startsWith('COUPON_'))couponBoundary(error);throw error;}
+import{boundary as scheduleBoundary}from'./food-schedule-candidate';
+import{MobileCouponApplyRequestSchema,MobileCouponQuoteSchema,MobileScheduleSlotsSchema,MobileScheduleHoldRequestSchema,MobileScheduleHoldSchema}from'../../../packages/contracts/src/mobile-v1.generated';
+/** Coupon/schedule admission failures are SQL-gate refusals (QUOTE_CHANGED/CONFIGURATION_REQUIRED), never a 500. */
+function couponCheckoutBoundary(error:unknown):never{if(error instanceof Error&&error.message.startsWith('COUPON_'))couponBoundary(error);if(error instanceof Error&&error.message.startsWith('SCHEDULE_'))scheduleBoundary(error);throw error;}
+const setMobile=(db:pg.PoolClient,actor:MobilePrincipal)=>db.query("SELECT set_config('bitpos.mobile_account',$1,true),set_config('bitpos.mobile_session',$2,true)",[actor.accountId,actor.sessionId]);
+const couponReceipt=z.object({quoteId:z.string().uuid(),sourceQuoteId:z.string().uuid(),holdId:z.string().uuid(),checkoutReady:z.literal(false)}).strict();
+const scheduleReceipt=z.object({id:z.string().uuid(),slotId:z.string().uuid(),quoteId:z.string().uuid(),state:z.enum(['HELD','RELEASED','EXPIRED']),expiresAt:z.string(),startsAt:z.string(),endsAt:z.string(),replayed:z.boolean(),checkoutReady:z.literal(false)}).strict();
+const iso=(value:string)=>new Date(value).toISOString();
+/** Attach a merchant-funded coupon code to an own quote. The discount, minimum, quota, expiry and non-zero payable are all decided by migration 167/098 SQL; the client only names a code. */
+export async function applyFoodCoupon(db:pg.PoolClient,actor:MobilePrincipal,branchId:string,quoteId:string,input:unknown){
+ const data=MobileCouponApplyRequestSchema.parse(input);await setMobile(db,actor);
+ const merchant=(await db.query<{m:string}>("SELECT current_setting('bitpos.merchant',true) m")).rows[0].m;
+ await routingLock(db,merchant);
+ let receipt:z.infer<typeof couponReceipt>;
+ try{
+  // The replacement quote, its configured snapshot and its coupon evidence row are inserted together; checks run once complete.
+  await db.query('SET CONSTRAINTS ALL DEFERRED');
+  receipt=couponReceipt.parse((await db.query('SELECT bitpos.mobile_coupon_apply($1,$2,$3) value',[quoteId,data.code,data.idempotencyKey])).rows[0].value);
+  await db.query('SET CONSTRAINTS ALL IMMEDIATE');
+ }catch(error){couponBoundary(error);}
+ if(receipt.sourceQuoteId!==quoteId)throw Error('Coupon source receipt mismatch');
+ const q=(await db.query<QuoteRow>("SELECT * FROM order_quotes WHERE merchant_id=$1 AND id=$2 AND origin_kind='online' AND source_account_id=$3 AND source_branch_id=$4",[merchant,receipt.quoteId,actor.accountId,branchId])).rows[0];
+ if(!q)fail('RESOURCE_NOT_FOUND',404);
+ return MobileCouponQuoteSchema.parse({couponCode:data.code.trim().toUpperCase(),sourceQuoteId:quoteId,quote:await quoteProjection(db,q,branchId)});
+}
+/** Published, still-bookable slots (empty = the branch publishes none). Window times and capacity are server-owned. */
+export async function branchScheduleSlots(db:pg.PoolClient,actor:MobilePrincipal,branchId:string,serving:string){
+ await setMobile(db,actor);
+ const slots=(await db.query<{value:{id:string;startsAt:string;endsAt:string;bookingClosesAt:string;timezone:string}[]}>('SELECT bitpos.mobile_schedule_slots($1,$2) value',[branchId,serving])).rows[0].value;
+ return MobileScheduleSlotsSchema.parse({branchId,serving,slots:slots.map(s=>({...s,startsAt:iso(s.startsAt),endsAt:iso(s.endsAt),bookingClosesAt:iso(s.bookingClosesAt)}))});
+}
+/** Hold one published slot for an own quote; the later order creation binds it (migration 168). */
+export async function holdScheduleSlot(db:pg.PoolClient,actor:MobilePrincipal,quoteId:string,input:unknown){
+ const data=MobileScheduleHoldRequestSchema.parse(input);await setMobile(db,actor);
+ const merchant=(await db.query<{m:string}>("SELECT current_setting('bitpos.merchant',true) m")).rows[0].m;
+ await routingLock(db,merchant);
+ try{
+  const r=scheduleReceipt.parse((await db.query('SELECT bitpos.mobile_schedule_hold($1,$2,$3) value',[data.slotId,quoteId,data.idempotencyKey])).rows[0].value);
+  if(r.slotId!==data.slotId||r.quoteId!==quoteId)throw Error('Schedule receipt mismatch');
+  return MobileScheduleHoldSchema.parse({id:r.id,slotId:r.slotId,quoteId:r.quoteId,state:r.state,expiresAt:iso(r.expiresAt),startsAt:iso(r.startsAt),endsAt:iso(r.endsAt),replayed:r.replayed});
+ }catch(error){scheduleBoundary(error);}
+}
 export async function mobileOrderProjection(db:pg.PoolClient,o:OrderRow,account?:string):Promise<MobileFoodOrder>{
  await db.query('SELECT id FROM orders WHERE merchant_id=$1 AND id=$2 FOR SHARE',[o.merchant_id,o.id]);
  const lifecycle=(await db.query('SELECT * FROM online_food_orders WHERE merchant_id=$1 AND order_id=$2 AND ($3::uuid IS NULL OR account_id=$3)',[o.merchant_id,o.id,account??null])).rows[0];
@@ -145,6 +185,24 @@ export async function mobileFoodRequest(url:URL,method:string,input:unknown,bear
    const q=await captureQuote(db,b.merchant_id,{kind:'online',id:actor.accountId,branchId:data.branchId},data.items,{kind:'versioned',source:{kind:'online',accountId:actor.accountId,branchId:data.branchId,channel:'customer_app',label:'BitPOS customer app'},serving:delivery?{kind:'delivery',label:'Delivery'}:{kind:'pickup',label:'Pickup'},target:null,pairingGeneration:null},customer,delivery);
    return quoteProjection(db,q,data.branchId);
   });
+ }
+ const couponRoute=/^\/api\/mobile\/v1\/food\/quotes\/([0-9a-f-]{36})\/coupon$/.exec(path);
+ if(couponRoute&&method==='POST'){
+  if(url.search)fail('INVALID_REQUEST',422);const actor=await mobilePrincipal(bearer),id=uuid.parse(couponRoute[1]);
+  const location=(await pool.query<{merchant_id:string;branch_id:string}>('SELECT * FROM bitpos.mobile_owned_quote_location($1,$2,$3)',[actor.accountId,actor.sessionId,id])).rows[0];if(!location)fail('RESOURCE_NOT_FOUND',404);
+  return tenant(location.merchant_id,db=>applyFoodCoupon(db,actor,location.branch_id,id,input));
+ }
+ const holdRoute=/^\/api\/mobile\/v1\/food\/quotes\/([0-9a-f-]{36})\/schedule-hold$/.exec(path);
+ if(holdRoute&&method==='POST'){
+  if(url.search)fail('INVALID_REQUEST',422);const actor=await mobilePrincipal(bearer),id=uuid.parse(holdRoute[1]);
+  const location=(await pool.query<{merchant_id:string;branch_id:string}>('SELECT * FROM bitpos.mobile_owned_quote_location($1,$2,$3)',[actor.accountId,actor.sessionId,id])).rows[0];if(!location)fail('RESOURCE_NOT_FOUND',404);
+  return tenant(location.merchant_id,db=>holdScheduleSlot(db,actor,id,input));
+ }
+ const slotsRoute=/^\/api\/mobile\/v1\/branches\/([0-9a-f-]{36})\/schedule-slots$/.exec(path);
+ if(slotsRoute&&method==='GET'){
+  for(const key of url.searchParams.keys())if(key!=='serving'||url.searchParams.getAll(key).length!==1)fail('INVALID_REQUEST',422);
+  const serving=z.enum(['pickup','delivery']).parse(url.searchParams.get('serving')),actor=await mobilePrincipal(bearer),id=uuid.parse(slotsRoute[1]),b=await publicBranch(id);
+  return tenant(b.merchant_id,db=>branchScheduleSlots(db,actor,id,serving));
  }
  if(path==='/api/mobile/v1/food/orders'&&method==='POST'){
   if(url.search)fail('INVALID_REQUEST',422);const actor=await mobilePrincipal(bearer),data=MobileFoodOrderRequestSchema.parse(input);

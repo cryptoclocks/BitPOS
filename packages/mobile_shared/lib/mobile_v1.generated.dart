@@ -5950,3 +5950,109 @@ class MobileRideLocation {
  }
  Map<String,dynamic> toJson() => {"enabled": enabled, "point": point?.toJson(), "receivedAt": receivedAt, "expiresAt": expiresAt};
 }
+
+class MobileCouponApplyRequest {
+ final String code;
+ final String idempotencyKey;
+ const MobileCouponApplyRequest._({required this.code, required this.idempotencyKey});
+ factory MobileCouponApplyRequest({required String code, required String idempotencyKey}) => MobileCouponApplyRequest.fromJson({"code": code, "idempotencyKey": idempotencyKey});
+ factory MobileCouponApplyRequest.fromJson(Map<String,dynamic> json) {
+  if (json.length != 2 || !json.keys.every(["code","idempotencyKey"].contains)) throw const FormatException('Invalid MobileCouponApplyRequest fields');
+  final code=(() { final value=json["code"]; const path="MobileCouponApplyRequest.code"; return _string(value, path, pattern: "^[A-Za-z0-9][A-Za-z0-9_-]{2,31}\$", format: null, min: 3, max: 32); })();
+  final idempotencyKey=(() { final value=json["idempotencyKey"]; const path="MobileCouponApplyRequest.idempotencyKey"; return _string(value, path, pattern: null, format: "uuid", min: 0, max: null); })();
+  return MobileCouponApplyRequest._(code: code, idempotencyKey: idempotencyKey);
+ }
+ Map<String,dynamic> toJson() => {"code": code, "idempotencyKey": idempotencyKey};
+}
+
+class MobileCouponQuote {
+ final String couponCode;
+ final String sourceQuoteId;
+ final MobileFoodQuote quote;
+ const MobileCouponQuote._({required this.couponCode, required this.sourceQuoteId, required this.quote});
+ factory MobileCouponQuote({required String couponCode, required String sourceQuoteId, required MobileFoodQuote quote}) => MobileCouponQuote.fromJson({"couponCode": couponCode, "sourceQuoteId": sourceQuoteId, "quote": quote.toJson()});
+ factory MobileCouponQuote.fromJson(Map<String,dynamic> json) {
+  if (json.length != 3 || !json.keys.every(["couponCode","sourceQuoteId","quote"].contains)) throw const FormatException('Invalid MobileCouponQuote fields');
+  final couponCode=(() { final value=json["couponCode"]; const path="MobileCouponQuote.couponCode"; return _string(value, path, pattern: "^[A-Z0-9][A-Z0-9_-]{2,31}\$", format: null, min: 3, max: 32); })();
+  final sourceQuoteId=(() { final value=json["sourceQuoteId"]; const path="MobileCouponQuote.sourceQuoteId"; return _string(value, path, pattern: null, format: "uuid", min: 0, max: null); })();
+  final quote=(() { final value=json["quote"]; const path="MobileCouponQuote.quote"; return MobileFoodQuote.fromJson(_object(value, path)); })();
+  return MobileCouponQuote._(couponCode: couponCode, sourceQuoteId: sourceQuoteId, quote: quote);
+ }
+ Map<String,dynamic> toJson() => {"couponCode": couponCode, "sourceQuoteId": sourceQuoteId, "quote": quote.toJson()};
+}
+
+class MobileScheduleSlot {
+ final String id;
+ final String startsAt;
+ final String endsAt;
+ final String bookingClosesAt;
+ final String timezone;
+ const MobileScheduleSlot._({required this.id, required this.startsAt, required this.endsAt, required this.bookingClosesAt, required this.timezone});
+ factory MobileScheduleSlot({required String id, required String startsAt, required String endsAt, required String bookingClosesAt, required String timezone}) => MobileScheduleSlot.fromJson({"id": id, "startsAt": startsAt, "endsAt": endsAt, "bookingClosesAt": bookingClosesAt, "timezone": timezone});
+ factory MobileScheduleSlot.fromJson(Map<String,dynamic> json) {
+  if (json.length != 5 || !json.keys.every(["id","startsAt","endsAt","bookingClosesAt","timezone"].contains)) throw const FormatException('Invalid MobileScheduleSlot fields');
+  final id=(() { final value=json["id"]; const path="MobileScheduleSlot.id"; return _string(value, path, pattern: null, format: "uuid", min: 0, max: null); })();
+  final startsAt=(() { final value=json["startsAt"]; const path="MobileScheduleSlot.startsAt"; return _string(value, path, pattern: null, format: "date-time", min: 0, max: null); })();
+  final endsAt=(() { final value=json["endsAt"]; const path="MobileScheduleSlot.endsAt"; return _string(value, path, pattern: null, format: "date-time", min: 0, max: null); })();
+  final bookingClosesAt=(() { final value=json["bookingClosesAt"]; const path="MobileScheduleSlot.bookingClosesAt"; return _string(value, path, pattern: null, format: "date-time", min: 0, max: null); })();
+  final timezone=(() { final value=json["timezone"]; const path="MobileScheduleSlot.timezone"; return _string(value, path, pattern: null, format: null, min: 1, max: 64); })();
+  return MobileScheduleSlot._(id: id, startsAt: startsAt, endsAt: endsAt, bookingClosesAt: bookingClosesAt, timezone: timezone);
+ }
+ Map<String,dynamic> toJson() => {"id": id, "startsAt": startsAt, "endsAt": endsAt, "bookingClosesAt": bookingClosesAt, "timezone": timezone};
+}
+
+class MobileScheduleSlots {
+ final String branchId;
+ final String serving;
+ final List<MobileScheduleSlot> slots;
+ const MobileScheduleSlots._({required this.branchId, required this.serving, required this.slots});
+ factory MobileScheduleSlots({required String branchId, required String serving, required List<MobileScheduleSlot> slots}) => MobileScheduleSlots.fromJson({"branchId": branchId, "serving": serving, "slots": slots.map((value) => value.toJson()).toList()});
+ factory MobileScheduleSlots.fromJson(Map<String,dynamic> json) {
+  if (json.length != 3 || !json.keys.every(["branchId","serving","slots"].contains)) throw const FormatException('Invalid MobileScheduleSlots fields');
+  final branchId=(() { final value=json["branchId"]; const path="MobileScheduleSlots.branchId"; return _string(value, path, pattern: null, format: "uuid", min: 0, max: null); })();
+  final serving=(() { final value=json["serving"]; const path="MobileScheduleSlots.serving"; return _enum(_string(value, path, pattern: null, format: null, min: 0, max: null), ["pickup","delivery"], path); })();
+  final slots=(() { final value=json["slots"]; const path="MobileScheduleSlots.slots"; return List<MobileScheduleSlot>.unmodifiable(_list(value, path, 0, 48).map((value) => MobileScheduleSlot.fromJson(_object(value, path)))); })();
+  return MobileScheduleSlots._(branchId: branchId, serving: serving, slots: slots);
+ }
+ Map<String,dynamic> toJson() => {"branchId": branchId, "serving": serving, "slots": slots.map((value) => value.toJson()).toList()};
+}
+
+class MobileScheduleHoldRequest {
+ final String slotId;
+ final String idempotencyKey;
+ const MobileScheduleHoldRequest._({required this.slotId, required this.idempotencyKey});
+ factory MobileScheduleHoldRequest({required String slotId, required String idempotencyKey}) => MobileScheduleHoldRequest.fromJson({"slotId": slotId, "idempotencyKey": idempotencyKey});
+ factory MobileScheduleHoldRequest.fromJson(Map<String,dynamic> json) {
+  if (json.length != 2 || !json.keys.every(["slotId","idempotencyKey"].contains)) throw const FormatException('Invalid MobileScheduleHoldRequest fields');
+  final slotId=(() { final value=json["slotId"]; const path="MobileScheduleHoldRequest.slotId"; return _string(value, path, pattern: null, format: "uuid", min: 0, max: null); })();
+  final idempotencyKey=(() { final value=json["idempotencyKey"]; const path="MobileScheduleHoldRequest.idempotencyKey"; return _string(value, path, pattern: null, format: "uuid", min: 0, max: null); })();
+  return MobileScheduleHoldRequest._(slotId: slotId, idempotencyKey: idempotencyKey);
+ }
+ Map<String,dynamic> toJson() => {"slotId": slotId, "idempotencyKey": idempotencyKey};
+}
+
+class MobileScheduleHold {
+ final String id;
+ final String slotId;
+ final String quoteId;
+ final String state;
+ final String expiresAt;
+ final String startsAt;
+ final String endsAt;
+ final bool replayed;
+ const MobileScheduleHold._({required this.id, required this.slotId, required this.quoteId, required this.state, required this.expiresAt, required this.startsAt, required this.endsAt, required this.replayed});
+ factory MobileScheduleHold({required String id, required String slotId, required String quoteId, required String state, required String expiresAt, required String startsAt, required String endsAt, required bool replayed}) => MobileScheduleHold.fromJson({"id": id, "slotId": slotId, "quoteId": quoteId, "state": state, "expiresAt": expiresAt, "startsAt": startsAt, "endsAt": endsAt, "replayed": replayed});
+ factory MobileScheduleHold.fromJson(Map<String,dynamic> json) {
+  if (json.length != 8 || !json.keys.every(["id","slotId","quoteId","state","expiresAt","startsAt","endsAt","replayed"].contains)) throw const FormatException('Invalid MobileScheduleHold fields');
+  final id=(() { final value=json["id"]; const path="MobileScheduleHold.id"; return _string(value, path, pattern: null, format: "uuid", min: 0, max: null); })();
+  final slotId=(() { final value=json["slotId"]; const path="MobileScheduleHold.slotId"; return _string(value, path, pattern: null, format: "uuid", min: 0, max: null); })();
+  final quoteId=(() { final value=json["quoteId"]; const path="MobileScheduleHold.quoteId"; return _string(value, path, pattern: null, format: "uuid", min: 0, max: null); })();
+  final state=(() { final value=json["state"]; const path="MobileScheduleHold.state"; return _enum(_string(value, path, pattern: null, format: null, min: 0, max: null), ["HELD","RELEASED","EXPIRED"], path); })();
+  final expiresAt=(() { final value=json["expiresAt"]; const path="MobileScheduleHold.expiresAt"; return _string(value, path, pattern: null, format: "date-time", min: 0, max: null); })();
+  final startsAt=(() { final value=json["startsAt"]; const path="MobileScheduleHold.startsAt"; return _string(value, path, pattern: null, format: "date-time", min: 0, max: null); })();
+  final endsAt=(() { final value=json["endsAt"]; const path="MobileScheduleHold.endsAt"; return _string(value, path, pattern: null, format: "date-time", min: 0, max: null); })();
+  final replayed=(() { final value=json["replayed"]; const path="MobileScheduleHold.replayed"; return _boolean(value, path); })();
+  return MobileScheduleHold._(id: id, slotId: slotId, quoteId: quoteId, state: state, expiresAt: expiresAt, startsAt: startsAt, endsAt: endsAt, replayed: replayed);
+ }
+ Map<String,dynamic> toJson() => {"id": id, "slotId": slotId, "quoteId": quoteId, "state": state, "expiresAt": expiresAt, "startsAt": startsAt, "endsAt": endsAt, "replayed": replayed};
+}
