@@ -3584,6 +3584,12 @@ Method: the real debug apps (`flutter build apk --debug` with `BITPOS_FIXTURE` a
 - Rollback: previous web image (f11ad38abf8a) tagged `bitpos-runtime:rollback-20261029r`; replaced file in `/home/ubuntu/bitpos-runtime.rollback18-20261029`. Rollback command: `docker tag bitpos-runtime:rollback-20261029r bitpos-runtime:current && cd /home/ubuntu/bitpos-runtime/infra/oci && docker compose -p bitpos-runtime up -d --no-deps --no-build web` (and restore the file).
 - Verified: `https://pos.cashlessthailand.com/` 200, public `GET /api/reports/export` without session 401 (was 404), `/api/returns` 401, host `127.0.0.1:4321/platform` 200, disk 89% (22G free).
 
+### Deploy #19 on OCI: web fixes (web only, 2026-10-30)
+- Commit `a41b069`: synced only the 6 `apps/web` files changed since `51f7e28` (IncomingOrders, PosOverview, PosReports, Promotions, pos-overview.ts, pos-reports.ts); no migration. Only `web` rebuilt/recreated (`--no-deps`; `bitpos-runtime:current` = 2383750e8fb9).
+- Changes: Overview shop timezone, order-number and 200-order truncation notice fixes; Promotions library-first layout; Bangkok time in reports and order centre.
+- Rollback: previous web image (c6eda6cb4a2c) tagged `bitpos-runtime:rollback-20261030a`; replaced files in `/home/ubuntu/bitpos-runtime.rollback19-20261030`. Rollback command: `docker tag bitpos-runtime:rollback-20261030a bitpos-runtime:current && cd /home/ubuntu/bitpos-runtime/infra/oci && docker compose -p bitpos-runtime up -d --no-deps --no-build web` (and restore the files).
+- Verified: `https://pos.cashlessthailand.com/` 200, `/api/returns` 401, `GET /api/reports/export` 401, host `127.0.0.1:4321/platform` 200, disk 90% (22G free).
+
 ## 2026-10-29 checklist verification (4 subagents + focused run)
 - Subagents reviewed all 188 unticked DIRECT_SESSION_CHECKLIST_TH boxes; most KEEP (unbuilt, fixture-only, or needs pixel diff/real device/API).
 - Ticked 6 with test evidence: DS50 1172/1173 (group-cart + backend-mobile-groups), DS40 973/974 (driver-settlement-worker), DS43 1032 (support/review/chat-image), DS47 1115 (passenger-trip PIN). Focused run: 44 pass, 0 fail, 2 skipped (DB-backed).
