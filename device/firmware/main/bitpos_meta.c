@@ -12,7 +12,9 @@
  * The key is never logged. Text must stay within the device font (ASCII and Thai); the server keeps to that. "META_STATUS" prints whether settings exist; "META_FORGET" erases the meta namespace.
  * Offer animations: on the idle and welcome screens the server may name a 240 px looping GIF ("anim", a same-origin
  * /meta/anim/... path). The device downloads it once into PSRAM (at most ANIM_MAX bytes, must start with GIF8) and plays
- * it with lv_gif from memory; the text moves to the right. A failed download just leaves the plain screen. */
+ * it with lv_gif; the text moves to the right. A failed download just leaves the plain screen. Playback follows the Sol
+ * terminal's proven path (bitpos_media.c): the GIF is opened by path through a read-only in-memory lv_fs drive ('A:'),
+ * shown as a plain image (no rounded clip), and dropped if lv_gif did not load it. */
 #include <string.h>
 #include <stdio.h>
 #include <ctype.h>
@@ -35,6 +37,7 @@
 #include "lvgl.h"
 #include "display_engine.h"
 #include "bitpos_meta.h"
+#include "libs/gif/lv_gif_private.h"
 
 LV_FONT_DECLARE(bitpos_font_20);
 static const char *TAG="BitPOSMeta";
@@ -49,7 +52,26 @@ static volatile bool wifi_up;
 static struct {char screen[16],tone[10],table[40],title[96],line1[128],line2[128],big[24],qr[200],anim[ANIM_PATH_MAX];int countdown;int poll_ms;int64_t fetched_us;bool online;} view;
 static lv_obj_t *countdown_label;
 /* The downloaded animation (PSRAM) and the path it came from; the image descriptor points into anim_buf. */
-static uint8_t *anim_buf;static size_t anim_len;static char anim_loaded[ANIM_PATH_MAX];static lv_image_dsc_t anim_dsc;
+static uint8_t *anim_buf;static size_t anim_len;static char anim_loaded[ANIM_PATH_MAX];
+/* Read-only lv_fs drive 'A:' over anim_buf (one open file at a time), as bitpos_media.c does for the Sol GIFs. */
+static lv_fs_drv_t anim_fs;static uint32_t anim_cursor;static bool anim_open;
+static void *anim_fs_open(lv_fs_drv_t *d,const char *path,lv_fs_mode_t mode){(void)d;(void)path;if(mode!=LV_FS_MODE_RD||!anim_buf||anim_open)return NULL;anim_open=true;anim_cursor=0;return &anim_cursor;}
+static lv_fs_res_t anim_fs_close(lv_fs_drv_t *d,void *f){(void)d;if(f!=&anim_cursor)return LV_FS_RES_INV_PARAM;anim_open=false;return LV_FS_RES_OK;}
+static lv_fs_res_t anim_fs_read(lv_fs_drv_t *d,void *f,void *buf,uint32_t n,uint32_t *r){(void)d;*r=0;
+    if(f!=&anim_cursor||n>anim_len-anim_cursor){memset(buf,0,n);return LV_FS_RES_FS_ERR;} /* gifdec ignores errors: never leave garbage */
+
+    memcpy(buf,anim_buf+anim_cursor,n);anim_cursor+=n;*r=n;return LV_FS_RES_OK;}
+static lv_fs_res_t anim_fs_seek(lv_fs_drv_t *d,void *f,uint32_t off,lv_fs_whence_t w){(void)d;if(f!=&anim_cursor)return LV_FS_RES_INV_PARAM;
+    int64_t pos=w==LV_FS_SEEK_SET?(int64_t)off:w==LV_FS_SEEK_CUR?(int64_t)anim_cursor+(int32_t)off:w==LV_FS_SEEK_END?(int64_t)anim_len+(int32_t)off:-1;
+    if(pos<0||pos>(int64_t)anim_len)return LV_FS_RES_INV_PARAM;
+    anim_cursor=(uint32_t)pos;return LV_FS_RES_OK;}
+static lv_fs_res_t anim_fs_tell(lv_fs_drv_t *d,void *f,uint32_t *pos){(void)d;if(f!=&anim_cursor)return LV_FS_RES_INV_PARAM;*pos=anim_cursor;return LV_FS_RES_OK;}
+static void anim_fs_register(void){
+    if(anim_fs.letter)return;
+
+    lv_fs_drv_init(&anim_fs);anim_fs.letter='A';anim_fs.cache_size=0;anim_fs.open_cb=anim_fs_open;anim_fs.close_cb=anim_fs_close;
+    anim_fs.read_cb=anim_fs_read;anim_fs.seek_cb=anim_fs_seek;anim_fs.tell_cb=anim_fs_tell;lv_fs_drv_register(&anim_fs);
+}
 
 static uint32_t tone_bg(const char *t){
     if(!strcmp(t,"green"))return 0x1E8E3E;
@@ -82,9 +104,14 @@ static void render(void){
     }
     int x=20,w=440;
     if(!view.qr[0]&&view.anim[0]&&anim_buf&&!strcmp(view.anim,anim_loaded)){
-        memset(&anim_dsc,0,sizeof(anim_dsc));anim_dsc.header.magic=LV_IMAGE_HEADER_MAGIC;anim_dsc.data=anim_buf;anim_dsc.data_size=anim_len;
-        lv_obj_t *g=lv_gif_create(scr);lv_gif_set_src(g,&anim_dsc);lv_obj_set_pos(g,12,52);
-        lv_obj_set_style_radius(g,16,0);lv_obj_set_style_clip_corner(g,true,0);x=264;w=204;
+        anim_fs_register();
+        lv_obj_t *g=lv_gif_create(scr);lv_gif_set_src(g,"A:/offer.gif");
+        if(lv_gif_is_loaded(g)){
+            lv_image_set_pivot(g,0,0);lv_image_set_scale(g,256);lv_obj_set_pos(g,12,52);x=264;w=204;
+            const gd_GIF *gd=((lv_gif_t *)g)->gif;const uint8_t *px=gd->canvas+4*(gd->width*(gd->height/2)+gd->width/2);
+            ESP_LOGW("BitPOS","META_ANIM loaded %dx%d bytes=%u mid=%02x%02x%02x/%02x psram_free=%u",gd->width,gd->height,(unsigned)anim_len,px[2],px[1],px[0],px[3],
+                     (unsigned)heap_caps_get_free_size(MALLOC_CAP_SPIRAM));
+        }else{ESP_LOGW("BitPOS","META_ANIM not loaded bytes=%u",(unsigned)anim_len);lv_obj_delete(g);}
     }
     if(view.qr[0]){
         lv_obj_t *qr=lv_qrcode_create(scr);lv_qrcode_set_size(qr,190);lv_qrcode_set_dark_color(qr,lv_color_hex(0x1C2B33));lv_qrcode_set_light_color(qr,lv_color_hex(0xFFFFFF));
