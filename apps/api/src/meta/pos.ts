@@ -8,7 +8,7 @@ import {randomUUID} from 'node:crypto';
 import QRCode from 'qrcode';
 import type {MetaRouteDeps} from './routes';
 import {formatTapAmount,listTapOrders,pickupCode,type StaffDeps,type StaffOrder,type StaffView} from './staff';
-import {screenTags,staffReservations} from './reservations';
+import {floorPlan,screenTags,staffReservations,type FloorTable} from './reservations';
 import {screenKey} from './screen';
 import {listMenu} from './agent-orders';
 import {cartForStaff,CartError,refundCart,startCart,type CartLine} from './cart';
@@ -132,13 +132,25 @@ ${row({href:'/meta/staff/offers',icon:'✨',title:`${r.drafts} ร่างโ�
  }
 
  if(path==='/meta/staff/bookings'){
-  const rows=await staffReservations(db,me.merchantId),tags=await screenTags(db,me.merchantId);
+  const rows=await staffReservations(db,me.merchantId),tags=await screenTags(db,me.merchantId),floor=await floorPlan(db,me.merchantId);
+  // Floor plan (like the POS shop floor): a room with window, coffee bar and entrance; each table shows what holds it now.
+  const FS:Record<FloorTable['state'],[string,string]>={free:['ว่าง','free'],upcoming:['จองไว้','up'],check_in:['รอเช็กอิน','ci'],seated:['นั่งอยู่','seat']};
+  const tile=(f:FloorTable)=>{const [lbl,cls]=FS[f.state];
+   const line=f.state==='free'?(f.laterToday?`จองต่อวันนี้ ${f.laterToday}`:'พร้อมรับลูกค้า')
+    :f.state==='seated'?`${f.partySize} คน · ถึง ${t(f.seatedUntil)}`:f.state==='check_in'?`${f.partySize} คน · เช็กอินภายใน ${t(f.checkInUntil)}`:`${t(f.startsAt)} · ${f.partySize} คน`;
+   const seats=Math.min(6,Math.max(2,f.partySize??2));
+   return `<a class="ftab ${cls}" href="#t-${f.id}" title="${esc(f.label)}"><span class="seats">${'<i></i>'.repeat(seats)}</span><span class="top"><b>${esc(f.label)}</b><span class="fst">${lbl}</span></span>
+<span class="fl">${f.code?`#${esc(f.code)} · `:''}${esc(line)}</span><span class="fmeta">${f.devices.length?`<span>📟 ${esc(f.devices.join(', '))}</span>`:''}${f.openOrders?`<span class="fo">🧾 ${f.openOrders} ออเดอร์</span>`:''}${f.state!=='free'&&f.laterToday?`<span>+${f.laterToday} วันนี้</span>`:''}</span></a>`;};
+  const count=(st:string)=>floor.filter(f=>f.state===st).length;
+  const plan=`<div class="floorwrap"><div class="flegend">${(['free','upcoming','check_in','seated'] as const).map(k=>`<span class="lg ${FS[k][1]}"><i></i>${FS[k][0]} ${count(k)}</span>`).join('')}<span class="sp"></span><small class="mu">อัปเดตทุก 20 วินาที</small></div>
+<div class="room"><div class="fwin">W I N D O W</div><div class="fbar"><span>☕ COFFEE BAR</span><i></i><i></i><i></i></div><div class="fplant a">🪴</div><div class="fplant b">🪴</div>
+<div class="fgrid">${floor.map(tile).join('')||'<div class="card mu">ยังไม่มีโต๊ะ</div>'}</div><div class="fdoor">ENTRANCE</div></div></div>`;
   const label:Record<string,[string,string]>={HELD:['รอเช็กอิน','am'],CHECKED_IN:['เช็กอินแล้ว','gr'],NO_SHOW:['หลุดคิว','rd'],CANCELLED:['ยกเลิก','mu']};
   const dt=(iso:string)=>new Date(iso).toLocaleString('en-GB',{weekday:'short',day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit',timeZone:'Asia/Bangkok'});
-  const table=rows.length?`<table><tr><th>รหัส</th><th>โต๊ะ</th><th>เวลา</th><th>คน</th><th>สถานะ</th><th></th></tr>${rows.map(r=>`<tr><td><b>#${esc(r.code)}</b></td><td>${esc(r.tableLabel)}</td><td>${dt(r.startsAt)}</td><td>${r.partySize}</td>
+  const table=rows.length?`<table><tr><th>รหัส</th><th>โต๊ะ</th><th>เวลา</th><th>คน</th><th>สถานะ</th><th></th></tr>${rows.map(r=>`<tr id="t-${esc(floor.find(f=>f.label===r.tableLabel)?.id??'')}"><td><b>#${esc(r.code)}</b></td><td>${esc(r.tableLabel)}</td><td>${dt(r.startsAt)}</td><td>${r.partySize}</td>
 <td>${pill(...(label[r.status]??[r.status,'mu']))}${r.status==='HELD'&&r.minutesToDeadline!==null?` <small>${r.minutesToDeadline} นาที</small>`:''}</td><td>${r.status==='HELD'?`<form method="post" action="/meta/staff/reservations/${r.id}/cancel"><button class="d inline">ยกเลิก</button></form>`:''}</td></tr>`).join('')}</table>`:'<div class="card mu">ยังไม่มีการจองใน 2 วันนี้ · ลูกค้าจองผ่านแชทได้ด้วยคำว่า “จองโต๊ะ”</div>';
   const screens=tags.map(g=>`<a class="btn s inline" target="_blank" rel="noopener" href="${esc(`${deps.identity.publicOrigin}/meta/screen/${g.tagId}?k=${screenKey(deps.identity.masterKey,g.tagId)}`)}">🖥️ ${esc(g.tableLabel)}</a>`).join('');
-  return send(200,path,'การจองโต๊ะ',`${table}<div class="card" style="margin-top:16px"><h2>จอโต๊ะ (นับถอยหลัง)</h2><small>เปิดบนแท็บเล็ตหรือมือถือที่ตั้งบนโต๊ะ · ลิงก์มีกุญแจของแต่ละโต๊ะ · ไม่มีข้อมูลส่วนตัว</small><p>${screens||'<span class="mu">ยังไม่มีโต๊ะที่มีสติกเกอร์</span>'}</p></div>`,
+  return send(200,path,'การจองโต๊ะ',`${plan}<h2 style="margin-top:20px">รายการจอง 2 วัน</h2>${table}<div class="card" style="margin-top:16px"><h2>จอโต๊ะ (นับถอยหลัง)</h2><small>เปิดบนแท็บเล็ตหรือมือถือที่ตั้งบนโต๊ะ · ลิงก์มีกุญแจของแต่ละโต๊ะ · ไม่มีข้อมูลส่วนตัว</small><p>${screens||'<span class="mu">ยังไม่มีโต๊ะที่มีสติกเกอร์</span>'}</p></div>`,
    {sub:'จองผ่านแชท · เช็กอินด้วยการแตะ ±15 นาที · หลุดคิวอัตโนมัติ',refresh:20});
  }
 

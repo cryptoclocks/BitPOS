@@ -215,3 +215,29 @@ export async function staffReservations(db:MetaDb,merchantId:string):Promise<Sta
    WHERE r.starts_at BETWEEN clock_timestamp()-interval '3 hours' AND clock_timestamp()+interval '2 days' ORDER BY r.starts_at LIMIT 30`)).rows
   .map(r=>({id:r.id,code:code(r.id),tableLabel:r.label,partySize:r.party_size,startsAt:r.starts_at.toISOString(),status:r.status,minutesToDeadline:r.mins})));
 }
+
+export interface FloorTable {id:string;label:string;state:'free'|'upcoming'|'check_in'|'seated';code:string|null;partySize:number|null;startsAt:string|null;
+ checkInUntil:string|null;seatedUntil:string|null;laterToday:number;openOrders:number;devices:string[]}
+/** The staff floor plan: every active table with what holds it now (same rules as the table screen), how many more
+ * bookings it has today, open table orders and its BitPOS Minis. Times come from the database clock. */
+export async function floorPlan(db:MetaDb,merchantId:string):Promise<FloorTable[]>{
+ return db.tenant(merchantId,async c=>{
+  const rows=(await c.query<{id:string;label:string;now:Date;rid:string|null;status:'HELD'|'CHECKED_IN'|null;starts_at:Date|null;party_size:number|null;later:number;orders:number;devices:string[]|null}>(
+   `SELECT t.id,t.label,clock_timestamp() AS now,r.id AS rid,r.status,r.starts_at,r.party_size,
+     (SELECT count(*)::int FROM meta_table_reservations x WHERE x.table_id=t.id AND x.status='HELD' AND x.starts_at>coalesce(r.starts_at,clock_timestamp())
+       AND (x.starts_at AT TIME ZONE '${TZ}')::date=(clock_timestamp() AT TIME ZONE '${TZ}')::date) AS later,
+     (SELECT count(*)::int FROM meta_cart_orders o WHERE o.table_id=t.id AND ((o.status='PAID' AND o.handed_over_at IS NULL) OR (o.status='PENDING' AND o.expires_at>clock_timestamp()))) AS orders,
+     (SELECT array_agg(d.label ORDER BY d.label) FROM devices d WHERE d.table_id=t.id AND d.revoked_at IS NULL) AS devices
+    FROM merchant_tables t LEFT JOIN LATERAL (SELECT r.id,r.status,r.starts_at,r.party_size FROM meta_table_reservations r WHERE r.table_id=t.id
+      AND ((r.status='HELD' AND clock_timestamp()<=r.starts_at+interval '${CHECKIN_MINUTES} minutes' AND r.starts_at<=clock_timestamp()+interval '3 hours')
+       OR (r.status='CHECKED_IN' AND clock_timestamp()<r.starts_at+interval '${SEATED_MINUTES} minutes'))
+      ORDER BY (r.status='CHECKED_IN') DESC,r.starts_at LIMIT 1) r ON true
+    WHERE t.retired_at IS NULL ORDER BY t.label LIMIT 40`)).rows;
+  return rows.map(t=>{
+   const iso=(ms:number)=>new Date(ms).toISOString(),now=t.now.getTime(),start=t.starts_at?.getTime()??0;
+   const state=!t.rid?'free':t.status==='CHECKED_IN'?'seated':now>=start-CHECKIN_MINUTES*60_000?'check_in':'upcoming';
+   return {id:t.id,label:t.label,state,code:t.rid?code(t.rid):null,partySize:t.party_size,startsAt:t.starts_at?iso(start):null,
+    checkInUntil:t.rid?iso(start+CHECKIN_MINUTES*60_000):null,seatedUntil:t.status==='CHECKED_IN'?iso(start+SEATED_MINUTES*60_000):null,laterToday:t.later,openOrders:t.orders,devices:t.devices??[]};
+  });
+ });
+}
