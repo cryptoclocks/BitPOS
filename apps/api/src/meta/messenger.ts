@@ -37,6 +37,7 @@ export type MessengerEvent=
  {kind:'agent_add';pageId:string;psid:string;timestamp:number;productId:string}|
  {kind:'menu';pageId:string;psid:string;timestamp:number}|
  {kind:'my_orders';pageId:string;psid:string;timestamp:number}|
+ {kind:'welcome';pageId:string;psid:string;timestamp:number}|
  {kind:'cart_add';pageId:string;psid:string;timestamp:number;cart:string}|
  {kind:'cart_pay';pageId:string;psid:string;timestamp:number;cart:string}|
  {kind:'cart_menu';pageId:string;psid:string;timestamp:number;cart:string}|
@@ -72,6 +73,7 @@ export function parseMessengerWebhook(body:unknown):ParsedEvent[]{
    else if(typeof ref==='string'&&REF.test(ref))event={...base,kind:'referral',ref};
    else if(payload?.startsWith('BITPOS_AGENT_PAY:')&&UUID.test(payload.slice(17)))event={...base,kind:'agent_pay',quoteId:payload.slice(17)};
    else if(payload?.startsWith('BITPOS_AGENT_ADD:')&&ANY_UUID.test(payload.slice(17)))event={...base,kind:'agent_add',productId:payload.slice(17)};
+   else if(payload==='BITPOS_GET_STARTED'||payload==='BITPOS_HELP')event={...base,kind:'welcome'};
    else if(payload==='BITPOS_MENU')event={...base,kind:'menu'};
    else if(payload&&CART.test(payload)){const [,k,cart]=payload.match(CART)!;event=k==='ADD'?{...base,kind:'cart_add',cart}:k==='PAY'?{...base,kind:'cart_pay',cart}:{...base,kind:'cart_menu',cart};}
    else if(payload==='BITPOS_MY_ORDERS')event={...base,kind:'my_orders'};

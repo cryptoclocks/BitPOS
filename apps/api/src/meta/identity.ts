@@ -86,6 +86,14 @@ async function magicLink(deps:IdentityDeps,db:pg.PoolClient,merchantId:string,li
  return `${deps.publicOrigin}/meta/login?t=${t}`;
 }
 
+/** Get Started for someone the shop does not know yet: how to connect, or order on the web without connecting. */
+function guestWelcome(origin:string,psid:string):Outgoing{
+ const img=(n:string)=>`${origin}/meta/images/menu/${n}.jpg`;
+ return {kind:'cards',psid,cards:[
+  {title:'สวัสดีค่ะ ยินดีต้อนรับสู่ Muse Café ☕',subtitle:'แตะมือถือที่เครื่อง BitPOS Mini บนโต๊ะ แล้วกดยินยอม เพื่อสั่ง จองโต๊ะ และรับโปรในแชท',imageUrl:img('latte'),buttons:[{type:'web_url',title:'วิธีเชื่อมต่อ / How',url:`${origin}/help#tap`}]},
+  {title:'สั่งบนเว็บได้เลย ไม่ต้องเชื่อมต่อ',subtitle:'ดูเมนู ใส่ตะกร้า จ่ายด้วย Stripe (sandbox ไม่ใช่เงินจริง)',imageUrl:img('croissant'),buttons:[{type:'web_url',title:'ดูเมนู / Menu',url:`${origin}/menu`}]},
+  {title:'ร้านเก็บอะไรบ้าง',subtitle:'ร้านเก็บแค่รหัสแชทนี้หลังคุณยินยอม ไม่เก็บข้อความ เลิกเชื่อมต่อได้ทุกเมื่อ',imageUrl:img('matcha'),buttons:[{type:'web_url',title:'ความเป็นส่วนตัว',url:`${origin}/help`}]}]};
+}
 const T={
  consent:'สวัสดีค่ะ ให้ร้านจำคุณไว้เพื่อเสนอโปรที่ตรงใจและทักทายเมื่อแตะที่เครื่องไหม? ร้านเก็บแค่รหัสแชทนี้กับประวัติการซื้อที่ร้าน ลบได้ทุกเมื่อโดยพิมพ์ "ลบข้อมูล"\nLet this shop remember you for personal offers when you tap? Only this chat id and your purchases here are kept. Type STOP anytime.',
  welcome:'ยินดีต้อนรับค่ะ ร้านจำคุณได้แล้ว ครั้งหน้าแค่แตะที่เครื่อง\nWelcome! Next time, just tap.',
@@ -102,7 +110,7 @@ const openButton=(url:string)=>({type:'web_url' as const,title:'เปิดห�
 /** A customer just became known at a tap: the caller picks and sends an offer after commit. */
 export interface OfferRequest {merchantId:string;linkId:string;tapSessionId:string;psid:string}
 /** A consented customer wrote to the shop or pressed Pay: handled by the ordering agent after commit. */
-export type AgentRequest={merchantId:string;linkId:string;psid:string}&({kind:'text';text:string}|{kind:'agent_pay';quoteId:string}|{kind:'agent_add';productId:string}|{kind:'menu'}|{kind:'my_orders'}|{kind:'book_start'}|{kind:'book_set';date:string|null;time:string|null}|{kind:'book_cancel';reservationId:string}|{kind:'cart_add';cart:string}|{kind:'cart_pay';cart:string}|{kind:'cart_menu';cart:string});
+export type AgentRequest={merchantId:string;linkId:string;psid:string}&({kind:'text';text:string}|{kind:'agent_pay';quoteId:string}|{kind:'agent_add';productId:string}|{kind:'menu'}|{kind:'my_orders'}|{kind:'welcome'}|{kind:'book_start'}|{kind:'book_set';date:string|null;time:string|null}|{kind:'book_cancel';reservationId:string}|{kind:'cart_add';cart:string}|{kind:'cart_pay';cart:string}|{kind:'cart_menu';cart:string});
 
 /** Applies verified webhook events. Returns messages and offer requests to handle after the transactions commit. */
 export async function handleMessengerEvents(deps:IdentityDeps,events:ParsedEvent[]):Promise<{outbox:Outgoing[];offers:OfferRequest[];agent:AgentRequest[]}>{
@@ -118,12 +126,12 @@ export async function handleMessengerEvents(deps:IdentityDeps,events:ParsedEvent
     if(links.length)await db.query('UPDATE meta_customer_sessions SET revoked_at=clock_timestamp() WHERE link_id=ANY($1::uuid[]) AND revoked_at IS NULL',[links.map(l=>l.id)]);
     return {kind:'text',psid,text:T.revoked} as Outgoing;
    }
-   if(event.kind==='text'||event.kind==='agent_pay'||event.kind==='agent_add'||event.kind==='menu'||event.kind==='my_orders'||event.kind==='book_start'||event.kind==='book_set'||event.kind==='book_cancel'||event.kind==='cart_add'||event.kind==='cart_pay'||event.kind==='cart_menu'){
+   if(event.kind==='text'||event.kind==='agent_pay'||event.kind==='agent_add'||event.kind==='menu'||event.kind==='my_orders'||event.kind==='welcome'||event.kind==='book_start'||event.kind==='book_set'||event.kind==='book_cancel'||event.kind==='cart_add'||event.kind==='cart_pay'||event.kind==='cart_menu'){
     // Only a customer who consented in Messenger can order by chat; nobody else's text reaches a model.
     const link=(await db.query<{id:string}>('SELECT id FROM meta_customer_links WHERE page_id=$1 AND psid=$2 AND revoked_at IS NULL',[pageId,psid])).rows[0];
-    if(!link)return {kind:'text',psid,text:T.notLinked} as Outgoing;
+    if(!link)return event.kind==='welcome'?guestWelcome(deps.publicOrigin,psid):{kind:'text',psid,text:T.notLinked} as Outgoing;
     const who={merchantId,linkId:link.id,psid};
-    agent.push(event.kind==='text'?{...who,kind:'text',text:event.text}:event.kind==='agent_pay'?{...who,kind:'agent_pay',quoteId:event.quoteId}:event.kind==='agent_add'?{...who,kind:'agent_add',productId:event.productId}:event.kind==='menu'?{...who,kind:'menu'}:event.kind==='my_orders'?{...who,kind:'my_orders'}:event.kind==='book_start'?{...who,kind:'book_start'}
+    agent.push(event.kind==='text'?{...who,kind:'text',text:event.text}:event.kind==='agent_pay'?{...who,kind:'agent_pay',quoteId:event.quoteId}:event.kind==='agent_add'?{...who,kind:'agent_add',productId:event.productId}:event.kind==='menu'?{...who,kind:'menu'}:event.kind==='my_orders'?{...who,kind:'my_orders'}:event.kind==='welcome'?{...who,kind:'welcome'}:event.kind==='book_start'?{...who,kind:'book_start'}
      :event.kind==='book_set'?{...who,kind:'book_set',date:event.date,time:event.time}:event.kind==='book_cancel'?{...who,kind:'book_cancel',reservationId:event.reservationId}:{...who,kind:event.kind,cart:event.cart});
     return null;
    }

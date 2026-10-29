@@ -210,6 +210,17 @@ async function agentReplies(deps:ChatAgentDeps,req:AgentRequest):Promise<Outgoin
     return [{kind:'buttons',psid,text:`ยอดรวมจากร้าน · จ่ายทีเดียวบนหน้า Stripe Checkout\nPay the whole cart on Stripe Checkout.\n${LABEL}`,buttons:[{type:'web_url',title:'จ่าย / Pay',url:r.checkoutUrl}]}];
    }catch(e){if(e instanceof CartError)return [{kind:'text',psid,text:CART_ERR[e.code]}];throw e;}
   }
+  if(req.kind==='welcome'){
+   // Get Started / Help for a connected customer: a picture menu of what the chat can do (no model call).
+   const items=(await listMenu(deps,merchantId)).filter(i=>i.payable),pic=(n:number)=>items[n]?imageFor(deps,items[n]):undefined;
+   const top=items.find(i=>i.offer);
+   return [{kind:'text',psid,text:'สวัสดีค่ะ 👋 Muse Café ยินดีต้อนรับ\nเลือกได้เลยค่ะ หรือพิมพ์/พูดสิ่งที่อยากสั่ง เช่น "ขอลาเต้ 2 แก้ว"'},
+    {kind:'cards',psid,cards:[
+     {title:'☕ สั่งจากเมนู',subtitle:top?`วันนี้ ${top.name} ลด ${top.offer!.discountPercent}% · ใส่ตะกร้าแล้วจ่ายทีเดียว`:'ใส่ตะกร้าแล้วจ่ายทีเดียวด้วย Stripe',imageUrl:pic(0),
+      buttons:[{type:'postback',title:'ดูเมนู / Menu',payload:'BITPOS_MENU'},{type:'web_url',title:'🎙️ สั่งด้วยเสียง',url:`${deps.publicOrigin}/meta/order`}]},
+     {title:'🗓️ จองโต๊ะ',subtitle:'บอกวัน เวลา จำนวนคน แล้วแตะมือถือที่โต๊ะเพื่อเช็กอิน',imageUrl:pic(1),buttons:[{type:'postback',title:'จองโต๊ะ / Book',payload:'BITPOS_BOOK'}]},
+     {title:'🧾 ออเดอร์และการจองของฉัน',subtitle:'ดูสถานะ รหัสรับสินค้า หรือยกเลิกการจอง',imageUrl:pic(2),buttons:[{type:'postback',title:'ออเดอร์ของฉัน',payload:'BITPOS_MY_ORDERS'}]}]}];
+  }
   if(req.kind==='my_orders'){
    const carts=await customerCartOrders(deps.db,merchantId,linkId),orders=await listCustomerOrders(deps,merchantId,linkId),bookings=await customerReservations(deps.db,merchantId,linkId);
    if(!carts.length&&!orders.length&&!bookings.length)return [{kind:'text',psid,text:'ยังไม่มีออเดอร์หรือการจองค่ะ / No orders or bookings yet.'}];

@@ -126,7 +126,7 @@ test('HTTP: shop pages always offer a way on; same-origin POSTs; staff pages nee
   const pay=await fetch(base+'/checkout',{method:'POST',redirect:'manual',headers:{cookie:cart,origin:'https://pay.example.test'}});
   assert.equal(pay.status,303);assert.match(pay.headers.get('location')!,/^https:\/\/checkout\.stripe\.com\//);
   // Old /meta pages now carry onward buttons too.
-  assert.match(await (await fetch(base+'/meta/order')).text(),/href="\/help"/);
+  assert.match(await (await fetch(base+'/meta/order')).text(),/href="\/help/);
   // meta-pos: sign-in page first, then the shell with the sidebar.
   assert.match(await (await fetch(base+'/meta/staff/overview',{redirect:'follow'})).text(),/name="password"/);
   const login=await fetch(base+'/meta/staff/login',{method:'POST',body:'email=owner@shop.test&password=x',redirect:'manual',headers:{'content-type':'application/x-www-form-urlencoded',origin:'https://pos.example.test'}});

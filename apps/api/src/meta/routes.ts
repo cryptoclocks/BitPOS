@@ -15,12 +15,12 @@ import {approveDraft,draftOffer,listOffersOverview,rejectDraft,revokePolicy,stop
 import {bookingMessages,handleAgentRequest,planChatOrder,QUICK,type ChatAgentDeps} from './agent';
 import {randomBytes} from 'node:crypto';
 import {AsyncLocalStorage} from 'node:async_hooks';
-import {customerHtml,staffHtml} from './ui';
+import {customerHtml,photo,staffHtml} from './ui';
 import {servePos} from './pos';
 import {cartChatReceipt,handOverCart} from './cart';
 import {deviceKeyValid,deviceView} from './device';
 import {readFile} from 'node:fs/promises';
-import {AgentOrderError,agentReceipt,reconcileAgentCheckout,startAgentCheckout} from './agent-orders';
+import {AgentOrderError,agentReceipt,createQuote,listMenu,reconcileAgentCheckout,startAgentCheckout,type MenuItem} from './agent-orders';
 import {MessengerError,messengerConfigFromEnv,parseMessengerWebhook,sendMessenger,verifyMessengerSignature,verifySubscription,type MessengerConfig,type MessengerFetch} from './messenger';
 
 export interface MetaRouteDeps {identity:IdentityDeps;messenger:MessengerConfig|null;offers:OfferDeps|null;stripe?:StripeDeps|null;staff?:StaffDeps|null;fetch?:MessengerFetch;log?:(msg:string)=>void;
@@ -236,7 +236,7 @@ export async function serveMeta(req:http.IncomingMessage,res:http.ServerResponse
   if(o?.status==='CONFIRMED'){page(res,200,'จ่ายแล้ว ✓',['ร้านได้รับออเดอร์แล้ว รับที่เคาน์เตอร์ได้เลย','Paid — pick it up at the counter.',`รหัสรับสินค้า / Pickup code: <strong>${esc(o.pickupCode)}</strong>`,'กลับไปที่ Messenger ได้เลย / You can go back to Messenger.','<small>Stripe sandbox · test mode · no real money</small>']);return true;}
   page(res,202,'กำลังตรวจสอบการชำระเงิน',['ยังไม่ได้รับการยืนยันจาก Stripe ลองรีเฟรชอีกครั้ง','Waiting for Stripe to confirm. Refresh in a moment.']);return true;
  }
- if(path==='/meta/order'||path==='/meta/order/pay')return serveWebOrder(req,res,deps,url,log);
+ if(path==='/meta/order'||path==='/meta/order/pay'||path==='/meta/order/add')return serveWebOrder(req,res,deps,url,log);
  if(path==='/meta/staff'||path.startsWith('/meta/staff/'))return STAFF_CTX.run({active:path.replace(/^(\/meta\/staff\/[a-z]+).*$/,'$1'),me:null,shop:''},()=>serveStaff(req,res,deps,url,log));
  const mcp=path.match(/^\/meta\/mcp\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[89ab][0-9a-f]{3}-[0-9a-f]{12})$/);
  if(mcp){
@@ -420,40 +420,75 @@ async function serveWebOrder(req:http.IncomingMessage,res:http.ServerResponse,de
  const chat=chatDeps(deps);
  if(!chat){page(res,503,'ยังไม่พร้อม',['Ordering is not configured on this server.']);return true;}
  const me=await customerFromSession(deps.identity,cookieValue(req.headers.cookie));
- if(!me){page(res,401,'ยังไม่ได้เชื่อมต่อ',['แตะมือถือที่เครื่องในร้านเพื่อเริ่ม','Tap your phone on the device in the shop to start.']);return true;}
+ if(!me){page(res,401,'ยังไม่ได้เชื่อมต่อ',['สั่งด้วยเสียงใช้ได้หลังเชื่อมต่อกับร้าน: แตะมือถือที่เครื่อง BitPOS Mini แล้วกดยินยอมใน Messenger','หรือสั่งจากเมนูบนหน้าร้านได้เลยโดยไม่ต้องเชื่อมต่อ','Tap your phone on the BitPOS Mini and accept in Messenger to order by voice.'],{},[['สั่งจากเมนู / Menu','/menu'],['วิธีเชื่อมต่อ / Help','/help#tap']]);return true;}
  if(method==='POST'&&req.headers.origin!==deps.identity.publicOrigin){page(res,403,'ไม่อนุญาต',['Same-origin request required.']);return true;}
  // Per-address cap on top of the per-customer model-call cap: 30 orders or payments a minute.
  if(method==='POST'&&!allowAttempt(req,Date.now(),orderPosts,30,60_000)){page(res,429,'ลองใหม่ภายหลัง',['ส่งคำสั่งถี่เกินไป รอสักครู่แล้วลองใหม่','Too many requests. Wait a moment and try again.']);return true;}
  const nonce=randomBytes(16).toString('base64');
- const csp=`default-src 'none'; style-src 'unsafe-inline'; script-src 'nonce-${nonce}'; form-action 'self' https://checkout.stripe.com`;
- const form=`<form method="post" action="/meta/order" id="f"><input name="q" id="q" maxlength="300" placeholder="เช่น ขอลาเต้ 1 แก้ว / e.g. one latte" required style="font:inherit;width:100%;padding:8px;margin:4px 0"><button>ส่ง / Send</button> <button type="button" id="mic" hidden>🎙️ พูด / Speak</button></form>`;
- // Browser speech-to-text (th-TH): fills the box and sends it. Hidden where the browser has no speech API.
- const script=`<script nonce="${nonce}">(()=>{const R=window.SpeechRecognition||window.webkitSpeechRecognition;if(!R)return;const b=document.getElementById('mic');b.hidden=false;b.onclick=()=>{const r=new R();r.lang='th-TH';r.interimResults=false;b.textContent='🎙️ กำลังฟัง… / Listening…';r.onresult=e=>{document.getElementById('q').value=e.results[0][0].transcript;document.getElementById('f').submit();};r.onend=()=>{b.textContent='🎙️ พูด / Speak';};r.start();};})();</script>`;
- const show=(status:number,lines:string[])=>page(res,status,'สั่งด้วยเสียงหรือพิมพ์ / Order',[...lines,form,'<small>เสียงแปลงเป็นข้อความโดยเบราว์เซอร์ของคุณ · ราคาคิดโดยร้าน · Stripe sandbox, test mode</small>',script],{'Content-Security-Policy':csp});
+ const headers={'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store','Referrer-Policy':'same-origin','X-Content-Type-Options':'nosniff','Permissions-Policy':'microphone=(self)',
+  'Content-Security-Policy':`default-src 'none'; style-src 'unsafe-inline'; img-src 'self' https: data:; script-src 'nonce-${nonce}'; form-action 'self' https://checkout.stripe.com`};
+ const menu=(await listMenu(chat,me.merchantId)).filter(i=>i.payable);
+ const hint=menu.slice(0,3).map(i=>`ขอ${i.name} 1 แก้ว`);
+ // Design C11: big mic, live transcript, typed fallback, suggestion chips, and the answer as a priced card.
+ const show=(status:number,o:{you?:string;reply?:string;by?:string;result?:string;note?:string})=>{
+  const mic=`<div class="center vo"><button type="button" id="mic" class="micb" aria-label="กดแล้วพูด / Tap to speak">🎙️</button>
+<div id="st" class="mu">กดแล้วพูด · ภาษาไทยหรืออังกฤษ</div><div id="live" class="live"></div>
+<div class="chips" style="justify-content:center"><a class="pill" href="#" data-l="th-TH">ไทย</a><a class="pill mu" href="#" data-l="en-US">English</a></div></div>`;
+  const chat_=o.you?`<div class="bub me">${esc(o.you)}</div>${o.reply?`<div class="bub">${esc(o.reply).replace(/\n/g,'<br>')}${o.by?`<div><span class="muse">${esc(o.by)}</span></div>`:''}</div>`:''}`:'';
+  const form=`<form method="post" action="/meta/order" id="f" class="say"><input name="q" id="q" maxlength="300" placeholder="หรือพิมพ์ เช่น ${esc(hint[0]??'ขอลาเต้ 1 แก้ว')}" required><button aria-label="ส่ง">ส่ง</button></form>`;
+  const chips=hint.length?`<div class="chips">${hint.map(h=>`<form method="post" action="/meta/order"><input type="hidden" name="q" value="${esc(h)}"><button class="pill mu" style="width:auto;margin:0;font-size:13px">${esc(h)}</button></form>`).join('')}</div>`:'';
+  const body=`<h1>สั่งด้วยเสียง</h1><p class="mu">พูดหรือพิมพ์สิ่งที่อยากสั่ง · Muse Spark ช่วยเลือก ร้านคิดราคา</p>${o.result?'':mic}${chat_}${o.result??''}${o.note?`<div class="note">${o.note}</div>`:''}${o.result?mic:''}${form}${chips}
+<small class="mu">เสียงแปลงเป็นข้อความด้วยเบราว์เซอร์ของคุณ (ร้านได้รับเฉพาะข้อความ) · Stripe sandbox ไม่ใช่เงินจริง</small>`;
+  const script=`(()=>{const R=window.SpeechRecognition||window.webkitSpeechRecognition,b=document.getElementById('mic'),st=document.getElementById('st'),live=document.getElementById('live'),q=document.getElementById('q'),f=document.getElementById('f');let lang='th-TH',r=null,said='';
+const msg={'not-allowed':'เบราว์เซอร์ไม่ได้รับสิทธิ์ใช้ไมค์ · กดอนุญาตที่ไอคอนไมค์ในแถบที่อยู่ และเปิดใน System Settings › Privacy & Security › Microphone','service-not-allowed':'Safari ต้องเปิด Dictation/Siri ก่อน (System Settings › Keyboard › Dictation) หรือใช้ Chrome','network':'บริการแปลงเสียงของเบราว์เซอร์ต่อไม่ได้ (Chrome ใช้เซิร์ฟเวอร์ Google) ลองใหม่ หรือใช้ Safari / พิมพ์แทน','no-speech':'ไม่ได้ยินเสียง ลองพูดใกล้ไมค์อีกครั้ง','audio-capture':'ไม่พบไมโครโฟนในเครื่องนี้','language-not-supported':'เบราว์เซอร์นี้ยังไม่รองรับภาษานี้ ลอง English หรือพิมพ์แทน','aborted':'หยุดฟังแล้ว'};
+document.querySelectorAll('[data-l]').forEach(a=>a.onclick=e=>{e.preventDefault();lang=a.dataset.l;document.querySelectorAll('[data-l]').forEach(x=>x.classList.toggle('mu',x!==a));});
+if(!R){b.disabled=true;b.classList.add('off');st.textContent='เบราว์เซอร์นี้พูดสั่งไม่ได้ (ใช้ Chrome หรือ Safari) · พิมพ์ด้านล่างแทนได้';return;}
+if(!window.isSecureContext){b.disabled=true;st.textContent='ต้องเปิดผ่าน https เพื่อใช้ไมค์';return;}
+const idle=()=>{b.classList.remove('on');if(!said)st.textContent=st.dataset.err||'กดแล้วพูด · ภาษาไทยหรืออังกฤษ';};
+b.onclick=()=>{if(r){r.stop();return;}said='';st.dataset.err='';live.textContent='';r=new R();r.lang=lang;r.interimResults=true;r.continuous=false;r.maxAlternatives=1;
+ r.onstart=()=>{b.classList.add('on');st.textContent='กำลังฟัง… กดอีกครั้งเพื่อหยุด';};
+ r.onresult=e=>{let t='',fin=false;for(const x of e.results){t+=x[0].transcript;fin=fin||x.isFinal;}live.textContent=t;if(fin){said=t.trim();}};
+ r.onerror=e=>{st.dataset.err=msg[e.error]||('ไมค์ใช้ไม่ได้ ('+e.error+') · พิมพ์แทนได้');st.textContent=st.dataset.err;};
+ r.onend=()=>{r=null;idle();if(said){q.value=said;st.textContent='กำลังส่ง: '+said;f.submit();}};
+ try{r.start();}catch(err){r=null;st.textContent='เริ่มฟังไม่ได้ ลองอีกครั้ง';}};})();`;
+  res.writeHead(status,headers);res.end(customerHtml({title:'สั่งด้วยเสียง',back:'/menu',nonce,script,nav:[['ดูเมนูทั้งหมด / Menu','/menu'],['ช่วยเหลือ / Help','/help']],navPrimary:false},body));return true as const;
+ };
+ const quoteCard=(q:{quoteId:string;total:string;quantity:number;name:string;nameEn:string},item?:MenuItem)=>{const img=photo(item?.imageUrl);
+  return `<div class="card"><div class="row" style="border:0;padding:0;margin:0">${img?`<img src="${esc(img)}" alt="">`:`<div class="ic">${esc(item?.emoji??'☕')}</div>`}<div class="t"><b>${esc(q.name)} × ${q.quantity}</b><small>${esc(q.nameEn)}${item?.offer?` · <span class="pill rd">โปร −${item.offer.discountPercent}%</span>`:''}</small></div><div class="r">${esc(q.total)}</div></div>
+<form method="post" action="/meta/order/pay"><input type="hidden" name="quote" value="${esc(q.quoteId)}"><button>จ่าย ${esc(q.total)} ด้วย Stripe</button></form><small class="mu">ราคาจากร้าน ล็อก 10 นาที · บัตรทดสอบ 4242 4242 4242 4242</small></div>`;};
+ const menuRows=(items:MenuItem[])=>`<div class="lst">${items.slice(0,8).map(i=>`<form method="post" action="/meta/order/add"><input type="hidden" name="id" value="${esc(i.productId)}"><button class="row" style="width:100%;text-align:left;font-weight:400;background:#fff">${photo(i.imageUrl)?`<img src="${esc(photo(i.imageUrl)!)}" alt="">`:`<span class="ic">${esc(i.emoji)}</span>`}<span class="t"><b>${esc(i.name)} · ${esc(i.nameEn)}</b><small>${i.offer?`โปร −${i.offer.discountPercent}% · `:''}กดเพื่อสั่ง 1 ชิ้น</small></span><span class="r">${esc(i.price.display)}</span></button></form>`).join('')}</div>`;
  try{
-  if(url.pathname==='/meta/order'&&method==='GET'){show(200,['พูดหรือพิมพ์สิ่งที่อยากสั่ง / Say or type what you would like.']);return true;}
+  if(url.pathname==='/meta/order'&&method==='GET')return show(200,{});
   const body=await formBody(req);
   if(!body){page(res,413,'คำขอใหญ่เกินไป',['Request too large.']);return true;}
+  if(url.pathname==='/meta/order/add'&&method==='POST'){
+   // A tapped menu row: quote that product directly, no model call.
+   const item=menu.find(i=>i.productId===body.get('id'));
+   if(!item)return show(409,{note:'เมนูนี้สั่งไม่ได้ตอนนี้ / Not available now.',result:menuRows(menu)});
+   const q=await createQuote(chat,me.merchantId,'messenger',item.productId,1,me.linkId);
+   return show(200,{you:`${item.name} × 1`,reply:'ได้เลยค่ะ ราคาจากร้าน 👇',result:quoteCard(q,item)});
+  }
   if(url.pathname==='/meta/order'&&method==='POST'){
    const text=(body.get('q')??'').trim().slice(0,300);
-   if(!text){show(400,['พิมพ์หรือพูดก่อนนะคะ / Please say or type something.']);return true;}
+   if(!text)return show(400,{note:'พิมพ์หรือพูดก่อนนะคะ / Please say or type something.'});
    const plan=await planChatOrder(chat,me.merchantId,me.linkId,text);
-   const by=plan.kind!=='error'&&plan.by?` <small>· ${esc(plan.by)}</small>`:'';
-   if(plan.kind==='quote'){show(200,[`<small>คุณ / You: ${esc(text)}</small>`,esc(plan.reply).replace(/\n/g,'<br>')+by,`<strong>${esc(plan.line)}</strong>`,`<form method="post" action="/meta/order/pay"><input type="hidden" name="quote" value="${esc(plan.quoteId)}"><button>จ่าย ${esc(plan.total)} / Pay (Stripe test mode)</button></form>`]);return true;}
-   if(plan.kind==='menu'){show(200,[`<small>คุณ / You: ${esc(text)}</small>`,esc(plan.reply).replace(/\n/g,'<br>')+by,...plan.lines.map(esc)]);return true;}
-   if(plan.kind==='help'){show(200,[`<small>คุณ / You: ${esc(text)}</small>`,esc(plan.reply).replace(/\n/g,'<br>')+by]);return true;}
-   if(plan.kind==='book'){show(200,[`<small>คุณ / You: ${esc(text)}</small>`,...bookingMessages('0',plan.result,plan.reply).map(m=>m.kind==='text'||m.kind==='buttons'?esc(m.text).replace(/\n/g,'<br>'):m.kind==='cards'?`<strong>${esc(m.cards[0].title)}</strong><br><small>${esc(m.cards[0].subtitle??'')}</small>`:'')]);return true;}
-   show(409,[esc(plan.text)]);return true;
+   if(plan.kind==='quote')return show(200,{you:text,reply:plan.reply,by:plan.by,result:quoteCard(plan.quote,plan.item)});
+   if(plan.kind==='menu')return show(200,{you:text,reply:plan.reply,by:plan.by,result:menuRows(plan.items)});
+   if(plan.kind==='help')return show(200,{you:text,reply:plan.reply,by:plan.by,result:menuRows(menu)});
+   if(plan.kind==='book'){const m=bookingMessages('0',plan.result,plan.reply);
+    return show(200,{you:text,reply:m.map(x=>x.kind==='text'||x.kind==='buttons'?x.text:'').filter(Boolean).join('\n'),by:plan.by,
+     result:m.filter(x=>x.kind==='cards').map(x=>x.kind==='cards'?`<div class="card"><b>${esc(x.cards[0].title)}</b><br><small class="mu">${esc(x.cards[0].subtitle??'')}</small><div class="mu" style="margin-top:6px">ยกเลิกหรือดูการจองได้ใน Messenger › ออเดอร์ของฉัน</div></div>`:'').join('')});}
+   return show(409,{you:text,note:esc(plan.text)});
   }
   if(url.pathname==='/meta/order/pay'&&method==='POST'){
    const r=await startAgentCheckout(chat,me.merchantId,me.linkId,body.get('quote'),deps.identity.publicOrigin);
    if(r.kind==='redirect'){res.writeHead(303,{Location:r.url,'Cache-Control':'no-store','Referrer-Policy':'no-referrer'});res.end();return true;}
-   if(r.kind==='paid'){show(200,[`จ่ายแล้ว รหัสรับสินค้า #${esc(r.pickupCode)} / Already paid.`]);return true;}
-   show(409,['รายการนี้ปิดแล้ว สั่งใหม่ได้เลย / This order is closed; order again.']);return true;
+   if(r.kind==='paid')return show(200,{note:`จ่ายแล้ว รหัสรับสินค้า #${esc(r.pickupCode)} / Already paid.`});
+   return show(409,{note:'รายการนี้ปิดแล้ว สั่งใหม่ได้เลย / This order is closed; order again.'});
   }
   json(res,404,{error:'RESOURCE_NOT_FOUND'});return true;
  }catch(e){
-  if(e instanceof AgentOrderError){show(409,[esc(ORDER_ERR[e.code]??'ระบบขัดข้อง / Something went wrong.')]);return true;}
+  if(e instanceof AgentOrderError)return show(409,{note:esc(ORDER_ERR[e.code]??'ระบบขัดข้อง / Something went wrong.')});
   log('Web order failed');page(res,500,'ระบบขัดข้อง',['Something went wrong.']);return true;
  }
 }
