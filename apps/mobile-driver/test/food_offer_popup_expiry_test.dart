@@ -19,7 +19,7 @@ void main() {
       id: '11111111-1111-4111-8111-111111111111',
       shipmentId: '22222222-2222-4222-8222-222222222222',
       generation: '1', version: '1', expiresAt: deadline.toUtc().toIso8601String(),
-      pickupLatitudeE7: 137560000, pickupLongitudeE7: 1005018000,
+      pickupLatitudeE7: 137560000, pickupLongitudeE7: 1005018000, pickupName: 'Try Cafe',
       earning: MobileMoney(currency: 'USD', decimals: 2, amountMinor: '100'), fixture: true,
     )], assignment: null);
     await fixture.mount(tester, api);

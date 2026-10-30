@@ -1763,8 +1763,7 @@ class _FoodWorkPageState extends State<FoodWorkPage>
                       offer.earning.decimals,
                       offer.earning.currency,
                     ),
-                    pickup:
-                        '${offer.pickupLatitudeE7 / 10000000}, ${offer.pickupLongitudeE7 / 10000000}',
+                    pickup: offer.pickupName,
                     onAccept:
                         frozen ||
                             !DateTime.parse(offer.expiresAt)

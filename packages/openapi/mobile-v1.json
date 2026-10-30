@@ -7431,6 +7431,7 @@
           "expiresAt",
           "pickupLatitudeE7",
           "pickupLongitudeE7",
+          "pickupName",
           "earning",
           "fixture"
         ],
@@ -7464,6 +7465,11 @@
             "type": "integer",
             "minimum": -1800000000,
             "maximum": 1800000000
+          },
+          "pickupName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
           },
           "earning": {
             "$ref": "#/components/schemas/MobileMoney"

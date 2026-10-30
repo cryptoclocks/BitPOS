@@ -209,12 +209,13 @@ class FoodDriverOffer {
  final String expiresAt;
  final int pickupLatitudeE7;
  final int pickupLongitudeE7;
+ final String pickupName;
  final MobileMoney earning;
  final bool fixture;
- const FoodDriverOffer._({required this.id, required this.shipmentId, required this.generation, required this.version, required this.expiresAt, required this.pickupLatitudeE7, required this.pickupLongitudeE7, required this.earning, required this.fixture});
- factory FoodDriverOffer({required String id, required String shipmentId, required String generation, required String version, required String expiresAt, required int pickupLatitudeE7, required int pickupLongitudeE7, required MobileMoney earning, required bool fixture}) => FoodDriverOffer.fromJson({"id": id, "shipmentId": shipmentId, "generation": generation, "version": version, "expiresAt": expiresAt, "pickupLatitudeE7": pickupLatitudeE7, "pickupLongitudeE7": pickupLongitudeE7, "earning": earning.toJson(), "fixture": fixture});
+ const FoodDriverOffer._({required this.id, required this.shipmentId, required this.generation, required this.version, required this.expiresAt, required this.pickupLatitudeE7, required this.pickupLongitudeE7, required this.pickupName, required this.earning, required this.fixture});
+ factory FoodDriverOffer({required String id, required String shipmentId, required String generation, required String version, required String expiresAt, required int pickupLatitudeE7, required int pickupLongitudeE7, required String pickupName, required MobileMoney earning, required bool fixture}) => FoodDriverOffer.fromJson({"id": id, "shipmentId": shipmentId, "generation": generation, "version": version, "expiresAt": expiresAt, "pickupLatitudeE7": pickupLatitudeE7, "pickupLongitudeE7": pickupLongitudeE7, "pickupName": pickupName, "earning": earning.toJson(), "fixture": fixture});
  factory FoodDriverOffer.fromJson(Map<String,dynamic> json) {
-  if (json.length != 9 || !json.keys.every(["id","shipmentId","generation","version","expiresAt","pickupLatitudeE7","pickupLongitudeE7","earning","fixture"].contains)) throw const FormatException('Invalid FoodDriverOffer fields');
+  if (json.length != 10 || !json.keys.every(["id","shipmentId","generation","version","expiresAt","pickupLatitudeE7","pickupLongitudeE7","pickupName","earning","fixture"].contains)) throw const FormatException('Invalid FoodDriverOffer fields');
   final id=(() { final value=json["id"]; const path="FoodDriverOffer.id"; return _string(value, path, pattern: null, format: "uuid", min: 0, max: null); })();
   final shipmentId=(() { final value=json["shipmentId"]; const path="FoodDriverOffer.shipmentId"; return _string(value, path, pattern: null, format: "uuid", min: 0, max: null); })();
   final generation=(() { final value=json["generation"]; const path="FoodDriverOffer.generation"; return _string(value, path, pattern: "^[1-9][0-9]{0,18}\$", format: null, min: 0, max: null); })();
@@ -222,11 +223,12 @@ class FoodDriverOffer {
   final expiresAt=(() { final value=json["expiresAt"]; const path="FoodDriverOffer.expiresAt"; return _string(value, path, pattern: null, format: "date-time", min: 0, max: null); })();
   final pickupLatitudeE7=(() { final value=json["pickupLatitudeE7"]; const path="FoodDriverOffer.pickupLatitudeE7"; return _integer(value, path, min: -900000000, max: 900000000); })();
   final pickupLongitudeE7=(() { final value=json["pickupLongitudeE7"]; const path="FoodDriverOffer.pickupLongitudeE7"; return _integer(value, path, min: -1800000000, max: 1800000000); })();
+  final pickupName=(() { final value=json["pickupName"]; const path="FoodDriverOffer.pickupName"; return _string(value, path, pattern: null, format: null, min: 1, max: 200); })();
   final earning=(() { final value=json["earning"]; const path="FoodDriverOffer.earning"; return MobileMoney.fromJson(_object(value, path)); })();
   final fixture=(() { final value=json["fixture"]; const path="FoodDriverOffer.fixture"; return _boolean(value, path); })();
-  return FoodDriverOffer._(id: id, shipmentId: shipmentId, generation: generation, version: version, expiresAt: expiresAt, pickupLatitudeE7: pickupLatitudeE7, pickupLongitudeE7: pickupLongitudeE7, earning: earning, fixture: fixture);
+  return FoodDriverOffer._(id: id, shipmentId: shipmentId, generation: generation, version: version, expiresAt: expiresAt, pickupLatitudeE7: pickupLatitudeE7, pickupLongitudeE7: pickupLongitudeE7, pickupName: pickupName, earning: earning, fixture: fixture);
  }
- Map<String,dynamic> toJson() => {"id": id, "shipmentId": shipmentId, "generation": generation, "version": version, "expiresAt": expiresAt, "pickupLatitudeE7": pickupLatitudeE7, "pickupLongitudeE7": pickupLongitudeE7, "earning": earning.toJson(), "fixture": fixture};
+ Map<String,dynamic> toJson() => {"id": id, "shipmentId": shipmentId, "generation": generation, "version": version, "expiresAt": expiresAt, "pickupLatitudeE7": pickupLatitudeE7, "pickupLongitudeE7": pickupLongitudeE7, "pickupName": pickupName, "earning": earning.toJson(), "fixture": fixture};
 }
 
 class FoodDriverPickupItem {

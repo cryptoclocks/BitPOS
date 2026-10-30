@@ -1,4 +1,4 @@
--- Rider pickup screen (docs/E2E_ORDER_RUN_20261030_TH.md P1-1): the normal-duty driver assignment now carries the
+-- Rider pickup screen (docs/E2E_ORDER_RUN_20261030_TH.md P1-1): the normal-duty driver assignment and each offer now carry the
 -- public branch name, branch address label and the order's item names with quantities, so the rider can identify
 -- the shop and check the bag. Read-only addition to one existing SECURITY DEFINER function (same body as 078 plus three
 -- keys); no table, grant or restricted-duty change. Rollback: re-run the dispatch_driver_work definition from migration 078.
@@ -31,6 +31,7 @@ BEGIN
  SELECT coalesce(jsonb_agg(row ORDER BY expiry,id),'[]'::jsonb) INTO offers FROM (
   SELECT f.id,f.expires_at AS expiry,jsonb_build_object('id',f.id,'shipmentId',f.shipment_id,'generation',f.generation::text,'version',f.version::text,'expiresAt',f.expires_at,
    'pickupLatitudeE7',d.origin_latitude_e7,'pickupLongitudeE7',d.origin_longitude_e7,
+   'pickupName',coalesce((SELECT nullif(btrim(b.name),'') FROM marketplace_branches b WHERE b.merchant_id=d.merchant_id AND b.id=d.branch_id),(SELECT mm.name FROM merchants mm WHERE mm.id=d.merchant_id)),
    'earning',jsonb_build_object('amountMinor',d.driver_minor::text,'currency',d.currency,'decimals',d.decimals),'fixture',d.fixture) AS row
   FROM food_dispatch_offers f JOIN food_shipments sh ON sh.id=f.shipment_id
   JOIN quote_delivery_snapshots d ON (d.merchant_id,d.quote_id)=(sh.merchant_id,sh.quote_id)

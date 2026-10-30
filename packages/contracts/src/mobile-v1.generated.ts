@@ -74,6 +74,7 @@ export const FoodDriverOfferSchema=z.object({
  expiresAt:z.string().datetime({offset:true}).regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/),
  pickupLatitudeE7:z.number().int().safe().min(-900000000).max(900000000),
  pickupLongitudeE7:z.number().int().safe().min(-1800000000).max(1800000000),
+ pickupName:z.string().min(1).max(200),
  earning:MobileMoneySchema,
  fixture:z.boolean(),
 }).strict();

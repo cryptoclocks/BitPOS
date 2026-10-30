@@ -355,6 +355,7 @@ FoodDriverWork surfaceWork(String screen, bool thai) {
                     .toIso8601String(),
                 pickupLatitudeE7: 137560000,
                 pickupLongitudeE7: 1005018000,
+                pickupName: 'Try Cafe',
                 earning: MobileMoney(
                   currency: 'USDG',
                   decimals: 6,
