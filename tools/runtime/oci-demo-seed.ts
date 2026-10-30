@@ -48,6 +48,7 @@ for(const d of [0,1,2])for(const hour of [10,12,14,16])for(const serving of ['pi
 await db.query("INSERT INTO driver_profiles(id,account_id,display_name,license_expires_at,status,verified_until,verified_by,verification_reference) VALUES($1,$2,'ไรเดอร์เดโม',clock_timestamp()+interval '60 days','APPROVED',clock_timestamp()+interval '30 days',$3,'DEMO seed: synthetic document check, not real KYC')",[driver,rider.accountId,customer.accountId]);
 await db.query("INSERT INTO driver_vehicles VALUES($1,'MOTORCYCLE','DEMO','Demo','Purple',clock_timestamp()+interval '30 days')",[driver]);
 await db.query('INSERT INTO driver_occupancy(driver_id) VALUES($1)',[driver]);
+await db.query("INSERT INTO driver_availability(driver_id,requested_online,heartbeat_expires_at) VALUES($1,false,clock_timestamp())",[driver]);
 await db.query('COMMIT');
 }
 // Later steps are re-runnable: a step that already happened reports and is skipped.
