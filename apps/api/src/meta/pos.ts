@@ -90,7 +90,7 @@ ${waiting.length?`<div class="card"><h2>รอส่งมอบ ${waiting.lengt
    .map(([a,v,s,c])=>`<div class="met ${c}"><small>${a}</small><b>${esc(v)}</b><small>${esc(s)}</small></div>`).join('')}</div>
 <div class="grid g2" style="margin-top:14px"><div class="card"><h2>ยอดที่จ่ายแล้วตามช่องทาง</h2>${['tap','chat','mcp','table','counter','web'].map(k=>{const n=Number(r.ch.find(x=>x.channel===k)?.paid??0);return `<div style="display:flex;gap:10px;align-items:center;margin:10px 0"><span style="width:130px">${chan(k)}</span><span class="barh" style="flex:1"><i style="width:${Math.round(n/max*100)}%"></i></span><b>${n}</b></div>`;}).join('')}
 <a href="/meta/staff/reports">ดูรายงานเต็ม →</a></div><div class="card"><h2>ต้องจัดการตอนนี้</h2>
-${row({href:'/meta/staff/kitchen',icon:'🧾',title:`${waiting.length} ออเดอร์รอส่งมอบ`,sub:'จ่ายแล้ว · ทุกช่องทาง'})}${row({href:'/meta/staff/bookings',icon:'🗓️',title:`${b.HELD??0} การจองรอเช็กอิน`,sub:'แตะเพื่อเช็กอิน ±15 นาที'})}
+${row({href:'/meta/staff/kitchen',icon:'🧾',title:`${waiting.length} ออเดอร์รอส่งมอบ`,sub:'จ่ายแล้ว · ทุกช่องทาง'})}${row({href:'/meta/staff/bookings',icon:'🗓️',title:`${b.HELD??0} การจองรอเช็กอิน`,sub:'แตะเพื่อเช็กอิน -5/+15 นาที'})}
 ${row({href:'/meta/staff/offers',icon:'✨',title:`${r.drafts} ร่างโปรรออนุมัติ`,sub:'Muse Spark ร่าง · เจ้าของอนุมัติ'})}</div></div>
 <h2 style="margin-top:20px">ออเดอร์ล่าสุด</h2>${orderTable(orders.slice(0,6))}<p><a href="/meta/staff">ทั้งหมด →</a></p>`;
   return send(200,path,'ภาพรวมวันนี้',html,{sub:'ข้อมูลจริงของร้านจาก meta_order_feed() · รีเฟรชทุก 30 วินาที',refresh:30,actions:'<a class="btn" href="/meta/staff/counter">ขายหน้าร้าน</a>'});
@@ -155,7 +155,7 @@ ${row({href:'/meta/staff/offers',icon:'✨',title:`${r.drafts} ร่างโ�
 <td>${pill(...(label[r.status]??[r.status,'mu']))}${r.status==='HELD'&&r.minutesToDeadline!==null?` <small>${r.minutesToDeadline} นาที</small>`:''}</td><td>${r.status==='HELD'?`<form method="post" action="/meta/staff/reservations/${r.id}/cancel"><button class="d inline">ยกเลิก</button></form>`:''}</td></tr>`).join('')}</table>`:`<div class="card mu">${L('ยังไม่มีการจองใน 2 วันนี้ · ลูกค้าจองผ่านแชทได้ด้วยคำว่า “จองโต๊ะ”','No bookings in the next 2 days · customers book in Messenger by saying “book a table”')}</div>`;
   const screens=tags.map(g=>`<a class="btn s inline" target="_blank" rel="noopener" href="${esc(`${deps.identity.publicOrigin}/meta/screen/${g.tagId}?k=${screenKey(deps.identity.masterKey,g.tagId)}`)}">🖥️ ${esc(g.tableLabel)}</a>`).join('');
   return send(200,path,'การจองโต๊ะ',`${plan}<h2 style="margin-top:20px">รายการจอง 2 วัน</h2>${table}<div class="card" style="margin-top:16px"><h2>จอโต๊ะ (นับถอยหลัง)</h2><small>เปิดบนแท็บเล็ตหรือมือถือที่ตั้งบนโต๊ะ · ลิงก์มีกุญแจของแต่ละโต๊ะ · ไม่มีข้อมูลส่วนตัว</small><p>${screens||'<span class="mu">ยังไม่มีโต๊ะที่มีสติกเกอร์</span>'}</p></div>`,
-   {sub:'จองผ่านแชท · เช็กอินด้วยการแตะ ±15 นาที · หลุดคิวอัตโนมัติ',refresh:20});
+   {sub:'จองผ่านแชท · เช็กอินด้วยการแตะ -5/+15 นาที · หลุดคิวอัตโนมัติ',refresh:20});
  }
 
  const stock=path.match(/^\/meta\/staff\/menu\/([0-9a-f-]{36})\/stock$/);

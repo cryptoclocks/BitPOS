@@ -78,7 +78,7 @@ test('ask back for the missing date/time; with a time the booking is made at onc
  assert.equal(c.kind,'booked');
  assert.deepEqual([(c as any).reservation.partySize,(c as any).reservation.tableLabel],[3,'A1'],'merged with what was said before');
  const d=await requestBooking(db,M,L2,{date:tomorrow,time:'19:30',partySize:2},fallback);
- assert.deepEqual([d.kind,(d as any).reservation.tableLabel],['booked','A2'],'A1 clashes within 105 minutes, so A2');
+ assert.deepEqual([d.kind,(d as any).reservation.tableLabel],['booked','A2'],'A1 clashes within 95 minutes, so A2');
  const e=await requestBooking(db,M,L2,{date:tomorrow,time:'19:15',partySize:2},fallback);
  assert.equal(e.kind,'full');assert.ok((e as any).alternatives.length>=1);
  const past=await bkkClock(-60);
@@ -93,7 +93,15 @@ test('ask back for the missing date/time; with a time the booking is made at onc
 });
 
 test('tap: booker checks in inside the window; others (cookie or not) are refused while held; Messenger follows the same rule',{skip},async()=>{
- const soon=await bkkClock(5);
+ // Booked 30 minutes ahead: the table is not locked yet (the hold starts 5 minutes before), so anyone may use it.
+ const later=await bkkClock(30);
+ const early=await requestBooking(db,M,L1,{date:later.d,time:later.t,partySize:2},fallback);
+ assert.equal(early.kind,'booked');const et=(early as any).reservation.tableLabel;
+ const before=await tap(et==='A1'?TAG1:TAG2,et==='A1'?UID1:UID2,cookie2);
+ assert.notEqual(before.kind,'reserved','not locked earlier than 5 minutes before the booked time');
+ assert.equal(Date.parse((early as any).reservation.startsAt)-Date.parse((early as any).reservation.checkInFrom),5*60_000);
+ await admin.query("UPDATE meta_table_reservations SET status='CANCELLED',cancelled_at=clock_timestamp(),cancelled_by='staff' WHERE id=$1",[(early as any).reservation.id]);
+ const soon=await bkkClock(3);
  const r=await requestBooking(db,M,L1,{date:soon.d,time:soon.t,partySize:2},fallback);
  assert.equal(r.kind,'booked');const id=(r as any).reservation.id,table=(r as any).reservation.tableLabel;
  const tag=table==='A1'?TAG1:TAG2,uid=table==='A1'?UID1:UID2;

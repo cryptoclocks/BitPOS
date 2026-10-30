@@ -2,13 +2,13 @@
 // Table booking by chat. The customer's words become date / time / party size (Muse Spark, or the free matcher
 // below); what is missing is asked back. With a time the booking is made at once (today, or tomorrow when that
 // time has passed). A booking holds one table that has a BitPOS device with an NTAG sticker; the customer
-// checks in by tapping it from 15 minutes before to 15 minutes after the booked time, otherwise the booking
-// lapses and the table is free. While held, other customers' taps at that table are refused.
+// checks in by tapping it from 5 minutes before to 15 minutes after the booked time (18:00 holds 17:55-18:15), otherwise
+// the booking lapses and the table is free. Only inside that window are other customers' taps at the table refused.
 // All clock reads and Bangkok-time arithmetic happen in the database, in one statement per decision.
 import type pg from 'pg';
 import type {MetaDb} from './identity';
 
-export const CHECKIN_MINUTES=15,SEATED_MINUTES=90,MAX_DAYS=14,TZ='Asia/Bangkok';
+export const HOLD_BEFORE_MINUTES=5,CHECKIN_MINUTES=15,SEATED_MINUTES=90,MAX_DAYS=14,TZ='Asia/Bangkok';
 export interface BookingFields {date:string|null;time:string|null;partySize:number|null}
 export interface ReservationView {id:string;code:string;tableLabel:string;partySize:number;startsAt:string;checkInFrom:string;checkInUntil:string;status:'HELD'|'CHECKED_IN'|'NO_SHOW'|'CANCELLED'}
 export type BookingResult=
@@ -58,7 +58,7 @@ export async function bangkokToday(db:MetaDb,merchantId:string):Promise<string>{
 
 type ResRow={id:string;table_label:string;party_size:number;starts_at:Date;status:ReservationView['status']};
 const view=(r:ResRow):ReservationView=>({id:r.id,code:code(r.id),tableLabel:r.table_label,partySize:r.party_size,startsAt:r.starts_at.toISOString(),
- checkInFrom:new Date(r.starts_at.getTime()-CHECKIN_MINUTES*60_000).toISOString(),checkInUntil:new Date(r.starts_at.getTime()+CHECKIN_MINUTES*60_000).toISOString(),status:r.status});
+ checkInFrom:new Date(r.starts_at.getTime()-HOLD_BEFORE_MINUTES*60_000).toISOString(),checkInUntil:new Date(r.starts_at.getTime()+CHECKIN_MINUTES*60_000).toISOString(),status:r.status});
 const RES_SQL=`SELECT r.id,coalesce(t.label,'') AS table_label,r.party_size,r.starts_at,r.status FROM meta_table_reservations r LEFT JOIN merchant_tables t ON t.merchant_id=r.merchant_id AND t.id=r.table_id`;
 
 /** Merges what the customer just said into their open request (30 minutes), returning the combined fields. */
@@ -82,8 +82,8 @@ export async function openBookingRequest(db:MetaDb,merchantId:string,linkId:stri
 /** Tables a customer can check in at: not retired, with a BitPOS device carrying an active NTAG sticker. */
 const BOOKABLE=`SELECT t.id,t.label FROM merchant_tables t WHERE t.retired_at IS NULL AND EXISTS(SELECT 1 FROM devices d JOIN meta_ntag_tags g ON g.merchant_id=d.merchant_id AND g.device_id=d.id AND g.retired_at IS NULL
  WHERE d.merchant_id=t.merchant_id AND d.table_id=t.id AND d.revoked_at IS NULL) ORDER BY t.label,t.id`;
-// Two bookings on one table clash when their [start-15m, start+90m] spans overlap.
-const CLASH=`EXISTS(SELECT 1 FROM meta_table_reservations r WHERE r.table_id=$1 AND r.status IN ('HELD','CHECKED_IN') AND abs(extract(epoch FROM r.starts_at-$2::timestamptz))<${(CHECKIN_MINUTES+SEATED_MINUTES)*60})`;
+// Two bookings on one table clash when their [start-5m, start+90m] spans overlap.
+const CLASH=`EXISTS(SELECT 1 FROM meta_table_reservations r WHERE r.table_id=$1 AND r.status IN ('HELD','CHECKED_IN') AND abs(extract(epoch FROM r.starts_at-$2::timestamptz))<${(HOLD_BEFORE_MINUTES+SEATED_MINUTES)*60})`;
 
 /** Adds what was said to the open request; books as soon as there is a time; otherwise says what to ask. */
 export async function requestBooking(db:MetaDb,merchantId:string,linkId:string,said:BookingFields,by:{chosenBy:'model'|'fallback';invocationId:string|null}):Promise<BookingResult>{
@@ -150,7 +150,7 @@ export async function holdForDevice(c:pg.PoolClient,deviceId:string):Promise<Tab
  const r=(await c.query<{id:string;link_id:string;label:string;status:'HELD'|'CHECKED_IN';starts_at:Date}>(
   `SELECT r.id,r.link_id,coalesce(t.label,'') AS label,r.status,r.starts_at FROM devices d JOIN meta_table_reservations r ON r.merchant_id=d.merchant_id AND r.table_id=d.table_id
    LEFT JOIN merchant_tables t ON t.merchant_id=r.merchant_id AND t.id=r.table_id
-   WHERE d.id=$1 AND ((r.status='HELD' AND clock_timestamp() BETWEEN r.starts_at-interval '${CHECKIN_MINUTES} minutes' AND r.starts_at+interval '${CHECKIN_MINUTES} minutes')
+   WHERE d.id=$1 AND ((r.status='HELD' AND clock_timestamp() BETWEEN r.starts_at-interval '${HOLD_BEFORE_MINUTES} minutes' AND r.starts_at+interval '${CHECKIN_MINUTES} minutes')
     OR (r.status='CHECKED_IN' AND clock_timestamp()<r.starts_at+interval '${SEATED_MINUTES} minutes')) ORDER BY r.starts_at LIMIT 1`,[deviceId])).rows[0];
  return r?{reservationId:r.id,linkId:r.link_id,tableLabel:r.label,status:r.status,startsAt:r.starts_at,checkInUntil:new Date(r.starts_at.getTime()+CHECKIN_MINUTES*60_000)}:null;
 }
@@ -170,7 +170,7 @@ export async function tableScreen(db:MetaDb,merchantId:string,deviceId:string):P
     ORDER BY (r.status='CHECKED_IN') DESC,r.starts_at LIMIT 1`,[deviceId])).rows[0];
   const iso=(ms:number)=>new Date(ms).toISOString(),now=t.now.getTime();
   if(!r)return {tableLabel:t.label,state:'free',partySize:null,startsAt:null,checkInFrom:null,checkInUntil:null,seatedUntil:null,now:iso(now)};
-  const start=r.starts_at.getTime(),from=start-CHECKIN_MINUTES*60_000,until=start+CHECKIN_MINUTES*60_000;
+  const start=r.starts_at.getTime(),from=start-HOLD_BEFORE_MINUTES*60_000,until=start+CHECKIN_MINUTES*60_000;
   const state=r.status==='CHECKED_IN'?'seated':now>=from?'check_in':'upcoming';
   return {tableLabel:t.label,state,partySize:r.party_size,startsAt:iso(start),checkInFrom:iso(from),checkInUntil:iso(until),
    seatedUntil:r.status==='CHECKED_IN'?iso(start+SEATED_MINUTES*60_000):null,now:iso(now)};
@@ -235,7 +235,7 @@ export async function floorPlan(db:MetaDb,merchantId:string):Promise<FloorTable[
     WHERE t.retired_at IS NULL ORDER BY t.label LIMIT 40`)).rows;
   return rows.map(t=>{
    const iso=(ms:number)=>new Date(ms).toISOString(),now=t.now.getTime(),start=t.starts_at?.getTime()??0;
-   const state=!t.rid?'free':t.status==='CHECKED_IN'?'seated':now>=start-CHECKIN_MINUTES*60_000?'check_in':'upcoming';
+   const state=!t.rid?'free':t.status==='CHECKED_IN'?'seated':now>=start-HOLD_BEFORE_MINUTES*60_000?'check_in':'upcoming';
    return {id:t.id,label:t.label,state,code:t.rid?code(t.rid):null,partySize:t.party_size,startsAt:t.starts_at?iso(start):null,
     checkInUntil:t.rid?iso(start+CHECKIN_MINUTES*60_000):null,seatedUntil:t.status==='CHECKED_IN'?iso(start+SEATED_MINUTES*60_000):null,laterToday:t.later,openOrders:t.orders,devices:t.devices??[]};
   });
