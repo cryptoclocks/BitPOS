@@ -754,10 +754,31 @@ def mp19():
 @screen('MP20', 'settings', 'ตั้งค่าร้าน', 'pos', sol='P28')
 def mp20():
     s = desk('ตั้งค่า', 'MP20', SHOP)
-    items = [('โต๊ะ อุปกรณ์ และสติกเกอร์', 'BitPOS Mini 3 เครื่อง · NTAG 424 DNA', 'device', 'MP09'), ('ผู้ใช้และสิทธิ์', 'เจ้าของ · ผู้จัดการ · พนักงาน', 'users', 'MP21'),
+    items = [('หน้าตาร้าน', 'ปก โลโก้ คำโปรย สีธีม', 'spark', 'MP25'), ('เวลารับจองโต๊ะ', 'เวลาเปิดปิด · ช่องเวลา · รับจองถึงก่อนปิด', 'calendar', 'MP24'), ('โต๊ะ อุปกรณ์ และสติกเกอร์', 'BitPOS Mini 3 เครื่อง · NTAG 424 DNA', 'device', 'MP09'), ('ผู้ใช้และสิทธิ์', 'เจ้าของ · ผู้จัดการ · พนักงาน', 'users', 'MP21'),
              ('Messenger', 'เพจ BitPOS Muse Demo · เชื่อมต่อแล้ว · ข้อความยินยอม v1', 'chat', 'C02'), ('Stripe', 'Sandbox · webhook ตรวจลายเซ็น · ห้ามคีย์จริง', 'stripe', 'MP19'),
              ('Muse Spark', 'muse-spark-1.3 · จำกัด 10 ครั้ง/ชม./ลูกค้า · มีตัวสำรอง', 'spark', 'MP17'), ('Muse Connector (MCP)', 'meta-pay/meta/mcp/<ร้าน>', 'robot', 'MP23')]
     for j, (t, sub, ic, d) in enumerate(items): s.row(280 + (j % 2) * 572, 190 + (j // 2) * 100, 556, t, sub, icon=ic, dest=d, h=84)
+    return s
+@screen('MP25', 'shop-look', 'หน้าตาร้าน', 'pos', route='/meta/staff/settings/look', meta_only=True)
+def mp25():
+    s = desk('หน้าตาร้าน', 'MP20', 'ปก โลโก้ คำโปรย และสีของหน้าร้านลูกค้า (meta-pay)', [('← ตั้งค่า', 'MP20', 'outline')])
+    s.card(280, 190, 640, 720, r=18)
+    s.text(304, 228, 'ภาพปกร้าน', 15, weight=700); s.photo('iced-latte', 304, 244, 300, 150, 12); s.btn(624, 300, 180, 'เปลี่ยนรูป', 'MP25', 'secondary', h=42, size=14)
+    s.text(304, 432, 'โลโก้', 15, weight=700); s.rect(304, 446, 64, 64, C['tint'], 14); s.text(336, 486, 'M', 26, C['violet'], 700, 'middle'); s.btn(388, 456, 160, 'เปลี่ยนโลโก้', 'MP25', 'secondary', h=42, size=14)
+    s.text(304, 548, 'คำโปรยบนภาพปก', 15, weight=700); s.rect(304, 562, 592, 44, C['white'], 10, C['line']); s.text(320, 590, 'กาแฟช้าๆ ริมแม่น้ำ · Slow coffee by the river', 15)
+    s.text(304, 644, 'สีธีม', 15, weight=700)
+    for j, (c, t) in enumerate([('#0866FF', 'ฟ้า'), ('#6D28D9', 'ม่วง'), ('#15803D', 'เขียว'), ('#C2410C', 'ส้มอิฐ'), ('#BE185D', 'ชมพู'), ('#7C4A2D', 'กาแฟ'), ('#1F2937', 'ดำ')]):
+        x = 304 + j * 84; s.circle(x + 14, 676, 13, c); s.text(x + 38, 681, t, 13)
+        if j == 1: s.circle(x + 14, 676, 17, 'none', c)
+    s.text(304, 724, 'ระบบตรวจว่าตัวหนังสือสีขาวบนสีนี้อ่านได้ (contrast 4.5 ขึ้นไป) · สีอ่อนเกินไปจะบันทึกไม่ได้', 13, C['muted'])
+    s.btn(304, 840, 200, 'บันทึก', 'MP25', h=48, size=15)
+    # Preview of the customer home with the chosen look.
+    s.card(944, 190, 464, 720, r=18); s.text(968, 228, 'ตัวอย่างหน้าร้าน', 15, weight=700)
+    s.photo('iced-latte', 968, 248, 416, 220, 16); s.rect(968, 418, 416, 50, '#000000', 0, opacity=.35); s.text(984, 450, 'กาแฟช้าๆ ริมแม่น้ำ', 16, C['white'], 600)
+    s.rect(968, 488, 40, 40, C['tint'], 10); s.text(988, 515, 'M', 18, '#6D28D9', 700, 'middle'); s.text(1020, 515, 'Muse Café', 18, weight=700)
+    s.text(968, 556, 'สั่งจากมือถือ จ่ายด้วย Stripe', 14, C['muted']); s.pill(968, 572, 'เปิดอยู่ · 10:00–22:00', 'green', None, 28, 13)
+    s.rect(968, 760, 416, 52, '#6D28D9', 12); s.text(1176, 792, 'ดูเมนู / Menu', 16, C['white'], 600, 'middle'); s.hot(968, 760, 416, 52, 'C18')
+    s.text(968, 850, 'ใช้กับหัวเว็บ ปุ่ม ภาพปก ชื่อร้าน และการ์ดต้อนรับใน Messenger', 13, C['muted'])
     return s
 @screen('MP21', 'users', 'ผู้ใช้และสิทธิ์', 'pos', sol='P25')
 def mp21():
