@@ -8,7 +8,7 @@ import pg from 'pg';
 import {aesCmac,deriveTagKeys} from '../packages/meta-ai/src/ntag424';
 import {handleMessengerEvents,handleTap,type IdentityDeps,type MetaDb} from '../apps/api/src/meta/identity';
 import {parseMessengerWebhook} from '../apps/api/src/meta/messenger';
-import {cancelReservation,parseBooking,requestBooking,screenTags,staffReservations,sweepLapsed,tableScreen} from '../apps/api/src/meta/reservations';
+import {cancelReservation,parseBooking,requestBooking,screenTags,staffReservations,sweepLapsed,sweepReminders,tableScreen} from '../apps/api/src/meta/reservations';
 import {screenKey} from '../apps/api/src/meta/screen';
 import {serveMeta} from '../apps/api/src/meta/routes';
 import http from 'node:http';
@@ -140,6 +140,30 @@ test('lapse: no check-in within 15 minutes → NO_SHOW once, customer told, tabl
  assert.equal((await sweepLapsed(db)).filter(n=>n.merchantId===M).length,0,'told once');
  const t=await tap(TAG1,UID1,cookie2);
  assert.equal(t.kind,'known','the lapsed table is free for anyone');
+});
+
+test('reminder: 5 minutes before the booked time the customer is reminded once; not earlier',{skip},async()=>{
+ const ins=(mins:number)=>admin.query<{id:string}>(`INSERT INTO meta_table_reservations(merchant_id,link_id,table_id,party_size,starts_at,chosen_by) VALUES($1,$2,$3,2,clock_timestamp()+interval '${mins} minutes','fallback') RETURNING id`,[M,L1,T1]).then(r=>r.rows[0].id);
+ const later=await ins(30);
+ assert.equal((await sweepReminders(db)).filter(n=>n.merchantId===M).length,0,'30 minutes ahead: no reminder yet');
+ await admin.query("UPDATE meta_table_reservations SET status='CANCELLED',cancelled_at=clock_timestamp(),cancelled_by='staff' WHERE id=$1",[later]);
+ const soon=await ins(4);
+ const mine=(await sweepReminders(db)).filter(n=>n.merchantId===M);
+ assert.equal(mine.length,1);assert.equal(mine[0].psid,PSID1);assert.match(mine[0].text,/อีก 5 นาที/);assert.match(mine[0].text,/check in/);
+ assert.equal((await sweepReminders(db)).filter(n=>n.merchantId===M).length,0,'reminded once');
+ await admin.query("UPDATE meta_table_reservations SET status='CANCELLED',cancelled_at=clock_timestamp(),cancelled_by='staff' WHERE id=$1",[soon]);
+});
+
+test('ask time: only free future times are offered, as quick replies',{skip},async()=>{
+ const {resetBookingRequest}=await import('../apps/api/src/meta/reservations');await resetBookingRequest(db,M,L2);
+ const today=(await bkkClock(0)).d,tomorrow=(await bkkClock(24*60)).d;
+ const r=await requestBooking(db,M,L2,{date:tomorrow,time:null,partySize:2},fallback);
+ assert.equal(r.kind,'ask');const times=(r as any).times as string[];
+ assert.deepEqual(times.slice(0,3),['10:00','10:30','11:00']);assert.ok(times.length<=12);
+ const t=await requestBooking(db,M,L2,{date:today,time:null,partySize:2},fallback);
+ const now=(await bkkClock(10)).t;
+ assert.ok(((t as any).times as string[]).every(x=>x>now),'today: nothing in the past');
+ await resetBookingRequest(db,M,L2);
 });
 
 test('chat: "จองโต๊ะ…" books through the agent without a model; Book menu asks back; model step fields are used',{skip},async()=>{

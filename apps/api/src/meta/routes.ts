@@ -10,7 +10,7 @@ import {stripeSandboxFromEnv,StripePaymentError} from './stripe';
 import {createMetaRouter,metaProvidersFromEnv} from '../../../../packages/meta-ai/src/router';
 import {formatTapAmount,handOver,listTapOrders,pickupCode,staffConfigFromEnv,staffDemoSignIn,staffFromSession,staffSignIn,staffSignOut,type SignInResult,type StaffDeps,type StaffOrder,type StaffView} from './staff';
 import {serveMcp} from './mcp';
-import {cancelReservation,screenTags,staffReservations,sweepLapsed,tableScreen} from './reservations';
+import {cancelReservation,screenTags,staffReservations,sweepLapsed,sweepReminders,tableScreen} from './reservations';
 import {screenHtml,screenKey,screenKeyValid} from './screen';
 import {approveDraft,draftOffer,listOffersOverview,rejectDraft,revokePolicy,stopOffer,OfferPolicyError,type DraftView,type OfferPolicyDeps,type PolicyView} from './offer-policy';
 import {allowModelCall,bookingMessages,handleAgentRequest,planChatOrder,planPhotoOrder,splitTableOrder,suggestItems,QUICK,type ChatAgentDeps} from './agent';
@@ -904,10 +904,15 @@ function reservationLines(rows:Awaited<ReturnType<typeof staffReservations>>):st
  return ['<strong>🗓️ การจองโต๊ะ / Table bookings</strong>',...rows.map(r=>`<strong>#${esc(r.code)}</strong> โต๊ะ ${esc(r.tableLabel)} · ${t(r.startsAt)} · ${r.partySize} คน · ${label[r.status]??esc(r.status)}${r.status==='HELD'&&r.minutesToDeadline!==null?` · หมดเวลาเช็กอินใน ${Math.max(0,r.minutesToDeadline)} นาที`:''}${r.status==='HELD'?`<form method="post" action="/meta/staff/reservations/${r.id}/cancel"><button>ยกเลิกการจอง / Cancel booking</button></form>`:''}`)];
 }
 
-/** Every minute: bookings past their check-in window lapse (NO_SHOW) and the customer is told in Messenger. */
+/** Every minute: the customer is reminded when the check-in window opens (5 minutes before), and bookings past
+ * their window lapse (NO_SHOW) with a Messenger notice. Each notice is claimed in the database once. */
 export function startReservationSweeper(deps:MetaRouteDeps,intervalMs=60_000):NodeJS.Timeout{
  const tick=async()=>{
   try{
+   for(const n of await sweepReminders(deps.identity.db)){
+    deps.log?.('Booking reminder');
+    if(deps.messenger)await sendMessenger(deps.messenger,{kind:'text',psid:n.psid,text:n.text,eventUpdate:true},deps.fetch).catch(()=>deps.log?.('Reminder notice failed'));
+   }
    for(const n of await sweepLapsed(deps.identity.db)){
     deps.log?.('Booking lapsed');
     if(deps.messenger)await sendMessenger(deps.messenger,{kind:'text',psid:n.psid,text:n.text,eventUpdate:true},deps.fetch).catch(()=>deps.log?.('Lapse notice failed'));

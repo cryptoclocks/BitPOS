@@ -12,7 +12,7 @@ export const HOLD_BEFORE_MINUTES=5,CHECKIN_MINUTES=15,SEATED_MINUTES=90,MAX_DAYS
 export interface BookingFields {date:string|null;time:string|null;partySize:number|null}
 export interface ReservationView {id:string;code:string;tableLabel:string;partySize:number;startsAt:string;checkInFrom:string;checkInUntil:string;status:'HELD'|'CHECKED_IN'|'NO_SHOW'|'CANCELLED'}
 export type BookingResult=
- {kind:'ask';missing:('date'|'time')[];fields:BookingFields;today:string}|
+ {kind:'ask';missing:('date'|'time')[];fields:BookingFields;today:string;times:string[]}|
  {kind:'booked';reservation:ReservationView}|
  {kind:'full';fields:BookingFields;alternatives:string[]}|
  {kind:'invalid';reason:'PAST'|'TOO_FAR'|'NO_TABLES'};
@@ -92,7 +92,7 @@ export async function requestBooking(db:MetaDb,merchantId:string,linkId:string,s
   await c.query("SELECT pg_advisory_xact_lock(hashtext('meta-booking:'||$1))",[merchantId]);
   const f=await mergeRequest(c,merchantId,linkId,cleanFields(said));
   const today=(await c.query<{d:string}>(`SELECT to_char((clock_timestamp() AT TIME ZONE '${TZ}')::date,'YYYY-MM-DD') AS d`)).rows[0].d;
-  if(!f.time)return {kind:'ask',missing:f.date?['time']:['date','time'],fields:f,today};
+  if(!f.time)return {kind:'ask',missing:f.date?['time']:['date','time'],fields:f,today,times:f.date?await freeTimes(c,f.date):[]};
   // A time alone means today, or tomorrow when that time has already passed.
   const when=(await c.query<{starts_at:Date;past:boolean;too_far:boolean;date:string}>(
    `WITH s AS (SELECT CASE WHEN $1::date IS NOT NULL THEN ($1::date+$2::time) AT TIME ZONE '${TZ}'
@@ -187,6 +187,42 @@ export async function screenTags(db:MetaDb,merchantId:string):Promise<{tagId:str
 /** Inside the tap's transaction: the booked customer checks in; returns true when this tap did it. */
 export async function checkIn(c:pg.PoolClient,hold:TableHold,tapSessionId:string):Promise<boolean>{
  return (await c.query("UPDATE meta_table_reservations SET status='CHECKED_IN',checked_in_at=clock_timestamp(),tap_session_id=$2 WHERE id=$1 AND status='HELD'",[hold.reservationId,tapSessionId])).rowCount===1;
+}
+
+/** Bookings whose check-in window has just opened (5 minutes before): reminded once, returns who to tell. */
+export async function sweepReminders(db:MetaDb):Promise<{merchantId:string;psid:string;text:string}[]>{
+ const merchants=(await db.query<{m:string}>('SELECT bitpos.meta_due_reminder_merchants() AS m',[])).rows.map(r=>r.m);
+ const out:{merchantId:string;psid:string;text:string}[]=[];
+ for(const merchantId of merchants){
+  const rows=await db.tenant(merchantId,async c=>(await c.query<{psid:string|null;label:string;starts_at:Date}>(
+   `WITH due AS (UPDATE meta_table_reservations SET reminded_at=clock_timestamp() WHERE status='HELD' AND reminded_at IS NULL
+     AND starts_at-interval '${HOLD_BEFORE_MINUTES} minutes'<=clock_timestamp() AND starts_at+interval '${CHECKIN_MINUTES} minutes'>=clock_timestamp() RETURNING link_id,table_id,starts_at)
+    SELECT l.psid,coalesce(t.label,'') AS label,x.starts_at FROM due x LEFT JOIN meta_customer_links l ON l.merchant_id=$1 AND l.id=x.link_id AND l.revoked_at IS NULL
+    LEFT JOIN merchant_tables t ON t.merchant_id=$1 AND t.id=x.table_id`,[merchantId])).rows);
+  for(const r of rows)if(r.psid){
+   const f=(ms:number)=>new Intl.DateTimeFormat('en-GB',{hour:'2-digit',minute:'2-digit',timeZone:TZ}).format(new Date(ms));
+   const at=f(r.starts_at.getTime()),until=f(r.starts_at.getTime()+CHECKIN_MINUTES*60_000);
+   out.push({merchantId,psid:r.psid,text:`⏰ อีก ${HOLD_BEFORE_MINUTES} นาทีถึงเวลาจองโต๊ะ ${r.label} (${at}) แตะมือถือที่สติกเกอร์บนโต๊ะเพื่อเช็กอินภายใน ${until} นะคะ\nYour table ${r.label} booking is at ${at}. Tap your phone on the table's sticker by ${until} to check in.`});
+  }
+ }
+ return out;
+}
+
+/** Times to offer on a date: future 30-minute slots (10:00-21:00, at least 10 minutes away) with a free bookable table. */
+async function freeTimes(c:pg.PoolClient,date:string,max=12):Promise<string[]>{
+ {
+  const tables=(await c.query<{id:string}>(BOOKABLE)).rows;
+  if(!tables.length)return [];
+  const slots=(await c.query<{at:Date;t:string}>(
+   `SELECT at,to_char(at AT TIME ZONE '${TZ}','HH24:MI') AS t FROM generate_series(($1::date+time '10:00') AT TIME ZONE '${TZ}',($1::date+time '21:00') AT TIME ZONE '${TZ}',interval '30 minutes') at
+    WHERE at>clock_timestamp()+interval '10 minutes' ORDER BY at`,[date])).rows;
+  const out:string[]=[];
+  for(const s of slots){
+   for(const t of tables)if(!(await c.query<{x:boolean}>(`SELECT ${CLASH} AS x`,[t.id,s.at])).rows[0].x){out.push(s.t);break;}
+   if(out.length>=max)break;
+  }
+  return out;
+ }
 }
 
 /** Marks bookings past their check-in window as NO_SHOW (once) and returns who to tell. */

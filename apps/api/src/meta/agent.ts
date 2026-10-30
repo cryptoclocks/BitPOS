@@ -279,8 +279,11 @@ export function bookingMessages(psid:string,r:BookingResult,reply=''):Outgoing[]
  if(r.kind==='ask'){
   if(r.missing.includes('date'))return [{kind:'buttons',psid,text:`${reply?reply+'\n':''}จองโต๊ะได้เลยค่ะ อยากมาวันไหน เวลากี่โมง กี่ท่านคะ (เช่น "พรุ่งนี้ 1 ทุ่ม 2 คน")\nWhich day and time, and for how many? (e.g. "tomorrow 19:00, 2 people")`,
    buttons:[{type:'postback',title:'วันนี้ / Today',payload:`BITPOS_BOOK_SET:date:${r.today}`},{type:'postback',title:'พรุ่งนี้ / Tomorrow',payload:`BITPOS_BOOK_SET:date:${addDay(r.today,1)}`}]}];
-  return [{kind:'buttons',psid,text:`${reply?reply+'\n':''}วันที่ ${r.fields.date} ค่ะ มากี่โมงดีคะ (พิมพ์เวลาได้เลย เช่น 18:30)\nWhat time? (type it, e.g. 18:30)`,
-   buttons:['12:00','18:00','19:00'].map(t=>({type:'postback' as const,title:t,payload:`BITPOS_BOOK_SET:time:${t}`}))}];
+  // Only times with a free table that are still ahead, as quick replies (up to 12); typing any other time also works.
+  if(!r.times.length)return [{kind:'text',psid,text:`${reply?reply+'\n':''}วันที่ ${r.fields.date} โต๊ะเต็มแล้วค่ะ ลองวันอื่นได้เลย\nNo free tables on ${r.fields.date}. Try another day.`,
+   quick:[{title:'พรุ่งนี้ / Tomorrow',payload:`BITPOS_BOOK_SET:date:${addDay(r.fields.date!,1)}`}]}];
+  return [{kind:'text',psid,text:`${reply?reply+'\n':''}วันที่ ${r.fields.date} ค่ะ เลือกเวลาที่ว่างได้เลย หรือพิมพ์เวลาเอง (เช่น 18:30)\nPick a free time, or type one (e.g. 18:30).`,
+   quick:r.times.map(t=>({title:t,payload:`BITPOS_BOOK_SET:time:${t}`}))}];
  }
  if(r.kind==='full'){
   if(!r.alternatives.length)return [{kind:'text',psid,text:'ขออภัยค่ะ ช่วงนั้นโต๊ะเต็ม ลองเวลาอื่นได้เลยค่ะ\nSorry, fully booked around then. Try another time.'}];
@@ -297,7 +300,7 @@ export async function handleAgentRequest(deps:ChatAgentDeps,req:AgentRequest):Pr
  const out=await agentReplies(deps,req);
  // Chips go under the last reply unless it is a booking question (its own buttons answer it).
  const last=out[out.length-1];
- if(last&&!(last.kind==='buttons'&&last.buttons.some(b=>b.type==='postback'&&b.payload.startsWith('BITPOS_BOOK_SET:'))))out[out.length-1]={...last,quick:QUICK};
+ if(last&&!last.quick?.length&&!(last.kind==='buttons'&&last.buttons.some(b=>b.type==='postback'&&b.payload.startsWith('BITPOS_BOOK_SET:'))))out[out.length-1]={...last,quick:QUICK};
  return out;
 }
 async function agentReplies(deps:ChatAgentDeps,req:AgentRequest):Promise<Outgoing[]>{
