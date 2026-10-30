@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:mobile_shared/presentation/bitpos_layout.dart';
 import 'package:mobile_shared/bitpos_theme.dart';
 import 'package:mobile_shared/mobile_api.dart';
 import 'package:mobile_shared/mobile_v1.generated.dart';
@@ -536,26 +537,10 @@ class _DriverEarningsPageState extends State<DriverEarningsPage>
       final title = _view == 0 ? t('รายได้ของคุณ', 'Your earnings') : _view == 1 ? t('รอบโอนเงิน', 'Payouts') : t('รายละเอียดรอบโอน', 'Payout statement');
       return Scaffold(
         appBar: AppBar(
-          toolbarHeight: 88 + (MediaQuery.textScalerOf(context).scale(20) - 20) * 2,
-          leadingWidth: 76,
+          toolbarHeight: 72 + (MediaQuery.textScalerOf(context).scale(20) - 20) * 2,
+          leadingWidth: BitPosLayout.leadingWidth,
           titleSpacing: 0,
-          leading: Padding(
-            padding: const EdgeInsets.only(left: 18, right: 10, top: 12),
-            child: Center(
-              child: IconButton(
-                tooltip: t('กลับ', 'Back'),
-                onPressed: _backView,
-                style: IconButton.styleFrom(
-                  minimumSize: const Size(44, 44),
-                  backgroundColor: Theme.of(context).colorScheme.surface,
-                  foregroundColor: Theme.of(context).colorScheme.primary,
-                  side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                ),
-                icon: const Icon(Icons.chevron_left, size: 22),
-              ),
-            ),
-          ),
+          leading: BitPosBackButton(onPressed: _backView, tooltip: t('กลับ', 'Back')),
           title: Text(title, maxLines: 2, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600)),
         ),
         body: SafeArea(
@@ -564,7 +549,7 @@ class _DriverEarningsPageState extends State<DriverEarningsPage>
               constraints: const BoxConstraints(maxWidth: 980),
               child: ListView(
                 controller: _scroll,
-                padding: const EdgeInsets.fromLTRB(24, 28, 24, 32),
+                padding: const EdgeInsets.fromLTRB(24, 8, 24, 32),
                 children: [
                   _hero(context, batches),
                   if (_view == 0 && _items.isNotEmpty) ...[

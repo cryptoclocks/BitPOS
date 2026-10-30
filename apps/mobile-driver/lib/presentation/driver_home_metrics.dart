@@ -14,16 +14,22 @@ class DriverHomeMetrics extends StatelessWidget {
     builder: (context, constraints) {
       final scaled = MediaQuery.textScalerOf(context).scale(14) / 14;
       final columns = constraints.maxWidth >= 328 && scaled <= 1.2;
-      final width = columns
-          ? (constraints.maxWidth - 14) / 2
-          : constraints.maxWidth;
-      return Wrap(
-        spacing: 14,
-        runSpacing: 14,
-        children: [
-          SizedBox(width: width, child: earnings),
-          SizedBox(width: width, child: rating),
-        ],
+      if (columns) {
+        // Equal-height cards so the two top and bottom edges align.
+        return IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(child: earnings),
+              const SizedBox(width: 14),
+              Expanded(child: rating),
+            ],
+          ),
+        );
+      }
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [earnings, const SizedBox(height: 14), rating],
       );
     },
   );

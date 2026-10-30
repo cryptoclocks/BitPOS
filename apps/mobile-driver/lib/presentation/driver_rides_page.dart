@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:mobile_shared/presentation/bitpos_layout.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:mobile_shared/mobile_api.dart';
 import 'package:mobile_shared/mobile_v1.generated.dart';
@@ -282,7 +283,7 @@ class _DriverRidesPageState extends State<DriverRidesPage> {
 
   Widget _card(List<Widget> children) => Container(
     margin: const EdgeInsets.only(bottom: 16),
-    padding: const EdgeInsets.all(18),
+    padding: const EdgeInsets.all(20),
     decoration: BoxDecoration(
       color: Colors.white,
       borderRadius: BorderRadius.circular(18),
@@ -425,8 +426,8 @@ class _DriverRidesPageState extends State<DriverRidesPage> {
   @override
   Widget build(BuildContext context) => Scaffold(
     backgroundColor: _bg,
-    appBar: AppBar(
-      backgroundColor: _bg,
+    appBar: bitPosAppBar(
+      context,
       title: Text(
         t('งานผู้โดยสาร', 'Passenger jobs'),
         style: const TextStyle(
@@ -441,7 +442,9 @@ class _DriverRidesPageState extends State<DriverRidesPage> {
           tooltip: t('โหลดใหม่', 'Refresh'),
           onPressed: _loading || _busy ? null : _refresh,
           icon: const Icon(Icons.refresh),
+          constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
         ),
+        const SizedBox(width: 12),
       ],
     ),
     body: SafeArea(
@@ -465,13 +468,23 @@ class _DriverRidesPageState extends State<DriverRidesPage> {
                   _current(_trip!)
                 else if (_open.isEmpty && _error == null)
                   _card([
-                    Text(
-                      t(
-                        'ยังไม่มีคำขอเดินทางใกล้คุณ',
-                        'No open passenger requests right now.',
-                      ),
-                      key: const ValueKey('ride-empty'),
+                    const SizedBox(height: 8),
+                    const Center(
+                      child: Icon(Icons.directions_car_outlined, size: 40),
                     ),
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      width: double.infinity,
+                      child: Text(
+                        t(
+                          'ยังไม่มีคำขอเดินทางใกล้คุณ',
+                          'No open passenger requests right now.',
+                        ),
+                        key: const ValueKey('ride-empty'),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
                   ])
                 else
                   for (final trip in _open)

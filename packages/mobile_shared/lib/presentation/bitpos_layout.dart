@@ -18,7 +18,35 @@ abstract final class BitPosLayout {
   static const EdgeInsets page = EdgeInsets.fromLTRB(gutter, 16, gutter, 24);
 }
 
-/// 48 dp tonal back tile shared by every customer page header.
+/// The bare 48 dp bordered back tile with no outer padding, for in-body title
+/// rows that already sit inside the 24 dp gutter.
+class BitPosBackTile extends StatelessWidget {
+  const BitPosBackTile({super.key, this.onPressed, this.tooltip});
+  final VoidCallback? onPressed;
+  final String? tooltip;
+
+  @override
+  Widget build(BuildContext context) => IconButton.filledTonal(
+    tooltip: tooltip ?? MaterialLocalizations.of(context).backButtonTooltip,
+    onPressed: onPressed ?? () => Navigator.of(context).maybePop(),
+    style: IconButton.styleFrom(
+      minimumSize: const Size(
+        BitPosLayout.backButtonSize,
+        BitPosLayout.backButtonSize,
+      ),
+      padding: EdgeInsets.zero,
+      backgroundColor: Colors.white,
+      foregroundColor: BitPosDesignTokens.primary,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(BitPosDesignTokens.radiusControl),
+        side: const BorderSide(color: BitPosDesignTokens.line),
+      ),
+    ),
+    icon: const Icon(Icons.chevron_left, size: 24),
+  );
+}
+
+/// 48 dp tonal back tile shared by every page header (AppBar leading).
 class BitPosBackButton extends StatelessWidget {
   const BitPosBackButton({
     super.key,
@@ -41,26 +69,7 @@ class BitPosBackButton extends StatelessWidget {
       verticalPadding,
     ),
     child: Center(
-      child: IconButton.filledTonal(
-        tooltip: tooltip ?? MaterialLocalizations.of(context).backButtonTooltip,
-        onPressed: onPressed ?? () => Navigator.of(context).maybePop(),
-        style: IconButton.styleFrom(
-          minimumSize: const Size(
-            BitPosLayout.backButtonSize,
-            BitPosLayout.backButtonSize,
-          ),
-          padding: EdgeInsets.zero,
-          backgroundColor: Colors.white,
-          foregroundColor: BitPosDesignTokens.primary,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(
-              BitPosDesignTokens.radiusControl,
-            ),
-            side: const BorderSide(color: BitPosDesignTokens.line),
-          ),
-        ),
-        icon: const Icon(Icons.chevron_left, size: 24),
-      ),
+      child: BitPosBackTile(onPressed: onPressed, tooltip: tooltip),
     ),
   );
 }

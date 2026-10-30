@@ -104,53 +104,76 @@ class _DriverRatingSummaryState extends State<DriverRatingSummary>
     final value = rating, tenths = value?.averageTenths;
     return Container(
       constraints: const BoxConstraints(minHeight: 110),
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).brightness == Brightness.dark
+            ? Theme.of(context).colorScheme.surface
+            : Colors.white,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFE9E1F1)),
+        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            t(
-              'คะแนนของคุณ · รีวิวที่เผยแพร่',
-              'Your rating · published reviews',
-            ),
-            style: const TextStyle(fontSize: 13, color: Color(0xFF7B7088)),
-          ),
-          if (busy) const LinearProgressIndicator(),
-          const SizedBox(height: 8),
-          Row(
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Icon(Icons.star_rounded, color: Color(0xFFA94800)),
-              const SizedBox(width: 8),
               Text(
-                tenths == null ? '—' : '${tenths ~/ 10}.${tenths % 10}',
-                style: const TextStyle(
-                  fontSize: 30,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFFA94800),
+                t(
+                  'คะแนนของคุณ · รีวิวที่เผยแพร่',
+                  'Your rating · published reviews',
                 ),
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
+              ),
+              if (busy) const LinearProgressIndicator(),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  const Icon(Icons.star_rounded, color: Color(0xFFA94800)),
+                  const SizedBox(width: 8),
+                  Flexible(
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        tenths == null ? '—' : '${tenths ~/ 10}.${tenths % 10}',
+                        style: const TextStyle(
+                          fontSize: 30,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFFA94800),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              Text(
+                unavailable
+                    ? t('ยังโหลดคะแนนไม่ได้', 'Rating unavailable')
+                    : value == null
+                    ? t('กำลังโหลดคะแนน', 'Loading rating')
+                    : tenths == null
+                    ? t('ยังไม่มีคะแนนที่เผยแพร่', 'No published ratings yet')
+                    : t(
+                        'จาก ${value.publishedCount} รีวิวที่เผยแพร่',
+                        'From ${value.publishedCount} published ${value.publishedCount == '1' ? 'review' : 'reviews'}',
+                      ),
+                style: const TextStyle(fontSize: 12, color: Color(0xFF7B7088)),
               ),
             ],
           ),
-          Text(
-            unavailable
-                ? t('ยังโหลดคะแนนไม่ได้', 'Rating unavailable')
-                : value == null
-                ? t('กำลังโหลดคะแนน', 'Loading rating')
-                : tenths == null
-                ? t('ยังไม่มีคะแนนที่เผยแพร่', 'No published ratings yet')
-                : t(
-                    'จาก ${value.publishedCount} รีวิวที่เผยแพร่',
-                    'From ${value.publishedCount} published ${value.publishedCount == '1' ? 'review' : 'reviews'}',
-                  ),
-            style: const TextStyle(fontSize: 12, color: Color(0xFF7B7088)),
-          ),
           TextButton(
             onPressed: busy ? null : load,
+            style: TextButton.styleFrom(
+              padding: EdgeInsets.zero,
+              minimumSize: const Size(48, 48),
+              alignment: Alignment.centerLeft,
+            ),
             child: Text(t('โหลดคะแนนใหม่', 'Refresh rating')),
           ),
         ],

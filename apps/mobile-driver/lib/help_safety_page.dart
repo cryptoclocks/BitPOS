@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:mobile_shared/presentation/bitpos_layout.dart';
 import 'package:mobile_shared/presentation/bitpos_info.dart';
 import 'package:mobile_shared/mobile_api.dart';
 import 'package:mobile_shared/owned_route.dart';
@@ -79,24 +80,9 @@ class _DriverHelpSafetyPageState extends State<DriverHelpSafetyPage> {
     appBar: AppBar(
       backgroundColor: const Color(0xfff8f5fc),
       toolbarHeight: 72,
-      leadingWidth: 76,
+      leadingWidth: BitPosLayout.leadingWidth,
       titleSpacing: 0,
-      leading: Padding(
-        padding: const EdgeInsets.fromLTRB(18, 14, 14, 14),
-        child: IconButton.filledTonal(
-          tooltip: MaterialLocalizations.of(context).backButtonTooltip,
-          onPressed: () => Navigator.of(context).maybePop(),
-          style: IconButton.styleFrom(
-            backgroundColor: Colors.white,
-            foregroundColor: const Color(0xff64188a),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14),
-              side: const BorderSide(color: Color(0xffe9e1f1)),
-            ),
-          ),
-          icon: const Icon(Icons.chevron_left, size: 22),
-        ),
-      ),
+      leading: const BitPosBackButton(),
       title: Text(
         t('ช่วยเหลือและความปลอดภัย', 'Help and safety'),
         style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600),

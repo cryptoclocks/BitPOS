@@ -218,12 +218,14 @@ class _WorkAvailabilityState extends State<WorkAvailability>
           ],
           style: const TextStyle(fontSize: 13),
         ),
+        if (pending != null) const SizedBox(height: 12),
         if (pending != null)
           FilledButton(
             onPressed: busy ? null : () => load(command: pending),
             child: Text(t('กู้คืนคำสั่งเดิม', 'Recover saved driver command')),
           ),
-        Wrap(
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           spacing: 12,
           children: [
             if (!busy && !reconnecting && (error != null || stale))

@@ -26,7 +26,7 @@ class _DriverDailySummaryState extends State<DriverDailySummary>
   DriverDailyEarnings? summary;
   Timer? dayTimer;
   int epoch = 0;
-  bool busy = false, retired = false, unavailable = false;
+  bool busy = false, retired = false, unavailable = false, expanded = false;
   String t(String th, String en) => widget.thai ? th : en;
   bool get current =>
       mounted &&
@@ -151,7 +151,13 @@ class _DriverDailySummaryState extends State<DriverDailySummary>
       children: [
         Text(
           t('สรุปวันนี้ · เวลาไทย', 'Today · Bangkok time'),
-          style: Theme.of(context).textTheme.titleMedium,
+          style: widget.compact
+              ? TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: Theme.of(context).colorScheme.onSurface,
+                )
+              : Theme.of(context).textTheme.titleMedium,
         ),
         if (busy) const LinearProgressIndicator(),
         if (unavailable)
@@ -166,19 +172,17 @@ class _DriverDailySummaryState extends State<DriverDailySummary>
           ),
         if (value != null) ...[
           const SizedBox(height: 12),
-          LayoutBuilder(
-            builder: (context, constraints) => Wrap(
-              spacing: 14,
-              runSpacing: 14,
+          if (widget.compact)
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 metric(
                   t('งานส่งสำเร็จ', 'Completed deliveries'),
                   value.completedDeliveries,
-                  widget.compact || constraints.maxWidth < 300
-                      ? constraints.maxWidth
-                      : (constraints.maxWidth - 14) / 2,
+                  double.infinity,
                 ),
-                for (final group in value.groups)
+                for (final group in value.groups) ...[
+                  const SizedBox(height: 12),
                   metric(
                     '${stateLabel(group.state)} · ${group.count} ${t('รายการ', 'entries')}',
                     formatMinorUnits(
@@ -186,25 +190,65 @@ class _DriverDailySummaryState extends State<DriverDailySummary>
                       group.money.decimals,
                       group.money.currency,
                     ),
+                    double.infinity,
+                  ),
+                ],
+              ],
+            )
+          else
+            LayoutBuilder(
+              builder: (context, constraints) => Wrap(
+                spacing: 14,
+                runSpacing: 14,
+                children: [
+                  metric(
+                    t('งานส่งสำเร็จ', 'Completed deliveries'),
+                    value.completedDeliveries,
                     widget.compact || constraints.maxWidth < 300
                         ? constraints.maxWidth
                         : (constraints.maxWidth - 14) / 2,
                   ),
-              ],
+                  for (final group in value.groups)
+                    metric(
+                      '${stateLabel(group.state)} · ${group.count} ${t('รายการ', 'entries')}',
+                      formatMinorUnits(
+                        group.money.amountMinor,
+                        group.money.decimals,
+                        group.money.currency,
+                      ),
+                      widget.compact || constraints.maxWidth < 300
+                          ? constraints.maxWidth
+                          : (constraints.maxWidth - 14) / 2,
+                    ),
+                ],
+              ),
             ),
-          ),
           const SizedBox(height: 12),
           if (widget.compact)
-            Material(
-              color: Colors.transparent,
-              child: ExpansionTile(
-                tilePadding: EdgeInsets.zero,
-                childrenPadding: EdgeInsets.zero,
-                title: Text(
-                  t('รายละเอียดรายได้', 'Earning details'),
-                  style: const TextStyle(fontSize: 12),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                InkWell(
+                  onTap: () => setState(() => expanded = !expanded),
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(minHeight: 48),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            t('รายละเอียดรายได้', 'Earning details'),
+                            style: const TextStyle(fontSize: 12),
+                          ),
+                        ),
+                        Icon(
+                          expanded ? Icons.expand_less : Icons.expand_more,
+                          size: 24,
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
-                children: [
+                if (expanded) ...[
                   Text(
                     t(
                       'ภาระรายได้ที่บันทึกวันนี้ แยกสกุลเงินและสถานะปัจจุบัน ไม่ใช่ยอดโอนวันนี้',
@@ -217,7 +261,7 @@ class _DriverDailySummaryState extends State<DriverDailySummary>
                     style: const TextStyle(fontSize: 11),
                   ),
                 ],
-              ),
+              ],
             )
           else ...[
             Text(
@@ -237,6 +281,11 @@ class _DriverDailySummaryState extends State<DriverDailySummary>
           alignment: Alignment.centerLeft,
           child: TextButton(
             onPressed: busy ? null : load,
+            style: TextButton.styleFrom(
+              padding: EdgeInsets.zero,
+              minimumSize: const Size(48, 48),
+              alignment: Alignment.centerLeft,
+            ),
             child: Text(t('โหลดสรุปรายวัน', 'Refresh daily summary')),
           ),
         ),
@@ -245,9 +294,11 @@ class _DriverDailySummaryState extends State<DriverDailySummary>
     if (!widget.compact) return content;
     return Container(
       constraints: const BoxConstraints(minHeight: 110),
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
+        color: Theme.of(context).brightness == Brightness.dark
+            ? Theme.of(context).colorScheme.surface
+            : Colors.white,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
       ),

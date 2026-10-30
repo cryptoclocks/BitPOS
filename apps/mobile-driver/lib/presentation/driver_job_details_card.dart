@@ -26,7 +26,7 @@ class DriverJobDetailsCard extends StatelessWidget {
         Text(text, style: theme.textTheme.titleMedium);
 
     Widget borderedCard({required Widget child}) => Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: dark ? colors.surfaceContainer : Colors.white,
         borderRadius: BorderRadius.circular(16),

@@ -1,5 +1,5 @@
 import 'dart:async';import 'package:flutter/material.dart';import 'package:flutter/services.dart';
-import 'package:mobile_shared/mobile_api.dart';import 'package:mobile_shared/mobile_v1.generated.dart';import 'package:mobile_shared/settlement_beneficiary_mutation.dart';
+import 'package:mobile_shared/mobile_api.dart';import 'package:mobile_shared/presentation/bitpos_layout.dart';import 'package:mobile_shared/mobile_v1.generated.dart';import 'package:mobile_shared/settlement_beneficiary_mutation.dart';
 class PayoutBeneficiaryPage extends StatefulWidget{
  const PayoutBeneficiaryPage({super.key,required this.api,required this.thai});final MobileApi api;final bool thai;
  @override State<PayoutBeneficiaryPage> createState()=>_PayoutBeneficiaryPageState();
@@ -42,7 +42,7 @@ class _PayoutBeneficiaryPageState extends State<PayoutBeneficiaryPage> with Widg
   SettlementBeneficiarySummary? beneficiary;for(final row in page?.beneficiaries??<SettlementBeneficiarySummary>[]){if(row.beneficiaryId==selected)beneficiary=row;}
   final challenge=beneficiary?.challenge;
   final eligibleMerchants=(page?.items??<SettlementEarningItem>[]).map((item)=>item.merchantId).toSet().toList()..sort();
-  return Scaffold(appBar:AppBar(title:Text(t('กระเป๋ารับเงินของคุณ','Your payout destination'))),body:SafeArea(child:ListView(padding:const EdgeInsets.all(24),children:[
+  return Scaffold(appBar:bitPosAppBar(context,title:Text(t('กระเป๋ารับเงินของคุณ','Your payout destination'))),body:SafeArea(child:ListView(padding:const EdgeInsets.all(24),children:[
    Text(t('ลงทะเบียนกุญแจสาธารณะของคุณสำหรับร้านที่เคยส่งงาน ระบบตรวจสอบความเป็นเจ้าของบัญชีและอุปกรณ์ ห้ามป้อน private key หรือ seed phrase','Enroll your public key for a merchant you have served. Account/device ownership is server-enforced. Never enter private keys or seed phrases.')),
    Text(t('ใช้การลงนามข้อความในกระเป๋าภายนอกเท่านั้น ไม่มีการลงนามธุรกรรมหรือส่งเงินในหน้านี้','External wallet sign-message handoff only. This page never signs a transaction or sends funds.')),
    if(widget.api.fixture)Text(t('ข้อมูลทดสอบในเครื่อง / AVD ไม่ใช่การโอนจริง','LOCAL / AVD FIXTURE — no real transfer')),

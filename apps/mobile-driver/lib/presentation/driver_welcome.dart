@@ -20,134 +20,152 @@ class DriverWelcome extends StatelessWidget {
         child: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 520),
-            child: ListView(
-              padding: const EdgeInsets.fromLTRB(
-                BitPosDesignTokens.mobileMargin,
-                4,
-                BitPosDesignTokens.mobileMargin,
-                24,
-              ),
-              children: [
-                Row(
-                  children: [
-                    Image.asset(
-                      'assets/design/bitpos-logo.png',
-                      width: 104,
-                      height: 35,
-                      semanticLabel: 'BitPOS',
+            child: CustomScrollView(
+              slivers: [
+                SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(
+                      BitPosDesignTokens.mobileMargin,
+                      8,
+                      BitPosDesignTokens.mobileMargin,
+                      24,
                     ),
-                    const Spacer(),
-                    TextButton(
-                      onPressed: onLanguage,
-                      child: Text(thai ? 'English' : 'ไทย'),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 24),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(24),
-                  child: AspectRatio(
-                    aspectRatio: 342 / 293,
-                    child: Stack(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        const Positioned.fill(
-                          child: CustomPaint(painter: _WelcomeMapArtwork()),
-                        ),
-                        Positioned(
-                          left: 0,
-                          bottom: 0,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 6,
+                        Row(
+                          children: [
+                            Image.asset(
+                              'assets/design/bitpos-logo.png',
+                              width: 104,
+                              height: 35,
+                              semanticLabel: 'BitPOS',
                             ),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
+                            const Spacer(),
+                            TextButton(
+                              onPressed: onLanguage,
+                              style: TextButton.styleFrom(
+                                padding: EdgeInsets.zero,
+                                minimumSize: const Size(48, 48),
+                                alignment: Alignment.centerRight,
+                              ),
+                              child: Text(thai ? 'English' : 'ไทย'),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(24),
+                          child: AspectRatio(
+                            aspectRatio: 342 / 293,
+                            child: Stack(
+                              children: [
+                                const Positioned.fill(
+                                  child: CustomPaint(
+                                    painter: _WelcomeMapArtwork(),
+                                  ),
+                                ),
+                                Positioned(
+                                  left: 0,
+                                  bottom: 0,
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 6,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius: BorderRadius.circular(14),
+                                    ),
+                                    child: Text(
+                                      t('แผนที่ตัวอย่าง', 'Map illustration'),
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        color: Color(0xFF64188A),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 32),
+                        Wrap(
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          spacing: 16,
+                          runSpacing: 8,
+                          children: [
+                            Image.asset(
+                              'assets/design/bitpos-logo.png',
+                              width: 150,
+                              height: 50,
+                              excludeFromSemantics: true,
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color: colors.secondaryContainer,
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              child: Text(
+                                'RIDER',
+                                style: TextStyle(
+                                  color: colors.onSecondaryContainer,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 20),
+                        Text(
+                          t(
+                            'ทุกเส้นทาง มีคุณอยู่ด้วย',
+                            'Every journey starts with you',
+                          ),
+                          style: TextStyle(
+                            fontSize: 24,
+                            height: 1.35,
+                            fontWeight: FontWeight.w600,
+                            color: colors.onSurface,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          t(
+                            'รับงานส่งอาหาร ดูสถานะรายได้\nพร้อมความช่วยเหลือระหว่างทาง',
+                            'Manage food deliveries and view your earning status, with support along the way.',
+                          ),
+                          style: TextStyle(
+                            fontSize: 15,
+                            height: 1.65,
+                            color: colors.onSurfaceVariant,
+                          ),
+                        ),
+                        const SizedBox(height: 32),
+                        const Spacer(),
+                        FilledButton(
+                          key: const ValueKey('driver-welcome-start'),
+                          onPressed: onStart,
+                          style: FilledButton.styleFrom(
+                            minimumSize: const Size(48, 52),
+                            shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(14),
                             ),
-                            child: Text(
-                              t('แผนที่ตัวอย่าง', 'Map illustration'),
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: Color(0xFF64188A),
-                              ),
+                          ),
+                          child: Text(
+                            t(
+                              'เริ่มเป็น BitPOS Rider',
+                              'Get started with BitPOS Rider',
                             ),
                           ),
                         ),
                       ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 30),
-                Wrap(
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  spacing: 16,
-                  runSpacing: 8,
-                  children: [
-                    Image.asset(
-                      'assets/design/bitpos-logo.png',
-                      width: 150,
-                      height: 50,
-                      excludeFromSemantics: true,
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: colors.secondaryContainer,
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: Text(
-                        'RIDER',
-                        style: TextStyle(
-                          color: colors.onSecondaryContainer,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                Text(
-                  t(
-                    'ทุกเส้นทาง มีคุณอยู่ด้วย',
-                    'Every journey starts with you',
-                  ),
-                  style: TextStyle(
-                    fontSize: 24,
-                    height: 1.35,
-                    fontWeight: FontWeight.w600,
-                    color: colors.onSurface,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  t(
-                    'รับงานส่งอาหาร ดูสถานะรายได้\nพร้อมความช่วยเหลือระหว่างทาง',
-                    'Manage food deliveries and view your earning status, with support along the way.',
-                  ),
-                  style: TextStyle(
-                    fontSize: 15,
-                    height: 1.65,
-                    color: colors.onSurfaceVariant,
-                  ),
-                ),
-                const SizedBox(height: 84),
-                FilledButton(
-                  key: const ValueKey('driver-welcome-start'),
-                  onPressed: onStart,
-                  style: FilledButton.styleFrom(
-                    minimumSize: const Size(48, 52),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                  ),
-                  child: Text(
-                    t(
-                      'เริ่มเป็น BitPOS Rider',
-                      'Get started with BitPOS Rider',
                     ),
                   ),
                 ),
