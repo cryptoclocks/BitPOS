@@ -17,7 +17,8 @@ export interface StaffConfig {
 export interface StaffDeps {db:MetaDb;config:StaffConfig}
 export interface StaffView {merchantId:string;userId:string;role:'owner'|'manager'|'staff';sessionId:string}
 export type SignInResult={kind:'ok';token:string;role:StaffView['role']}|{kind:'error';reason:'AUTH'|'ROLE'|'UNAVAILABLE'};
-export type HandOverResult='HANDED_OVER'|'ALREADY'|'NOT_PAID'|'NOT_FOUND';
+/** NOT_CHECKED_IN: a pre-order whose booking is still waiting for the customer to check in. */
+export type HandOverResult='HANDED_OVER'|'ALREADY'|'NOT_PAID'|'NOT_FOUND'|'NOT_CHECKED_IN';
 export interface StaffOrder {id:string;channel:'tap'|'agent'|'chat'|'table'|'counter'|'web';code:string;status:'CREATED'|'PAID'|'EXPIRED'|'FAILED'|'CANCELLED';emoji:string;name:string;nameEn:string;amountMinor:string;currency:string;
  createdAt:string;paidAt:string|null;paidSource:string|null;stockShort:boolean;handedOverAt:string|null;
  /** A chat order paid ahead for a booked table: it goes to the kitchen when the booking is CHECKED_IN. */
@@ -107,7 +108,7 @@ export async function listTapOrders(deps:StaffDeps,me:StaffView):Promise<StaffOr
      merchant_id,product_id,amount_minor::text,currency,created_at,paid_at,paid_source,stock_short,handed_over_at,NULL AS items_emoji,NULL AS items_name,NULL AS items_name_en,NULL::uuid AS reservation_id FROM meta_tap_orders WHERE created_at>clock_timestamp()-interval '24 hours'
     UNION ALL
     SELECT id,CASE WHEN link_id IS NULL THEN 'agent' ELSE 'chat' END,CASE status WHEN 'CONFIRMED' THEN 'PAID' WHEN 'PENDING' THEN 'CREATED' WHEN 'FAILED' THEN 'FAILED' ELSE 'CANCELLED' END,
-     merchant_id,product_id,amount_minor::text,currency,created_at,confirmed_at,confirmed_source,stock_short,handed_over_at,NULL,NULL,NULL,NULL::uuid FROM meta_agent_orders WHERE created_at>clock_timestamp()-interval '24 hours'
+     merchant_id,product_id,amount_minor::text,currency,created_at,confirmed_at,confirmed_source,stock_short,handed_over_at,NULL,NULL,NULL,reservation_id FROM meta_agent_orders WHERE created_at>clock_timestamp()-interval '24 hours'
     UNION ALL
     SELECT c.id,c.channel,CASE WHEN c.status='PENDING' AND c.expires_at<=clock_timestamp() THEN 'EXPIRED' WHEN c.status='PENDING' THEN 'CREATED' ELSE c.status END,
      c.merchant_id,NULL,c.amount_minor::text,c.currency,c.created_at,c.paid_at,c.paid_source,c.stock_short,c.handed_over_at,
@@ -128,10 +129,11 @@ export async function handOver(deps:StaffDeps,me:StaffView,orderId:string):Promi
  return deps.db.tenant(me.merchantId,async db=>{
   // Tap orders are PAID when paid; agent orders are CONFIRMED (a refund in progress blocks hand-over).
   for(const [table,paid] of [['meta_tap_orders','PAID'],['meta_agent_orders','CONFIRMED']] as const){
-   const o=(await db.query<{status:string;handed_over_at:Date|null}>(`SELECT status,handed_over_at FROM ${table} WHERE id=$1 FOR UPDATE`,[orderId])).rows[0];
+   const o=(await db.query<{status:string;handed_over_at:Date|null;held:boolean|null}>(`SELECT o.status,o.handed_over_at,${table==='meta_agent_orders'?"(SELECT r.status='HELD' FROM meta_table_reservations r WHERE r.merchant_id=o.merchant_id AND r.id=o.reservation_id)":'false'} AS held FROM ${table} o WHERE o.id=$1 FOR UPDATE OF o`,[orderId])).rows[0];
    if(!o)continue;
    if(o.handed_over_at)return 'ALREADY';
    if(o.status!==paid)return 'NOT_PAID';
+   if(o.held)return 'NOT_CHECKED_IN';
    await db.query(`UPDATE ${table} SET handed_over_at=clock_timestamp(),handed_over_by=$2 WHERE id=$1`,[orderId,me.userId]);
    return 'HANDED_OVER';
   }

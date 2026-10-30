@@ -151,11 +151,11 @@ export async function cartForStaff(db:MetaDb,merchantId:string,orderId:string):P
  if(!UUID.test(orderId))return null;
  return db.tenant(merchantId,c=>viewOf(c,orderId));
 }
-export async function handOverCart(db:MetaDb,merchantId:string,staffUserId:string,orderId:string):Promise<'HANDED_OVER'|'ALREADY'|'NOT_PAID'|'NOT_FOUND'>{
+export async function handOverCart(db:MetaDb,merchantId:string,staffUserId:string,orderId:string):Promise<'HANDED_OVER'|'ALREADY'|'NOT_PAID'|'NOT_FOUND'|'NOT_CHECKED_IN'>{
  if(!UUID.test(orderId))return 'NOT_FOUND';
  return db.tenant(merchantId,async c=>{
-  const o=(await c.query<{status:string;handed:boolean}>('SELECT status,handed_over_at IS NOT NULL AS handed FROM meta_cart_orders WHERE id=$1 FOR UPDATE',[orderId])).rows[0];
-  if(!o)return 'NOT_FOUND';if(o.status!=='PAID')return 'NOT_PAID';if(o.handed)return 'ALREADY';
+  const o=(await c.query<{status:string;handed:boolean;held:boolean|null}>(`SELECT o.status,o.handed_over_at IS NOT NULL AS handed,(SELECT r.status='HELD' FROM meta_table_reservations r WHERE r.merchant_id=o.merchant_id AND r.id=o.reservation_id) AS held FROM meta_cart_orders o WHERE o.id=$1 FOR UPDATE OF o`,[orderId])).rows[0];
+  if(!o)return 'NOT_FOUND';if(o.status!=='PAID')return 'NOT_PAID';if(o.handed)return 'ALREADY';if(o.held)return 'NOT_CHECKED_IN';
   await c.query('UPDATE meta_cart_orders SET handed_over_at=clock_timestamp(),handed_over_by=$2 WHERE id=$1',[orderId,staffUserId]);return 'HANDED_OVER';
  });
 }

@@ -128,7 +128,7 @@ const openButton=(url:string)=>({type:'web_url' as const,title:'เปิดห�
 /** A customer just became known at a tap: the caller picks and sends an offer after commit. */
 export interface OfferRequest {merchantId:string;linkId:string;tapSessionId:string;psid:string}
 /** A consented customer wrote to the shop or pressed Pay: handled by the ordering agent after commit. */
-export type AgentRequest={merchantId:string;linkId:string;psid:string}&({kind:'text';text:string}|{kind:'agent_pay';quoteId:string}|{kind:'agent_add';productId:string}|{kind:'menu'}|{kind:'my_orders'}|{kind:'welcome'}|{kind:'suggest'}|{kind:'photo';url:string}|{kind:'book_start'}|{kind:'book_set';date:string|null;time:string|null}|{kind:'book_cancel';reservationId:string}|{kind:'cart_add';cart:string}|{kind:'cart_pay';cart:string}|{kind:'cart_menu';cart:string});
+export type AgentRequest={merchantId:string;linkId:string;psid:string}&({kind:'text';text:string}|{kind:'agent_pay';quoteId:string}|{kind:'agent_add';productId:string}|{kind:'menu'}|{kind:'my_orders'}|{kind:'welcome'}|{kind:'suggest'}|{kind:'photo';url:string}|{kind:'book_start'}|{kind:'book_set';date:string|null;time:string|null}|{kind:'book_cancel';reservationId:string;confirmed:boolean}|{kind:'cart_add';cart:string}|{kind:'cart_pay';cart:string}|{kind:'cart_menu';cart:string});
 
 /** Applies verified webhook events. Returns messages and offer requests to handle after the transactions commit. */
 export async function handleMessengerEvents(deps:IdentityDeps,events:ParsedEvent[]):Promise<{outbox:Outgoing[];offers:OfferRequest[];agent:AgentRequest[]}>{
@@ -150,7 +150,7 @@ export async function handleMessengerEvents(deps:IdentityDeps,events:ParsedEvent
     if(!link)return event.kind==='welcome'?guestWelcome(deps.publicOrigin,psid):{kind:'text',psid,text:T.notLinked} as Outgoing;
     const who={merchantId,linkId:link.id,psid};
     agent.push(event.kind==='text'?{...who,kind:'text',text:event.text}:event.kind==='agent_pay'?{...who,kind:'agent_pay',quoteId:event.quoteId}:event.kind==='agent_add'?{...who,kind:'agent_add',productId:event.productId}:event.kind==='menu'?{...who,kind:'menu'}:event.kind==='my_orders'?{...who,kind:'my_orders'}:event.kind==='welcome'?{...who,kind:'welcome'}:event.kind==='suggest'?{...who,kind:'suggest'}:event.kind==='photo'?{...who,kind:'photo',url:event.url}:event.kind==='book_start'?{...who,kind:'book_start'}
-     :event.kind==='book_set'?{...who,kind:'book_set',date:event.date,time:event.time}:event.kind==='book_cancel'?{...who,kind:'book_cancel',reservationId:event.reservationId}:{...who,kind:event.kind,cart:event.cart});
+     :event.kind==='book_set'?{...who,kind:'book_set',date:event.date,time:event.time}:event.kind==='book_cancel'?{...who,kind:'book_cancel',reservationId:event.reservationId,confirmed:event.confirmed}:{...who,kind:event.kind,cart:event.cart});
     return null;
    }
    if(event.kind==='referral'){

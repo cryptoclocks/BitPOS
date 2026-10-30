@@ -432,7 +432,7 @@ async function serveStaff(req:http.IncomingMessage,res:http.ServerResponse,deps:
   let r=await handOver(staff,me,hand[1]);
   if(r==='NOT_FOUND')r=await handOverCart(deps.identity.db,me.merchantId,me.userId,hand[1]);
   if(r==='HANDED_OVER'||r==='ALREADY'){res.writeHead(303,{Location:`/meta/staff?done=${pickupCode(hand[1])}`,'Cache-Control':'no-store'});res.end();return true;}
-  page(res,r==='NOT_FOUND'?404:409,'ส่งมอบไม่ได้',[r==='NOT_PAID'?'ออเดอร์นี้ยังไม่ได้จ่าย / This order is not paid.':'ไม่พบออเดอร์ / Order not found.','<a href="/meta/staff">← กลับ / Back</a>']);return true;
+  page(res,r==='NOT_FOUND'?404:409,'ส่งมอบไม่ได้',[r==='NOT_PAID'?'ออเดอร์นี้ยังไม่ได้จ่าย / This order is not paid.':r==='NOT_CHECKED_IN'?'ออเดอร์สั่งล่วงหน้า รอลูกค้าเช็กอินที่โต๊ะก่อน / Pre-order: waiting for the customer to check in.':'ไม่พบออเดอร์ / Order not found.','<a href="/meta/staff">← กลับ / Back</a>']);return true;
  }
  if(path==='/meta/staff/offers'||path.startsWith('/meta/staff/offers/')||path.startsWith('/meta/staff/policies/')||path.startsWith('/meta/staff/banners/')||path.startsWith('/meta/staff/posts/')||path.startsWith('/meta/staff/combos/'))return serveOffers(req,res,deps,staff,cookie,url,log);
  if(path==='/meta/staff/ledger'&&method==='GET')return serveLedger(res,deps,staff,cookie);

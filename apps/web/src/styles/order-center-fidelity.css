@@ -354,3 +354,8 @@
  .kitchen-board .incoming-heading .eyebrow{display:none}
  .kitchen-board .order-toolbar{padding-bottom:0;border-bottom:0;margin-bottom:24px}
 }
+/* Meta pre-orders for booked tables: a strip above the lanes until the customer checks in. */
+.shell .incoming-board .meta-preorders{margin:0 0 16px;padding:12px 14px;border:1px dashed var(--bp-line,#d8d2e6);border-radius:12px}
+.shell .incoming-board .meta-preorders h3{margin:0 0 8px;font-size:14px}
+.shell .incoming-board .meta-preorders>div{display:flex;flex-wrap:wrap;gap:8px}
+.shell .incoming-board .meta-preorders .is-lapsed{opacity:.75}

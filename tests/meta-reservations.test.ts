@@ -160,9 +160,10 @@ test('reminder: 5 minutes before the booked time the customer is reminded once; 
 });
 
 test('ask time: only free future times are offered, as quick replies',{skip},async()=>{
+ await admin.query("UPDATE meta_table_reservations SET status='CANCELLED',cancelled_at=clock_timestamp(),cancelled_by='staff' WHERE merchant_id=$1 AND status='HELD'",[M]);
  await resetBookingRequest(db,M,L2);
- const today=(await bkkClock(0)).d,tomorrow=(await bkkClock(24*60)).d;
- const r=await requestBooking(db,M,L2,{date:tomorrow,time:null,partySize:2},fallback);
+ const today=(await bkkClock(0)).d,later=(await bkkClock(2*24*60)).d;
+ const r=await requestBooking(db,M,L2,{date:later,time:null,partySize:2},fallback);
  assert.equal(r.kind,'ask');const times=(r as any).times as string[];
  assert.deepEqual(times.slice(0,3),['00:00','00:30','01:00']);assert.ok(times.length<=12);
  const t=await requestBooking(db,M,L2,{date:today,time:null,partySize:2},fallback);
@@ -236,8 +237,15 @@ test('chat: "จองโต๊ะ…" books through the agent without a model; 
  assert.match(booked[1].cards[0].buttons[0].payload,/^BITPOS_BOOK_CANCEL:/);
  const mine=await handleAgentRequest(chat,{merchantId:M,linkId:L2,psid:PSID2,kind:'my_orders'}) as any[];
  assert.ok(mine[1].cards.every((c:any)=>/^🗓️ #/.test(c.title)));assert.ok(mine[1].cards.some((c:any)=>c.buttons[0]?.payload===booked[1].cards[0].buttons[0].payload),'held booking can be cancelled from My orders');
- const cancel=await handleAgentRequest(chat,{merchantId:M,linkId:L2,psid:PSID2,kind:'book_cancel',reservationId:booked[1].cards[0].buttons[0].payload.split(':')[1]}) as any[];
- assert.match(cancel[0].text,/cancelled/);
+ const rid=booked[1].cards[0].buttons[0].payload.split(':')[1];
+ // A paid pre-order on the booking: the first cancel only warns (no refund) and asks to confirm.
+ await admin.query(`INSERT INTO meta_cart_orders(merchant_id,channel,link_id,access_sha256,status,currency,amount_minor,stripe_payment_intent_id,paid_at,paid_source,expires_at,reservation_id)
+  VALUES($1,'web',$2,sha256('y'::bytea),'PAID','thb',9000,'pi_test2',clock_timestamp(),'webhook',clock_timestamp()+interval '30 minutes',$3)`,[M,L2,rid]);
+ const warn=await handleAgentRequest(chat,{merchantId:M,linkId:L2,psid:PSID2,kind:'book_cancel',reservationId:rid,confirmed:false}) as any[];
+ assert.match(warn[0].text,/ไม่คืนเงิน/);assert.equal(warn[0].buttons[0].payload,`BITPOS_BOOK_CANCEL_OK:${rid}`);
+ assert.equal(await status(rid),'HELD','not cancelled before the customer confirms');
+ const cancel=await handleAgentRequest(chat,{merchantId:M,linkId:L2,psid:PSID2,kind:'book_cancel',reservationId:rid,confirmed:true}) as any[];
+ assert.match(cancel[0].text,/cancelled/);assert.match(cancel[0].text,/not refunded/);
  // With a model: its extracted fields go to the same booking path (stubbed; no credit used).
  const router={invoke:async()=>({value:{action:'book',productId:'none',quantity:1,bookingDate:day,bookingTime:'15:00',partySize:2,replyTh:'ได้เลยค่ะ',replyEn:'Sure'},invocation:{id:randomUUID()},attempts:[]})} as any;
  await admin.query("INSERT INTO meta_ai_invocations(merchant_id,id,task,provider,model,weights,location,outcome,latency_ms,input_sha256,started_at) VALUES($1,$2,'agent_order','meta_api','m','closed','cloud','PROVIDER_TIMEOUT',1,$3,clock_timestamp())",[M,randomUUID(),'0'.repeat(64)]);

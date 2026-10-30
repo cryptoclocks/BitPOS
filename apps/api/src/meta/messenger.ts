@@ -46,7 +46,7 @@ export type MessengerEvent=
  {kind:'cart_menu';pageId:string;psid:string;timestamp:number;cart:string}|
  {kind:'book_start';pageId:string;psid:string;timestamp:number}|
  {kind:'book_set';pageId:string;psid:string;timestamp:number;date:string|null;time:string|null}|
- {kind:'book_cancel';pageId:string;psid:string;timestamp:number;reservationId:string};
+ {kind:'book_cancel';pageId:string;psid:string;timestamp:number;reservationId:string;confirmed:boolean};
 
 export interface ParsedEvent {event:MessengerEvent;key:Buffer}
 
@@ -87,7 +87,9 @@ export function parseMessengerWebhook(body:unknown):ParsedEvent[]{
    else if(payload&&CART.test(payload)){const [,k,cart]=payload.match(CART)!;event=k==='ADD'?{...base,kind:'cart_add',cart}:k==='PAY'?{...base,kind:'cart_pay',cart}:{...base,kind:'cart_menu',cart};}
    else if(payload==='BITPOS_MY_ORDERS')event={...base,kind:'my_orders'};
    else if(payload==='BITPOS_BOOK')event={...base,kind:'book_start'};
-   else if(payload?.startsWith('BITPOS_BOOK_CANCEL:')&&ANY_UUID.test(payload.slice(19)))event={...base,kind:'book_cancel',reservationId:payload.slice(19)};
+   else if(payload?.startsWith('BITPOS_BOOK_CANCEL:')&&ANY_UUID.test(payload.slice(19)))event={...base,kind:'book_cancel',reservationId:payload.slice(19),confirmed:false};
+   // The second step after a warning that a paid pre-order is not refunded.
+   else if(payload?.startsWith('BITPOS_BOOK_CANCEL_OK:')&&ANY_UUID.test(payload.slice(22)))event={...base,kind:'book_cancel',reservationId:payload.slice(22),confirmed:true};
    else if(payload?.startsWith('BITPOS_BOOK_SET:')){
     const m=payload.slice(16).match(/^(?:date:(\d{4}-\d{2}-\d{2})|time:(\d{2}:\d{2})|at:(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2}))$/);
     if(m)event={...base,kind:'book_set',date:m[1]??m[3]??null,time:m[2]??m[4]??null};

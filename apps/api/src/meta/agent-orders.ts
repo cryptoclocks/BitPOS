@@ -5,6 +5,7 @@
 // never runs inside a transaction: reserve one order row → charge the SPT → record the verified outcome.
 // CONFIRMED comes only from the PaymentIntent the server created (amount, currency and metadata checked in
 // stripe.ts) or a signature-verified webhook; stock is taken once, in that same transaction.
+import {linkPreorder} from './reservations';
 import type pg from 'pg';
 import type {MetaDb,OfferDeps} from './identity';
 import {approvedOffers} from './offer-select';
@@ -89,6 +90,8 @@ async function confirm(db:pg.PoolClient,orderId:string,f:{paymentIntentId:string
  const stock=(await db.query('UPDATE products SET stock=stock-$2 WHERE id=$1 AND stock-reserved>=$2',[o.product_id,o.quantity])).rowCount===1;
  if(stock)await db.query(STOCK_MOVE,[o.product_id,-o.quantity,'agent_confirmed','agent',orderId]);
  await db.query("UPDATE meta_agent_orders SET status='CONFIRMED',stripe_payment_intent_id=$2,decline_code=NULL,confirmed_at=clock_timestamp(),confirmed_source=$3,stock_short=$4 WHERE id=$1",[orderId,f.paymentIntentId,f.source,!stock]);
+ // Only chat orders have a customer link (MCP agent orders have none), so only they can become a booking's pre-order.
+ await linkPreorder(db,orderId,'meta_agent_orders');
  return 'CONFIRMED';
 }
 

@@ -338,14 +338,14 @@ export async function saveBookingSettings(db:MetaDb,merchantId:string,userId:str
  });
 }
 
-/** Inside the payment transaction: a chat order paid while its customer holds a booking starting within the next
+/** Inside the payment transaction: a chat order (cart or single item) paid while its customer holds a booking starting within the next
  * 12 hours becomes that table's pre-order (the earliest such booking); a booking days away does not capture today's order. Returns the booking it was tied to, if any. */
-export async function linkPreorder(c:pg.PoolClient,orderId:string):Promise<{tableLabel:string;startsAt:Date}|null>{
+export async function linkPreorder(c:pg.PoolClient,orderId:string,table:'meta_cart_orders'|'meta_agent_orders'='meta_cart_orders'):Promise<{tableLabel:string;startsAt:Date}|null>{
  const r=(await c.query<{label:string;starts_at:Date}>(
-  `WITH r AS (SELECT r.id,r.table_id,r.starts_at FROM meta_cart_orders o JOIN meta_table_reservations r ON r.merchant_id=o.merchant_id AND r.link_id=o.link_id
+  `WITH r AS (SELECT r.id,r.table_id,r.starts_at FROM ${table} o JOIN meta_table_reservations r ON r.merchant_id=o.merchant_id AND r.link_id=o.link_id
      WHERE o.id=$1 AND r.status='HELD' AND r.starts_at+interval '${CHECKIN_MINUTES} minutes'>clock_timestamp()
       AND r.starts_at<=clock_timestamp()+interval '${PREORDER_HOURS} hours' ORDER BY r.starts_at LIMIT 1),
-   u AS (UPDATE meta_cart_orders o SET reservation_id=r.id FROM r WHERE o.id=$1 RETURNING r.table_id,r.starts_at)
+   u AS (UPDATE ${table} o SET reservation_id=r.id FROM r WHERE o.id=$1 RETURNING r.table_id,r.starts_at)
    SELECT coalesce(t.label,'') AS label,u.starts_at FROM u LEFT JOIN merchant_tables t ON t.merchant_id=current_setting('bitpos.merchant')::uuid AND t.id=u.table_id`,[orderId])).rows[0];
  return r?{tableLabel:r.label,startsAt:r.starts_at}:null;
 }

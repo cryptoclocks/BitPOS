@@ -5,7 +5,7 @@
 import type {MetaDb} from './identity';
 
 export type KitchenStage='PREPARING'|'READY';
-export class KitchenError extends Error {constructor(readonly code:'NOT_FOUND'|'NOT_PAID'|'HANDED_OVER'){super(code);}}
+export class KitchenError extends Error {constructor(readonly code:'NOT_FOUND'|'NOT_PAID'|'HANDED_OVER'|'NOT_CHECKED_IN'){super(code);}}
 
 /** Current stages of the shop's Meta orders (orders without a row are "received"). */
 export async function kitchenStages(db:MetaDb,merchantId:string):Promise<Map<string,KitchenStage>>{
@@ -15,13 +15,15 @@ export async function kitchenStages(db:MetaDb,merchantId:string):Promise<Map<str
 
 export async function setKitchenStage(db:MetaDb,merchantId:string,userId:string,orderId:string,stage:KitchenStage):Promise<{notify:{psid:string;code:string}|null}>{
  return db.tenant(merchantId,async c=>{
-  const o=(await c.query<{kind:'tap'|'agent'|'cart';paid:boolean;handed:boolean;link_id:string|null}>(
-   `SELECT 'tap' AS kind,status='PAID' AS paid,handed_over_at IS NOT NULL AS handed,link_id FROM meta_tap_orders WHERE id=$1
-    UNION ALL SELECT 'agent',status='CONFIRMED',handed_over_at IS NOT NULL,link_id FROM meta_agent_orders WHERE id=$1
-    UNION ALL SELECT 'cart',status='PAID',handed_over_at IS NOT NULL,link_id FROM meta_cart_orders WHERE id=$1`,[orderId])).rows[0];
+  // held: a booking's pre-order whose customer has not checked in yet; the kitchen does not start it.
+  const o=(await c.query<{kind:'tap'|'agent'|'cart';paid:boolean;handed:boolean;link_id:string|null;held:boolean|null}>(
+   `SELECT 'tap' AS kind,status='PAID' AS paid,handed_over_at IS NOT NULL AS handed,link_id,false AS held FROM meta_tap_orders WHERE id=$1
+    UNION ALL SELECT 'agent',o.status='CONFIRMED',o.handed_over_at IS NOT NULL,o.link_id,(SELECT r.status='HELD' FROM meta_table_reservations r WHERE r.merchant_id=o.merchant_id AND r.id=o.reservation_id) FROM meta_agent_orders o WHERE o.id=$1
+    UNION ALL SELECT 'cart',o.status='PAID',o.handed_over_at IS NOT NULL,o.link_id,(SELECT r.status='HELD' FROM meta_table_reservations r WHERE r.merchant_id=o.merchant_id AND r.id=o.reservation_id) FROM meta_cart_orders o WHERE o.id=$1`,[orderId])).rows[0];
   if(!o)throw new KitchenError('NOT_FOUND');
   if(!o.paid)throw new KitchenError('NOT_PAID');
   if(o.handed)throw new KitchenError('HANDED_OVER');
+  if(o.held)throw new KitchenError('NOT_CHECKED_IN');
   await c.query(`INSERT INTO meta_order_kitchen(merchant_id,order_id,order_kind,stage,updated_by) VALUES(current_setting('bitpos.merchant')::uuid,$1,$2,$3,$4)
    ON CONFLICT(merchant_id,order_id) DO UPDATE SET stage=EXCLUDED.stage,updated_at=clock_timestamp(),updated_by=EXCLUDED.updated_by`,[orderId,o.kind,stage,userId]);
   if(stage!=='READY'||!o.link_id)return {notify:null};

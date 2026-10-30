@@ -372,8 +372,14 @@ How about these?`},cards];
   if(req.kind==='book_start')return (await resetBookingRequest(deps.db,merchantId,linkId),bookingMessages(psid,await requestBooking(deps.db,merchantId,linkId,{date:null,time:null,partySize:null},{chosenBy:'fallback',invocationId:null})));
   if(req.kind==='book_set')return bookingMessages(psid,await requestBooking(deps.db,merchantId,linkId,{date:req.date,time:req.time,partySize:null},{chosenBy:'fallback',invocationId:null}));
   if(req.kind==='book_cancel'){
+   // Paid pre-orders for this booking are not refunded, so ask once more before cancelling.
+   const paidFor=async(id:string)=>Number((await deps.db.tenant(merchantId,c=>c.query<{n:string}>(
+    "SELECT ((SELECT count(*) FROM meta_cart_orders WHERE reservation_id=$1 AND status='PAID')+(SELECT count(*) FROM meta_agent_orders WHERE reservation_id=$1 AND status='CONFIRMED'))::text AS n",[id]))).rows[0].n);
+   if(!req.confirmed&&/^[0-9a-f-]{36}$/.test(req.reservationId)&&await paidFor(req.reservationId))
+    return [{kind:'buttons',psid,text:'การจองนี้มีออเดอร์ที่จ่ายล่วงหน้าไว้ ถ้ายกเลิกจะไม่คืนเงินนะคะ ยืนยันยกเลิกไหมคะ\nThis booking has a paid pre-order. Cancelling does not refund it. Cancel anyway?',
+     buttons:[{type:'postback',title:'ยกเลิก (ไม่คืนเงิน)',payload:`BITPOS_BOOK_CANCEL_OK:${req.reservationId}`},{type:'postback',title:'เก็บการจองไว้ / Keep',payload:'BITPOS_MENU'}]}];
    const r=await cancelReservation(deps.db,merchantId,req.reservationId,{linkId});
-   const paid=r?Number((await deps.db.tenant(merchantId,c=>c.query<{n:string}>("SELECT count(*)::text AS n FROM meta_cart_orders WHERE reservation_id=$1 AND status='PAID'",[r.id]))).rows[0].n):0;
+   const paid=r?await paidFor(r.id):0;
    return [{kind:'text',psid,text:r?`ยกเลิกการจอง #${r.code} แล้วค่ะ โต๊ะเวลานี้ว่างให้คนอื่นจองได้แล้ว${paid?' · ออเดอร์ที่สั่งล่วงหน้าไว้จะไม่คืนเงินนะคะ':''}\nBooking #${r.code} cancelled; the time is free for others.${paid?' Pre-ordered food is not refunded.':''}`:'การจองนี้ยกเลิกไม่ได้แล้วค่ะ (เช็กอินแล้ว หมดเวลา หรือยกเลิกไปแล้ว) / This booking can no longer be cancelled.'}];
   }
   if(req.kind==='menu'||req.kind==='agent_add'){

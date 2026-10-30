@@ -9,8 +9,10 @@ import QRCode from 'qrcode';
 import type {MetaRouteDeps} from './routes';
 import {agentDepsOf} from './shop';
 import {cartForStaff,CartError,handOverCart,refundCart,startCart,type CartLine} from './cart';
-import {handOver,listTapOrders,type StaffView} from './staff';
-import {KitchenError,kitchenStages,setKitchenStage} from './kitchen';
+import {handOver,listTapOrders,type StaffOrder,type StaffView} from './staff';
+import {KitchenError,kitchenStages,setKitchenStage,type KitchenStage} from './kitchen';
+/** Order-center lane: PREORDER while a booking's pre-order waits for check-in (or its booking lapsed before the kitchen started). */
+const stageOf=(o:StaffOrder,stages:Map<string,KitchenStage>)=>o.handedOverAt?'COLLECTED':stages.get(o.id)??(o.booking&&o.booking.status!=='CHECKED_IN'?'PREORDER':'RECEIVED');
 import {MessengerError,sendMessenger} from './messenger';
 import {QUICK} from './agent';
 import {staffSessionFor} from './staff';
@@ -71,7 +73,7 @@ export async function servePosApi(req:http.IncomingMessage,res:http.ServerRespon
  if(path==='/meta/staff/api/orders'&&method==='GET'){
   if(!deps.staff)return json(res,503,{error:'UNAVAILABLE'});
   const stages=await kitchenStages(deps.identity.db,me.merchantId);
-  return json(res,200,{orders:(await listTapOrders(deps.staff,view)).map(o=>({...o,stage:o.handedOverAt?'COLLECTED':stages.get(o.id)??'RECEIVED'})),canRefund:me.role!=='staff'});
+  return json(res,200,{orders:(await listTapOrders(deps.staff,view)).map(o=>({...o,stage:stageOf(o,stages)})),canRefund:me.role!=='staff'});
  }
  const detail=path.match(/^\/meta\/staff\/api\/orders\/([0-9a-f-]{36})$/);
  if(detail&&method==='GET'){
@@ -81,7 +83,7 @@ export async function servePosApi(req:http.IncomingMessage,res:http.ServerRespon
   if(!o)return json(res,404,{error:'NOT_FOUND'});
   const cart=await cartForStaff(deps.identity.db,me.merchantId,o.id);
   const stages=await kitchenStages(deps.identity.db,me.merchantId);
-  return json(res,200,{...o,stage:o.handedOverAt?'COLLECTED':stages.get(o.id)??'RECEIVED',lines:cart?.lines??null,discount:cart?.discount??null,total:cart?.total??null,tableLabel:cart?.tableLabel??null,canRefund:me.role!=='staff'&&!!cart});
+  return json(res,200,{...o,stage:stageOf(o,stages),lines:cart?.lines??null,discount:cart?.discount??null,total:cart?.total??null,tableLabel:cart?.tableLabel??null,canRefund:me.role!=='staff'&&!!cart});
  }
  const stage=path.match(/^\/meta\/staff\/api\/orders\/([0-9a-f-]{36})\/stage$/);
  if(stage&&method==='POST'){
