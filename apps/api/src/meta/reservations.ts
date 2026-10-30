@@ -349,3 +349,13 @@ export async function linkPreorder(c:pg.PoolClient,orderId:string,table:'meta_ca
    SELECT coalesce(t.label,'') AS label,u.starts_at FROM u LEFT JOIN merchant_tables t ON t.merchant_id=current_setting('bitpos.merchant')::uuid AND t.id=u.table_id`,[orderId])).rows[0];
  return r?{tableLabel:r.label,startsAt:r.starts_at}:null;
 }
+
+/** Receipt wording for a booking's pre-order (null for an ordinary order): cooked at check-in, no refund if it lapses. */
+export async function preorderNote(c:pg.PoolClient,table:'meta_cart_orders'|'meta_agent_orders',orderId:string):Promise<{text:string;subtitle:string}|null>{
+ const r=(await c.query<{label:string;starts_at:Date}>(`SELECT coalesce(t.label,'') AS label,r.starts_at FROM ${table} o JOIN meta_table_reservations r ON r.merchant_id=o.merchant_id AND r.id=o.reservation_id
+   LEFT JOIN merchant_tables t ON t.merchant_id=r.merchant_id AND t.id=r.table_id WHERE o.id=$1`,[orderId])).rows[0];
+ if(!r)return null;
+ const at=new Intl.DateTimeFormat('en-GB',{hour:'2-digit',minute:'2-digit',timeZone:TZ}).format(r.starts_at);
+ return {text:`สั่งล่วงหน้าสำหรับโต๊ะ ${r.label} เวลา ${at} ครัวจะเริ่มทำเมื่อคุณแตะเช็กอินที่โต๊ะ (ถ้าการจองหลุดหรือยกเลิก จะไม่คืนเงิน)\nPre-ordered for table ${r.label} at ${at}: the kitchen starts when you check in at the table. No refund if the booking lapses or is cancelled.`,
+  subtitle:`สั่งล่วงหน้า · โต๊ะ ${r.label} ${at} · ทำเมื่อเช็กอิน / Pre-order · cooked at check-in`};
+}

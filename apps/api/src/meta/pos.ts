@@ -90,7 +90,7 @@ ${waiting.length?`<div class="card"><h2>รอส่งมอบ ${waiting.lengt
    .map(([a,v,s,c])=>`<div class="met ${c}"><small>${a}</small><b>${esc(v)}</b><small>${esc(s)}</small></div>`).join('')}</div>
 <div class="grid g2" style="margin-top:14px"><div class="card"><h2>ยอดที่จ่ายแล้วตามช่องทาง</h2>${['tap','chat','mcp','table','counter','web'].map(k=>{const n=Number(r.ch.find(x=>x.channel===k)?.paid??0);return `<div style="display:flex;gap:10px;align-items:center;margin:10px 0"><span style="width:130px">${chan(k)}</span><span class="barh" style="flex:1"><i style="width:${Math.round(n/max*100)}%"></i></span><b>${n}</b></div>`;}).join('')}
 <a href="/meta/staff/reports">ดูรายงานเต็ม →</a></div><div class="card"><h2>ต้องจัดการตอนนี้</h2>
-${row({href:'/meta/staff/kitchen',icon:'🧾',title:`${waiting.length} ออเดอร์รอส่งมอบ`,sub:`จ่ายแล้ว · ทุกช่องทาง${ahead.length?` · สั่งล่วงหน้ารอเช็กอิน ${ahead.length}`:''}`})}${row({href:'/meta/staff/bookings',icon:'🗓️',title:`${b.HELD??0} การจองรอเช็กอิน`,sub:'แตะเพื่อเช็กอิน -5/+15 นาที'})}
+${row({href:'/meta/staff/kitchen',icon:'🧾',title:`${waiting.length} ออเดอร์รอส่งมอบ`,sub:`จ่ายแล้ว · ทุกช่องทาง${ahead.length?` · ${L('สั่งล่วงหน้ารอเช็กอิน','pre-orders waiting')} ${ahead.length}`:''}`})}${row({href:'/meta/staff/bookings',icon:'🗓️',title:`${b.HELD??0} การจองรอเช็กอิน`,sub:'แตะเพื่อเช็กอิน -5/+15 นาที'})}
 ${row({href:'/meta/staff/offers',icon:'✨',title:`${r.drafts} ร่างโปรรออนุมัติ`,sub:'Muse Spark ร่าง · เจ้าของอนุมัติ'})}</div></div>
 <h2 style="margin-top:20px">ออเดอร์ล่าสุด</h2>${orderTable(orders.slice(0,6))}<p><a href="/meta/staff">ทั้งหมด →</a></p>`;
   return send(200,path,'ภาพรวมวันนี้',html,{sub:'ข้อมูลจริงของร้านจาก meta_order_feed() · รีเฟรชทุก 30 วินาที',refresh:30,actions:'<a class="btn" href="/meta/staff/counter">ขายหน้าร้าน</a>'});
@@ -131,10 +131,10 @@ ${row({href:'/meta/staff/offers',icon:'✨',title:`${r.drafts} ร่างโ�
  if(path==='/meta/staff/kitchen'){
   const orders=await listTapOrders(staff,me),todo=orders.filter(inKitchen),ahead=orders.filter(preordered),done=orders.filter(o=>o.handedOverAt).slice(0,8);
   // Paid ahead for a booked table: not cooked until the customer taps in at the table (then it moves to the queue).
-  const AHEAD:Record<string,[string,string]>={HELD:['รอเช็กอิน','am'],NO_SHOW:['การจองหลุด · ไม่คืนเงิน','rd'],CANCELLED:['ยกเลิกการจอง · ไม่คืนเงิน','rd']};
-  const pre=(o:StaffOrder)=>`<div class="row"><span class="ic">${esc(o.emoji||'☕')}</span><span class="t"><b>#${esc(o.code)} · ${esc(nm(o.name,o.nameEn))}</b><small>สั่งล่วงหน้า · โต๊ะ ${esc(o.booking!.tableLabel)} · ${t(o.booking!.startsAt)} · ${pill(...(AHEAD[o.booking!.status]??[o.booking!.status,'mu']))}</small></span>${o.booking!.status==='HELD'?'':handover(o)}</div>`;
+  const AHEAD:Record<string,[string,string]>={HELD:[L('รอเช็กอิน','Waiting for check-in'),'am'],NO_SHOW:[L('การจองหลุด · ไม่คืนเงิน','Booking lapsed · no refund'),'rd'],CANCELLED:[L('ยกเลิกการจอง · ไม่คืนเงิน','Booking cancelled · no refund'),'rd']};
+  const pre=(o:StaffOrder)=>`<div class="row"><span class="ic">${esc(o.emoji||'☕')}</span><span class="t"><b>#${esc(o.code)} · ${esc(nm(o.name,o.nameEn))}</b><small>${L('สั่งล่วงหน้า · โต๊ะ','Pre-order · table')} ${esc(o.booking!.tableLabel)} · ${t(o.booking!.startsAt)} · ${pill(...(AHEAD[o.booking!.status]??[o.booking!.status,'mu']))}</small></span>${o.booking!.status==='HELD'?'':handover(o)}</div>`;
   const card=(o:StaffOrder)=>`<div class="row"><span class="ic">${esc(o.emoji||'☕')}</span><span class="t"><b>#${esc(o.code)} · ${esc(nm(o.name,o.nameEn))}</b><small>${chan(o.channel)} จ่าย ${t(o.paidAt)}${o.stockShort?' · '+pill('สต็อกไม่พอ','rd'):''}</small></span>${handover(o)}</div>`;
-  return send(200,path,'คิวครัว',`<div class="grid g2"><div class="card"><h2>${pill('ต้องทำ / รอส่งมอบ','am')} ${todo.length}</h2>${todo.map(card).join('')||'<p class="mu">ไม่มีออเดอร์ค้าง</p>'}${ahead.length?`<h2 style="margin-top:18px">${pill('สั่งล่วงหน้า','vi')} ${ahead.length}</h2><p class="mu">เข้าคิวครัวเมื่อลูกค้าแตะเช็กอินที่โต๊ะ</p>${ahead.map(pre).join('')}`:''}</div>
+  return send(200,path,'คิวครัว',`<div class="grid g2"><div class="card"><h2>${pill('ต้องทำ / รอส่งมอบ','am')} ${todo.length}</h2>${todo.map(card).join('')||'<p class="mu">ไม่มีออเดอร์ค้าง</p>'}${ahead.length?`<h2 style="margin-top:18px">${pill(L('สั่งล่วงหน้า','Pre-orders'),'vi')} ${ahead.length}</h2><p class="mu">${L('เข้าคิวครัวเมื่อลูกค้าแตะเช็กอินที่โต๊ะ','Join the kitchen queue when the customer checks in at the table')}</p>${ahead.map(pre).join('')}`:''}</div>
 <div class="card"><h2>${pill('ส่งมอบแล้ว','gr')}</h2>${done.map(o=>row({href:`/meta/staff/order/${o.id}`,icon:'✓',title:`#${o.code} · ${nm(o.name,o.nameEn)}`,sub:`${CHANNEL[o.channel]?.[0]??o.channel} · ${t(o.handedOverAt)}`})).join('')||'<p class="mu">ยังไม่มี</p>'}</div></div>`,{sub:'เรียงตามเวลาที่จ่าย · ทุกช่องทาง · รีเฟรชทุก 10 วินาที',refresh:10});
  }
 
@@ -163,7 +163,7 @@ ${row({href:'/meta/staff/offers',icon:'✨',title:`${r.drafts} ร่างโ�
 
  // Booking hours: the shop's opening hours per weekday (up to two windows; empty = closed) and the booking rules.
  if(path==='/meta/staff/bookings/hours'){
-  const DAYS=['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'];
+  const DAYS=[L('อาทิตย์','Sunday'),L('จันทร์','Monday'),L('อังคาร','Tuesday'),L('พุธ','Wednesday'),L('พฤหัสบดี','Thursday'),L('ศุกร์','Friday'),L('เสาร์','Saturday')];
   let error='';
   if(method==='POST'){
    if(!boss)return ownerOnly();
@@ -175,14 +175,14 @@ ${row({href:'/meta/staff/offers',icon:'✨',title:`${r.drafts} ร่างโ�
   const v=await bookingSettings(db,me.merchantId);
   const tm=(n:string,val:string)=>`<input type="time" name="${n}" value="${esc(val)}"${boss?'':' disabled'} style="width:110px">`;
   const rows=DAYS.map((name,d)=>{const w=v.week[String(d) as '0']??[];
-   return `<tr><td><b>${name}</b></td><td>${tm(`o${d}_1`,w[0]?.opens??'')} – ${tm(`c${d}_1`,w[0]?.closes??'')}</td><td>${tm(`o${d}_2`,w[1]?.opens??'')} – ${tm(`c${d}_2`,w[1]?.closes??'')}</td><td>${w.length?'':pill('ปิด','mu')}</td></tr>`;}).join('');
-  const saved=(url.searchParams.get('saved')==='1'&&!error)?`<div class="card">${pill('บันทึกแล้ว','gr')} ปุ่มเวลาในแชทใช้ค่าใหม่ทันที</div>`:'';
-  return send(error?400:200,'/meta/staff/bookings','เวลารับจองโต๊ะ',`${saved}${error?`<div class="card">${pill('บันทึกไม่ได้','rd')} ${esc(error)}</div>`:''}
-<form method="post" action="/meta/staff/bookings/hours"><div class="card"><h2>เวลาเปิด–ปิดร้าน</h2><small>${v.configured?'ใช้ตารางเวลาเปิดปิดเดียวกับ POS':'ยังไม่ได้ตั้ง · ตอนนี้ใช้ 10:00–22:00 ทุกวัน'} · เว้นว่างทั้งแถว = ร้านปิดวันนั้น · ช่วงที่ 2 สำหรับร้านที่ปิดพักกลางวัน</small>
-<table><tr><th>วัน</th><th>ช่วงที่ 1</th><th>ช่วงที่ 2</th><th></th></tr>${rows}</table></div>
-<div class="grid g2"><div class="card"><label>ระยะห่างระหว่างช่องเวลา</label><select name="slot"${boss?'':' disabled'}>${[15,30,60].map(n=>`<option value="${n}"${n===v.slotMinutes?' selected':''}>${n} นาที</option>`).join('')}</select></div>
-<div class="card"><label>รับจองถึงก่อนปิดกี่นาที</label><input type="number" name="last" min="0" max="240" step="5" value="${v.lastBeforeCloseMinutes}"${boss?'':' disabled'}><small>เช่น 90 · ร้านปิด 22:00 จองได้ถึง 20:30</small></div></div>
-${boss?'<button class="inline">บันทึก</button>':'<p class="mu">เฉพาะเจ้าของหรือผู้จัดการแก้ได้</p>'}</form><p><a class="btn g inline" href="/meta/staff/bookings">← การจองโต๊ะ</a></p>`,{sub:'ลูกค้าเห็นเฉพาะเวลาที่ร้านเปิดและโต๊ะว่าง'});
+   return `<tr><td><b>${name}</b></td><td>${tm(`o${d}_1`,w[0]?.opens??'')} – ${tm(`c${d}_1`,w[0]?.closes??'')}</td><td>${tm(`o${d}_2`,w[1]?.opens??'')} – ${tm(`c${d}_2`,w[1]?.closes??'')}</td><td>${w.length?'':pill(L('ปิด','Closed'),'mu')}</td></tr>`;}).join('');
+  const saved=(url.searchParams.get('saved')==='1'&&!error)?`<div class="card">${pill(L('บันทึกแล้ว','Saved'),'gr')} ${L('ปุ่มเวลาในแชทใช้ค่าใหม่ทันที','Chat time buttons use the new settings now')}</div>`:'';
+  return send(error?400:200,'/meta/staff/bookings',L('เวลารับจองโต๊ะ','Booking hours'),`${saved}${error?`<div class="card">${pill(L('บันทึกไม่ได้','Not saved'),'rd')} ${esc(error)}</div>`:''}
+<form method="post" action="/meta/staff/bookings/hours"><div class="card"><h2>${L('เวลาเปิด–ปิดร้าน','Opening hours')}</h2><small>${v.configured?L('ใช้ตารางเวลาเปิดปิดเดียวกับ POS','Shared with the POS opening hours'):L('ยังไม่ได้ตั้ง · ตอนนี้ใช้ 10:00–22:00 ทุกวัน','Not set · 10:00–22:00 every day for now')} · ${L('เว้นว่างทั้งแถว = ร้านปิดวันนั้น · ช่วงที่ 2 สำหรับร้านที่ปิดพักกลางวัน','an empty row = closed that day · the second window is for a midday break')}</small>
+<table><tr><th>${L('วัน','Day')}</th><th>${L('ช่วงที่ 1','Window 1')}</th><th>${L('ช่วงที่ 2','Window 2')}</th><th></th></tr>${rows}</table></div>
+<div class="grid g2"><div class="card"><label>${L('ระยะห่างระหว่างช่องเวลา','Time slot length')}</label><select name="slot"${boss?'':' disabled'}>${[15,30,60].map(n=>`<option value="${n}"${n===v.slotMinutes?' selected':''}>${n} ${L('นาที','min')}</option>`).join('')}</select></div>
+<div class="card"><label>${L('รับจองถึงก่อนปิดกี่นาที','Last booking, minutes before closing')}</label><input type="number" name="last" min="0" max="240" step="5" value="${v.lastBeforeCloseMinutes}"${boss?'':' disabled'}><small>${L('เช่น 90 · ร้านปิด 22:00 จองได้ถึง 20:30','e.g. 90 · closes 22:00, last booking 20:30')}</small></div></div>
+${boss?`<button class="inline">${L('บันทึก','Save')}</button>`:`<p class="mu">${L('เฉพาะเจ้าของหรือผู้จัดการแก้ได้','Owner or manager only')}</p>`}</form><p><a class="btn g inline" href="/meta/staff/bookings">← ${L('การจองโต๊ะ','Bookings')}</a></p>`,{sub:L('ลูกค้าเห็นเฉพาะเวลาที่ร้านเปิดและโต๊ะว่าง','Customers see only open hours with a free table')});
  }
 
  const stock=path.match(/^\/meta\/staff\/menu\/([0-9a-f-]{36})\/stock$/);

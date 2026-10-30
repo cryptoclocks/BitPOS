@@ -8,7 +8,7 @@ import pg from 'pg';
 import {aesCmac,deriveTagKeys} from '../packages/meta-ai/src/ntag424';
 import {handleMessengerEvents,handleTap,type IdentityDeps,type MetaDb} from '../apps/api/src/meta/identity';
 import {parseMessengerWebhook} from '../apps/api/src/meta/messenger';
-import {cancelReservation,parseBooking,requestBooking,screenTags,staffReservations,sweepLapsed,sweepReminders,tableScreen,linkPreorder,saveBookingSettings,resetBookingRequest,BookingSettingsError} from '../apps/api/src/meta/reservations';
+import {cancelReservation,parseBooking,requestBooking,screenTags,staffReservations,sweepLapsed,sweepReminders,tableScreen,linkPreorder,preorderNote,saveBookingSettings,resetBookingRequest,BookingSettingsError} from '../apps/api/src/meta/reservations';
 import {inKitchen,listTapOrders,preordered} from '../apps/api/src/meta/staff';
 import {screenKey} from '../apps/api/src/meta/screen';
 import {serveMeta} from '../apps/api/src/meta/routes';
@@ -201,6 +201,8 @@ test('pre-order: paid while holding a booking in the next 12 hours → kept out 
  const id=await order();
  const linked=await db.tenant(M,c=>linkPreorder(c,id));
  assert.equal(linked?.tableLabel,res.tableLabel);
+ const note=await db.tenant(M,c=>preorderNote(c,'meta_cart_orders',id));
+ assert.match(note!.text,/ไม่คืนเงิน/);assert.match(note!.subtitle,/Pre-order/);
  const me={merchantId:M,userId:randomUUID(),role:'owner' as const,sessionId:'s'};
  const staffDeps={db,config:{} as any};
  let o=(await listTapOrders(staffDeps,me)).find(x=>x.id===id)!;
