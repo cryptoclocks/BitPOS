@@ -370,7 +370,15 @@ class _ProductOptionsSheetState extends State<ProductOptionsSheet> {
                       children: [
                         KeyedSubtree(
                           key: const ValueKey('product-detail-hero'),
-                          child: FoodImage(url: product.imageUrl, hero: true),
+                          child: FoodImage(
+                              url: product.imageUrl,
+                              hero: true,
+                              emoji: foodEmoji(
+                                name: product.name,
+                                nameEn: product.nameEn,
+                                category: product.category,
+                              ),
+                            ),
                         ),
                         Padding(
                           padding: const EdgeInsets.fromLTRB(24, 20, 24, 12),

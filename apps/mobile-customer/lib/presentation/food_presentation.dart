@@ -118,10 +118,14 @@ class FoodImage extends StatelessWidget {
     this.url = '',
     this.size = 60,
     this.hero = false,
+    this.emoji,
   });
   final String url;
   final double size;
   final bool hero;
+
+  /// Shown instead of the generic cutlery icon while the item has no photo; see [foodEmoji].
+  final String? emoji;
 
   @override
   Widget build(BuildContext context) {
@@ -129,11 +133,13 @@ class FoodImage extends StatelessWidget {
     Widget unavailable() => ColoredBox(
       color: colors.surfaceContainerHighest,
       child: Center(
-        child: Icon(
-          Icons.restaurant_outlined,
-          size: hero ? 48 : 28,
-          color: colors.onSurfaceVariant,
-        ),
+        child: emoji != null
+            ? Text(emoji!, style: TextStyle(fontSize: hero ? 72 : size * 0.5))
+            : Icon(
+                Icons.restaurant_outlined,
+                size: hero ? 48 : 28,
+                color: colors.onSurfaceVariant,
+              ),
       ),
     );
     final uri = Uri.tryParse(url);
@@ -221,4 +227,33 @@ class FoodAmountRow extends StatelessWidget {
       ],
     ),
   );
+}
+
+
+/// One emoji for a menu item so categories read at a glance. Specific dishes first, then the category;
+/// items that cannot be told apart share their category's emoji, and anything unknown keeps the plain icon (null).
+String? foodEmoji({String name = '', String nameEn = '', String category = ''}) {
+  final text = '$name $nameEn'.toLowerCase();
+  bool has(List<String> words) => words.any(text.contains);
+  if (has(['iced', 'เย็น', 'frappe', 'ปั่น'])) return '🧊';
+  if (has(['matcha', 'ชาเขียว', 'ชาไทย', 'ชานม']) || RegExp(r'\btea\b').hasMatch(text)) {
+    return '🍵';
+  }
+  if (has(['croissant', 'ครัวซอง'])) return '🥐';
+  if (has(['muffin', 'มัฟฟิน', 'cupcake'])) return '🧁';
+  if (has(['brownie', 'บราวนี'])) return '🍫';
+  if (has(['cheesecake', 'cake', 'เค้ก'])) return '🍰';
+  if (has(['sandwich', 'แซนด์วิช', 'toast', 'ขนมปัง'])) return '🥪';
+  switch (category.trim().toLowerCase()) {
+    case 'coffee':
+    case 'tea & chocolate':
+      return '☕';
+    case 'bakery':
+      return '🥐';
+    case 'desserts':
+      return '🍰';
+    case 'savory':
+      return '🥪';
+  }
+  return null;
 }

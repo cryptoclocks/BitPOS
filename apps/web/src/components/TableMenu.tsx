@@ -1,3 +1,4 @@
+import {foodEmoji} from '../lib/food-emoji';
 import {applyBundle} from '../../../../packages/domain/src/bundle-promotions';
 import type {EffectiveLine} from '../../../../packages/contracts/src/index';
 import {requestId} from '../lib/request-id';
@@ -19,9 +20,9 @@ import '../styles/customer-checkout.css';
 import '../styles/table-menu.css';
 type EntryMenu={tableLabel:string;menu:Menu;online:boolean;available:boolean;occupancy:TableOccupancyView;collectionPolicy?:{counterEnabled:boolean;version:number}};
 type VisitView={kind:'order';order:OrderView}|{kind:'draft';expiresAt:string;online:boolean;available:boolean;occupancy:TableOccupancyView;quote:GuestQuote|null;menu:Menu};
-function CatalogPhoto({url,label,emptyLabel}:{url?:string|null;label:string;emptyLabel:string}){
+function CatalogPhoto({url,label,emptyLabel,emoji}:{url?:string|null;label:string;emptyLabel:string;emoji?:string|null}){
  const [failed,setFailed]=useState(false);
- return <span className="table-product-photo">{url&&!failed?<img src={url} alt={label} loading="lazy" onError={()=>setFailed(true)}/>:<span className="table-photo-placeholder" role="img" aria-label={emptyLabel}>◇</span>}</span>;
+ return <span className="table-product-photo">{url&&!failed?<img src={url} alt={label} loading="lazy" onError={()=>setFailed(true)}/>:<span className="table-photo-placeholder" role="img" aria-label={emptyLabel}>{emoji??"◇"}</span>}</span>;
 }
 function ProductDialog({title,onClose,children}:{title:string;onClose:()=>void;children:React.ReactNode}){
  const dialog=useRef<HTMLDialogElement>(null);
@@ -104,7 +105,7 @@ export default function TableMenu({entry}:{entry:string}){
  const total=estimateComplete?formatMoney({currency:entryMenu!.menu.currency!,decimals:entryMenu!.menu.decimals!,amountMinor:estimate.toString()} as Parameters<typeof formatMoney>[0]):copy('Estimate unavailable','ยังประมาณยอดไม่ได้');
  const tableLabel=(entryMenu?.tableLabel??copy('Your table','โต๊ะของคุณ')).replace(/^Devnet demo table (\d+)$/,'Table $1');
  const shown=products.filter(p=>(!category||p.category===category)&&(!search||[p.name,p.nameEn,p.description].some(v=>v.toLowerCase().includes(search.toLowerCase()))));
- const productImage=(p?:Product)=><CatalogPhoto key={p?.imageUrl??'no-photo'} url={p?.imageUrl} label={p?(th?p.name:p.nameEn):copy('Item unavailable','เมนูไม่พร้อม')} emptyLabel={copy('No product photo','ไม่มีรูปสินค้า')}/>;
+ const productImage=(p?:Product)=><CatalogPhoto key={p?.imageUrl??'no-photo'} url={p?.imageUrl} emoji={p?foodEmoji(p):null} label={p?(th?p.name:p.nameEn):copy('Item unavailable','เมนูไม่พร้อม')} emptyLabel={copy('No product photo','ไม่มีรูปสินค้า')}/>;
  const categoryNames:Record<string,string>={'Coffee':'กาแฟ','Tea & Chocolate':'ชาและช็อกโกแลต','Bakery':'เบเกอรี่','Desserts':'ของหวาน','Savory':'อาหาร'};
  const categoryName=(c:string)=>th?(categoryNames[c]??c):c;
  function closeCart(){if(guest?.phase!=='pending')setCartOpen(false);}
