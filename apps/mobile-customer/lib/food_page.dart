@@ -355,6 +355,41 @@ class _FoodPageState extends State<FoodPage> with WidgetsBindingObserver {
   MaterialPageRoute<MobileAddress>? _addressPickerRoute;
   MaterialPageRoute<void>? _paymentMethodRoute;
   bool get _current => mounted && (widget.owner?.value ?? true);
+  Timer? _retryTimer;
+  int _retryAttempt = 0;
+
+  /// A transient network failure retries by itself with backoff; the shared
+  /// banner says "reconnecting" and no manual tap is ever required.
+  void _scheduleRetry() {
+    _retryTimer?.cancel();
+    final seconds = const [2, 4, 8, 15][_retryAttempt < 3 ? _retryAttempt : 3];
+    _retryAttempt++;
+    _retryTimer = Timer(Duration(seconds: seconds), _retryAfterOutage);
+  }
+
+  void _onReconnect() {
+    if (isConnectivityError(_error)) {
+      _retryTimer?.cancel();
+      _retryAfterOutage();
+    }
+  }
+
+  void _retryAfterOutage() {
+    if (!_current) return;
+    if (_busy) {
+      _scheduleRetry();
+      return;
+    }
+    if (!isConnectivityError(_error)) return;
+    if (_branches.isEmpty && !_discoveryLoaded) {
+      unawaited(_run(_reloadBranches));
+    } else if (_order != null) {
+      unawaited(_run(_refreshOrder));
+    } else {
+      setState(() => _error = null);
+    }
+  }
+
   void _ownerChanged() {
     if (widget.owner?.value == false) {
       removeOwnedRoute(_addressPickerRoute);
@@ -535,6 +570,7 @@ class _FoodPageState extends State<FoodPage> with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
+    widget.api.reconnects.addListener(_onReconnect);
     widget.navigation?._bind(
       this,
       () => _run(_history),
@@ -587,6 +623,8 @@ class _FoodPageState extends State<FoodPage> with WidgetsBindingObserver {
     _closeSupport();
     _closeReview();
     _leaseTimer?.cancel();
+    _retryTimer?.cancel();
+    widget.api.reconnects.removeListener(_onReconnect);
     _searchController.dispose();
     _branchSearchController.dispose();
     WidgetsBinding.instance.removeObserver(this);
@@ -616,6 +654,7 @@ class _FoodPageState extends State<FoodPage> with WidgetsBindingObserver {
       await action();
     } catch (error) {
       _error = error;
+      if (isConnectivityError(error)) _scheduleRetry();
       if (error is MobileApiException &&
           _pending == null &&
           [
@@ -635,6 +674,7 @@ class _FoodPageState extends State<FoodPage> with WidgetsBindingObserver {
       }
     }
     if (_current) {
+      if (_error == null) _retryAttempt = 0;
       setState(() => _busy = false);
       _syncOrderDetailNavigation();
       _syncMenuNavigation();
@@ -671,13 +711,19 @@ class _FoodPageState extends State<FoodPage> with WidgetsBindingObserver {
     try {
       await _reloadBranches();
     } catch (error) {
-      _error = const MobileApiException('DISCOVERY_FAILED', 503);
+      if (isConnectivityError(error)) {
+        _error = error;
+        _scheduleRetry();
+      } else {
+        _error = const MobileApiException('DISCOVERY_FAILED', 503);
+      }
     }
     if (_recoverOrderId != null) {
       try {
         await _restoreActiveOrder();
       } catch (error) {
         _error = error;
+        if (isConnectivityError(error)) _scheduleRetry();
         if (_current &&
             error is MobileApiException &&
             error.code == 'AUTH_REQUIRED' &&
@@ -1603,7 +1649,7 @@ class _FoodPageState extends State<FoodPage> with WidgetsBindingObserver {
                 ),
                 _amount(t('ค่าบริการ', 'Service fee'), destination.serviceFee),
               ],
-              if (destination.fixture)
+              if (widget.api.fixture && destination.fixture)
                 Text(
                   t(
                     'ข้อมูลทดสอบ · ตำแหน่งและค่าจัดส่งจำลอง',
@@ -1633,7 +1679,7 @@ class _FoodPageState extends State<FoodPage> with WidgetsBindingObserver {
               _amount(t('ค่าจัดส่ง', 'Delivery fee'), destination.deliveryFee),
               _amount(t('ค่าบริการ', 'Service fee'), destination.serviceFee),
             ],
-            if (destination.fixture)
+            if (widget.api.fixture && destination.fixture)
               Text(
                 t(
                   'ข้อมูลทดสอบ · ตำแหน่งและค่าจัดส่งจำลอง',
@@ -1813,7 +1859,7 @@ class _FoodPageState extends State<FoodPage> with WidgetsBindingObserver {
                   : 12,
             ),
             if (_busy) const LinearProgressIndicator(),
-            if (_error != null)
+            if (_error != null && !isConnectivityError(_error))
               Semantics(
                 liveRegion: true,
                 child: Container(
@@ -2547,7 +2593,7 @@ class _FoodPageState extends State<FoodPage> with WidgetsBindingObserver {
                   t('ค่าบริการ', 'Service fee'),
                   _deliveryPolicy!.serviceFee,
                 ),
-                if (_deliveryPolicy!.fixture)
+                if (widget.api.fixture && _deliveryPolicy!.fixture)
                   Text(
                     t(
                       'ข้อมูลทดสอบ · พื้นที่และค่าจัดส่งจำลอง',
@@ -2790,15 +2836,23 @@ class _FoodPageState extends State<FoodPage> with WidgetsBindingObserver {
                 ),
               ),
               if (_branches.isEmpty && !_discoveryLoaded && !_busy && _error != null)
-                BitPosStateView(
-                  kind: _error is MobileApiException
-                      ? BitPosStateKind.error
-                      : BitPosStateKind.offline,
-                  thai: widget.thai,
-                  message: checkoutRefusalMessage(_error!, widget.thai),
-                  actionLabel: t('ลองอีกครั้ง', 'Try again'),
-                  onAction: () => _run(_reloadBranches),
-                ),
+                isConnectivityError(_error)
+                    ? BitPosStateView(
+                        kind: BitPosStateKind.loading,
+                        thai: widget.thai,
+                        title: t('กำลังเชื่อมต่อใหม่...', 'Reconnecting...'),
+                        message: t(
+                          'กำลังโหลดร้านใกล้คุณ',
+                          'Loading restaurants near you',
+                        ),
+                      )
+                    : BitPosStateView(
+                        kind: BitPosStateKind.error,
+                        thai: widget.thai,
+                        message: checkoutRefusalMessage(_error!, widget.thai),
+                        actionLabel: t('ลองอีกครั้ง', 'Try again'),
+                        onAction: () => _run(_reloadBranches),
+                      ),
               if (_branches.isEmpty && _discoveryLoaded && !_busy)
                 MerchantSearchEmpty(
                   thai: widget.thai,

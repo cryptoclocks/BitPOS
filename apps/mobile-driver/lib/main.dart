@@ -21,6 +21,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show SystemNavigator;
 import 'package:mobile_shared/mobile_api.dart';
+import 'package:mobile_shared/presentation/bitpos_connection.dart';
 import 'package:mobile_shared/mobile_v1.generated.dart';
 import 'package:mobile_shared/driver_mutation.dart';
 import 'package:mobile_shared/bitpos_theme.dart';
@@ -43,6 +44,7 @@ class BitPosDriver extends StatelessWidget {
     debugShowCheckedModeBanner: false,
     theme: BitPosTheme.light(),
     darkTheme: BitPosTheme.dark(),
+    builder: (context, child) => BitPosConnectionHost(child: child),
     home: const bool.fromEnvironment('BITPOS_UI_CATALOG')
         ? const BitPosUiCatalog(rider: true)
         : const DriverSessionPage(),
@@ -78,6 +80,10 @@ class _DriverSessionPageState extends State<DriverSessionPage>
   bool _snapshotStale = false;
   MobilePushController? _push;
   bool _destinationOpen = false;
+  bool _startupFailed = false;
+  int _startupAttempt = 0;
+  Timer? _startupRetry;
+  VoidCallback? _reconnects;
   // FigCraft R06: the signed-in home is the Work tab; Account is the fourth root tab. One landing per session.
   String? _landedFor;
   bool _profileKnown = false;
@@ -103,7 +109,21 @@ class _DriverSessionPageState extends State<DriverSessionPage>
             base: Uri.parse(base),
             fixture: const bool.fromEnvironment('BITPOS_FIXTURE'),
           );
+      BitPosConnection.useApi(_api);
+      _reconnects ??= () {
+        if (!mounted) return;
+        if (_startupFailed) {
+          _startupFailed = false;
+          _startupRetry?.cancel();
+          unawaited(_initialize());
+        } else if (_signedIn && !_busy) {
+          unawaited(_run(_load));
+        }
+      };
+      _api!.reconnects.removeListener(_reconnects!);
+      _api!.reconnects.addListener(_reconnects!);
       await _api!.restore();
+      await _sessionChanges?.cancel();
       var previousScope = _api!.sessionScope;
       _sessionChanges = _api!.sessionScopes.listen((scope) {
         final changedOwner = previousScope != null && scope != previousScope;
@@ -151,7 +171,10 @@ class _DriverSessionPageState extends State<DriverSessionPage>
       );
       await _push!.start();
     } catch (e) {
-      _error = e;
+      final quiet = e is MobileApiException &&
+          e.code == 'AUTH_REQUIRED' &&
+          !(_api?.signedIn ?? false);
+      _error = quiet ? null : e;
       if (_signedIn && _api != null && !_api!.signedIn) {
         _owner++;
         _signedIn = false;
@@ -160,6 +183,21 @@ class _DriverSessionPageState extends State<DriverSessionPage>
         _clearApplication();
         _sent = false;
         _code.clear();
+      } else if (isConnectivityError(e) && _push == null && _signedIn) {
+        // The session is intact; only the first server read failed. Keep the
+        // calm banner and retry by itself instead of leaving a dead screen.
+        _startupFailed = true;
+        _startupAttempt++;
+        _startupRetry?.cancel();
+        _startupRetry = Timer(
+          Duration(seconds: (_startupAttempt * 3).clamp(3, 20)),
+          () {
+            if (mounted && _startupFailed) {
+              _startupFailed = false;
+              unawaited(_initialize());
+            }
+          },
+        );
       }
     }
     if (mounted) setState(() => _busy = false);
@@ -353,6 +391,11 @@ class _DriverSessionPageState extends State<DriverSessionPage>
   }
 
   String _message(Object e) {
+    if (isConnectivityError(e))
+      return t(
+        'กำลังเชื่อมต่อใหม่ รอสักครู่แล้วลองอีกครั้ง',
+        'Reconnecting. Wait a moment, then try again.',
+      );
     if (e is TimeoutException)
       return t(
         'เซิร์ฟเวอร์ยังไม่ตอบกลับ โหลดสถานะล่าสุดก่อนทำรายการต่อ',
@@ -544,8 +587,10 @@ class _DriverSessionPageState extends State<DriverSessionPage>
     ),
   );
   @override
-  Widget build(BuildContext context) =>
-      DriverPresentation(child: Builder(builder: _buildPage));
+  Widget build(BuildContext context) {
+    BitPosConnection.useThai(_thai);
+    return DriverPresentation(child: Builder(builder: _buildPage));
+  }
   InputDecoration _signInDecoration(BuildContext context, String label) {
     final colors = Theme.of(context).colorScheme,
         dark = Theme.of(context).brightness == Brightness.dark;
@@ -783,7 +828,9 @@ class _DriverSessionPageState extends State<DriverSessionPage>
                           child: Text(
                             _message(_error!),
                             style: TextStyle(
-                              color: Theme.of(context).colorScheme.error,
+                              color: isConnectivityError(_error)
+                          ? Theme.of(context).colorScheme.onSurfaceVariant
+                          : Theme.of(context).colorScheme.error,
                             ),
                           ),
                         ),
@@ -942,7 +989,9 @@ class _DriverSessionPageState extends State<DriverSessionPage>
                     child: Text(
                       _message(_error!),
                       style: TextStyle(
-                        color: Theme.of(context).colorScheme.error,
+                        color: isConnectivityError(_error)
+                          ? Theme.of(context).colorScheme.onSurfaceVariant
+                          : Theme.of(context).colorScheme.error,
                       ),
                     ),
                   ),
@@ -1267,6 +1316,9 @@ class _DriverSessionPageState extends State<DriverSessionPage>
 
   @override
   void dispose() {
+    _startupRetry?.cancel();
+    if (_reconnects != null) _api?.reconnects.removeListener(_reconnects!);
+    BitPosConnection.useApi(null);
     unawaited(_sessionChanges?.cancel());
     _owner++;
     WidgetsBinding.instance.removeObserver(this);

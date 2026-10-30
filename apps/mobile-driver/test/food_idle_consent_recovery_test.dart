@@ -31,7 +31,7 @@ void main(){
    await tester.pumpWidget(MaterialApp(home:Scaffold(body:SingleChildScrollView(child:FoodIdleDiscoveryPanel(api:restarted,thai:false,location:controller,canCapture:true)))));await settled();
    final action=find.widgetWithText(withdraw?OutlinedButton:FilledButton,withdraw?'Stop and revoke consent':'Retry exact unresolved consent');expect(action,findsOneWidget);await tester.ensureVisible(action);await tester.tap(action);await settled();
    expect(commands[1],commands[0]);expect(commands[0],original.toJson());expect(controller.sharing,!withdraw);expect(native.points.hasListener,!withdraw);expect(enabled,!withdraw);expect(await restarted.pendingFoodDiscoveryConsent(),isNull);
-   if(withdraw){expect(commands.length,3);expect(commands[2]['enabled'],false);expect(commands[2]['expectedVersion'],'1');expect(commands[2]['idempotencyKey'],isNot(original.idempotencyKey));expect(find.textContaining('Server consent: false'),findsOneWidget);}
+   if(withdraw){expect(commands.length,3);expect(commands[2]['enabled'],false);expect(commands[2]['expectedVersion'],'1');expect(commands[2]['idempotencyKey'],isNot(original.idempotencyKey));expect(find.text('Location not shared'),findsOneWidget);await tester.tap(find.byType(IconButton).first);await tester.pumpAndSettle();expect(find.textContaining('Consent: off'),findsOneWidget);}
    await tester.pumpWidget(const MaterialApp());await tester.runAsync(controller.stop);
   });
  }

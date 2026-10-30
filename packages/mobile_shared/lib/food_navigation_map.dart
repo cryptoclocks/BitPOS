@@ -514,9 +514,10 @@ class _FoodNavigationMapState extends State<FoodNavigationMap>
                 route.attribution,
                 style: Theme.of(context).textTheme.labelSmall,
               ),
-            if (a?.fixture == true ||
+            if (widget.api.fixture &&
+                (a?.fixture == true ||
                 snapshot?.tileFixture == true ||
-                route?.fixture == true)
+                route?.fixture == true))
               Text(
                 t(
                   'AVD / ข้อมูลจำลอง ไม่ใช่ GPS หรือการส่งจริง',

@@ -24,7 +24,9 @@ class _WorkAvailabilityState extends State<WorkAvailability>
   bool busy = false, stale = true, retired = false;
   String? error;
   int epoch = 0;
-  Timer? timer;
+  Timer? timer, retryTimer;
+  int retryAttempt = 0;
+  bool reconnecting = false;
   late final owner = widget.api.sessionScope;
   StreamSubscription<({String accountId, String sessionId})?>? changes;
   String t(String th, String en) => widget.thai ? th : en;
@@ -49,12 +51,31 @@ class _WorkAvailabilityState extends State<WorkAvailability>
         });
       }
     });
+    widget.api.reconnects.addListener(onReconnect);
     unawaited(load());
+  }
+
+  void onReconnect() {
+    if (current && (stale || reconnecting)) {
+      retryTimer?.cancel();
+      unawaited(load());
+    }
+  }
+
+  void scheduleRetry() {
+    retryTimer?.cancel();
+    final seconds = const [2, 4, 8, 15][retryAttempt < 3 ? retryAttempt : 3];
+    retryAttempt++;
+    retryTimer = Timer(Duration(seconds: seconds), () {
+      if (current && !busy && reconnecting) unawaited(load());
+    });
   }
 
   @override
   void dispose() {
     epoch++;
+    retryTimer?.cancel();
+    widget.api.reconnects.removeListener(onReconnect);
     timer?.cancel();
     unawaited(changes?.cancel());
     WidgetsBinding.instance.removeObserver(this);
@@ -113,8 +134,11 @@ class _WorkAvailabilityState extends State<WorkAvailability>
       if (!current || run != epoch) return;
       final result = await widget.api.driverProfile();
       if (!current || run != epoch) return;
+      retryTimer?.cancel();
+      retryAttempt = 0;
       setState(() {
         pending = saved;
+        reconnecting = false;
         adopt(result.driver);
       });
     } catch (e) {
@@ -126,12 +150,20 @@ class _WorkAvailabilityState extends State<WorkAvailability>
           /* Keep existing unresolved command. */
         }
         if (current && run == epoch) {
-          setState(
-            () => error = t(
-              'ยังยืนยันสถานะไม่ได้ โหลดใหม่หรือกู้คืนคำสั่งเดิม',
-              'Status not confirmed. Refresh or recover the saved command.',
-            ),
-          );
+          if (isConnectivityError(e)) {
+            // Transient: retry by itself with backoff; the shared banner says so.
+            reconnecting = true;
+            setState(() => error = null);
+            scheduleRetry();
+          } else {
+            reconnecting = false;
+            setState(
+              () => error = t(
+                'ยังยืนยันสถานะไม่ได้ ลองโหลดใหม่อีกครั้ง',
+                'Status not confirmed. Try refreshing.',
+              ),
+            );
+          }
         }
       }
     } finally {
@@ -150,10 +182,9 @@ class _WorkAvailabilityState extends State<WorkAvailability>
         if (error != null) Semantics(liveRegion: true, child: Text(error!)),
         DriverAvailabilityCard(
           label: stale
-              ? t(
-                  'สถานะยังไม่ยืนยัน โหลดล่าสุด',
-                  'Availability unconfirmed. Refresh.',
-                )
+              ? (busy || reconnecting
+                    ? t('กำลังตรวจสอบสถานะ...', 'Checking status...')
+                    : t('สถานะยังไม่ยืนยัน', 'Availability unconfirmed'))
               : p!.availability.online
               ? t('ออนไลน์ตามเซิร์ฟเวอร์', 'Online according to server')
               : t('ออฟไลน์ตามเซิร์ฟเวอร์', 'Offline according to server'),
@@ -195,10 +226,11 @@ class _WorkAvailabilityState extends State<WorkAvailability>
         Wrap(
           spacing: 12,
           children: [
-            TextButton(
-              onPressed: busy ? null : () => load(),
-              child: Text(t('โหลดสถานะออนไลน์', 'Refresh availability')),
-            ),
+            if (!busy && !reconnecting && (error != null || stale))
+              TextButton(
+                onPressed: busy ? null : () => load(),
+                child: Text(t('โหลดสถานะออนไลน์', 'Refresh availability')),
+              ),
             if (p != null && p.availability.online)
               OutlinedButton(
                 onPressed:

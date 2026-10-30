@@ -46,6 +46,26 @@ class _RewardsPageState extends State<RewardsPage> {
   void initState() {
     super.initState();
     widget.owner.addListener(_ownerChanged);
+    widget.api.reconnects.addListener(_retryNow);
+    unawaited(_load());
+  }
+
+  Timer? _retryTimer;
+  int _retryAttempt = 0;
+  bool _outage = false;
+
+  void _scheduleRetry() {
+    _outage = true;
+    _retryTimer?.cancel();
+    final seconds = const [2, 4, 8, 15][_retryAttempt < 3 ? _retryAttempt : 3];
+    _retryAttempt++;
+    _retryTimer = Timer(Duration(seconds: seconds), _retryNow);
+  }
+
+  void _retryNow() {
+    if (!_current || !_outage || loading) return;
+    _retryTimer?.cancel();
+    _outage = false;
     unawaited(_load());
   }
 
@@ -64,11 +84,14 @@ class _RewardsPageState extends State<RewardsPage> {
 
   @override
   void dispose() {
+    _retryTimer?.cancel();
+    widget.api.reconnects.removeListener(_retryNow);
     widget.owner.removeListener(_ownerChanged);
     super.dispose();
   }
 
   Future<void> _load() async {
+    _outage = false;
     setState(() {
       loading = true;
       error = null;
@@ -83,11 +106,14 @@ class _RewardsPageState extends State<RewardsPage> {
         widget.onAuthenticationRequired();
         return;
       }
+      if (isConnectivityError(e)) _scheduleRetry();
       setState(
-        () => error = t(
-          'โหลดแต้มไม่สำเร็จ ลองอีกครั้ง',
-          'Could not load your points. Try again.',
-        ),
+        () => error = isConnectivityError(e)
+            ? t('กำลังเชื่อมต่อใหม่...', 'Reconnecting...')
+            : t(
+                'โหลดแต้มไม่สำเร็จ ลองอีกครั้ง',
+                'Could not load your points. Try again.',
+              ),
       );
     } finally {
       if (_current) setState(() => loading = false);
@@ -112,11 +138,14 @@ class _RewardsPageState extends State<RewardsPage> {
         widget.onAuthenticationRequired();
         return;
       }
+      if (isConnectivityError(e)) _scheduleRetry();
       setState(
-        () => rewardsError = t(
-          'โหลดรางวัลไม่สำเร็จ ลองอีกครั้ง',
-          'Could not load rewards. Try again.',
-        ),
+        () => rewardsError = isConnectivityError(e)
+            ? t('กำลังเชื่อมต่อใหม่...', 'Reconnecting...')
+            : t(
+                'โหลดรางวัลไม่สำเร็จ ลองอีกครั้ง',
+                'Could not load rewards. Try again.',
+              ),
       );
     }
   }
@@ -326,8 +355,8 @@ class _RewardsPageState extends State<RewardsPage> {
                 'Points are worked out from your paid food orders: 1 point per whole currency unit, excluding orders with a refund, minus points you already redeemed.',
               ),
               t(
-                'แต้มนับแยกตามร้าน ร้านที่เปิดรางวัลเท่านั้นที่แลกได้ (เดโม)',
-                'Points are counted per shop and only shops that offer a reward can be redeemed (demo).',
+                'แต้มนับแยกตามร้าน ร้านที่เปิดรางวัลเท่านั้นที่แลกได้',
+                'Points are counted per shop and only shops that offer a reward can be redeemed.',
               ),
               t(
                 'คูปองที่หมดอายุโดยไม่ได้ใช้จะไม่คืนแต้ม',
@@ -339,6 +368,7 @@ class _RewardsPageState extends State<RewardsPage> {
           if (loading) const LinearProgressIndicator(),
           if (error != null) ...[
             Semantics(liveRegion: true, child: Text(error!)),
+            if (!_outage)
             OutlinedButton(
               onPressed: loading ? null : _load,
               child: Text(t('ลองอีกครั้ง', 'Try again')),
@@ -382,6 +412,7 @@ class _RewardsPageState extends State<RewardsPage> {
           Text(t('รางวัลที่แลกได้', 'Rewards you can redeem'), style: Theme.of(context).textTheme.titleLarge),
           if (rewardsError != null) ...[
             Semantics(liveRegion: true, child: Text(rewardsError!, key: const ValueKey('rewards-load-error'))),
+            if (!_outage)
             OutlinedButton(
               key: const ValueKey('rewards-retry'),
               onPressed: _loadRewards,

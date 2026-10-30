@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io' show SocketException, HandshakeException;
+import 'package:flutter/foundation.dart' show ValueNotifier;
 import 'dart:typed_data';
 import 'package:crypto/crypto.dart' as crypto;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -33,6 +35,16 @@ String? _refusalReason(Object? error) {
   return reason is String && RegExp(r'^(COUPON|SCHEDULE)_[A-Z_]+$').hasMatch(reason) ? reason : null;
 }
 
+/// True for failures that mean "could not reach / hear back from the server"
+/// (offline, DNS, TLS, timeout, proxy 502/503/504). These are transient: the UI
+/// shows one calm reconnecting banner and retries instead of an error block.
+bool isConnectivityError(Object? error) =>
+    error is TimeoutException ||
+    error is SocketException ||
+    error is HandshakeException ||
+    error is http.ClientException ||
+    (error is MobileApiException && error.code == 'UPSTREAM_UNAVAILABLE');
+
 enum MobilePushApp {customer,driver}
 
 /// Owns device identity, secure tokens and single-flight rotation. Mutations are
@@ -43,6 +55,30 @@ class MobileApi {
   final bool fixture;
   final FlutterSecureStorage storage;
   final http.Client _client;
+  /// Whether the last server round trip reached the server. Drives the single
+  /// calm "reconnecting" banner; never a source of business data.
+  final ValueNotifier<bool> connected = ValueNotifier<bool>(true);
+  /// Incremented each time connectivity returns after a failure; pages refresh on it.
+  final ValueNotifier<int> reconnects = ValueNotifier<int>(0);
+  /// Base delay unit for repeating failed idempotent reads (tests may shrink it).
+  Duration readRetryUnit = const Duration(milliseconds: 500);
+  void _markConnected(bool value) {
+    if (value == connected.value) return;
+    connected.value = value;
+    if (value) reconnects.value++;
+  }
+  /// Cheap reachability check: any HTTP answer below 502 proves the server is reachable.
+  Future<bool> probe() async {
+    try {
+      final response = await _client.get(base.resolve('health')).timeout(const Duration(seconds: 6));
+      final reachable = response.statusCode != 502 && response.statusCode != 503 && response.statusCode != 504;
+      _markConnected(reachable);
+      return reachable;
+    } catch (_) {
+      _markConnected(false);
+      return false;
+    }
+  }
   MobileSession? _session;
   String? _deviceId;
   Future<void>? _refreshing;
@@ -116,7 +152,32 @@ class MobileApi {
     },onError:(Object error)=>fail(error),onDone:(){if(!done.isCompleted)done.complete(bytes.takeBytes());});
     try{return await done.future;}finally{deadline.cancel();await subscription.cancel();await changed.cancel();}
   }
+  /// Repeats idempotent reads (GET without body) after transient network failures
+  /// with backoff. Mutations are single-send: ambiguity is resolved by domain idempotency.
   Future<Map<String,dynamic>> _request(String path, {String method = 'GET',
+      Map<String,dynamic>? body, bool authenticated = false, int maxResponseBytes=1024*1024,Map<String,String> extraHeaders=const {}}) async {
+    final repeatable = method == 'GET' && body == null;
+    final owner = _session;
+    for (var attempt = 0;; attempt++) {
+      try {
+        final result = await _requestOnce(path, method: method, body: body, authenticated: authenticated, maxResponseBytes: maxResponseBytes, extraHeaders: extraHeaders);
+        _markConnected(true);
+        return result;
+      } catch (error) {
+        if (!isConnectivityError(error)) {
+          // Any real server answer (even a refusal) proves the link works.
+          if (error is MobileApiException && error.code != 'SESSION_CHANGED' && error.code != 'AUTH_REQUIRED') _markConnected(true);
+          rethrow;
+        }
+        _markConnected(false);
+        // A 15 s deadline is not repeated here (it would stall the UI for minutes); pages retry it with backoff.
+        if (!repeatable || attempt >= 2 || error is TimeoutException) rethrow;
+        await Future<void>.delayed(readRetryUnit * (attempt == 0 ? 1 : 3));
+        if (authenticated && !identical(_session, owner)) throw const MobileApiException('SESSION_CHANGED', 409);
+      }
+    }
+  }
+  Future<Map<String,dynamic>> _requestOnce(String path, {String method = 'GET',
       Map<String,dynamic>? body, bool authenticated = false, int maxResponseBytes=1024*1024,Map<String,String> extraHeaders=const {}}) async {
     if (authenticated) {
       if (_session == null) throw const MobileApiException('AUTH_REQUIRED', 401);
@@ -156,7 +217,16 @@ class MobileApi {
     }
     final bytes=await _readResponse(streamed,maxResponseBytes,remaining,requestSession,authenticated);
     if(authenticated&&!identical(_session,requestSession))throw const MobileApiException('SESSION_CHANGED',409);
-    final decoded = jsonDecode(utf8.decode(bytes));
+    final Object? decoded;
+    try {
+      decoded = jsonDecode(utf8.decode(bytes));
+    } on FormatException {
+      // A proxy/gateway page (not our JSON) while the upstream restarts or is down.
+      if (streamed.statusCode == 502 || streamed.statusCode == 503 || streamed.statusCode == 504) {
+        throw MobileApiException('UPSTREAM_UNAVAILABLE', streamed.statusCode);
+      }
+      rethrow;
+    }
     if (decoded is! Map<String,dynamic>) throw const FormatException('Invalid API response');
     if (streamed.statusCode < 200 || streamed.statusCode >= 300) {
       if (authenticated && streamed.statusCode == 401) {

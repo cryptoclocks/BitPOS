@@ -304,9 +304,50 @@ class _FoodWorkPageState extends State<FoodWorkPage>
     WidgetsBinding.instance.addObserver(this);
     _receiptSession = widget.api.sessionScope;
     _receiptSessions = widget.api.sessionScopes.listen(_receiptOwnerChanged);
+    widget.api.reconnects.addListener(_onReconnect);
     _startWatch();
     unawaited(_run(_load));
   }
+
+  Timer? _retryTimer;
+  int _retryAttempt = 0;
+
+  /// Transient network failure: refresh by itself with backoff, never wait for a tap.
+  void _scheduleRetry() {
+    _retryTimer?.cancel();
+    final seconds = const [2, 4, 8, 15][_retryAttempt < 3 ? _retryAttempt : 3];
+    _retryAttempt++;
+    _retryTimer = Timer(Duration(seconds: seconds), () {
+      if (mounted && _foreground && !_busy && isConnectivityError(_error)) {
+        unawaited(_run(_load));
+      }
+    });
+  }
+
+  void _onReconnect() {
+    if (!mounted || !_foreground || _busy) return;
+    if (_error != null || _work == null) {
+      _retryTimer?.cancel();
+      unawaited(_run(_load));
+    }
+  }
+
+  String _errorText(Object error) {
+    if (isConnectivityError(error)) {
+      return t('กำลังเชื่อมต่อใหม่...', 'Reconnecting...');
+    }
+    if (error is MobileApiException) {
+      return t(
+        'ทำรายการไม่สำเร็จ กรุณาลองอีกครั้ง (${error.code})',
+        'That did not work. Please try again (${error.code}).',
+      );
+    }
+    return t('ทำรายการไม่สำเร็จ กรุณาลองอีกครั้ง', 'That did not work. Please try again.');
+  }
+
+  Color _errorColor(BuildContext context, Object error) => isConnectivityError(error)
+      ? Theme.of(context).colorScheme.onSurfaceVariant
+      : Theme.of(context).colorScheme.error;
 
   void _stopWatch() {
     _watchEpoch++;
@@ -332,6 +373,7 @@ class _FoodWorkPageState extends State<FoodWorkPage>
           _loadedAt = null;
           _error = state.error;
         });
+        if (isConnectivityError(state.error)) _scheduleRetry();
         if (state is FoodRealtimeDisconnected) {
           _locationFence = null;
           unawaited(_location.stop());
@@ -513,9 +555,13 @@ class _FoodWorkPageState extends State<FoodWorkPage>
         await Future.wait<void>([_location.stop(), _idleLocation.stop()]);
       }
       if (mounted) setState(() => _error = error);
+      if (isConnectivityError(error)) {
+        _scheduleRetry();
+      }
     } finally {
       if (mounted) setState(() => _busy = false);
     }
+    if (mounted && _error == null) _retryAttempt = 0;
   }
 
   Future<void> _submit(FoodDispatchMutation command) async {
@@ -1139,8 +1185,8 @@ class _FoodWorkPageState extends State<FoodWorkPage>
                   Semantics(
                     liveRegion: true,
                     child: _panel(Text(
-                      error.toString(),
-                      style: TextStyle(color: Theme.of(context).colorScheme.error),
+                      _errorText(error),
+                      style: TextStyle(color: _errorColor(context, error)),
                     )),
                   ),
                 ],
@@ -1277,9 +1323,9 @@ class _FoodWorkPageState extends State<FoodWorkPage>
                   liveRegion: true,
                   child: _panel(
                     Text(
-                      error.toString(),
+                      _errorText(error),
                       style: TextStyle(
-                        color: Theme.of(context).colorScheme.error,
+                        color: _errorColor(context, error),
                       ),
                     ),
                   ),
@@ -1382,7 +1428,9 @@ class _FoodWorkPageState extends State<FoodWorkPage>
               if (work == null && !_busy)
                 _panel(
                   Text(
-                    t('ยังไม่มีข้อมูลล่าสุด', 'No current snapshot available'),
+                    isConnectivityError(_error)
+                        ? t('กำลังโหลดงานล่าสุด...', 'Loading the latest work...')
+                        : t('ยังไม่มีข้อมูลล่าสุด', 'No current snapshot available'),
                   ),
                 ),
               if (a != null) ...[
@@ -1971,6 +2019,8 @@ class _FoodWorkPageState extends State<FoodWorkPage>
 
   @override
   void dispose() {
+    _retryTimer?.cancel();
+    widget.api.reconnects.removeListener(_onReconnect);
     unawaited(_receiptSessions?.cancel());
     removeOwnedRoute(_receiptEarningsRoute);
     _workScroll.dispose();
