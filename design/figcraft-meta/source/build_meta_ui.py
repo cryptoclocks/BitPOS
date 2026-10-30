@@ -444,10 +444,10 @@ def c11():
     s.btn(24, 676, 342, 'จ่าย $5.50 ด้วย Stripe', 'C05', icon='card'); s.btn(24, 740, 342, 'ส่งข้อความ', 'C11', 'ghost'); home_bar(s); return s
 @screen('C12', 'chat-booking', 'จองโต๊ะในแชท', 'chat', route='Messenger: booking ask-back')
 def c12():
-    s = chat(back='C08'); y = bubble(s, 130, 'จองโต๊ะ 2 คนค่ะ', True); y = bubble(s, y, 'กี่โมงดีคะ? (วันนี้หรือพรุ่งนี้ก็ได้)', w=270)
-    y = bubble(s, y, '1 ทุ่ม', True); s.muse(24, y, 'Muse Spark · อ่านวันเวลา'); y += 40
+    s = chat(back='C08'); y = bubble(s, 130, 'จองโต๊ะ 2 คนค่ะ', True); y = bubble(s, y, 'เลือกเวลาที่ว่างได้เลยค่ะ\n18:00 · 18:30 · 19:00 · 19:30', w=250, lines=2)
+    y = bubble(s, y, '19:00', True); s.muse(24, y, 'Muse Spark · อ่านวันเวลา'); y += 40
     s.card(24, y, 300, 190, r=18); s.icon('calendar', 40, y + 18, 24); s.text(74, y + 38, 'จองแล้ว #97C8', 16, weight=700)
-    s.text(40, y + 72, 'โต๊ะ 1 · วันนี้ 19:00 · 2 คน', 14); s.wrap(40, y + 100, 'แตะมือถือที่เครื่องบนโต๊ะ 18:45–19:15 เพื่อเช็กอิน ถ้าไม่มาโต๊ะจะว่าง', 34, 12, lines=2)
+    s.text(40, y + 72, 'โต๊ะ 1 · วันนี้ 19:00 · 2 คน', 14); s.wrap(40, y + 100, 'แตะมือถือที่เครื่องบนโต๊ะ 18:55–19:15 เพื่อเช็กอิน ถ้าไม่มาโต๊ะจะว่าง', 34, 12, lines=2)
     s.rect(24, y + 150, 300, 40, C['white'], 0, C['line']); s.text(174, y + 176, 'ยกเลิกการจอง', 14, C['red'], 600, 'middle'); s.hot(24, y + 150, 300, 40, 'C15')
     chips(s, 712, [('ดูจอโต๊ะ', 'T03'), ('เช็กอินที่โต๊ะ', 'C14'), ('ออเดอร์ของฉัน', 'C15')]); composer(s); return s
 @screen('C13', 'table-reserved', 'โต๊ะนี้จองไว้แล้ว', 'pay', route='/meta/t/:tag (reserved, 409)')
@@ -653,7 +653,7 @@ def mp07():
     s.btn(304, 620, 340, 'ยืนยันคืนเงิน $4.00', 'MP05', 'danger'); s.btn(660, 620, 200, 'ยกเลิก', 'MP06', 'outline'); return s
 @screen('MP08', 'bookings', 'การจองโต๊ะ', 'pos', route='/meta/staff (bookings)', meta_only=True)
 def mp08():
-    s = desk('การจองโต๊ะ', 'MP08', 'จองผ่านแชท · เช็กอินด้วยการแตะ ±15 นาที · หลุดคิวอัตโนมัติ', [('จอโต๊ะทั้งหมด', 'MP09', 'secondary')])
+    s = desk('การจองโต๊ะ', 'MP08', 'จองผ่านแชท · ล็อกโต๊ะ -5/+15 นาที · เตือนใน Messenger · หลุดคิวอัตโนมัติ', [('เวลารับจอง', 'MP24', 'outline'), ('จอโต๊ะทั้งหมด', 'MP09', 'secondary')])
     rows = [('#97C8', 'โต๊ะ 1', 'วันนี้ 19:00', '2', ('รอเช็กอิน · 12 นาที', 'amber')), ('#A1B2', 'โต๊ะ 2', 'วันนี้ 18:30', '4', ('เช็กอินแล้ว', 'green')),
             ('#C3D4', 'โต๊ะ 1', 'วันนี้ 17:00', '2', ('หลุดคิว', 'red')), ('#E5F6', 'โต๊ะ 3', 'พรุ่งนี้ 12:00', '3', ('จองไว้', 'primary'))]
     table(s, 280, 190, 1128, ['รหัส', 'โต๊ะ', 'เวลา', 'คน', 'สถานะ'], rows, [160, 200, 280, 120, 368], ['MP08'] * 4)
@@ -766,10 +766,37 @@ def mp21():
     table(s, 280, 190, 1128, ['ชื่อ', 'อีเมล', 'บทบาท', 'ทำได้'], rows, [200, 360, 240, 328], [None] * 3); return s
 @screen('MP22', 'kitchen-queue', 'คิวครัว', 'pos', sol='P30')
 def mp22():
-    s = desk('คิวครัว', 'MP22', 'เรียงตามเวลาที่จ่าย · ทุกช่องทาง')
-    for j, (head, tone, cards) in enumerate([('ต้องทำ', 'amber', [('#4464', 'ลาเต้ × 1', 'แตะ NFC · 2 นาที'), ('#T7A1', 'มัทฉะ × 1, ครัวซองต์ × 1', 'โต๊ะ 1 · 4 นาที')]), ('กำลังทำ', 'primary', [('#6BCC', 'ลาเต้ × 1', 'AI agent · 6 นาที')]), ('พร้อมรับ', 'green', [('#C923', 'ลาเต้ × 1', 'แชท · รอลูกค้า')])]):
-        x = 280 + j * 380; s.card(x, 190, 364, 720, C['white'], True, 18); s.pill(x + 20, 210, head, tone, None, 32, 14)
-        for k, (code, items, sub) in enumerate(cards): s.row(x + 12, 262 + k * 100, 340, f'{code} · {items}', sub, icon='coffee', dest='MP06', h=88)
+    s = desk('คิวครัว', 'MP22', 'เรียงตามเวลาที่จ่าย · ทุกช่องทาง · สั่งล่วงหน้าเข้าคิวเมื่อเช็กอิน')
+    # Pre-orders for booked tables wait above the lanes until the customer taps in at the table.
+    s.card(280, 190, 1128, 96, C['white'], True, 18); s.pill(300, 206, 'สั่งล่วงหน้า 2', 'violet', None, 30, 14)
+    s.text(440, 227, 'เข้าคิวครัวเมื่อลูกค้าแตะเช็กอินที่โต๊ะ · จองหลุด/ยกเลิก ไม่คืนเงิน', 13, C['muted'])
+    for k, (t, sub, tone, lbl) in enumerate([('#B7E2 · ลาเต้ × 2, ครัวซองต์ × 1', 'โต๊ะ 1 · 19:00', 'amber', 'รอเช็กอิน'), ('#D41F · มัทฉะ × 1', 'โต๊ะ 2 · 17:30', 'red', 'จองหลุด · ไม่คืนเงิน')]):
+        x = 300 + k * 540; s.text(x, 266, t, 14, weight=600); s.text(x + 240, 266, sub, 13, C['muted']); s.pill(x + 340, 249, lbl, tone, None, 26, 12); s.hot(x - 8, 246, 520, 30, 'MP06')
+    lanes = [('ต้องทำ', 'amber', [('#4464', 'ลาเต้ × 1', 'แตะ NFC · 2 นาที'), ('#T7A1', 'มัทฉะ × 1, ครัวซองต์ × 1', 'โต๊ะ 1 · 4 นาที')]), ('กำลังทำ', 'primary', [('#6BCC', 'ลาเต้ × 1', 'AI agent · 6 นาที')]), ('พร้อมรับ', 'green', [('#C923', 'ลาเต้ × 1', 'แชท · รอลูกค้า')])]
+    for j, (head, tone, cards) in enumerate(lanes):
+        x = 280 + j * 382; s.card(x, 302, 364, 608, C['white'], True, 18); s.pill(x + 20, 322, head, tone, None, 32, 14)
+        for k, (code, items, sub) in enumerate(cards): s.row(x + 12, 374 + k * 100, 340, f'{code} · {items}', sub, icon='coffee', dest='MP06', h=88)
+    return s
+@screen('MP24', 'booking-hours', 'เวลารับจองโต๊ะ', 'pos', route='/meta/staff/bookings/hours', meta_only=True)
+def mp24():
+    s = desk('เวลารับจองโต๊ะ', 'MP08', 'ลูกค้าเห็นเฉพาะเวลาที่ร้านเปิดและโต๊ะว่าง · เจ้าของ/ผู้จัดการแก้ได้', [('← การจองโต๊ะ', 'MP08', 'outline')])
+    s.card(280, 190, 1128, 520, r=18); s.text(304, 228, 'เวลาเปิด–ปิดร้าน', 18, weight=700)
+    s.text(304, 256, 'ใช้ตารางเวลาเปิดปิดเดียวกับ POS · เว้นว่างทั้งแถว = ร้านปิดวันนั้น · ช่วงที่ 2 สำหรับร้านที่ปิดพักกลางวัน', 13, C['muted'])
+    days = [('จันทร์', ('10:00', '22:00'), None), ('อังคาร', None, None), ('พุธ', ('10:00', '22:00'), None), ('พฤหัสบดี', ('10:00', '22:00'), None),
+            ('ศุกร์', ('11:00', '14:00'), ('17:00', '23:00')), ('เสาร์', ('09:00', '23:00'), None), ('อาทิตย์', ('09:00', '21:00'), None)]
+    for k, (d, w1, w2) in enumerate(days):
+        y = 290 + k * 56; s.text(304, y + 30, d, 15, weight=600)
+        for n, w in enumerate((w1, w2)):
+            x = 470 + n * 360
+            for m, t in enumerate(w or ('', '')):
+                s.rect(x + m * 160, y + 8, 130, 38, C['white'], 8, C['line']); s.text(x + m * 160 + 16, y + 33, t or '--:--', 15, C['ink'] if t else C['muted'])
+            s.text(x + 138, y + 33, '–', 15, C['muted'])
+        if not w1: s.pill(1220, y + 14, 'ปิด', 'grey', None, 26, 12)
+    s.card(280, 730, 552, 120, r=18); s.text(304, 768, 'ระยะห่างระหว่างช่องเวลา', 15, weight=700)
+    for j, t in enumerate(['15 นาที', '30 นาที', '60 นาที']): s.pill(304 + j * 110, 790, t, 'primary' if j == 1 else 'grey', 100, 34, 14)
+    s.card(856, 730, 552, 120, r=18); s.text(880, 768, 'รับจองถึงก่อนปิดกี่นาที', 15, weight=700)
+    s.rect(880, 788, 120, 40, C['white'], 8, C['line']); s.text(900, 814, '90', 16); s.text(1016, 814, 'ร้านปิด 22:00 จองได้ถึง 20:30', 13, C['muted'])
+    s.btn(280, 870, 200, 'บันทึก', 'MP08', h=48, size=15); s.text(500, 900, 'ตัวอย่าง: วันอังคารร้านปิด แชทตอบ “วันนั้นร้านปิด” · พิมพ์ 21:00 วันศุกร์ แชทบอกช่วงที่จองได้', 13, C['muted'])
     return s
 @screen('MP23', 'mcp-connector', 'Muse Connector (MCP)', 'pos', route='/meta/mcp/:merchant', meta_only=True)
 def mp23():
@@ -873,7 +900,7 @@ def b13():
 @screen('T01', 'tscreen-free', 'ว่าง', 'tscreen', route='/meta/screen/:tag')
 def t01(): return tscreen(C['green'], 'ว่าง', 'แตะมือถือที่เครื่องเพื่อรับโปรและสั่ง', dest_next='T02')
 @screen('T02', 'tscreen-upcoming', 'จองไว้', 'tscreen', route='/meta/screen/:tag')
-def t02(): return tscreen(C['violet'], 'จองไว้ 19:00', '2 คน · เช็กอินได้ตั้งแต่ 18:45', '41:30', 'เปิดเช็กอินใน', 'T03')
+def t02(): return tscreen(C['violet'], 'จองไว้ 19:00', '2 คน · เช็กอินได้ตั้งแต่ 18:55', '41:30', 'เปิดเช็กอินใน', 'T03')
 @screen('T03', 'tscreen-checkin', 'รอเช็กอิน', 'tscreen', route='/meta/screen/:tag')
 def t03(): return tscreen(C['red'], 'รอผู้จองเช็กอิน', 'แตะเพื่อเช็กอิน · ไม่มาภายใน 19:15 โต๊ะจะว่าง', '12:04', 'โต๊ะจะว่างใน', 'T04')
 @screen('T04', 'tscreen-seated', 'เช็กอินแล้ว', 'tscreen', route='/meta/screen/:tag')

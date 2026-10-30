@@ -21,7 +21,7 @@
       "width": 1600,
       "height": 1000,
       "source": "source/screens/A01-link-audit.svg",
-      "sha256": "55d2e81a322a7151471ab002da6af139952ca08e571ddede9349703fdf0fda9e",
+      "sha256": "409fed6cecc8e63d9b501be84c735e418d161d46a95cb93f1abb8db7ffcfc327",
       "fixture": true
     },
     {
@@ -376,7 +376,7 @@
       "width": 390,
       "height": 844,
       "source": "source/screens/C12-chat-booking.svg",
-      "sha256": "d288985f60453188a6b10e7b8f717702f8b7b7c032d44f2f6af6cfb263eb09f4",
+      "sha256": "d0da6174379eb8ecc321f234257bb2c0313f489cd3f2c5d7351f5c1707929694",
       "fixture": true
     },
     {
@@ -523,7 +523,7 @@
       "width": 1440,
       "height": 1000,
       "source": "source/screens/MP08-bookings.svg",
-      "sha256": "c7c35e920d79671dd5acd2a25e9815807acd90447fb90ec6511ea1f3665267e0",
+      "sha256": "d97eda20fdf105fec3cfafd06633520f08182c5412fd350ddc453b1f8506a382",
       "fixture": true
     },
     {
@@ -681,7 +681,20 @@
       "width": 1440,
       "height": 1000,
       "source": "source/screens/MP22-kitchen-queue.svg",
-      "sha256": "4729f7d9bfb835efe74b4f4f4662dbde31f234b0f379d77bbb949b176c10b800",
+      "sha256": "da2b302a1ddf326ce396d03345898e577723705b110e1174a580773b81f23a0d",
+      "fixture": true
+    },
+    {
+      "id": "MP24",
+      "slug": "booking-hours",
+      "title": "เวลารับจองโต๊ะ",
+      "page": "20 · meta-pos · ร้าน (เดสก์ท็อป)",
+      "route": "/meta/staff/bookings/hours",
+      "meta_only": true,
+      "width": 1440,
+      "height": 1000,
+      "source": "source/screens/MP24-booking-hours.svg",
+      "sha256": "47f397c5d2ec3d0ce9e9b70a8b36970909accd2b53ae9753018f2bffa0d093c8",
       "fixture": true
     },
     {
@@ -910,7 +923,7 @@
       "width": 1024,
       "height": 768,
       "source": "source/screens/T02-tscreen-upcoming.svg",
-      "sha256": "b20e0dc8e5d2f7421315a03dbc352f87aab91483de1ac7e1ce5ee595ffe2eea6",
+      "sha256": "586b82d388770773528a61efa71d349b9da1744badcc6b581ecb367296e9ae15",
       "fixture": true
     },
     {
@@ -1020,7 +1033,7 @@
       "fixture": true
     }
   ],
-  "count": 84,
+  "count": 85,
   "pages": {
     "start": "00 · เริ่มที่นี่",
     "found": "01 · พื้นฐานการออกแบบ",

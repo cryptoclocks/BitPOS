@@ -1,6 +1,6 @@
 {
-  "screens": 84,
-  "links": 602,
+  "screens": 85,
+  "links": 620,
   "missing_destinations": [],
   "unreachable_from_A00": [],
   "dead_ends": [],
@@ -10,6 +10,6 @@
     "H01"
   ],
   "pass": true,
-  "prototype_links_wired": 602,
-  "frames_in_file": 84
+  "prototype_links_wired": 620,
+  "frames_in_file": 85
 }

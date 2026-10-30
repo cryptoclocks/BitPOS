@@ -492,9 +492,17 @@
  {
   "command": "file.import",
   "params": {
-   "path": "/Users/cryptoclock/Desktop/BitPOS-Meta-2026/design/figcraft-meta/source/screens/MP23-mcp-connector.svg",
+   "path": "/Users/cryptoclock/Desktop/BitPOS-Meta-2026/design/figcraft-meta/source/screens/MP24-booking-hours.svg",
    "x": 1560,
    "y": 11400
+  }
+ },
+ {
+  "command": "file.import",
+  "params": {
+   "path": "/Users/cryptoclock/Desktop/BitPOS-Meta-2026/design/figcraft-meta/source/screens/MP23-mcp-connector.svg",
+   "x": 0,
+   "y": 12540
   }
  },
  {
