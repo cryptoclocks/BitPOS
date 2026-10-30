@@ -742,7 +742,7 @@
       "width": 480,
       "height": 320,
       "source": "source/screens/B01-mini-idle.svg",
-      "sha256": "9e3ada972cb3bcbcb015663c6de6c66bf0991ec178db6b57366ae9986513e8ea",
+      "sha256": "abcbc8f9330214718448dea65b2949578d69fe7117e243efdd7c865b3870f54c",
       "fixture": true
     },
     {
@@ -754,7 +754,7 @@
       "width": 480,
       "height": 320,
       "source": "source/screens/B02-mini-tap-new.svg",
-      "sha256": "877b3b408df7f25aa33b2d0b77fa7ed487f7172bd1360cba797469587a15ca06",
+      "sha256": "857e4a63dfb2e8399f886f2cde01a1d396fe6663781a308f8348c7950671d1ff",
       "fixture": true
     },
     {
@@ -766,7 +766,7 @@
       "width": 480,
       "height": 320,
       "source": "source/screens/B03-mini-welcome.svg",
-      "sha256": "18dee08b0fb2fc3ce1d6aa3fe349c35288ea20a4fd85f407ee1e50953f58ecd3",
+      "sha256": "b3aba6e70a4d1ba073f260c4767e8fd685123a869343a6b1b68f183fff6418bc",
       "fixture": true
     },
     {
@@ -778,7 +778,7 @@
       "width": 480,
       "height": 320,
       "source": "source/screens/B04-mini-stripe-qr.svg",
-      "sha256": "3f269fd3a2ceef590c89886d9863d4269b12a7e8d0970a0a7d2f3dad0bdd079b",
+      "sha256": "c611e3b38d6ae2431b3a3ec13090a11bd82aaf1bd9aadfc54b024db88587e950",
       "fixture": true
     },
     {
@@ -790,7 +790,7 @@
       "width": 480,
       "height": 320,
       "source": "source/screens/B05-mini-waiting.svg",
-      "sha256": "eacacd978ab1aa36566d65457a3016642e6116a1ec5faa0d9245a5352ffdf0f3",
+      "sha256": "e333b41a8140bd16e7040446246811f04a4bf34c9ef6b98314ad2955413c3e75",
       "fixture": true
     },
     {
@@ -802,7 +802,7 @@
       "width": 480,
       "height": 320,
       "source": "source/screens/B06-mini-paid.svg",
-      "sha256": "85576b983314a3a7cd3e981bc9374f6055b74a3374ac352d81052f9e02c6e5da",
+      "sha256": "475edcf5ebe92f9240bd9b1ee356532a21fa93cb54f7afaa50983a8b76a7ebf6",
       "fixture": true
     },
     {
@@ -814,7 +814,7 @@
       "width": 480,
       "height": 320,
       "source": "source/screens/B07-mini-reserved.svg",
-      "sha256": "cba5a9e41d7831e83c065e4d5a9472051e8eebd11c008a031f7aa6555d32db95",
+      "sha256": "fdd2841f231dd4996ab1d572a4a220502b667295c7a0ddf94f0342900c979018",
       "fixture": true
     },
     {
@@ -826,7 +826,7 @@
       "width": 480,
       "height": 320,
       "source": "source/screens/B08-mini-upcoming.svg",
-      "sha256": "fcd88a3ef266787b032c7dc38edef87a4b636afb01187f7d4b56ad433626cd09",
+      "sha256": "fd4d46eb47fc3e89b7c2f0d65f136c24c09cfc6b916f7d327bbb1f364ea6001b",
       "fixture": true
     },
     {
@@ -838,7 +838,7 @@
       "width": 480,
       "height": 320,
       "source": "source/screens/B09-mini-seated.svg",
-      "sha256": "5ec3ce0bad9661c75628904180a12d879dbd0ad5b1e474332ae469c2b91913c5",
+      "sha256": "48c688225cc3a63b7447a58d15c064ea1e4b3a28fe71024c55737cda5b78dc1f",
       "fixture": true
     },
     {
@@ -850,7 +850,7 @@
       "width": 480,
       "height": 320,
       "source": "source/screens/B10-mini-offline.svg",
-      "sha256": "52eb102d7a67444662674367f399bcdf15c7f19f2b2eedfa9aa97eb11f163b59",
+      "sha256": "bb7a91f568bc54a576b156da10b4f8ad1c03e6ce03b4e4bfad0c420cf0972f85",
       "fixture": true
     },
     {
@@ -862,7 +862,7 @@
       "width": 480,
       "height": 320,
       "source": "source/screens/B11-mini-ready.svg",
-      "sha256": "cc3c2ecfef95f101d269ffa9992d7e2534143b0f4599fc10ff2419928f0319aa",
+      "sha256": "9471c913ac60178e536035776c5f2773622abda3173dd8e33b754df18cb97644",
       "fixture": true
     },
     {
@@ -874,7 +874,7 @@
       "width": 480,
       "height": 320,
       "source": "source/screens/B12-mini-join-qr.svg",
-      "sha256": "fcaca01a27333eb646f342a7f8b97bd85536a1799f275eba9f833879e065eee1",
+      "sha256": "47820b86a335c78cfef1c40398446066871acf13ca92c176b84d53ea7c45ab02",
       "fixture": true
     },
     {
@@ -886,7 +886,7 @@
       "width": 480,
       "height": 320,
       "source": "source/screens/B13-mini-offer-anim.svg",
-      "sha256": "48c18fa829268cfbda8859e858d83abb6b806c7847a490ff7aaf2ff5bccf0f14",
+      "sha256": "f10d2b3fc4c9db7a3430e4454d35003b723a86f74bf077fadda4d2bdcfad223d",
       "fixture": true
     },
     {

@@ -28,12 +28,15 @@ const hhmm=(d:string|Date)=>new Date(d).toLocaleTimeString('en-GB',{hour:'2-digi
 /** The device font has ASCII and Thai only: map the few other symbols we use, drop the rest. */
 const glyphs=(s:string)=>s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/×/g,'x').replace(/·/g,'-').replace(/✓/g,'').replace(/[^\x20-\x7e\u0e00-\u0e7f]/g,'').replace(/\s+/g,' ').trim();
 /** What device `deviceId` should show now, or null when it is not an active device. */
-export async function deviceView(db:MetaDb,deviceId:string,publicOrigin:string,animFor?:AnimFor):Promise<DeviceView|null>{
- const v=await view(db,deviceId,publicOrigin,animFor);
+/** Screen language: English unless the device asks for Thai (the Mini's language button, saved on the device). */
+export type DeviceLang='en'|'th';
+export async function deviceView(db:MetaDb,deviceId:string,publicOrigin:string,animFor?:AnimFor,lang:DeviceLang='en'):Promise<DeviceView|null>{
+ const v=await view(db,deviceId,publicOrigin,animFor,lang);
  return v&&{...v,anim:/^\/meta\/anim\/(offer|combo)\/[0-9a-f-]{36}\/240(-[0-9a-f]{8})?\.gif$/.test(v.anim)?v.anim:'',table:glyphs(v.table),title:glyphs(v.title),line1:glyphs(v.line1),line2:glyphs(v.line2),big:glyphs(v.big)};
 }
-async function view(db:MetaDb,deviceId:string,publicOrigin:string,animFor?:AnimFor):Promise<DeviceView|null>{
+async function view(db:MetaDb,deviceId:string,publicOrigin:string,animFor:AnimFor|undefined,lang:DeviceLang):Promise<DeviceView|null>{
  if(!UUID.test(deviceId))return null;
+ const T=(en:string,th:string)=>lang==='th'?th:en;
  const merchantId=(await db.query<{m:string|null}>('SELECT bitpos.meta_device_merchant($1) AS m',[deviceId])).rows[0]?.m;
  if(!merchantId)return null;
  const base=(table:string):DeviceView=>({v:1,screen:'idle',tone:'white',table,title:'',line1:'',line2:'',big:'',qr:'',anim:'',countdown_s:0,poll_ms:2000});
@@ -41,9 +44,9 @@ async function view(db:MetaDb,deviceId:string,publicOrigin:string,animFor?:AnimF
   const dev=(await c.query<{label:string|null;shop:string}>('SELECT t.label,m.name AS shop FROM devices d JOIN merchants m ON m.id=d.merchant_id LEFT JOIN merchant_tables t ON t.merchant_id=d.merchant_id AND t.id=d.table_id WHERE d.id=$1',[deviceId])).rows[0];
   const bill=(await c.query<{id:string;status:string;amount_minor:string;currency:string;paid_recent:boolean;items:string}>(
    `SELECT o.id,o.status,o.amount_minor::text,o.currency,(o.status='PAID' AND o.paid_at>clock_timestamp()-interval '20 seconds') AS paid_recent,
-     (SELECT string_agg(i.name||' ×'||i.quantity,', ' ORDER BY i.line) FROM meta_cart_items i WHERE i.order_id=o.id) AS items
+     (SELECT string_agg(CASE WHEN $2 THEN i.name ELSE i.name_en END||' ×'||i.quantity,', ' ORDER BY i.line) FROM meta_cart_items i WHERE i.order_id=o.id) AS items
     FROM meta_cart_orders o WHERE o.device_id=$1 AND ((o.status='PENDING' AND o.expires_at>clock_timestamp()) OR (o.status='PAID' AND o.paid_at>clock_timestamp()-interval '20 seconds'))
-    ORDER BY o.created_at DESC LIMIT 1`,[deviceId])).rows[0];
+    ORDER BY o.created_at DESC LIMIT 1`,[deviceId,lang==='th'])).rows[0];
   const tapPaid=(await c.query<{id:string}>(`SELECT o.id FROM meta_tap_orders o JOIN meta_tap_sessions s ON s.merchant_id=o.merchant_id AND s.id=o.tap_session_id
     WHERE s.device_id=$1 AND o.status='PAID' AND o.paid_at>clock_timestamp()-interval '20 seconds' ORDER BY o.paid_at DESC LIMIT 1`,[deviceId])).rows[0];
   const tap=(await c.query<{known:boolean;product_id:string|null}>(`SELECT link_id IS NOT NULL AS known,(SELECT i.product_id FROM meta_offer_impressions i WHERE i.merchant_id=s.merchant_id AND i.tap_session_id=s.id) AS product_id FROM meta_tap_sessions s WHERE device_id=$1 AND created_at>clock_timestamp()-interval '15 seconds' ORDER BY created_at DESC LIMIT 1`,[deviceId])).rows[0];
@@ -51,19 +54,19 @@ async function view(db:MetaDb,deviceId:string,publicOrigin:string,animFor?:AnimF
  });
  const v=base(r.dev?.label??'');
  const anim=async(productId:string|null)=>animFor?(await animFor(merchantId,productId).catch(()=>'')).slice(0,120):'';
- if(r.bill&&r.bill.paid_recent||r.tapPaid){const id=r.bill?.paid_recent?r.bill.id:r.tapPaid!.id;return {...v,screen:'paid',tone:'green',title:'จ่ายแล้ว ✓ · ขอบคุณค่ะ',big:`#${cartCode(id)}`,line1:'รหัสรับสินค้า · Stripe ยืนยันแล้ว',poll_ms:3000};}
- if(r.bill?.status==='PENDING')return {...v,screen:'pay_qr',title:'สแกนเพื่อจ่าย',big:formatTapAmount(r.bill.amount_minor,r.bill.currency),line1:r.bill.items??'',line2:'Stripe sandbox · ไม่ใช่เงินจริง',qr:`${publicOrigin}/pay/${r.bill.id}`,poll_ms:1500};
- if(r.tap)return r.tap.known?{...v,screen:'welcome',tone:'blue',title:'สวัสดีค่ะ ร้านจำคุณได้',line1:'ส่งโปรนี้ไปที่ Messenger แล้ว',line2:'ดูบนมือถือ',anim:await anim(r.tap.product_id)}
-  :{...v,screen:'tap_new',title:'ไปต่อในมือถือนะคะ',line1:'กดยินยอมใน Messenger เพื่อให้ร้านจำคุณได้',line2:'ไม่ยินยอมก็สั่งจาก QR บนโต๊ะได้'};
+ if(r.bill&&r.bill.paid_recent||r.tapPaid){const id=r.bill?.paid_recent?r.bill.id:r.tapPaid!.id;return {...v,screen:'paid',tone:'green',title:T('Paid - thank you','จ่ายแล้ว ✓ · ขอบคุณค่ะ'),big:`#${cartCode(id)}`,line1:T('Pickup code - confirmed by Stripe','รหัสรับสินค้า · Stripe ยืนยันแล้ว'),poll_ms:3000};}
+ if(r.bill?.status==='PENDING')return {...v,screen:'pay_qr',title:T('Scan to pay','สแกนเพื่อจ่าย'),big:formatTapAmount(r.bill.amount_minor,r.bill.currency),line1:r.bill.items??'',line2:T('Stripe sandbox - not real money','Stripe sandbox · ไม่ใช่เงินจริง'),qr:`${publicOrigin}/pay/${r.bill.id}`,poll_ms:1500};
+ if(r.tap)return r.tap.known?{...v,screen:'welcome',tone:'blue',title:T('Welcome back','สวัสดีค่ะ ร้านจำคุณได้'),line1:T('Your offer is in Messenger','ส่งโปรนี้ไปที่ Messenger แล้ว'),line2:T('See it on your phone','ดูบนมือถือ'),anim:await anim(r.tap.product_id)}
+  :{...v,screen:'tap_new',title:T('Continue on your phone','ไปต่อในมือถือนะคะ'),line1:T('Accept in Messenger so the shop remembers you','กดยินยอมใน Messenger เพื่อให้ร้านจำคุณได้'),line2:T('Or order from the table QR without it','ไม่ยินยอมก็สั่งจาก QR บนโต๊ะได้')};
  const t=await tableScreen(db,merchantId,deviceId);
  if(t){
   const left=(iso:string|null)=>iso?Math.max(0,Math.round((Date.parse(iso)-Date.parse(t.now))/1000)):0;
-  if(t.state==='check_in')return {...v,screen:'check_in',tone:'red',title:'รอผู้จองเช็กอิน · แตะเพื่อเช็กอิน',line1:`${t.partySize} คน · ${hhmm(t.startsAt!)} · ไม่มาภายใน ${hhmm(t.checkInUntil!)} โต๊ะจะว่าง`,countdown_s:left(t.checkInUntil)};
-  if(t.state==='upcoming')return {...v,screen:'upcoming',tone:'violet',title:`จองไว้ ${hhmm(t.startsAt!)} · ${t.partySize} คน`,line1:`เช็กอินได้ตั้งแต่ ${hhmm(t.checkInFrom!)}`,countdown_s:left(t.checkInFrom)};
-  if(t.state==='seated')return {...v,screen:'seated',tone:'blue',title:'เช็กอินแล้ว ✓ ยินดีต้อนรับ',line1:`โต๊ะนี้ของคุณถึง ${hhmm(t.seatedUntil!)}`,line2:'สั่งจากมือถือหรือสแกน QR บนโต๊ะ'};
+  if(t.state==='check_in')return {...v,screen:'check_in',tone:'red',title:T('Reserved - tap to check in','รอผู้จองเช็กอิน · แตะเพื่อเช็กอิน'),line1:T(`${t.partySize} guests - ${hhmm(t.startsAt!)} - table frees at ${hhmm(t.checkInUntil!)}`,`${t.partySize} คน · ${hhmm(t.startsAt!)} · ไม่มาภายใน ${hhmm(t.checkInUntil!)} โต๊ะจะว่าง`),countdown_s:left(t.checkInUntil)};
+  if(t.state==='upcoming')return {...v,screen:'upcoming',tone:'violet',title:T(`Reserved ${hhmm(t.startsAt!)} - ${t.partySize} guests`,`จองไว้ ${hhmm(t.startsAt!)} · ${t.partySize} คน`),line1:T(`Check-in opens at ${hhmm(t.checkInFrom!)}`,`เช็กอินได้ตั้งแต่ ${hhmm(t.checkInFrom!)}`),countdown_s:left(t.checkInFrom)};
+  if(t.state==='seated')return {...v,screen:'seated',tone:'blue',title:T('Checked in - welcome','เช็กอินแล้ว ✓ ยินดีต้อนรับ'),line1:T(`This table is yours until ${hhmm(t.seatedUntil!)}`,`โต๊ะนี้ของคุณถึง ${hhmm(t.seatedUntil!)}`),line2:T('Order from your phone or the table QR','สั่งจากมือถือหรือสแกน QR บนโต๊ะ')};
  }
  const idle=await anim(null);
  // With an animation the device shows a short card beside it; its button opens the Messenger QR.
- return idle?{...v,title:r.dev?.shop??'BitPOS × Muse',line1:'แตะมือถือที่เครื่อง หรือกดสแกน QR',line2:'',anim:idle,poll_ms:4000}
-  :{...v,title:r.dev?.shop??'BitPOS × Muse',line1:'แตะมือถือที่เครื่อง หรือกดปุ่มสแกน QR เข้า Messenger',line2:'รับโปร สั่ง และจ่ายด้วย Stripe ในแชท'};
+ return idle?{...v,title:r.dev?.shop??'BitPOS × Muse',line1:T('Tap your phone here or scan the QR','แตะมือถือที่เครื่อง หรือกดสแกน QR'),line2:'',anim:idle,poll_ms:4000}
+  :{...v,title:r.dev?.shop??'BitPOS × Muse',line1:T('Tap your phone here or scan to open Messenger','แตะมือถือที่เครื่อง หรือกดปุ่มสแกน QR เข้า Messenger'),line2:T('Offers, ordering and Stripe payment in chat','รับโปร สั่ง และจ่ายด้วย Stripe ในแชท')};
 }

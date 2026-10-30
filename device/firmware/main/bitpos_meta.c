@@ -58,6 +58,10 @@ static volatile int64_t demo_until_us; /* META_DEMO holds the screen until then 
 /* "Scan to open Messenger": a short-lived link from POST /meta/device/qr, shown until it expires or Back is pressed.
  * Touch handlers only set flags and wake the poller; all HTTP happens on the poller task. */
 static char join_url[200];static volatile int64_t join_until_us;static volatile bool join_wanted,join_close;
+/* Screen language: English by default; the header button switches to Thai and back (saved in NVS "meta"/"lang").
+ * The server answers in the same language (GET /meta/device/state?l=). */
+static volatile bool lang_th;static volatile int lang_flips; /* presses not yet applied (each one switches) */
+#define TR(en,th) (lang_th?(th):(en))
 static TaskHandle_t poller_task;static lv_obj_t *join_countdown;
 /* The downloaded animation (PSRAM) and the path it came from; the image descriptor points into anim_buf. */
 static uint8_t *anim_buf;static size_t anim_len;static char anim_loaded[ANIM_PATH_MAX];
@@ -154,6 +158,7 @@ static int fit(lv_obj_t *l,int lines){
 }
 static void on_join(lv_event_t *e){(void)e;join_wanted=true;if(poller_task)xTaskNotifyGive(poller_task);}
 static void on_back(lv_event_t *e){(void)e;join_close=true;if(poller_task)xTaskNotifyGive(poller_task);}
+static void on_lang(lv_event_t *e){(void)e;lang_flips++;if(poller_task)xTaskNotifyGive(poller_task);}
 /* Screens where a customer may start: offer the QR button there (never over a bill, payment or booking countdown). */
 static bool join_allowed(void){return !strcmp(view.screen,"idle")||!strcmp(view.screen,"welcome")||!strcmp(view.screen,"tap_new")||!strcmp(view.screen,"seated");}
 static bool joining(void){return join_url[0]&&esp_timer_get_time()<join_until_us&&join_allowed();}
@@ -166,7 +171,7 @@ static lv_obj_t *button(lv_obj_t *parent,int x,int y,int w,const char *label,uin
 static void join_left(lv_obj_t *l){
     int left=(int)((join_until_us-esp_timer_get_time())/1000000);if(left<0)left=0;
     if(left>999){left=999;}
-    char s[64];snprintf(s,sizeof(s),"QR หมดอายุใน %d:%02d",left/60,left%60);lv_label_set_text(l,s);
+    char s[64];snprintf(s,sizeof(s),TR("QR expires in %d:%02d","QR หมดอายุใน %d:%02d"),left/60,left%60);lv_label_set_text(l,s);
 }
 
 /* Layout grid (480×320): 12 px outer margin, body under the 44 px header, text column right of the status ring. */
@@ -193,26 +198,30 @@ static void render(void){
     /* Header: logo pill, table, connection. */
     box(scr,12,4,96,36,0xfff8f0,8);
     lv_obj_t *logo=lv_image_create(scr);lv_image_set_src(logo,&bitpos_logo);lv_image_set_pivot(logo,0,0);lv_obj_set_pos(logo,18,8);lv_image_set_scale(logo,170);
-    text(scr,view.table[0]?view.table:"BitPOS x Muse",120,8,200,&bitpos_font_20,CREAM,1);
-    box(scr,352,18,8,8,view.online?0x31c48d:0xffb547,LV_RADIUS_CIRCLE);
-    text(scr,view.online?"ONLINE":"OFFLINE",366,13,104,&lv_font_montserrat_14,MUTED,0);
+    text(scr,view.table[0]?view.table:"BitPOS x Muse",120,8,170,&bitpos_font_20,CREAM,1);
+    box(scr,300,18,8,8,view.online?0x31c48d:0xffb547,LV_RADIUS_CIRCLE);
+    text(scr,view.online?"ONLINE":"OFFLINE",314,13,90,&lv_font_montserrat_14,MUTED,0);
+    /* Language button: names the language it switches to. */
+    lv_obj_t *lb=box(scr,W-MARGIN-62,6,62,32,LINE,16);lv_obj_add_flag(lb,LV_OBJ_FLAG_CLICKABLE);lv_obj_set_ext_click_area(lb,8);
+    lv_obj_set_style_bg_opa(lb,LV_OPA_70,LV_STATE_PRESSED);lv_obj_add_event_cb(lb,on_lang,LV_EVENT_CLICKED,NULL);
+    lv_obj_t *lt=text(lb,lang_th?"EN":"ไทย",0,lang_th?7:3,62,lang_th?&lv_font_montserrat_14:&bitpos_font_20,CREAM,1);lv_obj_set_style_text_align(lt,LV_TEXT_ALIGN_CENTER,0);
     if(!view.online){
         lv_obj_t *r=box(scr,MARGIN+12,93,86,86,PANEL,LV_RADIUS_CIRCLE);lv_obj_set_style_border_color(r,lv_color_hex(tone),0);lv_obj_set_style_border_width(r,4,0);
         lv_obj_t *i=text(r,LV_SYMBOL_WARNING,0,24,78,&lv_font_montserrat_28,tone,0);lv_obj_set_style_text_align(i,LV_TEXT_ALIGN_CENTER,0);
-        text(scr,"กำลังเชื่อมต่อใหม่…",TEXT_X,120,W-MARGIN-TEXT_X,&bitpos_font_20,CREAM,2);
+        text(scr,TR("Reconnecting…","กำลังเชื่อมต่อใหม่…"),TEXT_X,120,W-MARGIN-TEXT_X,&bitpos_font_20,CREAM,2);
         box(scr,MARGIN,BODY_Y+BODY_H-56,W-2*MARGIN,56,PANEL,12);
-        text(scr,"ออเดอร์ที่ค้างจะไม่หาย - ไม่ตัดเงินซ้ำ",MARGIN+16,BODY_Y+BODY_H-42,W-2*MARGIN-32,&bitpos_font_20,MUTED,1);return;
+        text(scr,TR("Open orders are kept - no double charges","ออเดอร์ที่ค้างจะไม่หาย - ไม่ตัดเงินซ้ำ"),MARGIN+16,BODY_Y+BODY_H-42,W-2*MARGIN-32,&bitpos_font_20,MUTED,1);return;
     }
     if(joining()){
         /* Scan to open Messenger: QR left, how it works right, Back. */
         qr_tile(join_url);
         lv_obj_t *card=box(scr,CARD_X,BODY_Y,CARD_W,BODY_H,PANEL,12);
-        text(card,"สแกนเข้า Messenger",14,12,CARD_W-28,&bitpos_font_20,BLUE,1);
-        text(card,"1. เปิดกล้องแล้วสแกน",14,50,CARD_W-28,&bitpos_font_20,CREAM,1);
-        text(card,"2. กดยินยอมในแชท",14,82,CARD_W-28,&bitpos_font_20,CREAM,1);
-        text(card,"รับโปรและเมนูในแชท",14,114,CARD_W-28,&bitpos_font_20,MUTED,1);
+        text(card,TR("Open Messenger","สแกนเข้า Messenger"),14,12,CARD_W-28,&bitpos_font_20,BLUE,1);
+        text(card,TR("1. Scan the QR","1. เปิดกล้องแล้วสแกน"),14,50,CARD_W-28,&bitpos_font_20,CREAM,1);
+        text(card,TR("2. Accept in chat","2. กดยินยอมในแชท"),14,82,CARD_W-28,&bitpos_font_20,CREAM,1);
+        text(card,TR("Offers + menu in chat","รับโปรและเมนูในแชท"),14,114,CARD_W-28,&bitpos_font_20,MUTED,1);
         join_countdown=text(card,"",14,152,CARD_W-28,&bitpos_font_20,MUTED,1);join_left(join_countdown);
-        button(card,14,BODY_H-60,CARD_W-28,"กลับ",LINE,on_back);
+        button(card,14,BODY_H-60,CARD_W-28,TR("Back","กลับ"),LINE,on_back);
         return;
     }
     bool anim=false;
@@ -238,10 +247,10 @@ static void render(void){
         /* Offer animation left; right card: chip, shop/greeting, details, and the call to action as a button. */
         lv_obj_t *card=box(scr,MARGIN+240+12,BODY_Y+(BODY_H-240)/2,W-MARGIN*2-252,240,PANEL,16);
         lv_obj_t *chip=box(card,14,14,92,30,0x24365e,15);
-        text(chip,"โปรวันนี้",12,1,80,&bitpos_font_20,0xb9d3ff,0);
+        text(chip,TR("Today","โปรวันนี้"),12,1,80,&bitpos_font_20,0xb9d3ff,0);
         text(card,view.title,14,56,176,&bitpos_font_20,CREAM,2);
         text(card,view.line1,14,116,176,&bitpos_font_20,MUTED,2);
-        if(join_allowed())button(card,12,180,180,"สแกน QR เข้าแชท",tone,on_join);
+        if(join_allowed())button(card,12,180,180,TR("Scan to chat","สแกน QR เข้าแชท"),tone,on_join);
         return;
     }
     /* Status: ring with an icon left, title and big value right, details card at the bottom (like the paid scene). */
@@ -261,7 +270,7 @@ static void render(void){
     lv_obj_t *r=box(scr,MARGIN+12,gy+(gh-86)/2,86,86,PANEL,LV_RADIUS_CIRCLE);lv_obj_set_style_border_color(r,lv_color_hex(tone),0);lv_obj_set_style_border_width(r,4,0);
     lv_obj_t *i=text(r,icon(view.screen),0,24,78,&lv_font_montserrat_28,tone,0);lv_obj_set_style_text_align(i,LV_TEXT_ALIGN_CENTER,0);
     int ty=gy+(gh-(th+(value?60:join?56:0)))/2;lv_obj_set_y(t,ty);
-    if(join)button(scr,TEXT_X,ty+th+10,220,"สแกน QR เข้าแชท",tone,on_join);
+    if(join)button(scr,TEXT_X,ty+th+10,220,TR("Scan to chat","สแกน QR เข้าแชท"),tone,on_join);
     if(view.big[0])text(scr,view.big,TEXT_X,ty+th+4,W-MARGIN-TEXT_X,&lv_font_montserrat_48,tone,0);
     else if(view.countdown>0)countdown_label=text(scr,"--:--",TEXT_X,ty+th+4,W-MARGIN-TEXT_X,&lv_font_montserrat_48,tone,0);
 }
@@ -287,8 +296,8 @@ static void copy(cJSON *o,const char *key,char *dst,size_t cap){
 }
 /* GET /meta/device/state; true when a new, valid view was stored. The key goes only in the Authorization header. */
 static bool fetch_view(void){
-    static char body[BODY_MAX];char url[URL_MAX+64],auth[KEY_MAX+16];
-    snprintf(url,sizeof(url),"%s/meta/device/state?d=%s",meta_url,meta_device);snprintf(auth,sizeof(auth),"Bearer %s",meta_key);
+    static char body[BODY_MAX];char url[URL_MAX+ID_MAX+40],auth[KEY_MAX+16];
+    snprintf(url,sizeof(url),"%s/meta/device/state?d=%s&l=%s",meta_url,meta_device,lang_th?"th":"en");snprintf(auth,sizeof(auth),"Bearer %s",meta_key);
     esp_http_client_config_t cfg={.url=url,.crt_bundle_attach=esp_crt_bundle_attach,.timeout_ms=5000,.disable_auto_redirect=true};
     esp_http_client_handle_t c=esp_http_client_init(&cfg);if(!c)return false;
     esp_http_client_set_header(c,"Authorization",auth);memset(auth,0,sizeof(auth));
@@ -353,6 +362,9 @@ static void poller(void *arg){
     (void)arg;uint32_t last=0;bool rendered=false;int failures=0;
     for(;;){
         if(esp_timer_get_time()<demo_until_us){rendered=false;vTaskDelay(pdMS_TO_TICKS(500));continue;}
+        if(lang_flips){int f=lang_flips;lang_flips-=f;if(f&1)lang_th=!lang_th;nvs_handle_t h;
+            if(nvs_open_from_partition("bitpos_nvs","meta",NVS_READWRITE,&h)==ESP_OK){nvs_set_u8(h,"lang",lang_th);nvs_commit(h);nvs_close(h);}
+            ESP_LOGI("BitPOS","META_LANG %s",lang_th?"th":"en");rendered=false;}
         bool ok=wifi_up&&fetch_view();
         failures=ok?0:failures+1;bool online=failures<3;
         if(join_close){join_close=false;join_url[0]=0;join_until_us=0;}
@@ -386,7 +398,8 @@ static void wifi_event(void *arg,esp_event_base_t base,int32_t id,void *data){
 static bool load(void){
     nvs_handle_t n;if(nvs_open_from_partition("bitpos_nvs","meta",NVS_READONLY,&n)!=ESP_OK)return false;
     size_t a=sizeof(meta_url),b=sizeof(meta_device),c=sizeof(meta_key);
-    bool ok=nvs_get_str(n,"url",meta_url,&a)==ESP_OK&&nvs_get_str(n,"device",meta_device,&b)==ESP_OK&&nvs_get_str(n,"key",meta_key,&c)==ESP_OK;nvs_close(n);
+    bool ok=nvs_get_str(n,"url",meta_url,&a)==ESP_OK&&nvs_get_str(n,"device",meta_device,&b)==ESP_OK&&nvs_get_str(n,"key",meta_key,&c)==ESP_OK;
+    uint8_t th=0;lang_th=nvs_get_u8(n,"lang",&th)==ESP_OK&&th;nvs_close(n);
     return ok&&!strncmp(meta_url,"https://",8)&&strlen(meta_device)==36;
 }
 static bool safe(const char *s,size_t max,bool url){
@@ -404,16 +417,17 @@ static void provisioning(void *arg){
         line[n]=0;n=0;char cmd[24]={0},u[URL_MAX]={0},d[ID_MAX]={0},k[KEY_MAX]={0};
         int parts=sscanf(line,"%23s %159s %39s %63s",cmd,u,d,k);memset(line,0,sizeof(line));
         if(!strcmp(cmd,"META_JOIN")){on_join(NULL);printf("META_JOIN requested\n");}
+        else if(!strcmp(cmd,"META_LANG")){on_lang(NULL);printf("META_LANG requested\n");}
         else if(!strcmp(cmd,"META_DEMO")){
             /* Layout check without a real order: show a sample of one template for 30 s (u = template name). */
-            static const struct {const char *name,*screen,*tone,*title,*big,*line1,*line2,*qr;int cd;} demo[]={
-                {"qr","pay_qr","white","สแกนเพื่อจ่าย","$9.45","Latte x1, Croissant x1","Stripe sandbox - ไม่ใช่เงินจริง","https://meta-pay.cashlessthailand.com/pay/demo",0},
-                {"paid","paid","green","จ่ายแล้ว ขอบคุณค่ะ","#A1B2","รหัสรับสินค้า - Stripe ยืนยันแล้ว","",NULL,0},
-                {"checkin","check_in","red","รอผู้จองเช็กอิน - แตะเพื่อเช็กอิน","","2 คน - 18:30 - ไม่มาภายใน 18:45 โต๊ะจะว่าง","",NULL,540},
-                {"upcoming","upcoming","violet","จองไว้ 19:00 - 4 คน","","เช็กอินได้ตั้งแต่ 18:45","",NULL,1500},
-                {"seated","seated","blue","เช็กอินแล้ว ยินดีต้อนรับ","","โต๊ะนี้ของคุณถึง 20:30","สั่งจากมือถือหรือสแกน QR บนโต๊ะ",NULL,0},
-                {"tapnew","tap_new","white","ไปต่อในมือถือนะคะ","","กดยินยอมใน Messenger เพื่อให้ร้านจำคุณได้","ไม่ยินยอมก็สั่งจาก QR บนโต๊ะได้",NULL,0},
-                {"idle","idle","white","Muse Cafe","","แตะมือถือตรงนี้ - รับโปรและสั่งผ่าน Messenger","หรือสแกน QR บนโต๊ะ - จ่ายด้วย Stripe",NULL,0},
+            const struct {const char *name,*screen,*tone,*title,*big,*line1,*line2,*qr;int cd;} demo[]={
+                {"qr","pay_qr","white",TR("Scan to pay","สแกนเพื่อจ่าย"),"$9.45","Latte x1, Croissant x1",TR("Stripe sandbox - not real money","Stripe sandbox - ไม่ใช่เงินจริง"),"https://meta-pay.cashlessthailand.com/pay/demo",0},
+                {"paid","paid","green",TR("Paid - thank you","จ่ายแล้ว ขอบคุณค่ะ"),"#A1B2",TR("Pickup code - confirmed by Stripe","รหัสรับสินค้า - Stripe ยืนยันแล้ว"),"",NULL,0},
+                {"checkin","check_in","red",TR("Reserved - tap to check in","รอผู้จองเช็กอิน - แตะเพื่อเช็กอิน"),"",TR("2 guests - 18:30 - table frees at 18:45","2 คน - 18:30 - ไม่มาภายใน 18:45 โต๊ะจะว่าง"),"",NULL,540},
+                {"upcoming","upcoming","violet",TR("Reserved 19:00 - 4 guests","จองไว้ 19:00 - 4 คน"),"",TR("Check-in opens at 18:45","เช็กอินได้ตั้งแต่ 18:45"),"",NULL,1500},
+                {"seated","seated","blue",TR("Checked in - welcome","เช็กอินแล้ว ยินดีต้อนรับ"),"",TR("This table is yours until 20:30","โต๊ะนี้ของคุณถึง 20:30"),TR("Order from your phone or the table QR","สั่งจากมือถือหรือสแกน QR บนโต๊ะ"),NULL,0},
+                {"tapnew","tap_new","white",TR("Continue on your phone","ไปต่อในมือถือนะคะ"),"",TR("Accept in Messenger so the shop remembers you","กดยินยอมใน Messenger เพื่อให้ร้านจำคุณได้"),TR("Or order from the table QR without it","ไม่ยินยอมก็สั่งจาก QR บนโต๊ะได้"),NULL,0},
+                {"idle","idle","white","Muse Cafe","",TR("Tap your phone here - offers and ordering in Messenger","แตะมือถือตรงนี้ - รับโปรและสั่งผ่าน Messenger"),TR("Or scan the table QR - pay with Stripe","หรือสแกน QR บนโต๊ะ - จ่ายด้วย Stripe"),NULL,0},
                 {"join","idle","white","Muse Cafe","","","",NULL,0}};
             for(size_t i=0;i<sizeof(demo)/sizeof(demo[0]);i++)if(!strcmp(u,demo[i].name)&&display_engine_lock(2000)){
                 demo_until_us=esp_timer_get_time()+30000000;

@@ -177,7 +177,7 @@ export async function serveMeta(req:http.IncomingMessage,res:http.ServerResponse
  if(path==='/meta/device/state'&&method==='GET'){
   const d=url.searchParams.get('d')??'';
   if(!/^[0-9a-f-]{36}$/.test(d)||!deviceKeyValid(deps.identity.masterKey,d,req.headers.authorization)){json(res,401,{error:'UNAUTHORIZED'});return true;}
-  const v=await deviceView(deps.identity.db,d,deps.identity.publicOrigin,deviceAnim(deps));
+  const v=await deviceView(deps.identity.db,d,deps.identity.publicOrigin,deviceAnim(deps),url.searchParams.get('l')==='th'?'th':'en');
   if(!v){json(res,404,{error:'NOT_FOUND'});return true;}
   json(res,200,v);return true;
  }

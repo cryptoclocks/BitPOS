@@ -121,6 +121,12 @@
   - **Verified on device:** flashed to app1 (MAC checked); every screen captured with `META_SHOT`.
   - **figcraft:** page 30 (B01–B11) is redrawn in the firmware's dark layout, plus new B12 (scan QR to open Messenger) and B13 (pair animation). Previews refreshed; 84 screens, 602 links, audit pass.
   - **Narrowed scope:** the user limited this pass to the Mini and the apps; the meta-pos edits were reverted unshipped. `apps/mobile-customer` and `apps/mobile-driver` are inherited Flutter apps with no Meta changes, and Flutter is not installed here: waiting for the user to say which apps they mean.
+- 30 October (evening): the BitPOS Mini is English by default.
+  - **Language button:** a header button (it reads "ไทย" or "EN") switches the language. The choice is saved in NVS (`meta`/`lang`) and survives a reboot. Each press counts, so two quick presses cancel out.
+  - **Server texts:** the Mini sends `GET /meta/device/state?l=th|en`, and `deviceView` answers in that language; bill lines use the English item names. Without `l` it answers in English, so older firmware still works.
+  - **Firmware texts:** the Mini's own texts (Messenger QR screen, offline, chip, button) and the `META_DEMO` samples are in both languages. New USB command: `META_LANG`.
+  - **Checks:** English is the default; Thai after a switch and after a reboot; one press back to English. All verified with `META_SHOT`.
+  - **figcraft:** B01–B13 are redrawn in English with the language button; 84 screens, audit pass. Meta tests 96/96 (with a new assertion for English and Thai).
 - Next: NTAG424 sticker provisioning tool; Muse Connector (MCP); Allow All UI; demo video.
 - Superseded (kept for history): Messenger (needs the owner signed in to Facebook to create a Page and Meta app), paying a hosted Checkout by hand, a real Messenger app/page and webhook delivery, NTAG424 sticker configuration, Muse connector review, routing `/meta/*` to the API in the tunnel. Next: live Muse Spark call, sticker provisioning tool, Stripe checkout on the tap page.
 

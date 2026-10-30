@@ -170,6 +170,9 @@ test('BitPOS Mini Meta screens: device key required; idle, counter Stripe QR, pa
   assert.deepEqual([qr?.screen,qr?.big,qr?.qr],['pay_qr','$6.50',`https://pay.example.test/pay/${r.orderId}`]);
   const ev=signedEvent(r.orderId,650);assert.equal(await applyStripeWebhook({db,masterKey:master,publicOrigin:'https://pay.example.test'},deps.stripe!,ev.raw,ev.sig),'PAID');
   const paid=await deviceView(db,dev,'https://pay.example.test');assert.deepEqual([paid?.screen,paid?.tone],['paid','green']);
+  // English unless the device asks for Thai (its language button).
+  assert.equal(paid?.title,'Paid - thank you');assert.match(qr!.line1,/^Cheesecake x1$/);
+  const th=await deviceView(db,dev,'https://pay.example.test',undefined,'th');assert.match(th!.title,/^จ่ายแล้ว/);
   for(const v of [idle,qr!,paid!])for(const f of ['table','title','line1','line2','big'] as const)assert.match((v as any)[f],/^[\x20-\x7e\u0e00-\u0e7f]*$/,`${f}: ${(v as any)[f]}`);
  }finally{server.close();}
 });

@@ -233,7 +233,9 @@ def mini(table='Table 1', online=True):
     s = SVG(480, 320, M['ink'])
     s.rect(12, 4, 96, 36, '#FFF8F0', 8); s.a.append(f'<image x="18" y="9" width="84" height="26" href="{LOGO}"/>')
     s.text(120, 29, table, 18, M['cream'], 500)
-    s.circle(356, 22, 4, M['green'] if online else M['amber']); s.text(366, 27, 'ONLINE' if online else 'OFFLINE', 13, M['muted'], 500)
+    s.circle(304, 22, 4, M['green'] if online else M['amber']); s.text(314, 27, 'ONLINE' if online else 'OFFLINE', 13, M['muted'], 500)
+    # Language button (English by default; it names the language it switches to, saved on the device).
+    s.rect(406, 6, 62, 32, M['line'], 16); s.text(437, 28, 'ไทย', 16, M['cream'], 500, 'middle')
     return s
 def mring(s, cy, tone, ic):
     s.a.append(f'<circle cx="{MARGIN + 12 + 43}" cy="{cy}" r="41" fill="{M["panel"]}" stroke="{M[tone]}" stroke-width="4"/>')
@@ -253,7 +255,7 @@ def mstatus(s, tone, ic, title, big=None, join=None, lines=(), dests=()):
     ty = gy + (gh - 30 - extra) // 2
     s.text(TEXT_X, ty + 22, title, 18, M['cream'], 500)
     if big: s.text(TEXT_X, ty + 30 + 50, big, 48, M[tone], 500)
-    if join: mbtn(s, TEXT_X, ty + 40, 220, 'สแกน QR เข้าแชท', join, M[tone] if tone != 'cream' else None)
+    if join: mbtn(s, TEXT_X, ty + 40, 220, 'Scan to chat', join, M[tone] if tone != 'cream' else None)
     for d in dests: s.hot(*d)
     return s
 def mqr(s, x=MARGIN, y=BODY_Y, w=228, h=BODY_H, seed=11):
@@ -807,54 +809,54 @@ def mpm03():
 # ================================================================ 30 BitPOS Mini (480×320) — matches the firmware screenshots (META_SHOT)
 @screen('B01', 'mini-idle', 'รอแตะ', 'mini', fw='idle')
 def b01():
-    s = mini(); mstatus(s, 'blue', 'wifi', 'Muse Café', join='B12', lines=[('แตะมือถือตรงนี้ - รับโปรและสั่งผ่าน Messenger', 'cream'), ('หรือสแกน QR บนโต๊ะ - จ่ายด้วย Stripe', 'muted')])
+    s = mini(); mstatus(s, 'blue', 'wifi', 'Muse Café', join='B12', lines=[('Tap your phone here or scan to open Messenger', 'cream'), ('Offers, ordering and Stripe payment in chat', 'muted')])
     s.hot(MARGIN, 60, 100, 120, 'B02'); s.hot(MARGIN, 240, 456, 70, 'B13'); return s
 @screen('B02', 'mini-tap-new', 'แตะแล้ว (ลูกค้าใหม่)', 'mini', fw='tap.new')
 def b02():
-    s = mini(); mstatus(s, 'blue', 'chevron', 'ไปต่อในมือถือนะคะ', join='B12', lines=[('กดยินยอมใน Messenger เพื่อให้ร้านจำคุณได้', 'cream'), ('ไม่ยินยอมก็สั่งจาก QR บนโต๊ะได้', 'muted')])
+    s = mini(); mstatus(s, 'blue', 'chevron', 'Continue on your phone', join='B12', lines=[('Accept in Messenger so the shop remembers you', 'cream'), ('Or order from the table QR without it', 'muted')])
     s.hot(MARGIN, 60, 100, 120, 'C02'); s.hot(MARGIN, 230, 456, 80, 'B03'); return s
 @screen('B03', 'mini-welcome', 'ยินดีต้อนรับกลับ + โปร', 'mini', fw='tap.known')
 def b03():
     s = mini(); s.photo('latte', MARGIN, BODY_Y + 8, 240, 240, 0)
     s.a.append(f'<circle cx="200" cy="104" r="34" fill="{GRAD[0]}" stroke="#fff" stroke-width="3"/>'); s.text(200, 112, '−20%', 20, '#FFFFFF', 700, 'middle')
     s.text(MARGIN + 12, 286, 'Latte', 17, '#FFFFFF', 600)
-    x = MARGIN + 252; s.rect(x, 60, 204, 240, M['panel'], 16); s.rect(x + 14, 74, 92, 30, M['chip'], 15); s.text(x + 60, 95, 'โปรวันนี้', 15, M['chiptx'], 500, 'middle')
-    s.text(x + 14, 136, 'สวัสดีค่ะ ร้านจำคุณได้', 16, M['cream'], 500); s.text(x + 14, 176, 'ส่งโปรนี้ไปที่', 15, M['muted']); s.text(x + 14, 200, 'Messenger แล้ว', 15, M['muted'])
-    mbtn(s, x + 12, 240, 180, 'ดูบนมือถือ', 'C04'); return s
+    x = MARGIN + 252; s.rect(x, 60, 204, 240, M['panel'], 16); s.rect(x + 14, 74, 92, 30, M['chip'], 15); s.text(x + 60, 95, 'Today', 15, M['chiptx'], 500, 'middle')
+    s.text(x + 14, 136, 'Welcome back', 16, M['cream'], 500); s.text(x + 14, 176, 'Your offer is in', 15, M['muted']); s.text(x + 14, 200, 'Messenger', 15, M['muted'])
+    mbtn(s, x + 12, 240, 180, 'See on phone', 'C04'); return s
 @screen('B04', 'mini-stripe-qr', 'QR ชำระ (Stripe)', 'mini', fw='pay.qr')
 def b04():
     s = mini(); mqr(s); x = MARGIN + 240; w = 480 - MARGIN - x
-    s.rect(x, BODY_Y, w, BODY_H, M['panel'], 12); s.text(x + 14, BODY_Y + 34, 'สแกนเพื่อจ่าย', 18, M['blue'], 500)
+    s.rect(x, BODY_Y, w, BODY_H, M['panel'], 12); s.text(x + 14, BODY_Y + 34, 'Scan to pay', 18, M['blue'], 500)
     s.text(x + 14, BODY_Y + 66, 'TOTAL', 12, M['muted'], 500); s.text(x + 14, BODY_Y + 104, '$9.45', 32, M['cream'], 500); s.line(x + 14, BODY_Y + 116, x + w - 14, BODY_Y + 116, M['line'])
-    s.text(x + 14, BODY_Y + 150, 'Latte x1, Croissant x1', 15, M['cream']); s.text(x + 14, BODY_Y + BODY_H - 40, 'Stripe sandbox -', 15, M['muted']); s.text(x + 14, BODY_Y + BODY_H - 16, 'ไม่ใช่เงินจริง', 15, M['muted'])
+    s.text(x + 14, BODY_Y + 150, 'Latte x1, Croissant x1', 15, M['cream']); s.text(x + 14, BODY_Y + BODY_H - 40, 'Stripe sandbox -', 15, M['muted']); s.text(x + 14, BODY_Y + BODY_H - 16, 'not real money', 15, M['muted'])
     s.hot(MARGIN, BODY_Y, 228, BODY_H, 'B05'); return s
 @screen('B05', 'mini-waiting', 'รอ Stripe ยืนยัน', 'mini', fw='pay.waiting')
 def b05():
-    s = mini(); return mstatus(s, 'amber', 'clock', 'รอ Stripe ยืนยัน…', lines=[('ยังไม่นับว่าจ่ายจนกว่า webhook จะยืนยัน', 'muted')], dests=[(0, 44, 480, 276, 'B06')])
+    s = mini(); return mstatus(s, 'amber', 'clock', 'Waiting for Stripe…', lines=[('Not paid until the Stripe webhook confirms', 'muted')], dests=[(0, 44, 480, 276, 'B06')])
 @screen('B06', 'mini-paid', 'จ่ายแล้ว', 'mini', fw='pay.paid')
 def b06():
-    s = mini(); return mstatus(s, 'green', 'check', 'จ่ายแล้ว ขอบคุณค่ะ', big='#A1B2', lines=[('รหัสรับสินค้า - Stripe ยืนยันแล้ว', 'cream')], dests=[(0, 44, 480, 276, 'B11')])
+    s = mini(); return mstatus(s, 'green', 'check', 'Paid - thank you', big='#A1B2', lines=[('Pickup code - confirmed by Stripe', 'cream')], dests=[(0, 44, 480, 276, 'B11')])
 @screen('B07', 'mini-reserved', 'จองไว้ · รอเช็กอิน', 'mini', fw='table.check_in')
 def b07():
-    s = mini(); return mstatus(s, 'red', 'bell', 'รอผู้จองเช็กอิน - แตะเพื่อเช็กอิน', big='08:56', lines=[('2 คน - 18:30 - ไม่มาภายใน 18:45 โต๊ะจะว่าง', 'cream')], dests=[(0, 44, 480, 276, 'B09')])
+    s = mini(); return mstatus(s, 'red', 'bell', 'Reserved - tap to check in', big='08:56', lines=[('2 guests - 18:30 - table frees at 18:45', 'cream')], dests=[(0, 44, 480, 276, 'B09')])
 @screen('B08', 'mini-upcoming', 'จองไว้ (ยังไม่ถึงเวลา)', 'mini', fw='table.upcoming')
 def b08():
-    s = mini(); return mstatus(s, 'violet', 'bell', 'จองไว้ 19:00 - 4 คน', big='1:24:56', lines=[('เช็กอินได้ตั้งแต่ 18:45', 'cream')], dests=[(0, 44, 480, 276, 'B07')])
+    s = mini(); return mstatus(s, 'violet', 'bell', 'Reserved 19:00 - 4 guests', big='1:24:56', lines=[('Check-in opens at 18:45', 'cream')], dests=[(0, 44, 480, 276, 'B07')])
 @screen('B09', 'mini-seated', 'เช็กอินแล้ว', 'mini', fw='table.seated')
 def b09():
-    s = mini(); return mstatus(s, 'blue', 'check', 'เช็กอินแล้ว ยินดีต้อนรับ', join='B12', lines=[('โต๊ะนี้ของคุณถึง 20:30', 'cream'), ('สั่งจากมือถือหรือสแกน QR บนโต๊ะ', 'muted')], dests=[(MARGIN, 230, 456, 80, 'C19')])
+    s = mini(); return mstatus(s, 'blue', 'check', 'Checked in - welcome', join='B12', lines=[('This table is yours until 20:30', 'cream'), ('Order from your phone or the table QR', 'muted')], dests=[(MARGIN, 230, 456, 80, 'C19')])
 @screen('B10', 'mini-offline', 'ออฟไลน์', 'mini', fw='net.offline')
 def b10():
-    s = mini(online=False); return mstatus(s, 'amber', 'warn', 'กำลังเชื่อมต่อใหม่…', lines=[('ออเดอร์ที่ค้างจะไม่หาย - ไม่ตัดเงินซ้ำ', 'muted')], dests=[(0, 44, 480, 276, 'B01')])
+    s = mini(online=False); return mstatus(s, 'amber', 'warn', 'Reconnecting…', lines=[('Open orders are kept - no double charges', 'muted')], dests=[(0, 44, 480, 276, 'B01')])
 @screen('B11', 'mini-ready', 'พร้อมรับ', 'mini', fw='order.ready')
 def b11():
-    s = mini(); return mstatus(s, 'green', 'coffee', 'พร้อมรับแล้ว', big='#A1B2', lines=[('Latte x2, Croissant x1', 'cream')], dests=[(0, 44, 480, 276, 'B01')])
+    s = mini(); return mstatus(s, 'green', 'coffee', 'Ready for pickup', big='#A1B2', lines=[('Latte x2, Croissant x1', 'cream')], dests=[(0, 44, 480, 276, 'B01')])
 @screen('B12', 'mini-join-qr', 'สแกน QR เข้า Messenger', 'mini', fw='join')
 def b12():
     s = mini(); mqr(s, seed=23); x = MARGIN + 240; w = 480 - MARGIN - x
-    s.rect(x, BODY_Y, w, BODY_H, M['panel'], 12); s.text(x + 14, BODY_Y + 34, 'สแกนเข้า Messenger', 18, M['blue'], 500)
-    for n, (t, c) in enumerate([('1. เปิดกล้องแล้วสแกน', 'cream'), ('2. กดยินยอมในแชท', 'cream'), ('รับโปรและเมนูในแชท', 'muted')]): s.text(x + 14, BODY_Y + 72 + n * 32, t, 17, M[c])
-    s.text(x + 14, BODY_Y + 176, 'QR หมดอายุใน 2:23', 17, M['muted']); mbtn(s, x + 14, BODY_Y + BODY_H - 60, w - 28, 'กลับ', 'B01', M['line'])
+    s.rect(x, BODY_Y, w, BODY_H, M['panel'], 12); s.text(x + 14, BODY_Y + 34, 'Open Messenger', 18, M['blue'], 500)
+    for n, (t, c) in enumerate([('1. Scan the QR', 'cream'), ('2. Accept in chat', 'cream'), ('Offers + menu in chat', 'muted')]): s.text(x + 14, BODY_Y + 72 + n * 32, t, 17, M[c])
+    s.text(x + 14, BODY_Y + 176, 'QR expires in 2:23', 17, M['muted']); mbtn(s, x + 14, BODY_Y + BODY_H - 60, w - 28, 'Back', 'B01', M['line'])
     s.hot(MARGIN, BODY_Y, 228, BODY_H, 'C02'); return s
 @screen('B13', 'mini-offer-anim', 'โปรเคลื่อนไหว (โปรคู่)', 'mini', fw='idle.anim')
 def b13():
@@ -862,10 +864,10 @@ def b13():
     s.circle(MARGIN + 120, 160, 15, '#FFFFFF'); s.text(MARGIN + 120, 167, '+', 22, GRAD[0], 700, 'middle')
     s.a.append(f'<circle cx="200" cy="104" r="34" fill="{GRAD[0]}" stroke="#fff" stroke-width="3"/>'); s.text(200, 112, '−10%', 20, '#FFFFFF', 700, 'middle')
     s.text(MARGIN + 12, 286, 'Latte + Croissant', 16, '#FFFFFF', 600)
-    x = MARGIN + 252; s.rect(x, 60, 204, 240, M['panel'], 16); s.rect(x + 14, 74, 92, 30, M['chip'], 15); s.text(x + 60, 95, 'โปรวันนี้', 15, M['chiptx'], 500, 'middle')
-    s.text(x + 14, 136, 'Muse Cafe', 17, M['cream'], 500); s.text(x + 14, 176, 'แตะมือถือที่เครื่อง', 15, M['muted']); s.text(x + 14, 200, 'หรือกดสแกน QR', 15, M['muted'])
+    x = MARGIN + 252; s.rect(x, 60, 204, 240, M['panel'], 16); s.rect(x + 14, 74, 92, 30, M['chip'], 15); s.text(x + 60, 95, 'Today', 15, M['chiptx'], 500, 'middle')
+    s.text(x + 14, 136, 'Muse Cafe', 17, M['cream'], 500); s.text(x + 14, 176, 'Tap your phone here', 15, M['muted']); s.text(x + 14, 200, 'or scan the QR', 15, M['muted'])
     # The animation opens with both real menu photos, then loops into the Muse Image picture (anim.ts).
-    mbtn(s, x + 12, 240, 180, 'สแกน QR เข้าแชท', 'B12'); s.hot(MARGIN, 60, 240, 240, 'B03'); return s
+    mbtn(s, x + 12, 240, 180, 'Scan to chat', 'B12'); s.hot(MARGIN, 60, 240, 240, 'B03'); return s
 
 # ================================================================ 31 table screen
 @screen('T01', 'tscreen-free', 'ว่าง', 'tscreen', route='/meta/screen/:tag')
