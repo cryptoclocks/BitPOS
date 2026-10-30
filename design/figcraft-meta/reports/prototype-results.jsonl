@@ -594,4 +594,10 @@
 {"command":"proto.interaction.add","ok":true,"result":{"index":0},"step":593}
 {"command":"proto.interaction.add","ok":true,"result":{"index":0},"step":594}
 {"command":"proto.interaction.add","ok":true,"result":{"index":0},"step":595}
-{"command":"proto.settings","ok":true,"result":{"ok":true},"step":596}
+{"command":"proto.interaction.add","ok":true,"result":{"index":0},"step":596}
+{"command":"proto.interaction.add","ok":true,"result":{"index":0},"step":597}
+{"command":"proto.interaction.add","ok":true,"result":{"index":0},"step":598}
+{"command":"proto.interaction.add","ok":true,"result":{"index":0},"step":599}
+{"command":"proto.interaction.add","ok":true,"result":{"index":0},"step":600}
+{"command":"proto.interaction.add","ok":true,"result":{"index":0},"step":601}
+{"command":"proto.settings","ok":true,"result":{"ok":true},"step":602}

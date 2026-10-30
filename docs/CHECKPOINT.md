@@ -113,6 +113,14 @@
   - **meta-pos:** an approved pair that has expired now shows as "Ended" instead of "Live".
   - **Live check on OCI:** Muse Spark paired Latte + Croissant (`6d0ed113…`); the owner approved it on meta-pos. Within about a minute, `META_SHOT` showed the Mini playing both the photo half and the AI half. Meta tests 96/96.
   - **Not built:** there is no mass Messenger broadcast to all customers (it would need Marketing Messages opt-in). Customers get the promotion when they tap or scan.
+- 30 October (later): layout pass on the BitPOS Mini and figcraft.
+  - **Firmware layout grid:** every screen uses a 12 px outer margin and a body under the 44 px header. The ring, title and value are centred between the header and the details card instead of sitting at the top.
+  - **QR screens:** the Stripe and Messenger QR tiles fill the left of the body (208 px code, larger and easier to scan), and the title moved into the right card. The Messenger card shows two numbered steps.
+  - **Countdown and demo:** countdowns of an hour or more show h:mm:ss. `META_DEMO join` shows the Messenger QR screen with a sample link.
+  - **Item wrapping:** Mini bill items read "Latte ×1", so a quantity never wraps onto its own line.
+  - **Verified on device:** flashed to app1 (MAC checked); every screen captured with `META_SHOT`.
+  - **figcraft:** page 30 (B01–B11) is redrawn in the firmware's dark layout, plus new B12 (scan QR to open Messenger) and B13 (pair animation). Previews refreshed; 84 screens, 602 links, audit pass.
+  - **Narrowed scope:** the user limited this pass to the Mini and the apps; the meta-pos edits were reverted unshipped. `apps/mobile-customer` and `apps/mobile-driver` are inherited Flutter apps with no Meta changes, and Flutter is not installed here: waiting for the user to say which apps they mean.
 - Next: NTAG424 sticker provisioning tool; Muse Connector (MCP); Allow All UI; demo video.
 - Superseded (kept for history): Messenger (needs the owner signed in to Facebook to create a Page and Meta app), paying a hosted Checkout by hand, a real Messenger app/page and webhook delivery, NTAG424 sticker configuration, Muse connector review, routing `/meta/*` to the API in the tunnel. Next: live Muse Spark call, sticker provisioning tool, Stripe checkout on the tap page.
 

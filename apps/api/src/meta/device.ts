@@ -41,7 +41,7 @@ async function view(db:MetaDb,deviceId:string,publicOrigin:string,animFor?:AnimF
   const dev=(await c.query<{label:string|null;shop:string}>('SELECT t.label,m.name AS shop FROM devices d JOIN merchants m ON m.id=d.merchant_id LEFT JOIN merchant_tables t ON t.merchant_id=d.merchant_id AND t.id=d.table_id WHERE d.id=$1',[deviceId])).rows[0];
   const bill=(await c.query<{id:string;status:string;amount_minor:string;currency:string;paid_recent:boolean;items:string}>(
    `SELECT o.id,o.status,o.amount_minor::text,o.currency,(o.status='PAID' AND o.paid_at>clock_timestamp()-interval '20 seconds') AS paid_recent,
-     (SELECT string_agg(i.name||' × '||i.quantity,', ' ORDER BY i.line) FROM meta_cart_items i WHERE i.order_id=o.id) AS items
+     (SELECT string_agg(i.name||' ×'||i.quantity,', ' ORDER BY i.line) FROM meta_cart_items i WHERE i.order_id=o.id) AS items
     FROM meta_cart_orders o WHERE o.device_id=$1 AND ((o.status='PENDING' AND o.expires_at>clock_timestamp()) OR (o.status='PAID' AND o.paid_at>clock_timestamp()-interval '20 seconds'))
     ORDER BY o.created_at DESC LIMIT 1`,[deviceId])).rows[0];
   const tapPaid=(await c.query<{id:string}>(`SELECT o.id FROM meta_tap_orders o JOIN meta_tap_sessions s ON s.merchant_id=o.merchant_id AND s.id=o.tap_session_id

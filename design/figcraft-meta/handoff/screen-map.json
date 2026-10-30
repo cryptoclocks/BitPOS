@@ -21,7 +21,7 @@
       "width": 1600,
       "height": 1000,
       "source": "source/screens/A01-link-audit.svg",
-      "sha256": "36891cb58d89260a227c5f268e564d925c2d24f80a5eb90129900c202b83f74e",
+      "sha256": "55d2e81a322a7151471ab002da6af139952ca08e571ddede9349703fdf0fda9e",
       "fixture": true
     },
     {
@@ -535,7 +535,7 @@
       "width": 1440,
       "height": 1000,
       "source": "source/screens/MP09-tables-devices.svg",
-      "sha256": "eec0c199057994310f833c92b4fccbf1318cf90e5debfc5cb21dc426bb02ce65",
+      "sha256": "6ba6c20cf963d036b6a243c46c84049269b992e036e231ebd3451335e00dd6a5",
       "fixture": true
     },
     {
@@ -742,7 +742,7 @@
       "width": 480,
       "height": 320,
       "source": "source/screens/B01-mini-idle.svg",
-      "sha256": "1c841fb57f29876537480ff350787ec717a4186bf2b3b9529f5c8c573d688a68",
+      "sha256": "9e3ada972cb3bcbcb015663c6de6c66bf0991ec178db6b57366ae9986513e8ea",
       "fixture": true
     },
     {
@@ -754,7 +754,7 @@
       "width": 480,
       "height": 320,
       "source": "source/screens/B02-mini-tap-new.svg",
-      "sha256": "885fe07f1b5377344324aae7f6ff47f0f3e229bdf3ca6ddfb8ef64f55b40e131",
+      "sha256": "877b3b408df7f25aa33b2d0b77fa7ed487f7172bd1360cba797469587a15ca06",
       "fixture": true
     },
     {
@@ -766,7 +766,7 @@
       "width": 480,
       "height": 320,
       "source": "source/screens/B03-mini-welcome.svg",
-      "sha256": "bad2629d782fb4c88a09578ec1df3405bcc1d087ebea586403f33de8690dc2c2",
+      "sha256": "18dee08b0fb2fc3ce1d6aa3fe349c35288ea20a4fd85f407ee1e50953f58ecd3",
       "fixture": true
     },
     {
@@ -778,7 +778,7 @@
       "width": 480,
       "height": 320,
       "source": "source/screens/B04-mini-stripe-qr.svg",
-      "sha256": "d5b843121cec6e33936935ea35a5b2f8bc649ece8bed951bf609cc2266e4ccd3",
+      "sha256": "3f269fd3a2ceef590c89886d9863d4269b12a7e8d0970a0a7d2f3dad0bdd079b",
       "fixture": true
     },
     {
@@ -790,7 +790,7 @@
       "width": 480,
       "height": 320,
       "source": "source/screens/B05-mini-waiting.svg",
-      "sha256": "f7aabb190f59fb4891f0b9a43712ed1b90bcb8e3cf3595312208c208c46783ff",
+      "sha256": "eacacd978ab1aa36566d65457a3016642e6116a1ec5faa0d9245a5352ffdf0f3",
       "fixture": true
     },
     {
@@ -802,7 +802,7 @@
       "width": 480,
       "height": 320,
       "source": "source/screens/B06-mini-paid.svg",
-      "sha256": "21700f42d80d23a2def839043282e46653c99da842db94ab945d483ab85fe770",
+      "sha256": "85576b983314a3a7cd3e981bc9374f6055b74a3374ac352d81052f9e02c6e5da",
       "fixture": true
     },
     {
@@ -814,7 +814,7 @@
       "width": 480,
       "height": 320,
       "source": "source/screens/B07-mini-reserved.svg",
-      "sha256": "f9ea09b38024ee6234b1cd8396c84d621a86b4370fbb1b015a3d70228a0df86a",
+      "sha256": "cba5a9e41d7831e83c065e4d5a9472051e8eebd11c008a031f7aa6555d32db95",
       "fixture": true
     },
     {
@@ -826,7 +826,7 @@
       "width": 480,
       "height": 320,
       "source": "source/screens/B08-mini-upcoming.svg",
-      "sha256": "3100547d0bf5d1c6a4e19e205a93ffff64fadbddb6dcb445ef7b7fe8d5ec1bd7",
+      "sha256": "fcd88a3ef266787b032c7dc38edef87a4b636afb01187f7d4b56ad433626cd09",
       "fixture": true
     },
     {
@@ -838,7 +838,7 @@
       "width": 480,
       "height": 320,
       "source": "source/screens/B09-mini-seated.svg",
-      "sha256": "2994dc88f0e18bb9560eb6f425525471dc8aff583c2d7a7587caedef5789dff0",
+      "sha256": "5ec3ce0bad9661c75628904180a12d879dbd0ad5b1e474332ae469c2b91913c5",
       "fixture": true
     },
     {
@@ -850,7 +850,7 @@
       "width": 480,
       "height": 320,
       "source": "source/screens/B10-mini-offline.svg",
-      "sha256": "4d4e30e1e0dc498057e28fca942b2c580f675393a1e1e3104873bb8679c17432",
+      "sha256": "52eb102d7a67444662674367f399bcdf15c7f19f2b2eedfa9aa97eb11f163b59",
       "fixture": true
     },
     {
@@ -862,7 +862,31 @@
       "width": 480,
       "height": 320,
       "source": "source/screens/B11-mini-ready.svg",
-      "sha256": "2edeb6e10295428f77c99bc5d06b3f9becfc1c3b84111915fbf538b0ec39c4c9",
+      "sha256": "cc3c2ecfef95f101d269ffa9992d7e2534143b0f4599fc10ff2419928f0319aa",
+      "fixture": true
+    },
+    {
+      "id": "B12",
+      "slug": "mini-join-qr",
+      "title": "สแกน QR เข้า Messenger",
+      "page": "30 · BitPOS Mini (480×320)",
+      "fw": "join",
+      "width": 480,
+      "height": 320,
+      "source": "source/screens/B12-mini-join-qr.svg",
+      "sha256": "fcaca01a27333eb646f342a7f8b97bd85536a1799f275eba9f833879e065eee1",
+      "fixture": true
+    },
+    {
+      "id": "B13",
+      "slug": "mini-offer-anim",
+      "title": "โปรเคลื่อนไหว (โปรคู่)",
+      "page": "30 · BitPOS Mini (480×320)",
+      "fw": "idle.anim",
+      "width": 480,
+      "height": 320,
+      "source": "source/screens/B13-mini-offer-anim.svg",
+      "sha256": "48c18fa829268cfbda8859e858d83abb6b806c7847a490ff7aaf2ff5bccf0f14",
       "fixture": true
     },
     {
@@ -992,11 +1016,11 @@
       "width": 1600,
       "height": 1100,
       "source": "source/screens/H01-routes.svg",
-      "sha256": "72bf6361f9e97fef201f25ea25e062a90add55c17a84d25eb567e0dc7bd660cb",
+      "sha256": "92e75a5e40f5a716dc9eebef004e48b36c08032c22a267b875dc903c8f429873",
       "fixture": true
     }
   ],
-  "count": 82,
+  "count": 84,
   "pages": {
     "start": "00 · เริ่มที่นี่",
     "found": "01 · พื้นฐานการออกแบบ",

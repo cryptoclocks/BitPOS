@@ -169,6 +169,21 @@ static void join_left(lv_obj_t *l){
     char s[64];snprintf(s,sizeof(s),"QR หมดอายุใน %d:%02d",left/60,left%60);lv_label_set_text(l,s);
 }
 
+/* Layout grid (480×320): 12 px outer margin, body under the 44 px header, text column right of the status ring. */
+#define W 480
+#define MARGIN 12
+#define BODY_Y 52
+#define BODY_H (320-MARGIN-BODY_Y)
+#define TEXT_X 128
+#define QR_W 228
+#define CARD_X (MARGIN+QR_W+12)
+#define CARD_W (W-MARGIN-CARD_X)
+/* A white QR tile filling the left of the body (the larger the code, the easier it scans). */
+static void qr_tile(const char *data){
+    lv_obj_t *scr=lv_screen_active();box(scr,MARGIN,BODY_Y,QR_W,BODY_H,0xffffff,10);
+    int q=QR_W-20;lv_obj_t *qr=lv_qrcode_create(scr);lv_qrcode_set_size(qr,q);lv_qrcode_set_dark_color(qr,lv_color_hex(0x111827));lv_qrcode_set_light_color(qr,lv_color_hex(0xffffff));
+    lv_qrcode_update(qr,data,strlen(data));lv_obj_set_pos(qr,MARGIN+10,BODY_Y+(BODY_H-q)/2);
+}
 /* One template for every screen; layout depends only on which fields the server sent. Call with the LVGL lock. */
 static void render(void){
     lv_obj_t *scr=lv_screen_active();lv_obj_clean(scr);countdown_label=NULL;join_countdown=NULL;
@@ -182,49 +197,46 @@ static void render(void){
     box(scr,352,18,8,8,view.online?0x31c48d:0xffb547,LV_RADIUS_CIRCLE);
     text(scr,view.online?"ONLINE":"OFFLINE",366,13,104,&lv_font_montserrat_14,MUTED,0);
     if(!view.online){
-        lv_obj_t *r=box(scr,32,93,86,86,PANEL,LV_RADIUS_CIRCLE);lv_obj_set_style_border_color(r,lv_color_hex(tone),0);lv_obj_set_style_border_width(r,4,0);
+        lv_obj_t *r=box(scr,MARGIN+12,93,86,86,PANEL,LV_RADIUS_CIRCLE);lv_obj_set_style_border_color(r,lv_color_hex(tone),0);lv_obj_set_style_border_width(r,4,0);
         lv_obj_t *i=text(r,LV_SYMBOL_WARNING,0,24,78,&lv_font_montserrat_28,tone,0);lv_obj_set_style_text_align(i,LV_TEXT_ALIGN_CENTER,0);
-        text(scr,"กำลังเชื่อมต่อใหม่…",138,104,324,&bitpos_font_20,CREAM,2);
-        box(scr,20,244,440,62,PANEL,10);
-        text(scr,"ออเดอร์ที่ค้างจะไม่หาย - ไม่ตัดเงินซ้ำ",32,261,416,&bitpos_font_20,MUTED,1);return;
+        text(scr,"กำลังเชื่อมต่อใหม่…",TEXT_X,120,W-MARGIN-TEXT_X,&bitpos_font_20,CREAM,2);
+        box(scr,MARGIN,BODY_Y+BODY_H-56,W-2*MARGIN,56,PANEL,12);
+        text(scr,"ออเดอร์ที่ค้างจะไม่หาย - ไม่ตัดเงินซ้ำ",MARGIN+16,BODY_Y+BODY_H-42,W-2*MARGIN-32,&bitpos_font_20,MUTED,1);return;
     }
     if(joining()){
         /* Scan to open Messenger: QR left, how it works right, Back. */
-        text(scr,"สแกนเพื่อเข้า Messenger",12,52,300,&bitpos_font_20,BLUE,1);
-        box(scr,8,84,216,216,0xffffff,6);
-        lv_obj_t *qr=lv_qrcode_create(scr);lv_qrcode_set_size(qr,196);lv_qrcode_set_dark_color(qr,lv_color_hex(0x111827));lv_qrcode_set_light_color(qr,lv_color_hex(0xffffff));
-        lv_qrcode_update(qr,join_url,strlen(join_url));lv_obj_set_pos(qr,18,94);
-        lv_obj_t *card=box(scr,236,84,232,216,PANEL,12);
-        text(card,"เปิดกล้องแล้วสแกน",14,12,204,&bitpos_font_20,CREAM,1);
-        text(card,"กดยินยอมในแชท ร้านจะส่งโปรและเมนูให้",14,50,204,&bitpos_font_20,MUTED,2);
-        join_countdown=text(card,"",14,116,204,&bitpos_font_20,BLUE,1);join_left(join_countdown);
-        button(card,14,156,96,"กลับ",LINE,on_back);
+        qr_tile(join_url);
+        lv_obj_t *card=box(scr,CARD_X,BODY_Y,CARD_W,BODY_H,PANEL,12);
+        text(card,"สแกนเข้า Messenger",14,12,CARD_W-28,&bitpos_font_20,BLUE,1);
+        text(card,"1. เปิดกล้องแล้วสแกน",14,50,CARD_W-28,&bitpos_font_20,CREAM,1);
+        text(card,"2. กดยินยอมในแชท",14,82,CARD_W-28,&bitpos_font_20,CREAM,1);
+        text(card,"รับโปรและเมนูในแชท",14,114,CARD_W-28,&bitpos_font_20,MUTED,1);
+        join_countdown=text(card,"",14,152,CARD_W-28,&bitpos_font_20,MUTED,1);join_left(join_countdown);
+        button(card,14,BODY_H-60,CARD_W-28,"กลับ",LINE,on_back);
         return;
     }
     bool anim=false;
     if(!view.qr[0]&&view.anim[0]&&anim_buf&&!strcmp(view.anim,anim_loaded)){
         anim_fs_register();
         lv_obj_t *g=lv_gif_create(scr);lv_gif_set_src(g,"A:/offer.gif");
-        if(lv_gif_is_loaded(g)){lv_image_set_pivot(g,0,0);lv_image_set_scale(g,256);lv_obj_set_pos(g,12,60);anim=true;}
+        if(lv_gif_is_loaded(g)){lv_image_set_pivot(g,0,0);lv_image_set_scale(g,256);lv_obj_set_pos(g,MARGIN,BODY_Y+(BODY_H-240)/2);anim=true;}
         else{ESP_LOGW("BitPOS","META_ANIM not loaded bytes=%u",(unsigned)anim_len);lv_obj_delete(g);}
     }
     if(view.qr[0]){
         /* Stripe QR: white tile left, amount card right (like the standard terminal's entry scene). */
-        text(scr,view.title,12,52,216,&bitpos_font_20,tone,1);
-        box(scr,8,84,216,216,0xffffff,6);
-        lv_obj_t *qr=lv_qrcode_create(scr);lv_qrcode_set_size(qr,196);lv_qrcode_set_dark_color(qr,lv_color_hex(0x111827));lv_qrcode_set_light_color(qr,lv_color_hex(0xffffff));
-        lv_qrcode_update(qr,view.qr,strlen(view.qr));lv_obj_set_pos(qr,18,94);
-        lv_obj_t *card=box(scr,236,84,232,216,PANEL,12);
-        text(card,"TOTAL",14,12,204,&lv_font_montserrat_14,MUTED,0);
-        text(card,view.big,14,34,204,&lv_font_montserrat_32,CREAM,0);
-        box(card,14,80,204,1,LINE,0);
-        text(card,view.line1,14,92,204,&bitpos_font_20,CREAM,2);
-        text(card,view.line2,14,154,204,&bitpos_font_20,MUTED,2);
+        qr_tile(view.qr);
+        lv_obj_t *card=box(scr,CARD_X,BODY_Y,CARD_W,BODY_H,PANEL,12);
+        text(card,view.title,14,12,CARD_W-28,&bitpos_font_20,tone,1);
+        text(card,"TOTAL",14,52,CARD_W-28,&lv_font_montserrat_14,MUTED,0);
+        text(card,view.big,14,70,CARD_W-28,&lv_font_montserrat_32,CREAM,0);
+        box(card,14,116,CARD_W-28,1,LINE,0);
+        text(card,view.line1,14,128,CARD_W-28,&bitpos_font_20,CREAM,2);
+        text(card,view.line2,14,BODY_H-64,CARD_W-28,&bitpos_font_20,MUTED,2);
         return;
     }
     if(anim){
         /* Offer animation left; right card: chip, shop/greeting, details, and the call to action as a button. */
-        lv_obj_t *card=box(scr,264,60,204,240,PANEL,16);
+        lv_obj_t *card=box(scr,MARGIN+240+12,BODY_Y+(BODY_H-240)/2,W-MARGIN*2-252,240,PANEL,16);
         lv_obj_t *chip=box(card,14,14,92,30,0x24365e,15);
         text(chip,"โปรวันนี้",12,1,80,&bitpos_font_20,0xb9d3ff,0);
         text(card,view.title,14,56,176,&bitpos_font_20,CREAM,2);
@@ -233,22 +245,25 @@ static void render(void){
         return;
     }
     /* Status: ring with an icon left, title and big value right, details card at the bottom (like the paid scene). */
-    lv_obj_t *r=box(scr,32,72,86,86,PANEL,LV_RADIUS_CIRCLE);lv_obj_set_style_border_color(r,lv_color_hex(tone),0);lv_obj_set_style_border_width(r,4,0);
-    lv_obj_t *i=text(r,icon(view.screen),0,24,78,&lv_font_montserrat_28,tone,0);lv_obj_set_style_text_align(i,LV_TEXT_ALIGN_CENTER,0);
-    /* Title centred on the ring, or above the big value / countdown. */
-    lv_obj_t *t=text(scr,view.title,138,0,324,&bitpos_font_20,CREAM,0);int th=fit(t,2);
-    bool value=view.big[0]||view.countdown>0,join=!value&&join_allowed();int ty=value||join?70:115-th/2;lv_obj_set_y(t,ty);
-    if(join)button(scr,138,ty+th+10,220,"สแกน QR เข้าแชท",tone,on_join);
-    if(view.big[0])text(scr,view.big,138,ty+th+4,324,&lv_font_montserrat_48,tone,0);
-    else if(view.countdown>0)countdown_label=text(scr,"--:--",138,ty+th+4,324,&lv_font_montserrat_48,tone,0);
+    /* Details card sized to its lines, on the bottom margin; the ring and title are centred in the space above it. */
+    int top=BODY_Y+BODY_H;
     if(view.line1[0]||view.line2[0]){
-        /* Details card sized to its lines, sitting on the bottom margin. */
-        lv_obj_t *card=box(scr,20,0,440,0,PANEL,12);
+        lv_obj_t *card=box(scr,MARGIN,0,W-2*MARGIN,0,PANEL,12);
         int h=12;
-        if(view.line1[0]){lv_obj_t *a=text(card,view.line1,16,h,408,&bitpos_font_20,CREAM,0);h+=fit(a,2)+4;}
-        if(view.line2[0]){lv_obj_t *b=text(card,view.line2,16,h,408,&bitpos_font_20,MUTED,0);h+=fit(b,1)+4;}
-        h+=8;lv_obj_set_size(card,440,h);lv_obj_set_y(card,306-h);
+        if(view.line1[0]){lv_obj_t *a=text(card,view.line1,16,h,W-2*MARGIN-32,&bitpos_font_20,CREAM,0);h+=fit(a,2)+4;}
+        if(view.line2[0]){lv_obj_t *b=text(card,view.line2,16,h,W-2*MARGIN-32,&bitpos_font_20,MUTED,0);h+=fit(b,1)+4;}
+        h+=8;top=BODY_Y+BODY_H-h;lv_obj_set_size(card,W-2*MARGIN,h);lv_obj_set_y(card,top);top-=12;
     }
+    lv_obj_t *t=text(scr,view.title,TEXT_X,0,W-MARGIN-TEXT_X,&bitpos_font_20,CREAM,0);int th=fit(t,2);
+    bool value=view.big[0]||view.countdown>0,join=!value&&join_allowed();
+    int gh=th+(value?60:join?56:0);if(gh<86)gh=86;
+    int gy=BODY_Y+(top-BODY_Y-gh)/2;if(gy<BODY_Y)gy=BODY_Y;
+    lv_obj_t *r=box(scr,MARGIN+12,gy+(gh-86)/2,86,86,PANEL,LV_RADIUS_CIRCLE);lv_obj_set_style_border_color(r,lv_color_hex(tone),0);lv_obj_set_style_border_width(r,4,0);
+    lv_obj_t *i=text(r,icon(view.screen),0,24,78,&lv_font_montserrat_28,tone,0);lv_obj_set_style_text_align(i,LV_TEXT_ALIGN_CENTER,0);
+    int ty=gy+(gh-(th+(value?60:join?56:0)))/2;lv_obj_set_y(t,ty);
+    if(join)button(scr,TEXT_X,ty+th+10,220,"สแกน QR เข้าแชท",tone,on_join);
+    if(view.big[0])text(scr,view.big,TEXT_X,ty+th+4,W-MARGIN-TEXT_X,&lv_font_montserrat_48,tone,0);
+    else if(view.countdown>0)countdown_label=text(scr,"--:--",TEXT_X,ty+th+4,W-MARGIN-TEXT_X,&lv_font_montserrat_48,tone,0);
 }
 /* display_engine leaves the backlight off; like the standard terminal (main.c physical_render), turn it on once a
  * frame has been flushed so the panel never shows stale memory. Call without the LVGL lock. */
@@ -262,7 +277,8 @@ static void tick(lv_timer_t *t){
     if(join_countdown){join_left(join_countdown);if(esp_timer_get_time()>=join_until_us&&poller_task)xTaskNotifyGive(poller_task);}
     if(!countdown_label||view.countdown<=0)return;
     int left=view.countdown-(int)((esp_timer_get_time()-view.fetched_us)/1000000);if(left<0)left=0;
-    char s[12];snprintf(s,sizeof(s),"%02d:%02d",left/60,left%60);lv_label_set_text(countdown_label,s);
+    char s[16];if(left>=3600)snprintf(s,sizeof(s),"%d:%02d:%02d",left/3600,left/60%60,left%60);else snprintf(s,sizeof(s),"%02d:%02d",left/60,left%60);
+    lv_label_set_text(countdown_label,s);
 }
 
 static void copy(cJSON *o,const char *key,char *dst,size_t cap){
@@ -391,19 +407,22 @@ static void provisioning(void *arg){
         else if(!strcmp(cmd,"META_DEMO")){
             /* Layout check without a real order: show a sample of one template for 30 s (u = template name). */
             static const struct {const char *name,*screen,*tone,*title,*big,*line1,*line2,*qr;int cd;} demo[]={
-                {"qr","pay_qr","white","สแกนเพื่อจ่าย","$9.45","Latte x 1, Croissant x 1","Stripe sandbox - ไม่ใช่เงินจริง","https://meta-pay.cashlessthailand.com/pay/demo",0},
+                {"qr","pay_qr","white","สแกนเพื่อจ่าย","$9.45","Latte x1, Croissant x1","Stripe sandbox - ไม่ใช่เงินจริง","https://meta-pay.cashlessthailand.com/pay/demo",0},
                 {"paid","paid","green","จ่ายแล้ว ขอบคุณค่ะ","#A1B2","รหัสรับสินค้า - Stripe ยืนยันแล้ว","",NULL,0},
                 {"checkin","check_in","red","รอผู้จองเช็กอิน - แตะเพื่อเช็กอิน","","2 คน - 18:30 - ไม่มาภายใน 18:45 โต๊ะจะว่าง","",NULL,540},
                 {"upcoming","upcoming","violet","จองไว้ 19:00 - 4 คน","","เช็กอินได้ตั้งแต่ 18:45","",NULL,1500},
                 {"seated","seated","blue","เช็กอินแล้ว ยินดีต้อนรับ","","โต๊ะนี้ของคุณถึง 20:30","สั่งจากมือถือหรือสแกน QR บนโต๊ะ",NULL,0},
                 {"tapnew","tap_new","white","ไปต่อในมือถือนะคะ","","กดยินยอมใน Messenger เพื่อให้ร้านจำคุณได้","ไม่ยินยอมก็สั่งจาก QR บนโต๊ะได้",NULL,0},
-                {"idle","idle","white","Muse Cafe","","แตะมือถือตรงนี้ - รับโปรและสั่งผ่าน Messenger","หรือสแกน QR บนโต๊ะ - จ่ายด้วย Stripe",NULL,0}};
+                {"idle","idle","white","Muse Cafe","","แตะมือถือตรงนี้ - รับโปรและสั่งผ่าน Messenger","หรือสแกน QR บนโต๊ะ - จ่ายด้วย Stripe",NULL,0},
+                {"join","idle","white","Muse Cafe","","","",NULL,0}};
             for(size_t i=0;i<sizeof(demo)/sizeof(demo[0]);i++)if(!strcmp(u,demo[i].name)&&display_engine_lock(2000)){
                 demo_until_us=esp_timer_get_time()+30000000;
                 snprintf(view.screen,sizeof(view.screen),"%s",demo[i].screen);snprintf(view.tone,sizeof(view.tone),"%s",demo[i].tone);
                 snprintf(view.title,sizeof(view.title),"%s",demo[i].title);snprintf(view.big,sizeof(view.big),"%s",demo[i].big);
                 snprintf(view.line1,sizeof(view.line1),"%s",demo[i].line1);snprintf(view.line2,sizeof(view.line2),"%s",demo[i].line2);
                 snprintf(view.qr,sizeof(view.qr),"%s",demo[i].qr?demo[i].qr:"");view.anim[0]=0;view.countdown=demo[i].cd;view.fetched_us=esp_timer_get_time();view.online=true;
+                /* "join": the scan-to-open-Messenger screen with a sample link that is not a real tap link. */
+                if(!strcmp(u,"join")){snprintf(join_url,sizeof(join_url),"https://meta-pay.cashlessthailand.com/meta/q/demo");join_until_us=esp_timer_get_time()+30000000;}
                 render();display_engine_unlock();printf("META_DEMO %s\n",demo[i].name);
             }
         }
