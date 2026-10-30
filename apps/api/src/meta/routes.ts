@@ -486,7 +486,8 @@ async function serveOffers(req:http.IncomingMessage,res:http.ServerResponse,deps
  if(!me){res.writeHead(303,{Location:'/meta/staff','Cache-Control':'no-store'});res.end();return true;}
  if(!deps.offers){page(res,503,'ยังไม่พร้อม',['Promotions are not configured on this server.']);return true;}
  const od:OfferPolicyDeps={db:deps.identity.db,menu:deps.offers.menu,router:deps.offers.router};
- const back=(note?:string)=>{res.writeHead(303,{Location:`/meta/staff/offers${note?`?n=${note}`:''}`,'Cache-Control':'no-store'});res.end();return true as const;};
+ // Any change here (approve, stop, new picture) reaches the BitPOS Mini on its next poll.
+ const back=(note?:string)=>{ANIM_MEMO.clear();res.writeHead(303,{Location:`/meta/staff/offers${note?`?n=${note}`:''}`,'Cache-Control':'no-store'});res.end();return true as const;};
  try{
   if(path==='/meta/staff/offers'&&method==='GET'){
    const {drafts,policies}=await listOffersOverview(od,me);const combos=await listCombos(deps.identity.db,me.merchantId);const banners=await bannersByDraft(deps.identity.db,me.merchantId),posts=await postsByDraft(deps.identity.db,me.merchantId);
@@ -575,8 +576,9 @@ async function serveOffers(req:http.IncomingMessage,res:http.ServerResponse,deps
  }
 }
 
-/** BitPOS Mini: the 240 px animation for the tapped customer's offer, else the shop's live two-item offer, else a live
- * single offer with a photo. Made (and cached) before the path is handed out, so the device's download is quick. */
+/** BitPOS Mini: the 240 px animation for the tapped customer's offer, else the promotion approved most recently on
+ * meta-pos (a two-item offer or a single offer with a photo), so approving one there puts it on the Mini within ~20 s.
+ * Made (and cached) before the path is handed out, so the device's download is quick. */
 function deviceAnim(deps:MetaRouteDeps){
  // The device polls every few seconds: remember the answer for 20 s instead of reading the GIF cache each time.
  return async(merchantId:string,productId:string|null):Promise<string>=>{
@@ -589,10 +591,18 @@ function deviceAnim(deps:MetaRouteDeps){
  async function pick(chat:ChatAgentDeps,merchantId:string,productId:string|null):Promise<string>{
   const mine=productId?await offerAnimation(chat,merchantId,productId,240):null;
   if(mine)return `/meta/anim/offer/${productId}/240-${mine.tag}.gif`;
-  const combo=(await listCombos(chat.db,merchantId,true))[0],pair=combo?await comboAnimation(chat,merchantId,combo.id,240):null;
-  if(pair)return `/meta/anim/combo/${combo.id}/240-${pair.tag}.gif`;
-  const item=(await listMenu(chat,merchantId)).find(m=>m.offer&&m.imageUrl),one=item?await offerAnimation(chat,merchantId,item.productId,240):null;
-  return one?`/meta/anim/offer/${item!.productId}/240-${one.tag}.gif`:'';
+  const live=new Set((await listMenu(chat,merchantId)).filter(m=>m.offer&&m.imageUrl).map(m=>m.productId));
+  const latest=(await chat.db.tenant(merchantId,c=>c.query<{kind:'combo'|'offer';id:string}>(
+   `SELECT 'combo' AS kind,id::text,decided_at FROM meta_combo_offers WHERE state='APPLIED' AND expires_at>clock_timestamp()
+    UNION ALL SELECT 'offer',product_id::text,decided_at FROM meta_offer_drafts WHERE state='APPLIED' AND offer_expires_at>clock_timestamp()
+    ORDER BY decided_at DESC NULLS LAST LIMIT 10`))).rows;
+  for(const r of latest){
+   if(r.kind==='combo'){const a=await comboAnimation(chat,merchantId,r.id,240);if(a)return `/meta/anim/combo/${r.id}/240-${a.tag}.gif`;}
+   else if(live.has(r.id)){const a=await offerAnimation(chat,merchantId,r.id,240);if(a)return `/meta/anim/offer/${r.id}/240-${a.tag}.gif`;}
+  }
+  // A shop promotion set outside meta-pos (inherited POS pricing) still shows when nothing else is live.
+  const item=[...live][0],one=item?await offerAnimation(chat,merchantId,item,240):null;
+  return one?`/meta/anim/offer/${item}/240-${one.tag}.gif`:'';
  }
 }
 const ANIM_MEMO=new Map<string,{path:string;at:number}>();
@@ -624,7 +634,7 @@ function comboSection(combos:ComboView[],boss:boolean):string{
    <figure style="margin:0"><img src="/meta/anim/combo/${c.id}/480-${c.hasImage?'00000001':'00000000'}.gif" alt="" loading="lazy" style="width:160px;height:160px;border-radius:12px;border:1px solid var(--ln)"><figcaption><small>🎞️ ${L('ภาพเคลื่อนไหวที่ลูกค้าเห็น','Animation customers see')}</small></figcaption></figure></div>`:'';
   const act=!boss?'':c.state==='DRAFT'?`<form method="post" action="/meta/staff/combos/${c.id}/approve"><button class="inline">${L('อนุมัติ + สร้างภาพ','Approve + make picture')}</button></form><form method="post" action="/meta/staff/combos/${c.id}/reject"><button class="g inline">${L('ไม่อนุมัติ','Reject')}</button></form>`
    :c.live?`${c.hasImage?'':`<form method="post" action="/meta/staff/combos/${c.id}/illustrate"><button class="s inline">🎨 ${L('สร้างภาพอีกครั้ง','Make the picture again')}</button></form>`}<form method="post" action="/meta/staff/combos/${c.id}/stop"><button class="g inline">${L('หยุดโปรคู่','Stop')}</button></form>`:'';
-  return `<div style="border:1px solid var(--ln);border-radius:14px;padding:12px;margin:8px 0">🍰 <strong>${esc(c.a.emoji)} ${esc(nm(c.a.name,c.a.nameEn))} + ${esc(c.b.emoji)} ${esc(nm(c.b.name,c.b.nameEn))}</strong> · −${c.discountPercent}% ${L('ทั้งคู่','on the pair')} · ${c.durationHours} ${L('ชม.','h')} · ${st[c.state]}${c.live&&c.expiresAt?` · ${L('ถึง','until')} ${at(c.expiresAt)}`:''}<br><small>${esc(L(c.reasonTh,c.reasonEn))} · ${c.chosenBy==='model'?'Muse Spark':L('แม่แบบ','template')}</small>${live}${act}</div>`;};
+  return `<div style="border:1px solid var(--ln);border-radius:14px;padding:12px;margin:8px 0">🍰 <strong>${esc(c.a.emoji)} ${esc(nm(c.a.name,c.a.nameEn))} + ${esc(c.b.emoji)} ${esc(nm(c.b.name,c.b.nameEn))}</strong> · −${c.discountPercent}% ${L('ทั้งคู่','on the pair')} · ${c.durationHours} ${L('ชม.','h')} · ${c.state==='APPLIED'&&!c.live?L('หมดเวลาแล้ว','Ended'):st[c.state]}${c.live&&c.expiresAt?` · ${L('ถึง','until')} ${at(c.expiresAt)}`:''}<br><small>${esc(L(c.reasonTh,c.reasonEn))} · ${c.chosenBy==='model'?'Muse Spark':L('แม่แบบ','template')}</small>${live}${act}</div>`;};
  return `<h3 style="margin:14px 0 4px">🍰 ${L('โปรคู่ (สั่งสองอย่าง)','Two-item offers')}</h3><small>${L('สั่งคู่นี้ด้วยกันลดทั้งคู่ ราคาคิดโดยระบบตอนชำระ ลูกค้าเห็นภาพเคลื่อนไหวบน meta-pay, Messenger และจอ BitPOS Mini','Order both together for a discount on the pair; the server prices it at checkout. Customers see the animation on meta-pay, Messenger and the BitPOS Mini.')}</small>
 ${boss?`<form method="post" action="/meta/staff/combos/draft"><button>✨ ${L('ให้ Muse Spark จับคู่โปร','Pair an offer with Muse Spark')}</button></form>`:''}${combos.map(card).join('')||`<small>${L('ยังไม่มีโปรคู่','No two-item offers yet.')}</small>`}`;
 }

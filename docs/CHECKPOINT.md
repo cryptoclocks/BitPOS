@@ -107,6 +107,12 @@
   - **Open:**
     - The owner should confirm by eye that the animation plays smoothly on the Mini's screen.
     - Messenger animation on a real tap.
+- 30 October: promotions from meta-pos reach the Mini; pair animations show the real food photos again.
+  - **Mini follows meta-pos:** the Mini shows the promotion approved most recently on meta-pos → Promotions (a pair, or a single offer with a photo); a promotion tapped by the customer still comes first. Any action on that page clears the 20 s memo, so the next poll picks it up.
+  - **Real photos:** the pair animation (cache key `v3`) opens with both real menu photos side by side, with a "+" between them, then plays the Muse Image picture (labelled AI) on a loop. Mini 240 px is 0.52 MB; Messenger 480 px is about 2.3 MB.
+  - **meta-pos:** an approved pair that has expired now shows as "Ended" instead of "Live".
+  - **Live check on OCI:** Muse Spark paired Latte + Croissant (`6d0ed113…`); the owner approved it on meta-pos. Within about a minute, `META_SHOT` showed the Mini playing both the photo half and the AI half. Meta tests 96/96.
+  - **Not built:** there is no mass Messenger broadcast to all customers (it would need Marketing Messages opt-in). Customers get the promotion when they tap or scan.
 - Next: NTAG424 sticker provisioning tool; Muse Connector (MCP); Allow All UI; demo video.
 - Superseded (kept for history): Messenger (needs the owner signed in to Facebook to create a Page and Meta app), paying a hosted Checkout by hand, a real Messenger app/page and webhook delivery, NTAG424 sticker configuration, Muse connector review, routing `/meta/*` to the API in the tunnel. Next: live Muse Spark call, sticker provisioning tool, Stripe checkout on the tap page.
 

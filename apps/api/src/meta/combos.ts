@@ -2,7 +2,7 @@
 // Two-item offers (migration 322) and offer animations. Muse Spark drafts a pair that goes together with a reason; an
 // owner or manager approves it (the cart applies the pair discount, cart.ts); on approval Muse Image generates a new
 // picture of the two items (labelled AI-generated). Animations (anim.ts) are made once per offer and size and cached:
-// single offers from the approved banner or the real menu photo, pairs from the generated picture.
+// single offers from the approved banner or the real menu photo, pairs from both real menu photos and then the generated picture.
 import {createHash} from 'node:crypto';
 import {readFile} from 'node:fs/promises';
 import {z} from 'zod';
@@ -92,16 +92,19 @@ export async function offerAnimation(deps:AgentDeps,merchantId:string,productId:
   return (banner?await offerGif({...spec,image:banner.image,mime:banner.mime}):null)??(photo?await offerGif({...spec,image:photo,mime:'image/jpeg'}):null);
  });
 }
-/** Animation for a live two-item offer (the generated picture, or the first item's photo while it is being made). */
+/** Animation for a live two-item offer: both real menu photos side by side, then the generated picture once it is made. */
 export async function comboAnimation(deps:AgentDeps,merchantId:string,id:string,size:240|480):Promise<Anim|null>{
  const c=(await listCombos(deps.db,merchantId,true)).find(x=>x.id===id);if(!c)return null;
  const img=c.hasImage?await comboImage(deps.db,merchantId,id):null;
- const key=`v2:combo:${id}:${img?.image?'img':'photo'}:${size}`;
+ const key=`v3:combo:${id}:${img?.image?'img':'photo'}:${size}`;
  return cached(deps.db,merchantId,key,async()=>{
-  const spec={badge:`−${c.discountPercent}%`,title:size>300?`${c.a.name} + ${c.b.name}`:`${c.a.nameEn} + ${c.b.nameEn}`,size,frames:size>300?20:16};
-  if(img?.image){const g=await offerGif({...spec,image:img.image,mime:img.image_mime??'image/png',subtitle:size>300?`โปรคู่ · ${c.a.nameEn} + ${c.b.nameEn} · ภาพสร้างด้วย AI`:''});if(g)return g;}
-  const a=(await listMenu(deps,merchantId)).find(i=>i.productId===c.a.id),photo=a?await photoOf(a):null;
-  return photo?offerGif({...spec,image:photo,mime:'image/jpeg',subtitle:size>300?`โปรคู่ · ${c.a.nameEn} + ${c.b.nameEn}`:''}):null;
+  const menu=await listMenu(deps,merchantId),photo=async(pid:string)=>{const m=menu.find(i=>i.productId===pid);return m?photoOf(m):null;};
+  const [pa,pb]=await Promise.all([photo(c.a.id),photo(c.b.id)]),photos:[Buffer,Buffer]|undefined=pa&&pb?[pa,pb]:undefined;
+  const spec={badge:`−${c.discountPercent}%`,title:size>300?`${c.a.name} + ${c.b.name}`:`${c.a.nameEn} + ${c.b.nameEn}`,size,frames:size>300?16:12,photos,
+   photoSubtitle:size>300?`โปรคู่ · ${c.a.nameEn} + ${c.b.nameEn}`:''};
+  if(img?.image){const g=await offerGif({...spec,image:img.image,mime:img.image_mime??'image/png',subtitle:size>300?`โปรคู่ · ${c.a.nameEn} + ${c.b.nameEn} · ภาพสร้างด้วย AI`:'AI'});if(g)return g;}
+  const first=pa??pb;
+  return first?offerGif({...spec,image:photos?photos[0]:first,mime:'image/jpeg',subtitle:spec.photoSubtitle}):null;
  });
 }
 export type {MenuItem};
