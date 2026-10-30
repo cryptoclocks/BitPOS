@@ -10,6 +10,7 @@ import type {MetaRouter} from '../../../../packages/meta-ai/src/router';
 import {MetaRouterError} from '../../../../packages/meta-ai/src/types';
 import {AgentOrderError,createQuote,listCustomerOrders,listMenu,startAgentCheckout,type AgentDeps,type MenuItem,type QuoteView} from './agent-orders';
 import type {AgentRequest} from './identity';
+import {shopLook} from './look';
 import {cancelReservation,customerReservations,openBookingRequest,parseBooking,requestBooking,resetBookingRequest,bangkokToday,TZ,CHECKIN_MINUTES,type BookingFields,type BookingResult,type ReservationView} from './reservations';
 import type {Card,Outgoing,QuickReply} from './messenger';
 import {kitchenStages} from './kitchen';
@@ -348,8 +349,12 @@ How about these?`},cards];
    // Get Started / Help for a connected customer: a picture menu of what the chat can do (no model call).
    const items=(await listMenu(deps,merchantId)).filter(i=>i.payable),pic=(n:number)=>items[n]?imageFor(deps,items[n]):undefined;
    const top=items.find(i=>i.offer);
-   return [{kind:'text',psid,text:'สวัสดีค่ะ 👋 Muse Café ยินดีต้อนรับ\nเลือกได้เลยค่ะ หรือพิมพ์/พูดสิ่งที่อยากสั่ง เช่น "ขอลาเต้ 2 แก้ว"'},
-    {kind:'cards',psid,cards:[
+   // The shop's look from meta-pos: its name, tagline and cover photo lead the welcome.
+   const look=await shopLook(deps.db,merchantId).catch(()=>null),name=look?.name||'Muse Café';
+   const shopCard=look?.coverUrl?[{title:`🏠 ${name}`,subtitle:look.tagline||'หน้าร้านออนไลน์ · Order and pay with Stripe',imageUrl:deps.publicOrigin+look.coverUrl,
+    buttons:[{type:'web_url' as const,title:'เปิดหน้าร้าน / Shop',url:`${deps.publicOrigin}/`}]}]:[];
+   return [{kind:'text',psid,text:`สวัสดีค่ะ 👋 ${name} ยินดีต้อนรับ${look?.tagline?`\n${look.tagline}`:''}\nเลือกได้เลยค่ะ หรือพิมพ์/พูดสิ่งที่อยากสั่ง เช่น "ขอลาเต้ 2 แก้ว"`},
+    {kind:'cards',psid,cards:[...shopCard,
      {title:'☕ สั่งจากเมนู',subtitle:top?`วันนี้ ${top.name} ลด ${top.offer!.discountPercent}% · ใส่ตะกร้าแล้วจ่ายทีเดียว`:'ใส่ตะกร้าแล้วจ่ายทีเดียวด้วย Stripe',imageUrl:pic(0),
       buttons:[{type:'postback',title:'ดูเมนู / Menu',payload:'BITPOS_MENU'},{type:'web_url',title:'🎙️ สั่งด้วยเสียง',url:`${deps.publicOrigin}/meta/order`}]},
      {title:'🗓️ จองโต๊ะ',subtitle:'บอกวัน เวลา จำนวนคน แล้วแตะมือถือที่โต๊ะเพื่อเช็กอิน',imageUrl:pic(1),buttons:[{type:'postback',title:'จองโต๊ะ / Book',payload:'BITPOS_BOOK'}]},

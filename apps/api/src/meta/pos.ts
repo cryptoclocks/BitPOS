@@ -10,6 +10,7 @@ import type {MetaRouteDeps} from './routes';
 import {formatTapAmount,inKitchen,listTapOrders,pickupCode,preordered,type StaffDeps,type StaffOrder,type StaffView} from './staff';
 import {samCount} from './vision';
 import {askOwnerAssistant} from './owner-assistant';
+import {LookError,PRESETS,saveLook,shopLook} from './look';
 import {BookingSettingsError,bookingSettings,floorPlan,saveBookingSettings,screenTags,staffReservations,type FloorTable} from './reservations';
 import {screenKey} from './screen';
 import {listMenu} from './agent-orders';
@@ -28,6 +29,11 @@ const st=(s:string,handed:string|null)=>handed?pill('ส่งมอบแล้
 
 async function body(req:http.IncomingMessage):Promise<URLSearchParams|null>{
  const parts:Buffer[]=[];let n=0;for await(const c of req){n+=c.length;if(n>8192)return null;parts.push(c);}
+ return new URLSearchParams(Buffer.concat(parts).toString('utf8'));
+}
+/** The shop-look form carries resized images as data URLs, so it may be up to ~6 MB. */
+async function bigBody(req:http.IncomingMessage):Promise<URLSearchParams|null>{
+ const parts:Buffer[]=[];let n=0;for await(const c of req){n+=c.length;if(n>6_000_000)return null;parts.push(c);}
  return new URLSearchParams(Buffer.concat(parts).toString('utf8'));
 }
 const go=(res:http.ServerResponse,to:string)=>{res.writeHead(303,{Location:to,'Cache-Control':'no-store'});res.end();};
@@ -328,6 +334,52 @@ ${boss?`<button class="inline">${L('บันทึก','Save')}</button>`:`<p c
 <a class="btn g inline" href="/meta/staff/settings">← ตั้งค่า</a>`,{sub:shop});
  }
 
+ // Shop look: cover photo, logo, tagline and theme colour for the customer pages (meta-pay).
+ if(path==='/meta/staff/settings/look'){
+  let error='';
+  if(method==='POST'){
+   if(!boss)return ownerOnly();
+   const f=await bigBody(req);
+   if(!f)error=L('รูปใหญ่เกินไป','The images are too large');
+   else{
+    const pic=(k:string)=>{if(f.get(`${k}_remove`)==='1')return null;const v=f.get(k)??'';if(!v)return undefined;const m=v.match(/^data:image\/(?:jpeg|png|webp);base64,([A-Za-z0-9+/=]+)$/);return m?Buffer.from(m[1],'base64'):Buffer.alloc(0);};
+    const accent=f.get('custom')==='1'?f.get('accent_custom')??'':f.get('accent')??'';
+    try{await saveLook(db,me.merchantId,me.userId,{tagline:f.get('tagline')??'',accent,cover:pic('cover'),logo:pic('logo')});log('Shop look saved');go(res,'/meta/staff/settings/look?saved=1');return true;}
+    catch(e){if(!(e instanceof LookError))throw e;
+     error={BAD_COLOUR:L('สีไม่ถูกต้อง','Invalid colour'),LOW_CONTRAST:L('สีนี้อ่อนเกินไป ตัวหนังสือสีขาวบนปุ่มจะอ่านยาก ลองสีเข้มขึ้น','This colour is too light for white button text. Try a darker one.'),
+      BAD_IMAGE:L('รับเฉพาะรูป JPEG, PNG หรือ WebP','Only JPEG, PNG or WebP images'),TOO_LARGE:L('รูปใหญ่เกินไป (ปก 3 MB, โลโก้ 1 MB)','Image too large (cover 3 MB, logo 1 MB)'),BAD_TAGLINE:L('คำโปรยยาวเกิน 120 ตัวอักษร','The tagline is over 120 characters')}[e.code];}
+   }
+  }
+  const v=await shopLook(db,me.merchantId);
+  const custom=!PRESETS.some(([c])=>c===v.accent);
+  const dis=boss?'':' disabled';
+  const swatch=PRESETS.map(([c,th,en])=>`<label class="sw"><input type="radio" name="accent" value="${c}"${c===v.accent?' checked':''}${dis}><i style="background:${c}"></i>${L(th,en)}</label>`).join('');
+  const saved=url.searchParams.get('saved')==='1'&&!error?`<div class="card">${pill(L('บันทึกแล้ว','Saved'),'gr')} ${L('หน้าร้านของลูกค้าใช้ค่าใหม่ภายใน 20 วินาที','Customer pages use it within 20 seconds')}</div>`:'';
+  const preview=`<div class="lookpv" style="--a:${v.accent}"><div class="lpcover"${v.coverUrl?` style="background-image:url('${esc(v.coverUrl)}')"`:''}><span>${esc(v.tagline)}</span></div>
+<div class="lpbar">${v.logoUrl?`<img src="${esc(v.logoUrl)}" alt="">`:''}<b>${esc(v.name)}</b></div><div class="lpbtn">${L('ดูเมนู','Menu')}</div></div>`;
+  const script=`(()=>{const fit=(file,max,type,q)=>new Promise((ok,no)=>{const im=new Image();im.onload=()=>{const k=Math.min(1,max/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);c.getContext('2d').drawImage(im,0,0,c.width,c.height);ok(c.toDataURL(type,q));URL.revokeObjectURL(im.src);};im.onerror=no;im.src=URL.createObjectURL(file);});
+for(const [k,max,type] of [['cover',1600,'image/jpeg'],['logo',256,'image/png']]){const inp=document.getElementById(k+'_file'),out=document.getElementById(k);if(!inp)continue;inp.onchange=async()=>{const f=inp.files[0];if(!f)return;out.value=await fit(f,max,type,0.85);const pv=document.getElementById(k+'_pv');if(pv)pv.src=out.value;};}
+const cu=document.getElementById('accent_custom'),cb=document.getElementById('custom');if(cu)cu.oninput=()=>{cb.checked=true;document.querySelector('.lookpv').style.setProperty('--a',cu.value);};
+for(const r of document.querySelectorAll('input[name=accent]'))r.onchange=()=>{cb.checked=false;document.querySelector('.lookpv').style.setProperty('--a',r.value);};})();`;
+  const css=`<style>.sw{display:inline-flex;align-items:center;gap:6px;margin:0 14px 10px 0;font-size:14px}.sw i{width:26px;height:26px;border-radius:13px;display:inline-block}.sw input{width:auto;margin:0}
+.lookpv{max-width:360px;border:1px solid var(--ln);border-radius:18px;overflow:hidden;background:#fff}.lpcover{height:150px;background:#ddd center/cover;display:flex;align-items:flex-end}.lpcover span{color:#fff;padding:10px 14px;font-weight:600;text-shadow:0 1px 4px rgba(0,0,0,.6)}
+.lpbar{display:flex;align-items:center;gap:8px;padding:12px 14px}.lpbar img{width:32px;height:32px;border-radius:9px;object-fit:cover}.lpbtn{margin:0 14px 14px;padding:12px;border-radius:12px;text-align:center;color:#fff;font-weight:600;background:var(--a)}
+.thumb{max-width:220px;max-height:120px;border-radius:10px;display:block;margin:6px 0}</style>`;
+  return send(error?400:200,'/meta/staff/settings',L('หน้าตาร้าน','Shop look'),`${css}${saved}${error?`<div class="card">${pill(L('บันทึกไม่ได้','Not saved'),'rd')} ${esc(error)}</div>`:''}
+<div class="grid g2"><form method="post" action="/meta/staff/settings/look" class="card">
+<label>${L('ภาพปกร้าน','Cover photo')}</label>${v.coverUrl?`<img class="thumb" id="cover_pv" src="${esc(v.coverUrl)}" alt="">`:'<img class="thumb" id="cover_pv" alt="">'}<input type="file" id="cover_file" accept="image/jpeg,image/png,image/webp"${dis}><input type="hidden" name="cover" id="cover">
+${v.coverUrl&&boss?`<label class="sw"><input type="checkbox" name="cover_remove" value="1">${L('ลบภาพปก','Remove cover')}</label>`:''}
+<label>${L('โลโก้','Logo')}</label>${v.logoUrl?`<img class="thumb" id="logo_pv" src="${esc(v.logoUrl)}" alt="" style="max-width:64px">`:'<img class="thumb" id="logo_pv" alt="" style="max-width:64px">'}<input type="file" id="logo_file" accept="image/jpeg,image/png,image/webp"${dis}><input type="hidden" name="logo" id="logo">
+${v.logoUrl&&boss?`<label class="sw"><input type="checkbox" name="logo_remove" value="1">${L('ลบโลโก้','Remove logo')}</label>`:''}
+<label>${L('คำโปรยบนภาพปก','Tagline on the cover')}</label><input name="tagline" maxlength="120" value="${esc(v.tagline)}"${dis}>
+<label>${L('สีธีม','Theme colour')}</label><div>${swatch}</div>
+<label class="sw"><input type="checkbox" id="custom" name="custom" value="1"${custom?' checked':''}${dis}>${L('สีเอง','Custom')} <input type="color" id="accent_custom" name="accent_custom" value="${esc(v.accent.toLowerCase())}"${dis} style="width:48px;height:32px;padding:0"></label>
+<small class="mu">${L('ระบบตรวจว่าตัวหนังสือสีขาวบนสีนี้อ่านได้ (contrast ≥ 4.5)','The server checks white text stays readable on it (contrast ≥ 4.5)')}</small>
+${boss?`<button class="inline">${L('บันทึก','Save')}</button>`:`<p class="mu">${L('เฉพาะเจ้าของหรือผู้จัดการแก้ได้','Owner or manager only')}</p>`}</form>
+<div class="card"><h2>${L('ตัวอย่างหน้าร้าน','Preview')}</h2>${preview}<p class="mu">${L('ใช้กับหน้าร้านลูกค้า (meta-pay): หัวเว็บ ปุ่ม ภาพปก และชื่อร้าน','Used on the customer pages (meta-pay): header, buttons, cover and shop name')}</p><p><a target="_blank" rel="noopener" href="${esc(deps.identity.publicOrigin)}/">${L('เปิดหน้าร้านจริง','Open the shop')} →</a></p></div></div>
+<a class="btn g inline" href="/meta/staff/settings">← ${L('ตั้งค่า','Settings')}</a>`,{sub:L('ปก โลโก้ คำโปรย และสีของหน้าร้านลูกค้า','Cover, logo, tagline and colour of the customer shop'),script});
+ }
+
  if(path==='/meta/staff/settings'){
   const r=await db.tenant(me.merchantId,async c=>({
    devices:(await c.query<{label:string;table:string|null;tag:string|null;counter:number|null}>(`SELECT d.label,t.label AS table,g.tag_id AS tag,g.last_counter AS counter FROM devices d LEFT JOIN merchant_tables t ON t.merchant_id=d.merchant_id AND t.id=d.table_id
@@ -337,9 +389,9 @@ ${boss?`<button class="inline">${L('บันทึก','Save')}</button>`:`<p c
   const screen=(tag:string)=>`${deps.identity.publicOrigin}/meta/screen/${tag}?k=${screenKey(deps.identity.masterKey,tag)}`;
   return send(200,path,'ตั้งค่า',`<h2>โต๊ะ อุปกรณ์ และสติกเกอร์</h2><table><tr><th>อุปกรณ์</th><th>โต๊ะ</th><th>${L('สติกเกอร์ NTAG 424','NTAG 424 sticker')}</th><th>จอโต๊ะ</th></tr>${r.devices.map(d=>`<tr><td>${esc(d.label)}</td><td>${esc(d.table??'—')}</td><td>${d.tag?`${esc(d.tag)} <small>· ตัวนับ ${d.counter}</small>`:'<span class="mu">ยังไม่มี</span>'}</td><td>${d.tag?`<a target="_blank" rel="noopener" href="${esc(screen(d.tag))}">เปิด →</a>`:''}</td></tr>`).join('')}</table>
 <div class="grid g2" style="margin-top:16px">${[['👥','ผู้ใช้และสิทธิ์',r.roles.map(x=>`${({owner:'เจ้าของ',manager:'ผู้จัดการ',staff:'พนักงาน'} as Record<string,string>)[x.role]??x.role} ${x.n}`).join(' · ')+' · ตรวจสิทธิ์ทุกคำขอ'],
- ['💬','Messenger',r.page?`เพจ ${r.page} · เชื่อมต่อแล้ว · ข้อความยินยอม v1`:'ยังไม่ได้เชื่อมเพจ'],['💳','Stripe',deps.stripe?'Sandbox · webhook ตรวจลายเซ็น · ห้ามคีย์จริง':'ยังไม่ได้ตั้งค่า'],
+ ['🎨',L('หน้าตาร้าน','Shop look'),L('ปก โลโก้ คำโปรย สีธีม','Cover, logo, tagline, theme colour')],['💬','Messenger',r.page?`เพจ ${r.page} · เชื่อมต่อแล้ว · ข้อความยินยอม v1`:'ยังไม่ได้เชื่อมเพจ'],['💳','Stripe',deps.stripe?'Sandbox · webhook ตรวจลายเซ็น · ห้ามคีย์จริง':'ยังไม่ได้ตั้งค่า'],
  ['✨','Muse Spark',deps.offers?.router?L('muse-spark-1.3 · จำกัด 10 ครั้ง/ชม./ลูกค้า · มีตัวสำรอง','muse-spark-1.3 · up to 10 calls per customer per hour · with fallback'):'ใช้ตัวสำรอง (ไม่มีโมเดล)'],['🤖','Muse Connector (MCP)','ดูปลายทางและเครื่องมือ'],['🖥️',L('เฟิร์มแวร์ BitPOS Mini','BitPOS Mini firmware'),L('รุ่น Meta แยกจาก sol- · ดูรายละเอียดใน README ของเฟิร์มแวร์','Meta edition, separate from sol- · see the firmware README')]]
- .map(([i,a,b],n)=>row({icon:i,title:a,sub:esc(b),href:n===0?'/meta/staff/users':n===4?'/meta/staff/connector':n===3?'/meta/staff/ledger':undefined})).join('')}</div>`,{sub:shop});
+ .map(([i,a,b],n)=>row({icon:i,title:a,sub:esc(b),href:n===0?'/meta/staff/users':n===1?'/meta/staff/settings/look':n===5?'/meta/staff/connector':n===4?'/meta/staff/ledger':undefined})).join('')}</div>`,{sub:shop});
  }
 
  const refund=path.match(/^\/meta\/staff\/order\/([0-9a-f-]{36})\/refund$/);

@@ -4,6 +4,7 @@
 // Every page built here ends with at least one way onward, so no page is a dead end (design link audit rule).
 
 import {FRAME,localizeStaff,staffLang} from './staff-i18n';
+import {currentLook,type ShopLook} from './look';
 export const esc=(s:unknown)=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]!));
 
 const CSS=`:root{--p:#0866FF;--pd:#0450C8;--ink:#1C2B33;--mu:#65676B;--bg:#F0F2F5;--ln:#DADDE1;--ti:#E7F0FF;--gr:#1E8E3E;--grb:#E6F4EA;--rd:#D3203A;--rdb:#FDECEF;--am:#8A5A00;--amb:#FFF4D6;--vi:#7A3FF2;--vib:#F1EAFF}
@@ -27,6 +28,7 @@ a{color:var(--p);text-decoration:none}a:hover{text-decoration:underline}small,.m
 input,select,textarea{width:100%;font:inherit;padding:12px 14px;border:1px solid var(--ln);border-radius:12px;background:#fff;margin:6px 0}label{font-size:13px;color:var(--mu)}
 .bar{position:sticky;bottom:12px;display:flex;justify-content:space-between;align-items:center;background:var(--p);color:#fff;border-radius:16px;padding:16px 18px;font-weight:700;margin-top:16px}.bar:hover{text-decoration:none}
 .foot{margin-top:24px;text-align:center;font-size:12px;color:var(--mu)}
+.brand{display:inline-flex;align-items:center;gap:8px}.brand img{width:32px;height:32px;border-radius:9px;object-fit:cover;background:var(--bg)}.cover{position:relative;border-radius:20px;overflow:hidden}.cover .hero{border-radius:0}.cover .tag{position:absolute;left:0;right:0;bottom:0;padding:28px 16px 12px;color:#fff;font-weight:600;background:linear-gradient(180deg,transparent,rgba(0,0,0,.6))}
 .desk{display:grid;grid-template-columns:248px 1fr;min-height:100vh}.side{background:#fff;border-right:1px solid var(--ln);padding:20px 14px;position:sticky;top:0;height:100vh;overflow:auto}
 .side a{display:flex;gap:10px;align-items:center;padding:10px 12px;border-radius:12px;color:var(--ink);margin:2px 0}.side a.on{background:var(--ti);color:var(--p);font-weight:600}.side a:hover{text-decoration:none;background:var(--bg)}
 .side .who{border-top:1px solid var(--ln);margin-top:14px;padding-top:12px;font-size:13px}.main{padding:0 0 40px}.hd{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:#fff;border-bottom:1px solid var(--ln);padding:14px 28px}
@@ -79,7 +81,8 @@ tr:target{background:var(--ti)}
 export interface PageOpts {title:string;back?:string|null;nav?:[string,string][];refresh?:number;nonce?:string;script?:string;csp?:string;
  /** false when the page already has its own primary action: then every nav button is secondary. */
  navPrimary?:boolean}
-const head=(o:PageOpts)=>`<!doctype html><html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="icon" href="/meta/icons/icon.svg" type="image/svg+xml"><link rel="icon" href="/meta/icons/icon-32.png" sizes="32x32"><link rel="apple-touch-icon" href="/meta/icons/icon-180.png"><meta name="theme-color" content="#0866FF">${o.refresh?`<meta http-equiv="refresh" content="${o.refresh}">`:''}<title>${esc(o.title)} · BitPOS × Muse</title><style>${CSS}</style></head>`;
+/** look: the shop's own colour on customer pages (staff pages keep the BitPOS theme). */
+const head=(o:PageOpts,look?:ShopLook|null)=>`<!doctype html><html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="icon" href="/meta/icons/icon.svg" type="image/svg+xml"><link rel="icon" href="/meta/icons/icon-32.png" sizes="32x32"><link rel="apple-touch-icon" href="/meta/icons/icon-180.png"><meta name="theme-color" content="${look?.accent??'#0866FF'}">${o.refresh?`<meta http-equiv="refresh" content="${o.refresh}">`:''}<title>${esc(o.title)} · BitPOS × Muse</title><style>${CSS}${look?`:root{--p:${look.accent};--pd:${look.accentDark};--ti:${look.accentTint}}`:''}</style></head>`;
 
 /** Customer page (meta-pay, mobile first). `nav` are the onward buttons; a page always gets at least "back to the shop". */
 const AI_CSS=`body.ai{background:#070B18;color:#EEF2FF;min-height:100vh;background-image:radial-gradient(60% 40% at 15% 0%,rgba(8,102,255,.35),transparent 70%),radial-gradient(50% 40% at 100% 20%,rgba(122,63,242,.35),transparent 70%),radial-gradient(60% 50% at 50% 110%,rgba(0,200,255,.18),transparent 70%);background-attachment:fixed}
@@ -110,14 +113,18 @@ const AI_CSS=`body.ai{background:#070B18;color:#EEF2FF;min-height:100vh;backgrou
 @media (prefers-reduced-motion:reduce){.orb,.orb::before,.orb::after,.msg,.glass{animation:none}}`;
 /** Full-screen AI assistant shell (voice ordering, design C11): dark, a chat thread and a bottom dock. */
 export function aiHtml(o:PageOpts&{dock:string},body:string):string{
- return `${head(o)}<body class="ai"><style>${AI_CSS}</style><header class="aitop">${o.back?`<a class="back" href="${esc(o.back)}" aria-label="กลับ">‹</a>`:''}<span class="spark"><i></i>Muse Spark</span><span class="sp"></span><small>Muse Café · Stripe sandbox</small></header>
+ const look=currentLook();
+ return `${head(o,look)}<body class="ai"><style>${AI_CSS}</style><header class="aitop">${o.back?`<a class="back" href="${esc(o.back)}" aria-label="กลับ">‹</a>`:''}<span class="spark"><i></i>Muse Spark</span><span class="sp"></span><small>${esc(look?.name||'Muse Café')} · Stripe sandbox</small></header>
 <main class="aim">${body}</main><div class="dock"><div class="in">${o.dock}</div></div>${o.script&&o.nonce?`<script nonce="${o.nonce}">${o.script}</script>`:''}</body></html>`;
 }
 export function customerHtml(o:PageOpts,body:string):string{
  const nav=(o.nav&&o.nav.length?o.nav:[['หน้าร้าน / Shop','/']] as [string,string][]);
  const buttons=nav.map(([label,href],i)=>`<a class="btn${i===0&&o.navPrimary!==false?'':' g'}" href="${esc(href)}">${esc(label)}</a>`).join('');
- return `${head(o)}<body><header class="top">${o.back?`<a class="back" href="${esc(o.back)}" aria-label="กลับ">‹</a>`:''}<span class="brand">BitPOS <b>× Muse</b></span><span class="sp"></span><small>Stripe sandbox</small></header>
-<main class="m">${body}${buttons}<p class="foot">Muse Café · ร้านเดโมของงาน Meta · ราคาและการจ่ายจากเซิร์ฟเวอร์ · ไม่มีเงินจริง ไม่มีคริปโต</p></main>${o.script&&o.nonce?`<script nonce="${o.nonce}">${o.script}</script>`:''}</body></html>`;
+ const look=currentLook(),shop=look?.name||'Muse Café';
+ // With a logo the header shows the shop (logo + name); without one, the BitPOS × Muse word mark as before.
+ const brand=look?.logoUrl?`<span class="brand"><img src="${esc(look.logoUrl)}" alt="">${esc(shop)}</span>`:'<span class="brand">BitPOS <b>× Muse</b></span>';
+ return `${head(o,look)}<body><header class="top">${o.back?`<a class="back" href="${esc(o.back)}" aria-label="กลับ">‹</a>`:''}${brand}<span class="sp"></span><small>Stripe sandbox</small></header>
+<main class="m">${body}${buttons}<p class="foot">${esc(shop)} · ร้านเดโมของงาน Meta · ราคาและการจ่ายจากเซิร์ฟเวอร์ · ไม่มีเงินจริง ไม่มีคริปโต</p></main>${o.script&&o.nonce?`<script nonce="${o.nonce}">${o.script}</script>`:''}</body></html>`;
 }
 
 export const STAFF_NAV:[string,string,string][]=[['📊','ภาพรวม','/meta/staff/overview'],['🛒','ขายหน้าร้าน','/meta/staff/counter'],['🧾','ออเดอร์','/meta/staff'],['☕','คิวครัว','/meta/staff/kitchen'],

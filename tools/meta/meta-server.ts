@@ -5,6 +5,7 @@
 // Usage: npx tsx tools/meta/meta-server.ts <env-file>
 // The env file (outside the repo) needs META_DB_URL (a disposable/test database, never the actual-use stack),
 // META_TAP_MASTER_KEY, META_PUBLIC_URL and optionally the Messenger and Stripe test variables.
+import {withLook} from '../../apps/api/src/meta/look';
 import http from 'node:http';
 import {randomBytes} from 'node:crypto';
 import {readFileSync} from 'node:fs';
@@ -44,7 +45,8 @@ const pos=posProxyFromEnv(env);
 const server=http.createServer(async(req,res)=>{
  const started=Date.now();
  if(pos&&proxyPos(pos,req,res))return;
- try{if(!(await serveShop(req,res,deps))&&!(await serveMeta(req,res,deps))){res.writeHead(404,{'Content-Type':'text/plain'});res.end('not found');}}
+ // Customer pages render with the demo shop's look (colour, logo, cover) from meta-pos.
+ try{await withLook(deps?.identity.db??null,deps?.demoMerchant,async()=>{if(!(await serveShop(req,res,deps))&&!(await serveMeta(req,res,deps))){res.writeHead(404,{'Content-Type':'text/plain'});res.end('not found');}});}
  catch{if(!res.headersSent){res.writeHead(500,{'Content-Type':'text/plain'});res.end('error');}}
  // Path only: query strings can carry one-time tokens.
  console.log(new Date().toISOString(),req.method,(req.url??'').split('?')[0],res.statusCode,`${Date.now()-started}ms`);

@@ -10,6 +10,7 @@ import {stripeSandboxFromEnv,StripePaymentError} from './stripe';
 import {createMetaRouter,metaProvidersFromEnv} from '../../../../packages/meta-ai/src/router';
 import {formatTapAmount,handOver,listTapOrders,pickupCode,staffConfigFromEnv,staffDemoSignIn,staffFromSession,staffSignIn,staffSignOut,type SignInResult,type StaffDeps,type StaffOrder,type StaffView} from './staff';
 import {serveMcp} from './mcp';
+import {lookImage} from './look';
 import {cancelReservation,screenTags,staffReservations,sweepLapsed,sweepReminders,tableScreen} from './reservations';
 import {screenHtml,screenKey,screenKeyValid} from './screen';
 import {approveDraft,draftOffer,listOffersOverview,rejectDraft,revokePolicy,stopOffer,OfferPolicyError,type DraftView,type OfferPolicyDeps,type PolicyView} from './offer-policy';
@@ -114,10 +115,17 @@ export async function serveMeta(req:http.IncomingMessage,res:http.ServerResponse
  // Customer pages live on META_PUBLIC_URL's host, staff pages on META_STAFF_URL's host. On the staff host only
  // /meta/staff (and the menu photos its pages show) answers; elsewhere (customer host or the legacy pay.… /meta/ route) staff pages redirect there.
  // Direct loopback requests (host health checks, tests) are not redirected.
- const staffOrigin=deps.staff?.config.origin,host=(req.headers.host??'').toLowerCase(),isStaffPath=path==='/meta/staff'||path.startsWith('/meta/staff/'),isMenuImage=/^\/meta\/images\/menu\/[a-z0-9-]{1,64}\.jpg$|^\/meta\/icons\/|^\/meta\/anim\//.test(path);
+ const staffOrigin=deps.staff?.config.origin,host=(req.headers.host??'').toLowerCase(),isStaffPath=path==='/meta/staff'||path.startsWith('/meta/staff/'),isMenuImage=/^\/meta\/images\/menu\/[a-z0-9-]{1,64}\.jpg$|^\/meta\/icons\/|^\/meta\/anim\/|^\/meta\/look\//.test(path);
  if(staffOrigin&&staffOrigin!==deps.identity.publicOrigin&&!/^(127\.0\.0\.1|localhost)(:\d+)?$/.test(host)){
   if(host===new URL(staffOrigin).host){if(!isStaffPath&&!isMenuImage){res.writeHead(404,{'Content-Type':'text/plain'});res.end('not found');return true;}}
   else if(isStaffPath&&method==='GET'){res.writeHead(302,{Location:staffOrigin+path,'Cache-Control':'no-store'});res.end();return true;}
+ }
+ // Shop look images (cover, logo) set in meta-pos; the revision in the name makes them safe to cache.
+ const lookImg=path.match(/^\/meta\/look\/([0-9a-f-]{36})\/(cover|logo)-\d{1,9}\.(?:jpg|png|webp)$/);
+ if(lookImg&&method==='GET'){
+  const img=await lookImage(deps.identity.db,lookImg[1],lookImg[2] as 'cover'|'logo').catch(()=>null);
+  if(!img){res.writeHead(404,{'Content-Type':'text/plain'});res.end('not found');return true;}
+  res.writeHead(200,{'Content-Type':img.mime,'Cache-Control':'public, max-age=604800, immutable','X-Content-Type-Options':'nosniff','Content-Security-Policy':"default-src 'none'"});res.end(img.body);return true;
  }
  // Site icons (browser tab, home screen): the Meta "B" mark.
  const icon=path==='/favicon.ico'?'icon-32.png':path==='/apple-touch-icon.png'?'icon-180.png':path.match(/^\/meta\/icons\/(icon(?:-(?:32|180|192|512))?\.(?:png|svg))$/)?.[1];

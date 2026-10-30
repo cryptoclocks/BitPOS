@@ -10,6 +10,8 @@ import type {MetaRouteDeps} from './routes';
 import {isTourist,menuNames,TOURIST,TOURIST_UI,type TouristLang} from './translate';
 import {liveBanners} from './banners';
 import {listCombos} from './combos';
+import {currentLook} from './look';
+import {bangkokToday,bookingDay} from './reservations';
 
 const CART='bitpos_meta_cart',TABLE='bitpos_meta_table',LANG='bitpos_meta_lang',MAX_FORM=4096;
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
@@ -64,9 +66,18 @@ export async function serveShop(req:http.IncomingMessage,res:http.ServerResponse
    if(want){const t=(await deps.identity.db.tenant(merchant,c=>c.query<{id:string;label:string}>('SELECT id,label FROM merchant_tables WHERE retired_at IS NULL AND (label=$1 OR id::text=$1)',[want]))).rows[0];
     if(t){tableCookie=t.id;tableLabel=t.label;}}
    else{const id=cookie(req,TABLE);if(id&&UUID.test(id))tableLabel=(await deps.identity.db.tenant(merchant,c=>c.query<{label:string}>('SELECT label FROM merchant_tables WHERE id=$1',[id]))).rows[0]?.label??null;}
-   const body=`<img class="hero" src="/meta/images/menu/iced-latte.jpg" alt=""><div class="card"><h1>Muse Café${tableLabel?` · ${esc(tableLabel)}`:''}</h1><p class="mu">สั่งจากมือถือ จ่ายด้วย Stripe · Order from your phone, pay with Stripe</p>${pill('เปิดอยู่ · 08:00–20:00','gr')}${pill('ไม่ต้องสมัคร','mu')}</div>
+   // The shop's own cover, name and tagline (meta-pos → Shop look), and today's hours from its opening-hours table.
+   const look=currentLook(),shopName=look?.name||'Muse Café';
+   const today=await bangkokToday(deps.identity.db,merchant);
+   const hours=await deps.identity.db.tenant(merchant,async c=>{const d=await bookingDay(c,today);
+    const now=(await c.query<{m:number}>("SELECT (extract(hour FROM clock_timestamp() AT TIME ZONE 'Asia/Bangkok')*60+extract(minute FROM clock_timestamp() AT TIME ZONE 'Asia/Bangkok'))::int AS m")).rows[0].m;
+    const mins=(t:string)=>Number(t.slice(0,2))*60+Number(t.slice(3));
+    return {text:d.windows.map(w=>`${w.opens}–${w.closes}`).join(', '),open:d.windows.some(w=>now>=mins(w.opens)&&now<mins(w.closes))};});
+   const hoursPill=hours.text?pill(`${hours.open?'เปิดอยู่':'ปิดอยู่'} · ${hours.text}`,hours.open?'gr':'mu'):pill('วันนี้ปิด · Closed today','mu');
+   const cover=`<div class="cover"><img class="hero" src="${esc(look?.coverUrl??'/meta/images/menu/iced-latte.jpg')}" alt="">${look?.tagline?`<div class="tag">${esc(look.tagline)}</div>`:''}</div>`;
+   const body=`${cover}<div class="card"><h1>${esc(shopName)}${tableLabel?` · ${esc(tableLabel)}`:''}</h1><p class="mu">สั่งจากมือถือ จ่ายด้วย Stripe · Order from your phone, pay with Stripe</p>${hoursPill}${pill('ไม่ต้องสมัคร','mu')}</div>
 ${row({icon:'📶',title:'แตะมือถือที่เครื่องเพื่อรับโปร',sub:'ไม่บังคับ · ยินยอมใน Messenger ก่อน · Optional',href:'/help#tap'})}${cartBar()}`;
-   send(res,200,customerHtml({title:'Muse Café',nav:[['ดูเมนู / Menu','/menu'],['ช่วยเหลือ / Help','/help']]},body),tableCookie?{'Set-Cookie':setCookie(deps,TABLE,tableCookie,6*3600)}:{});return true;
+   send(res,200,customerHtml({title:shopName,nav:[['ดูเมนู / Menu','/menu'],['ช่วยเหลือ / Help','/help']]},body),tableCookie?{'Set-Cookie':setCookie(deps,TABLE,tableCookie,6*3600)}:{});return true;
   }
   if(path==='/menu'&&method==='GET'){
    const cat=url.searchParams.get('c')??'',menu=await listMenu(agent,merchant),tr=await names(menu),bn=await liveBanners(deps.identity.db,merchant);
