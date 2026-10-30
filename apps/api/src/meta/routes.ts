@@ -331,7 +331,13 @@ async function sendReceipt(deps:MetaRouteDeps,merchantId:string,orderId:string,l
   const msg=deps.messenger,f=deps.fetch;
   if(await receiptAvailable()){
    const ok=await sendMessenger(msg,{kind:'image',psid:r.psid,url:receiptImageUrl(deps.identity.publicOrigin,deps.identity.masterKey,orderId)},f).then(()=>true,()=>false);
-   if(ok){await sendMessenger(msg,{kind:'text',psid:r.psid,text:`จ่ายแล้ว ✓ รหัสออเดอร์ #${r.receipt.orderNumber} · ร้านกำลังเตรียมให้ เราจะแจ้งในแชทนี้เมื่อพร้อมรับค่ะ\nPaid — order #${r.receipt.orderNumber}. We are preparing it and will message you here when it is ready.`,quick:QUICK},f);return;}
+   // A pre-order for a booked table is cooked when the customer checks in, so say that instead of "preparing".
+   const pre=(await deps.identity.db.tenant(merchantId,c=>c.query<{label:string;starts_at:Date}>(`SELECT coalesce(t.label,'') AS label,r.starts_at FROM meta_cart_orders o JOIN meta_table_reservations r ON r.merchant_id=o.merchant_id AND r.id=o.reservation_id
+     LEFT JOIN merchant_tables t ON t.merchant_id=r.merchant_id AND t.id=r.table_id WHERE o.id=$1`,[orderId]))).rows[0];
+   const at=pre&&new Intl.DateTimeFormat('en-GB',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Bangkok'}).format(pre.starts_at);
+   const text=pre?`จ่ายแล้ว ✓ รหัสออเดอร์ #${r.receipt.orderNumber} · สั่งล่วงหน้าสำหรับโต๊ะ ${pre.label} เวลา ${at} ครัวจะเริ่มทำเมื่อคุณแตะเช็กอินที่โต๊ะค่ะ (ถ้าการจองหลุดหรือยกเลิก จะไม่คืนเงิน)\nPaid — order #${r.receipt.orderNumber}, pre-ordered for table ${pre.label} at ${at}. The kitchen starts when you check in at the table. No refund if the booking lapses or is cancelled.`
+    :`จ่ายแล้ว ✓ รหัสออเดอร์ #${r.receipt.orderNumber} · ร้านกำลังเตรียมให้ เราจะแจ้งในแชทนี้เมื่อพร้อมรับค่ะ\nPaid — order #${r.receipt.orderNumber}. We are preparing it and will message you here when it is ready.`;
+   if(ok){await sendMessenger(msg,{kind:'text',psid:r.psid,text,quick:QUICK},f);return;}
    log('Receipt picture refused; sending the template');
   }
   await sendMessenger(msg,{kind:'receipt',psid:r.psid,receipt:r.receipt,fallbackText:r.text,quick:QUICK},f);

@@ -3,6 +3,7 @@
 // The server prices every line from the live catalog and approved offers when the order is made; the customer only
 // chooses product ids and quantities. PAID comes only from a signed Stripe webhook or a server-side Checkout lookup
 // that matches amount, currency and order; stock is taken once per line and recorded in meta_stock_movements.
+import {linkPreorder} from './reservations';
 import {createHash,randomBytes} from 'node:crypto';
 import type pg from 'pg';
 import type {MetaDb} from './identity';
@@ -104,6 +105,7 @@ async function markCartPaid(c:pg.PoolClient,orderId:string,f:{paymentIntentId:st
   else short=true;
  }
  await c.query("UPDATE meta_cart_orders SET status='PAID',paid_at=clock_timestamp(),paid_source=$2,stripe_payment_intent_id=$3,stock_short=$4 WHERE id=$1",[orderId,f.source,f.paymentIntentId,short]);
+ await linkPreorder(c,orderId);
  return 'PAID';
 }
 export async function cartOrderMerchant(db:MetaDb,orderId:string):Promise<string|null>{

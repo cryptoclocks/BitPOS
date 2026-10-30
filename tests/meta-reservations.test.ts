@@ -8,7 +8,8 @@ import pg from 'pg';
 import {aesCmac,deriveTagKeys} from '../packages/meta-ai/src/ntag424';
 import {handleMessengerEvents,handleTap,type IdentityDeps,type MetaDb} from '../apps/api/src/meta/identity';
 import {parseMessengerWebhook} from '../apps/api/src/meta/messenger';
-import {cancelReservation,parseBooking,requestBooking,screenTags,staffReservations,sweepLapsed,sweepReminders,tableScreen} from '../apps/api/src/meta/reservations';
+import {cancelReservation,parseBooking,requestBooking,screenTags,staffReservations,sweepLapsed,sweepReminders,tableScreen,linkPreorder,saveBookingSettings,resetBookingRequest,BookingSettingsError} from '../apps/api/src/meta/reservations';
+import {inKitchen,listTapOrders,preordered} from '../apps/api/src/meta/staff';
 import {screenKey} from '../apps/api/src/meta/screen';
 import {serveMeta} from '../apps/api/src/meta/routes';
 import http from 'node:http';
@@ -37,6 +38,7 @@ function sun(tagId:string,uid:string){
  return {e,m:Buffer.from([1,3,5,7,9,11,13,15].map(i=>full[i])).toString('hex').toUpperCase()};
 }
 const tap=(tag:string,uid:string,cookie:string|null)=>{const s=sun(tag,uid);return handleTap(deps,tag,s.e,s.m,cookie);};
+const ALL_DAY=Object.fromEntries(['0','1','2','3','4','5','6'].map(d=>[d,[{opens:'00:00',closes:'23:59'}]]));
 const bkkClock=async(offsetMin:number)=>(await admin.query<{d:string;t:string}>(`SELECT to_char(x,'YYYY-MM-DD') AS d,to_char(x,'HH24:MI') AS t FROM (SELECT (clock_timestamp()+make_interval(mins=>$1)) AT TIME ZONE 'Asia/Bangkok' AS x) s`,[offsetMin])).rows[0];
 const session=async(link:string)=>{const token=randomBytes(32).toString('base64url');await admin.query("INSERT INTO meta_customer_sessions(merchant_id,link_id,token_sha256,expires_at) VALUES($1,$2,$3,clock_timestamp()+interval '1 day')",[M,link,createHash('sha256').update(token).digest()]);return token;};
 const status=async(id:string)=>(await admin.query<{status:string}>('SELECT status FROM meta_table_reservations WHERE id=$1',[id])).rows[0].status;
@@ -49,6 +51,9 @@ before(async()=>{
  db={query:(sql,params)=>app.query(sql,params as any[]),tenant:async(merchant,fn)=>{const c=await app.connect();try{await c.query('SET ROLE bitpos_app');await c.query('BEGIN');await c.query("SELECT set_config('bitpos.merchant',$1,true)",[merchant]);const r=await fn(c);await c.query('COMMIT');return r;}catch(e){await c.query('ROLLBACK');throw e;}finally{c.release();}}};
  deps={db,masterKey:master,publicOrigin:'https://pay.example.test'};
  await admin.query("INSERT INTO merchants(id,name,treasury) SELECT $1,'booking test shop',treasury FROM merchants WHERE id=$2",[M,B]);
+ // Open all day so the timing tests do not depend on when they run; the hours test below sets its own week.
+ await admin.query(`INSERT INTO merchant_opening_hours(merchant_id,time_zone,week) VALUES($1,'Asia/Bangkok',$2::jsonb)`,[M,JSON.stringify(ALL_DAY)]);
+ await admin.query('INSERT INTO meta_booking_settings(merchant_id,slot_minutes,last_booking_before_close_minutes) VALUES($1,30,0)',[M]);
  await admin.query("INSERT INTO merchant_tables(merchant_id,id,label) VALUES($1,$2,'A1'),($1,$3,'A2')",[M,T1,T2]);
  await admin.query("INSERT INTO devices(merchant_id,id,label,table_id) VALUES($1,$2,'table A1',$3),($1,$4,'table A2',$5)",[M,D1,T1,D2,T2]);
  await admin.query('INSERT INTO meta_ntag_tags(tag_id,merchant_id,device_id,uid) VALUES($1,$2,$3,$4),($5,$2,$6,$7)',[TAG1,M,D1,UID1,TAG2,D2,UID2]);
@@ -155,15 +160,68 @@ test('reminder: 5 minutes before the booked time the customer is reminded once; 
 });
 
 test('ask time: only free future times are offered, as quick replies',{skip},async()=>{
- const {resetBookingRequest}=await import('../apps/api/src/meta/reservations');await resetBookingRequest(db,M,L2);
+ await resetBookingRequest(db,M,L2);
  const today=(await bkkClock(0)).d,tomorrow=(await bkkClock(24*60)).d;
  const r=await requestBooking(db,M,L2,{date:tomorrow,time:null,partySize:2},fallback);
  assert.equal(r.kind,'ask');const times=(r as any).times as string[];
- assert.deepEqual(times.slice(0,3),['10:00','10:30','11:00']);assert.ok(times.length<=12);
+ assert.deepEqual(times.slice(0,3),['00:00','00:30','01:00']);assert.ok(times.length<=12);
  const t=await requestBooking(db,M,L2,{date:today,time:null,partySize:2},fallback);
  const now=(await bkkClock(10)).t;
  assert.ok(((t as any).times as string[]).every(x=>x>now),'today: nothing in the past');
  await resetBookingRequest(db,M,L2);
+});
+
+test('shop hours: slots follow the week and settings; closed days and times outside hours are refused with the hours',{skip},async()=>{
+ const tomorrow=(await bkkClock(24*60)).d,dow=String(new Date(tomorrow+'T00:00:00Z').getUTCDay());
+ const week={...ALL_DAY,[dow]:[{opens:'11:00',closes:'14:00'},{opens:'17:00',closes:'22:00'}]};
+ await saveBookingSettings(db,M,randomUUID(),{week,slotMinutes:60,lastBeforeCloseMinutes:90});
+ await resetBookingRequest(db,M,L2);
+ const a=await requestBooking(db,M,L2,{date:tomorrow,time:null,partySize:2},fallback);
+ assert.deepEqual((a as any).times,['11:00','12:00','17:00','18:00','19:00','20:00'],'60-minute slots, last start 90 minutes before each close');
+ const late=await requestBooking(db,M,L2,{date:tomorrow,time:'21:00',partySize:2},fallback);
+ assert.deepEqual([late.kind,(late as any).reason,(late as any).hours],['invalid','OUTSIDE_HOURS','11:00-12:30, 17:00-20:30']);
+ await saveBookingSettings(db,M,randomUUID(),{week:{...ALL_DAY,[dow]:[]},slotMinutes:30,lastBeforeCloseMinutes:0});
+ const closed=await requestBooking(db,M,L2,{date:tomorrow,time:'19:00',partySize:2},fallback);
+ assert.deepEqual([closed.kind,(closed as any).reason],['invalid','CLOSED_DAY']);
+ assert.equal(((await requestBooking(db,M,L2,{date:tomorrow,time:null,partySize:2},fallback)) as any).closed,true);
+ await assert.rejects(saveBookingSettings(db,M,randomUUID(),{week:ALL_DAY,slotMinutes:20,lastBeforeCloseMinutes:0}),BookingSettingsError);
+ await saveBookingSettings(db,M,randomUUID(),{week:ALL_DAY,slotMinutes:30,lastBeforeCloseMinutes:0});
+ await resetBookingRequest(db,M,L2);
+});
+
+test('pre-order: paid while holding a booking in the next 12 hours → kept out of the kitchen until check-in; no refund on lapse; cancelling frees the time',{skip},async()=>{
+ const soon=await bkkClock(60);
+ await resetBookingRequest(db,M,L1);
+ const r=await requestBooking(db,M,L1,{date:soon.d,time:soon.t,partySize:2},fallback);
+ if(r.kind!=='booked'){assert.fail(`not booked: ${r.kind}`);}
+ const res=r.reservation;
+ const order=async()=>(await admin.query<{id:string}>(`INSERT INTO meta_cart_orders(merchant_id,channel,link_id,access_sha256,status,currency,amount_minor,stripe_payment_intent_id,paid_at,paid_source,expires_at)
+  VALUES($1,'web',$2,sha256('x'::bytea),'PAID','thb',12000,'pi_test1',clock_timestamp(),'webhook',clock_timestamp()+interval '30 minutes') RETURNING id`,[M,L1])).rows[0].id;
+ const id=await order();
+ const linked=await db.tenant(M,c=>linkPreorder(c,id));
+ assert.equal(linked?.tableLabel,res.tableLabel);
+ const me={merchantId:M,userId:randomUUID(),role:'owner' as const,sessionId:'s'};
+ const staffDeps={db,config:{} as any};
+ let o=(await listTapOrders(staffDeps,me)).find(x=>x.id===id)!;
+ assert.deepEqual([inKitchen(o),preordered(o),o.booking?.status,o.booking?.tableLabel],[false,true,'HELD',res.tableLabel],'pre-order waits outside the kitchen queue');
+ // Check-in (a real tap, covered by the tap test) turns the booking CHECKED_IN, which moves it into the kitchen queue.
+ const seated={...o,booking:{...o.booking!,status:'CHECKED_IN' as const}};
+ assert.deepEqual([inKitchen(seated),preordered(seated)],[true,false],'check-in moves it into the kitchen queue');
+ await admin.query("UPDATE meta_table_reservations SET status='NO_SHOW' WHERE id=$1",[res.id]);
+ o=(await listTapOrders(staffDeps,me)).find(x=>x.id===id)!;
+ assert.deepEqual([o.status,inKitchen(o),o.booking?.status],['PAID',false,'NO_SHOW'],'lapsed: still paid (no refund), not cooked');
+ // An order with no held booking soon is a normal kitchen order.
+ const plain=await order();assert.equal(await db.tenant(M,c=>linkPreorder(c,plain)),null);
+ // Cancelling a booking frees its time for someone else.
+ await admin.query("UPDATE meta_cart_orders SET status='CANCELLED',cancelled_at=clock_timestamp() WHERE id=ANY($1)",[[id,plain]]);
+ const later=await bkkClock(180);await resetBookingRequest(db,M,L1);await resetBookingRequest(db,M,L2);
+ const tables=Number((await admin.query("SELECT count(*) FROM merchant_tables WHERE merchant_id=$1 AND retired_at IS NULL",[M])).rows[0].count);
+ const mine:string[]=[];
+ for(let i=0;i<tables;i++){const b=await requestBooking(db,M,L1,{date:later.d,time:later.t,partySize:2},fallback);if(b.kind==='booked')mine.push(b.reservation.id);}
+ assert.equal((await requestBooking(db,M,L2,{date:later.d,time:later.t,partySize:2},fallback)).kind,'full');
+ assert.ok(await cancelReservation(db,M,mine[0],{linkId:L1}));
+ assert.equal((await requestBooking(db,M,L2,{date:later.d,time:later.t,partySize:2},fallback)).kind,'booked','the cancelled time is bookable again');
+ await admin.query("UPDATE meta_table_reservations SET status='CANCELLED',cancelled_at=clock_timestamp(),cancelled_by='staff' WHERE merchant_id=$1 AND status='HELD'",[M]);
 });
 
 test('chat: "จองโต๊ะ…" books through the agent without a model; Book menu asks back; model step fields are used',{skip},async()=>{

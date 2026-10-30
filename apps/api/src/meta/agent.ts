@@ -280,6 +280,8 @@ export function bookingMessages(psid:string,r:BookingResult,reply=''):Outgoing[]
   if(r.missing.includes('date'))return [{kind:'buttons',psid,text:`${reply?reply+'\n':''}จองโต๊ะได้เลยค่ะ อยากมาวันไหน เวลากี่โมง กี่ท่านคะ (เช่น "พรุ่งนี้ 1 ทุ่ม 2 คน")\nWhich day and time, and for how many? (e.g. "tomorrow 19:00, 2 people")`,
    buttons:[{type:'postback',title:'วันนี้ / Today',payload:`BITPOS_BOOK_SET:date:${r.today}`},{type:'postback',title:'พรุ่งนี้ / Tomorrow',payload:`BITPOS_BOOK_SET:date:${addDay(r.today,1)}`}]}];
   // Only times with a free table that are still ahead, as quick replies (up to 12); typing any other time also works.
+  if(r.closed)return [{kind:'text',psid,text:`${reply?reply+'\n':''}วันที่ ${r.fields.date} ร้านปิดค่ะ ลองวันอื่นได้เลย\nThe shop is closed on ${r.fields.date}. Try another day.`,
+   quick:[{title:'พรุ่งนี้ / Tomorrow',payload:`BITPOS_BOOK_SET:date:${addDay(r.fields.date!,1)}`}]}];
   if(!r.times.length)return [{kind:'text',psid,text:`${reply?reply+'\n':''}วันที่ ${r.fields.date} โต๊ะเต็มแล้วค่ะ ลองวันอื่นได้เลย\nNo free tables on ${r.fields.date}. Try another day.`,
    quick:[{title:'พรุ่งนี้ / Tomorrow',payload:`BITPOS_BOOK_SET:date:${addDay(r.fields.date!,1)}`}]}];
   return [{kind:'text',psid,text:`${reply?reply+'\n':''}วันที่ ${r.fields.date} ค่ะ เลือกเวลาที่ว่างได้เลย หรือพิมพ์เวลาเอง (เช่น 18:30)\nPick a free time, or type one (e.g. 18:30).`,
@@ -290,6 +292,9 @@ export function bookingMessages(psid:string,r:BookingResult,reply=''):Outgoing[]
   return [{kind:'buttons',psid,text:'ช่วงนั้นโต๊ะเต็มค่ะ ว่างเวลาเหล่านี้ / Fully booked then; free at:',
    buttons:r.alternatives.slice(0,3).map(t=>({type:'postback' as const,title:t,payload:`BITPOS_BOOK_SET:at:${r.fields.date}T${t}`}))}];
  }
+ if(r.reason==='CLOSED_DAY')return [{kind:'text',psid,text:`วันที่ ${r.date} ร้านปิดค่ะ ลองวันอื่นได้เลย\nThe shop is closed on ${r.date}. Try another day.`,quick:[{title:'พรุ่งนี้ / Tomorrow',payload:`BITPOS_BOOK_SET:date:${addDay(r.date,1)}`}]}];
+ if(r.reason==='OUTSIDE_HOURS')return [{kind:'text',psid,text:`เวลานั้นอยู่นอกเวลารับจองค่ะ วันที่ ${r.date} จองได้ช่วง ${r.hours} บอกเวลาใหม่ได้เลย\nOutside booking hours. On ${r.date} bookings start ${r.hours}. Tell me another time.`,
+  quick:[{title:'ดูเวลาว่าง / Free times',payload:`BITPOS_BOOK_SET:date:${r.date}`}]}];
  const why={PAST:'เวลานี้ผ่านไปแล้วค่ะ บอกเวลาใหม่ได้เลย / That time has passed; tell me another.',TOO_FAR:'จองล่วงหน้าได้ไม่เกิน 14 วันค่ะ / Bookings are up to 14 days ahead.',NO_TABLES:'ร้านยังไม่เปิดจองโต๊ะค่ะ / This shop has no bookable tables yet.'}[r.reason];
  return [{kind:'text',psid,text:why}];
 }
@@ -368,7 +373,8 @@ How about these?`},cards];
   if(req.kind==='book_set')return bookingMessages(psid,await requestBooking(deps.db,merchantId,linkId,{date:req.date,time:req.time,partySize:null},{chosenBy:'fallback',invocationId:null}));
   if(req.kind==='book_cancel'){
    const r=await cancelReservation(deps.db,merchantId,req.reservationId,{linkId});
-   return [{kind:'text',psid,text:r?`ยกเลิกการจอง #${r.code} แล้วค่ะ / Booking #${r.code} cancelled.`:'การจองนี้ยกเลิกไม่ได้แล้วค่ะ (เช็กอินแล้ว หมดเวลา หรือยกเลิกไปแล้ว) / This booking can no longer be cancelled.'}];
+   const paid=r?Number((await deps.db.tenant(merchantId,c=>c.query<{n:string}>("SELECT count(*)::text AS n FROM meta_cart_orders WHERE reservation_id=$1 AND status='PAID'",[r.id]))).rows[0].n):0;
+   return [{kind:'text',psid,text:r?`ยกเลิกการจอง #${r.code} แล้วค่ะ โต๊ะเวลานี้ว่างให้คนอื่นจองได้แล้ว${paid?' · ออเดอร์ที่สั่งล่วงหน้าไว้จะไม่คืนเงินนะคะ':''}\nBooking #${r.code} cancelled; the time is free for others.${paid?' Pre-ordered food is not refunded.':''}`:'การจองนี้ยกเลิกไม่ได้แล้วค่ะ (เช็กอินแล้ว หมดเวลา หรือยกเลิกไปแล้ว) / This booking can no longer be cancelled.'}];
   }
   if(req.kind==='menu'||req.kind==='agent_add'){
    const items=(await listMenu(deps,merchantId)).filter(i=>i.payable);

@@ -7,15 +7,17 @@
 // All clock reads and Bangkok-time arithmetic happen in the database, in one statement per decision.
 import type pg from 'pg';
 import type {MetaDb} from './identity';
+import {normaliseWeek,type HoursWeek} from '../../../../packages/domain/src/opening-hours';
 
-export const HOLD_BEFORE_MINUTES=5,CHECKIN_MINUTES=15,SEATED_MINUTES=90,MAX_DAYS=14,TZ='Asia/Bangkok';
+export const PREORDER_HOURS=12,HOLD_BEFORE_MINUTES=5,CHECKIN_MINUTES=15,SEATED_MINUTES=90,MAX_DAYS=14,TZ='Asia/Bangkok';
 export interface BookingFields {date:string|null;time:string|null;partySize:number|null}
 export interface ReservationView {id:string;code:string;tableLabel:string;partySize:number;startsAt:string;checkInFrom:string;checkInUntil:string;status:'HELD'|'CHECKED_IN'|'NO_SHOW'|'CANCELLED'}
 export type BookingResult=
- {kind:'ask';missing:('date'|'time')[];fields:BookingFields;today:string;times:string[]}|
+ {kind:'ask';missing:('date'|'time')[];fields:BookingFields;today:string;times:string[];closed:boolean}|
  {kind:'booked';reservation:ReservationView}|
  {kind:'full';fields:BookingFields;alternatives:string[]}|
- {kind:'invalid';reason:'PAST'|'TOO_FAR'|'NO_TABLES'};
+ {kind:'invalid';reason:'PAST'|'TOO_FAR'|'NO_TABLES'}|
+ {kind:'invalid';reason:'CLOSED_DAY'|'OUTSIDE_HOURS';date:string;hours:string};
 
 const DATE=/^\d{4}-\d{2}-\d{2}$/,TIME=/^([01]\d|2[0-3]):[0-5]\d$/;
 const code=(id:string)=>id.replace(/-/g,'').slice(0,4).toUpperCase();
@@ -79,6 +81,27 @@ export async function openBookingRequest(db:MetaDb,merchantId:string,linkId:stri
  });
 }
 
+/** Booking hours on one date: the shop's opening hours (merchant_opening_hours, the same week the POS uses) with
+ * its booking settings (slot length, last booking N minutes before closing). Without opening hours: 10:00-22:00. */
+export interface BookingDay {configured:boolean;slotMinutes:number;lastBeforeCloseMinutes:number;windows:{opens:string;closes:string}[];
+ /** Start-time ranges, in minutes after midnight, a booking may begin in. */ranges:[number,number][]}
+export const DEFAULT_SLOT_MINUTES=30,DEFAULT_LAST_BEFORE_CLOSE=60,DEFAULT_WINDOW={opens:'10:00',closes:'22:00'};
+const mins=(t:string)=>Number(t.slice(0,2))*60+Number(t.slice(3,5));
+const clock=(m:number)=>`${pad(Math.floor(m/60))}:${pad(m%60)}`;
+export async function bookingDay(c:pg.PoolClient,date:string):Promise<BookingDay>{
+ const set=(await c.query<{slot_minutes:number;last_booking_before_close_minutes:number}>('SELECT slot_minutes,last_booking_before_close_minutes FROM meta_booking_settings LIMIT 1')).rows[0];
+ const hours=(await c.query<{week:unknown}>('SELECT week FROM merchant_opening_hours LIMIT 1')).rows[0];
+ let week:HoursWeek|null=null;try{week=hours?normaliseWeek(hours.week):null;}catch{week=null;}
+ const day=String(new Date(date+'T00:00:00Z').getUTCDay()) as keyof HoursWeek;
+ const windows=week?week[day]:[DEFAULT_WINDOW];
+ const slotMinutes=set?.slot_minutes??DEFAULT_SLOT_MINUTES,lastBeforeCloseMinutes=set?.last_booking_before_close_minutes??DEFAULT_LAST_BEFORE_CLOSE;
+ const ranges=windows.map(w=>[mins(w.opens),mins(w.closes)-lastBeforeCloseMinutes] as [number,number]).filter(([a,b])=>b>=a);
+ return {configured:!!week,slotMinutes,lastBeforeCloseMinutes,windows,ranges};
+}
+/** "10:00-20:30" (the times a booking may start), or "" when there are none that day. */
+export const hoursText=(d:BookingDay)=>d.ranges.map(([a,b])=>`${clock(a)}-${clock(b)}`).join(', ');
+const allowed=(d:BookingDay,time:string)=>d.ranges.some(([a,b])=>mins(time)>=a&&mins(time)<=b);
+
 /** Tables a customer can check in at: not retired, with a BitPOS device carrying an active NTAG sticker. */
 const BOOKABLE=`SELECT t.id,t.label FROM merchant_tables t WHERE t.retired_at IS NULL AND EXISTS(SELECT 1 FROM devices d JOIN meta_ntag_tags g ON g.merchant_id=d.merchant_id AND g.device_id=d.id AND g.retired_at IS NULL
  WHERE d.merchant_id=t.merchant_id AND d.table_id=t.id AND d.revoked_at IS NULL) ORDER BY t.label,t.id`;
@@ -92,7 +115,11 @@ export async function requestBooking(db:MetaDb,merchantId:string,linkId:string,s
   await c.query("SELECT pg_advisory_xact_lock(hashtext('meta-booking:'||$1))",[merchantId]);
   const f=await mergeRequest(c,merchantId,linkId,cleanFields(said));
   const today=(await c.query<{d:string}>(`SELECT to_char((clock_timestamp() AT TIME ZONE '${TZ}')::date,'YYYY-MM-DD') AS d`)).rows[0].d;
-  if(!f.time)return {kind:'ask',missing:f.date?['time']:['date','time'],fields:f,today,times:f.date?await freeTimes(c,f.date):[]};
+  if(!f.time){
+   if(!f.date)return {kind:'ask',missing:['date','time'],fields:f,today,times:[],closed:false};
+   const day=await bookingDay(c,f.date);
+   return {kind:'ask',missing:['time'],fields:f,today,times:day.ranges.length?await freeTimes(c,f.date,day):[],closed:!day.ranges.length};
+  }
   // A time alone means today, or tomorrow when that time has already passed.
   const when=(await c.query<{starts_at:Date;past:boolean;too_far:boolean;date:string}>(
    `WITH s AS (SELECT CASE WHEN $1::date IS NOT NULL THEN ($1::date+$2::time) AT TIME ZONE '${TZ}'
@@ -102,6 +129,12 @@ export async function requestBooking(db:MetaDb,merchantId:string,linkId:string,s
   // An unusable answer is forgotten so the next one can replace it.
   if(when.past){await c.query('UPDATE meta_booking_requests SET booking_time=NULL WHERE link_id=$1 AND closed_at IS NULL',[linkId]);return {kind:'invalid',reason:'PAST'};}
   if(when.too_far){await c.query('UPDATE meta_booking_requests SET booking_date=NULL WHERE link_id=$1 AND closed_at IS NULL',[linkId]);return {kind:'invalid',reason:'TOO_FAR'};}
+  // Only inside the shop's opening hours, and not later than the last booking time before closing.
+  const day=await bookingDay(c,when.date);
+  if(!day.ranges.length||!allowed(day,f.time)){
+   await c.query('UPDATE meta_booking_requests SET booking_time=NULL WHERE link_id=$1 AND closed_at IS NULL',[linkId]);
+   return {kind:'invalid',reason:day.ranges.length?'OUTSIDE_HOURS':'CLOSED_DAY',date:when.date,hours:hoursText(day)};
+  }
   const tables=(await c.query<{id:string;label:string}>(BOOKABLE)).rows;
   if(!tables.length)return {kind:'invalid',reason:'NO_TABLES'};
   const party=f.partySize??2;
@@ -112,11 +145,13 @@ export async function requestBooking(db:MetaDb,merchantId:string,linkId:string,s
    await c.query('UPDATE meta_booking_requests SET closed_at=clock_timestamp() WHERE link_id=$1 AND closed_at IS NULL',[linkId]);
    return {kind:'booked',reservation:view((await c.query<ResRow>(`${RES_SQL} WHERE r.id=$1`,[id])).rows[0])};
   }
-  // Full: offer up to three nearby free times on the same day (30-minute steps, still in the future).
+  // Full: offer up to three nearby free times on the same day (the shop's slot steps, in hours, still in the future).
   const alternatives:string[]=[];
-  for(const step of [30,-30,60,-60,90,-90,120]){
-   const alt=new Date(when.starts_at.getTime()+step*60_000);
+  for(const k of [1,-1,2,-2,3,-3,4]){
+   const step=k*day.slotMinutes,alt=new Date(when.starts_at.getTime()+step*60_000);
    if(alt.getTime()<=Date.now()+5*60_000)continue;
+   const local=new Intl.DateTimeFormat('en-GB',{hour:'2-digit',minute:'2-digit',hourCycle:'h23',timeZone:TZ}).format(alt);
+   if(mins(local)<mins(f.time)&&step>0||!allowed(day,local))continue;
    for(const t of tables)if(!(await c.query<{x:boolean}>(`SELECT ${CLASH} AS x`,[t.id,alt])).rows[0].x){
     alternatives.push(new Intl.DateTimeFormat('en-GB',{hour:'2-digit',minute:'2-digit',timeZone:TZ}).format(alt));break;}
    if(alternatives.length>=3)break;
@@ -208,21 +243,20 @@ export async function sweepReminders(db:MetaDb):Promise<{merchantId:string;psid:
  return out;
 }
 
-/** Times to offer on a date: future 30-minute slots (10:00-21:00, at least 10 minutes away) with a free bookable table. */
-async function freeTimes(c:pg.PoolClient,date:string,max=12):Promise<string[]>{
- {
-  const tables=(await c.query<{id:string}>(BOOKABLE)).rows;
-  if(!tables.length)return [];
-  const slots=(await c.query<{at:Date;t:string}>(
-   `SELECT at,to_char(at AT TIME ZONE '${TZ}','HH24:MI') AS t FROM generate_series(($1::date+time '10:00') AT TIME ZONE '${TZ}',($1::date+time '21:00') AT TIME ZONE '${TZ}',interval '30 minutes') at
-    WHERE at>clock_timestamp()+interval '10 minutes' ORDER BY at`,[date])).rows;
-  const out:string[]=[];
-  for(const s of slots){
-   for(const t of tables)if(!(await c.query<{x:boolean}>(`SELECT ${CLASH} AS x`,[t.id,s.at])).rows[0].x){out.push(s.t);break;}
-   if(out.length>=max)break;
-  }
-  return out;
+/** Times to offer on a date: the shop's slots that are still at least 10 minutes away and have a free bookable table. */
+async function freeTimes(c:pg.PoolClient,date:string,day:BookingDay,max=12):Promise<string[]>{
+ const tables=(await c.query<{id:string}>(BOOKABLE)).rows;
+ if(!tables.length)return [];
+ const want:string[]=[];
+ for(const [a,b] of day.ranges)for(let m=Math.ceil(a/day.slotMinutes)*day.slotMinutes;m<=b;m+=day.slotMinutes)want.push(clock(m));
+ const slots=(await c.query<{at:Date;t:string}>(
+  `SELECT (($1::date+t::time) AT TIME ZONE '${TZ}') AS at,t FROM unnest($2::text[]) t WHERE (($1::date+t::time) AT TIME ZONE '${TZ}')>clock_timestamp()+interval '10 minutes' ORDER BY 1`,[date,want])).rows;
+ const out:string[]=[];
+ for(const s of slots){
+  for(const t of tables)if(!(await c.query<{x:boolean}>(`SELECT ${CLASH} AS x`,[t.id,s.at])).rows[0].x){out.push(s.t);break;}
+  if(out.length>=max)break;
  }
+ return out;
 }
 
 /** Marks bookings past their check-in window as NO_SHOW (once) and returns who to tell. */
@@ -276,4 +310,42 @@ export async function floorPlan(db:MetaDb,merchantId:string):Promise<FloorTable[
     checkInUntil:t.rid?iso(start+CHECKIN_MINUTES*60_000):null,seatedUntil:t.status==='CHECKED_IN'?iso(start+SEATED_MINUTES*60_000):null,laterToday:t.later,openOrders:t.orders,devices:t.devices??[]};
   });
  });
+}
+
+export interface BookingSettings {configured:boolean;slotMinutes:number;lastBeforeCloseMinutes:number;week:HoursWeek}
+/** The staff settings form: opening hours per weekday (the shared merchant_opening_hours row) and the booking rules. */
+export async function bookingSettings(db:MetaDb,merchantId:string):Promise<BookingSettings>{
+ return db.tenant(merchantId,async c=>{
+  const set=(await c.query<{slot_minutes:number;last_booking_before_close_minutes:number}>('SELECT slot_minutes,last_booking_before_close_minutes FROM meta_booking_settings LIMIT 1')).rows[0];
+  const hours=(await c.query<{week:unknown}>('SELECT week FROM merchant_opening_hours LIMIT 1')).rows[0];
+  let week:HoursWeek|null=null;try{week=hours?normaliseWeek(hours.week):null;}catch{week=null;}
+  const fallback=Object.fromEntries(['0','1','2','3','4','5','6'].map(d=>[d,[DEFAULT_WINDOW]])) as HoursWeek;
+  return {configured:!!week,slotMinutes:set?.slot_minutes??DEFAULT_SLOT_MINUTES,lastBeforeCloseMinutes:set?.last_booking_before_close_minutes??DEFAULT_LAST_BEFORE_CLOSE,week:week??fallback};
+ });
+}
+export class BookingSettingsError extends Error{}
+/** Owner/manager (checked by the caller). The week is validated by the shared opening-hours rules; one change, audited. */
+export async function saveBookingSettings(db:MetaDb,merchantId:string,userId:string,input:{week:unknown;slotMinutes:number;lastBeforeCloseMinutes:number}):Promise<void>{
+ let week:HoursWeek;try{week=normaliseWeek(input.week);}catch(e){throw new BookingSettingsError((e as Error).message.replace(/^INVALID_HOURS: /,''));}
+ if(![15,30,60].includes(input.slotMinutes))throw new BookingSettingsError('slot must be 15, 30 or 60 minutes');
+ if(!Number.isInteger(input.lastBeforeCloseMinutes)||input.lastBeforeCloseMinutes<0||input.lastBeforeCloseMinutes>240)throw new BookingSettingsError('last booking must be 0-240 minutes before closing');
+ await db.tenant(merchantId,async c=>{
+  await c.query(`INSERT INTO merchant_opening_hours(merchant_id,time_zone,week) VALUES($1,'${TZ}',$2::jsonb)
+   ON CONFLICT (merchant_id) DO UPDATE SET week=EXCLUDED.week,revision=merchant_opening_hours.revision+1,updated_at=clock_timestamp()`,[merchantId,JSON.stringify(week)]);
+  await c.query(`INSERT INTO meta_booking_settings(merchant_id,slot_minutes,last_booking_before_close_minutes,updated_by) VALUES($1,$2,$3,$4)
+   ON CONFLICT (merchant_id) DO UPDATE SET slot_minutes=EXCLUDED.slot_minutes,last_booking_before_close_minutes=EXCLUDED.last_booking_before_close_minutes,updated_at=clock_timestamp(),updated_by=EXCLUDED.updated_by`,
+   [merchantId,input.slotMinutes,input.lastBeforeCloseMinutes,userId]);
+ });
+}
+
+/** Inside the payment transaction: a chat order paid while its customer holds a booking starting within the next
+ * 12 hours becomes that table's pre-order (the earliest such booking); a booking days away does not capture today's order. Returns the booking it was tied to, if any. */
+export async function linkPreorder(c:pg.PoolClient,orderId:string):Promise<{tableLabel:string;startsAt:Date}|null>{
+ const r=(await c.query<{label:string;starts_at:Date}>(
+  `WITH r AS (SELECT r.id,r.table_id,r.starts_at FROM meta_cart_orders o JOIN meta_table_reservations r ON r.merchant_id=o.merchant_id AND r.link_id=o.link_id
+     WHERE o.id=$1 AND r.status='HELD' AND r.starts_at+interval '${CHECKIN_MINUTES} minutes'>clock_timestamp()
+      AND r.starts_at<=clock_timestamp()+interval '${PREORDER_HOURS} hours' ORDER BY r.starts_at LIMIT 1),
+   u AS (UPDATE meta_cart_orders o SET reservation_id=r.id FROM r WHERE o.id=$1 RETURNING r.table_id,r.starts_at)
+   SELECT coalesce(t.label,'') AS label,u.starts_at FROM u LEFT JOIN merchant_tables t ON t.merchant_id=current_setting('bitpos.merchant')::uuid AND t.id=u.table_id`,[orderId])).rows[0];
+ return r?{tableLabel:r.label,startsAt:r.starts_at}:null;
 }
