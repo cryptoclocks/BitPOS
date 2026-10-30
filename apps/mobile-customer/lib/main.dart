@@ -439,7 +439,7 @@ class _CustomerSessionPageState extends State<CustomerSessionPage> {
             ? 72
             : 60) +
         (MediaQuery.textScalerOf(context).scale(20) - 20) * 2,
-    leadingWidth: 76,
+    leadingWidth: 84,
     titleSpacing: 0,
     title: Text(
       title,
@@ -447,13 +447,13 @@ class _CustomerSessionPageState extends State<CustomerSessionPage> {
     ),
     leading: Padding(
       padding: EdgeInsets.fromLTRB(
-        18,
+        24,
         ((_foodNavigation.cartReviewActive || _foodNavigation.orderReviewActive)
                 ? 8
                 : 0) +
             MediaQuery.textScalerOf(context).scale(20) -
             20,
-        10,
+        12,
         ((_foodNavigation.cartReviewActive || _foodNavigation.orderReviewActive)
                 ? 16
                 : 12) +
@@ -479,6 +479,9 @@ class _CustomerSessionPageState extends State<CustomerSessionPage> {
           decoration: BoxDecoration(
             color: Theme.of(context).cardTheme.color,
             borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: Theme.of(context).colorScheme.outlineVariant,
+            ),
           ),
           child: const Icon(Icons.chevron_left, size: 22),
         ),
@@ -664,10 +667,11 @@ class _CustomerSessionPageState extends State<CustomerSessionPage> {
             appBar: _account == null
                 ? AppBar(
                     toolbarHeight: 72,
-                    leadingWidth: 76,
+                    leadingWidth: 84,
                     titleSpacing: 0,
+                    actionsPadding: const EdgeInsetsDirectional.only(end: 12),
                     leading: Padding(
-                      padding: const EdgeInsets.fromLTRB(18, 14, 14, 14),
+                      padding: const EdgeInsets.fromLTRB(24, 12, 12, 12),
                       child: IconButton(
                         tooltip: text('ย้อนกลับ', 'Back'),
                         onPressed: _busy
@@ -754,7 +758,7 @@ class _CustomerSessionPageState extends State<CustomerSessionPage> {
                 ? AppBar(
                     centerTitle: false,
                     toolbarHeight: 44,
-                    leadingWidth: 76,
+                    leadingWidth: 84,
                     titleSpacing: 0,
                     title: Transform.translate(
                       offset: Offset.zero,
@@ -768,7 +772,7 @@ class _CustomerSessionPageState extends State<CustomerSessionPage> {
                       ),
                     ),
                     leading: Padding(
-                      padding: const EdgeInsets.fromLTRB(18, 0, 14, 0),
+                      padding: const EdgeInsets.fromLTRB(24, 0, 12, 0),
                       child: IconButton.filledTonal(
                         tooltip:
                             _foodNavigation.orderDetailBackLabel ??
@@ -804,6 +808,7 @@ class _CustomerSessionPageState extends State<CustomerSessionPage> {
                 ? AppBar(
                     toolbarHeight: 68,
                     titleSpacing: 24,
+                    actionsPadding: const EdgeInsetsDirectional.only(end: 12),
                     title: Image.asset(
                       'assets/design/bitpos-logo.png',
                       width: 104,

@@ -13,6 +13,7 @@ import 'order_again_page.dart';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:mobile_shared/presentation/bitpos_layout.dart';
 import 'package:mobile_shared/presentation/bitpos_info.dart';
 import 'package:mobile_shared/mobile_api.dart';
 import 'package:mobile_shared/mobile_v1.generated.dart';
@@ -702,13 +703,15 @@ class _AccountPageState extends State<AccountPage> {
           toolbarHeight:
               (112.0 - MediaQuery.paddingOf(context).top).clamp(48.0, 68.0) +
               (MediaQuery.textScalerOf(context).scale(20) - 20) * 2,
-          leadingWidth: 76,
-          titleSpacing: _section != null && _section != _AccountSection.overview
+          leadingWidth: 84,
+          titleSpacing:
+              (_section != null && _section != _AccountSection.overview) ||
+                  Navigator.canPop(context)
               ? 0
               : 24,
           leading: _section != null && _section != _AccountSection.overview
               ? Padding(
-                  padding: const EdgeInsets.only(left: 18, right: 10),
+                  padding: const EdgeInsets.only(left: 24, right: 12),
                   child: Center(
                     child: IconButton.filledTonal(
                       tooltip: _showEditor
@@ -731,12 +734,17 @@ class _AccountPageState extends State<AccountPage> {
                         foregroundColor: Theme.of(context).colorScheme.primary,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14),
+                          side: BorderSide(
+                            color: Theme.of(context).colorScheme.outlineVariant,
+                          ),
                         ),
                       ),
                       icon: const Icon(Icons.chevron_left, size: 22),
                     ),
                   ),
                 )
+              : Navigator.canPop(context)
+              ? const BitPosBackButton(verticalPadding: 0)
               : null,
           title: _section == _AccountSection.overview
               ? Image.asset(
@@ -943,53 +951,65 @@ class _AccountPageState extends State<AccountPage> {
               ],
               if ((_section == null || _section == _AccountSection.profile) &&
                   _profile != null)
-                Form(
-                  key: _profileForm,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Text(
-                        t('โปรไฟล์', 'Profile'),
-                        style: Theme.of(context).textTheme.titleLarge,
-                      ),
-                      TextFormField(
-                        controller: _name,
-                        enabled: !locked,
-                        maxLength: 80,
-                        decoration: InputDecoration(
-                          labelText: t('ชื่อที่แสดง', 'Display name'),
+                Padding(
+                  padding: const EdgeInsets.only(top: 16),
+                  child: Form(
+                    key: _profileForm,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      spacing: 16,
+                      children: [
+                        if (_section != _AccountSection.profile)
+                          Text(
+                            t('โปรไฟล์', 'Profile'),
+                            style: Theme.of(context).textTheme.titleLarge,
+                          ),
+                        TextFormField(
+                          controller: _name,
+                          enabled: !locked,
+                          maxLength: 80,
+                          decoration: InputDecoration(
+                            labelText: t('ชื่อที่แสดง', 'Display name'),
+                          ),
                         ),
-                      ),
-                      DropdownButton<String>(
-                        value: _locale,
-                        isExpanded: true,
-                        onChanged: locked
-                            ? null
-                            : (value) => setState(() => _locale = value!),
-                        items: const [
-                          DropdownMenuItem(value: 'th', child: Text('ไทย')),
-                          DropdownMenuItem(value: 'en', child: Text('English')),
-                        ],
-                      ),
-                      FilledButton(
-                        onPressed: locked
-                            ? null
-                            : () {
-                                if (_profileForm.currentState!.validate()) {
-                                  _run(
-                                    () => _mutate(
-                                      widget.api.profileMutation(
-                                        _profile!,
-                                        _name.text.trim(),
-                                        _locale,
+                        DropdownButtonFormField<String>(
+                          key: ValueKey('profile-locale-$_locale'),
+                          initialValue: _locale,
+                          isExpanded: true,
+                          decoration: InputDecoration(
+                            labelText: t('ภาษา', 'Language'),
+                          ),
+                          onChanged: locked
+                              ? null
+                              : (value) => setState(() => _locale = value!),
+                          items: const [
+                            DropdownMenuItem(value: 'th', child: Text('ไทย')),
+                            DropdownMenuItem(
+                              value: 'en',
+                              child: Text('English'),
+                            ),
+                          ],
+                        ),
+                        FilledButton(
+                          onPressed: locked
+                              ? null
+                              : () {
+                                  if (_profileForm.currentState!.validate()) {
+                                    _run(
+                                      () => _mutate(
+                                        widget.api.profileMutation(
+                                          _profile!,
+                                          _name.text.trim(),
+                                          _locale,
+                                        ),
                                       ),
-                                    ),
-                                  );
-                                }
-                              },
-                        child: Text(t('บันทึกโปรไฟล์', 'Save profile')),
-                      ),
-                    ],
+                                    );
+                                  }
+                                },
+                          child: Text(t('บันทึกโปรไฟล์', 'Save profile')),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               if (_section == null ||
@@ -1040,8 +1060,14 @@ class _AccountPageState extends State<AccountPage> {
                   if (_section == _AccountSection.addresses)
                     BitPosInfoLine(
                       thai: widget.thai,
-                      summary: t('ไม่ต้องเปิด GPS ที่อยู่ไม่ถูกส่งให้ใครโดยอัตโนมัติ', 'No GPS needed. Addresses are not shared automatically'),
-                      title: t('เกี่ยวกับที่อยู่ของคุณ', 'About your addresses'),
+                      summary: t(
+                        'ไม่ต้องเปิด GPS ที่อยู่ไม่ถูกส่งให้ใครโดยอัตโนมัติ',
+                        'No GPS needed. Addresses are not shared automatically',
+                      ),
+                      title: t(
+                        'เกี่ยวกับที่อยู่ของคุณ',
+                        'About your addresses',
+                      ),
                       paragraphs: [
                         t(
                           'ข้อมูลนี้เป็นของบัญชีคุณ ไม่ได้รวมกับรายชื่อลูกค้าของร้านโดยอัตโนมัติ',

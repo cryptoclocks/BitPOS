@@ -214,23 +214,29 @@ class MerchantSearchInformation extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Theme(
     data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-    child: ExpansionTile(
-      key: const ValueKey('merchant-service-information'),
-      tilePadding: EdgeInsets.zero,
-      childrenPadding: const EdgeInsets.only(bottom: 16),
-      leading: const Icon(Icons.info_outline, size: 20),
-      title: Text(
-        thai ? 'เกี่ยวกับรูปแบบรับอาหาร' : 'About service options',
-        style: Theme.of(context).textTheme.bodySmall,
+    child: ListTileTheme(
+      data: const ListTileThemeData(
+        horizontalTitleGap: 12,
+        minLeadingWidth: 20,
       ),
-      children: [
-        Text(
-          thai
-              ? 'รูปแบบรับอาหารเป็นการตั้งค่าของสาขา ไม่ใช่การยืนยันเวลาเปิดหรือพื้นที่ส่ง กรุณาตรวจราคาและที่อยู่ก่อนสั่ง'
-              : 'Service filters show branch settings, not current opening hours or delivery coverage. Confirm your quote and address before ordering.',
+      child: ExpansionTile(
+        key: const ValueKey('merchant-service-information'),
+        tilePadding: EdgeInsets.zero,
+        childrenPadding: const EdgeInsets.only(bottom: 16),
+        leading: const Icon(Icons.info_outline, size: 20),
+        title: Text(
+          thai ? 'เกี่ยวกับรูปแบบรับอาหาร' : 'About service options',
           style: Theme.of(context).textTheme.bodySmall,
         ),
-      ],
+        children: [
+          Text(
+            thai
+                ? 'รูปแบบรับอาหารเป็นการตั้งค่าของสาขา ไม่ใช่การยืนยันเวลาเปิดหรือพื้นที่ส่ง กรุณาตรวจราคาและที่อยู่ก่อนสั่ง'
+                : 'Service filters show branch settings, not current opening hours or delivery coverage. Confirm your quote and address before ordering.',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+        ],
+      ),
     ),
   );
 }

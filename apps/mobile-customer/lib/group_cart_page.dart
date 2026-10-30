@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:mobile_shared/presentation/bitpos_layout.dart';
+import 'package:mobile_shared/presentation/bitpos_state_view.dart';
 import 'package:flutter/services.dart';
 import 'package:mobile_shared/presentation/bitpos_info.dart';
 import 'package:mobile_shared/mobile_api.dart';
@@ -619,14 +621,14 @@ class _GroupCartPageState extends State<GroupCartPage> {
 
   Widget _card(List<Widget> children) => Container(
     margin: const EdgeInsets.only(bottom: 16),
-    padding: const EdgeInsets.all(18),
+    padding: const EdgeInsets.all(16),
     decoration: BoxDecoration(
       color: Colors.white,
       borderRadius: BorderRadius.circular(18),
       border: Border.all(color: _border),
     ),
     child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: children,
     ),
   );
@@ -663,12 +665,19 @@ class _GroupCartPageState extends State<GroupCartPage> {
         ),
       ]),
       if (_groups.isEmpty)
-        _card([
-          Text(
-            t('ยังไม่มีกลุ่ม', 'No groups yet.'),
+        Padding(
+          padding: const EdgeInsets.only(bottom: 16),
+          child: BitPosStateView(
             key: const ValueKey('group-empty'),
+            kind: BitPosStateKind.empty,
+            thai: widget.thai,
+            title: t('ยังไม่มีกลุ่ม', 'No groups yet.'),
+            message: t(
+              'สร้างกลุ่มหรือใช้รหัสเชิญเพื่อสั่งร่วมกับเพื่อน',
+              'Create a group or use an invite code to order together.',
+            ),
           ),
-        ])
+        )
       else
         for (final g in _groups)
           _card([
@@ -866,11 +875,13 @@ class _GroupCartPageState extends State<GroupCartPage> {
     backgroundColor: _bg,
     appBar: AppBar(
       backgroundColor: _bg,
+      toolbarHeight: BitPosLayout.toolbarHeight,
+      leadingWidth: BitPosLayout.leadingWidth,
+      titleSpacing: 0,
       leading: _open == null
-          ? null
-          : IconButton(
+          ? const BitPosBackButton()
+          : BitPosBackButton(
               key: const ValueKey('group-back'),
-              tooltip: MaterialLocalizations.of(context).backButtonTooltip,
               onPressed: () => setState(() {
                 _open = null;
                 _token = null;
@@ -878,7 +889,6 @@ class _GroupCartPageState extends State<GroupCartPage> {
                 _branches = const [];
                 _load();
               }),
-              icon: const Icon(Icons.chevron_left),
             ),
       title: Text(
         t('สั่งเป็นกลุ่ม', 'Group order'),

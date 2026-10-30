@@ -53,10 +53,10 @@ class PreviewFrame extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: _bg,
         toolbarHeight: 72,
-        leadingWidth: 76,
+        leadingWidth: 84,
         titleSpacing: 0,
         leading: Padding(
-          padding: const EdgeInsets.fromLTRB(18, 14, 14, 14),
+          padding: const EdgeInsets.fromLTRB(24, 12, 12, 12),
           child: IconButton.filledTonal(
             tooltip: MaterialLocalizations.of(context).backButtonTooltip,
             onPressed: () => Navigator.of(context).maybePop(),

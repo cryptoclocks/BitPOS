@@ -32,7 +32,7 @@ class CustomerNotificationPermission extends StatelessWidget {
           )
         : !available
         ? t(
-            'การแจ้งเตือนยังไม่พร้อมในขณะนี้ คุณยังติดตามออเดอร์ในแอพได้',
+            'การแจ้งเตือนยังไม่พร้อมในขณะนี้\nคุณยังติดตามออเดอร์ในแอพได้',
             'Notifications are unavailable right now. You can still track orders in the app.',
           )
         : t(

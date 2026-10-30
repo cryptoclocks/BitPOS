@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'presentation/customer_order_card.dart';
 import 'presentation/customer_navigation.dart';
 
@@ -175,7 +176,12 @@ class _OrderHistorySheetState extends State<OrderHistorySheet> {
         // Transient: retry the same page by itself with backoff.
         _hasRetry = true;
         _retryCursor = cursor;
-        final seconds = const [2, 4, 8, 15][_retryAttempt < 3 ? _retryAttempt : 3];
+        final seconds = const [
+          2,
+          4,
+          8,
+          15,
+        ][_retryAttempt < 3 ? _retryAttempt : 3];
         _retryAttempt++;
         _retryTimer?.cancel();
         _retryTimer = Timer(Duration(seconds: seconds), _retryNow);
@@ -198,42 +204,39 @@ class _OrderHistorySheetState extends State<OrderHistorySheet> {
           padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
           child: Column(
             children: [
-              Transform.translate(
-                offset: const Offset(-6, 0),
-                child: Row(
-                  children: [
-                    SizedBox(
-                      width: 44,
-                      height: 44,
-                      child: IconButton(
-                        tooltip: t('กลับ', 'Back'),
-                        onPressed: () => Navigator.pop(context),
-                        style: IconButton.styleFrom(
-                          backgroundColor: Colors.white,
-                          foregroundColor: const Color(0xff64188a),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14),
-                            side: const BorderSide(color: Color(0xffe9e1f1)),
-                          ),
-                        ),
-                        icon: const Icon(Icons.chevron_left, size: 22),
-                      ),
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Text(
-                        t('กิจกรรมของคุณ', 'Your activity'),
-                        style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xff29183f),
+              Row(
+                children: [
+                  SizedBox(
+                    width: 48,
+                    height: 48,
+                    child: IconButton(
+                      tooltip: t('กลับ', 'Back'),
+                      onPressed: () => Navigator.pop(context),
+                      style: IconButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        foregroundColor: const Color(0xff64188a),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          side: const BorderSide(color: Color(0xffe9e1f1)),
                         ),
                       ),
+                      icon: const Icon(Icons.chevron_left, size: 22),
                     ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      t('กิจกรรมของคุณ', 'Your activity'),
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xff29183f),
+                      ),
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 32),
+              const SizedBox(height: 28),
               Align(
                 alignment: Alignment.centerLeft,
                 child: Row(
@@ -326,6 +329,7 @@ class _OrderHistorySheetState extends State<OrderHistorySheet> {
               const SizedBox(height: 12),
               Wrap(
                 spacing: 12,
+                alignment: WrapAlignment.center,
                 children: [
                   if (_nextCursor != null)
                     OutlinedButton(

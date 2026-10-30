@@ -47,10 +47,10 @@ class _DeliveryAddressPickerPageState extends State<DeliveryAddressPickerPage> {
       toolbarHeight:
           (112.0 - MediaQuery.paddingOf(context).top).clamp(48.0, 68.0) +
           (MediaQuery.textScalerOf(context).scale(20) - 20) * 2,
-      leadingWidth: 76,
+      leadingWidth: 84,
       titleSpacing: 0,
       leading: Padding(
-        padding: const EdgeInsets.only(left: 18, right: 10),
+        padding: const EdgeInsets.only(left: 24, right: 12),
         child: Align(
           alignment: Alignment.centerLeft,
           child: SizedBox(

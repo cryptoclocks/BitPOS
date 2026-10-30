@@ -123,7 +123,7 @@ class CustomerPermissionLayout extends StatelessWidget {
                   constraints: BoxConstraints(minHeight: constraints.maxHeight),
                   child: IntrinsicHeight(
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 18),
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
@@ -136,8 +136,8 @@ class CustomerPermissionLayout extends StatelessWidget {
                                   tooltip: backLabel,
                                   onPressed: busy ? null : onBack,
                                   style: IconButton.styleFrom(
-                                    minimumSize: const Size(44, 44),
-                                    maximumSize: const Size(44, 44),
+                                    minimumSize: const Size(48, 48),
+                                    maximumSize: const Size(48, 48),
                                     padding: EdgeInsets.zero,
                                     backgroundColor:
                                         theme.brightness == Brightness.dark
@@ -154,7 +154,7 @@ class CustomerPermissionLayout extends StatelessWidget {
                                   ),
                                   icon: const Icon(Icons.chevron_left),
                                 ),
-                                const SizedBox(width: 14),
+                                const SizedBox(width: 12),
                                 Expanded(
                                   child: Padding(
                                     padding: const EdgeInsets.symmetric(
@@ -202,15 +202,20 @@ class CustomerPermissionLayout extends StatelessWidget {
                           const SizedBox(height: 12),
                           Semantics(
                             liveRegion: error,
-                            child: Text(
-                              message,
-                              textAlign: TextAlign.center,
-                              style: theme.textTheme.bodyLarge?.copyWith(
-                                fontSize: 16,
-                                height: 1.65,
-                                color: error
-                                    ? colors.error
-                                    : colors.onSurfaceVariant,
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                              ),
+                              child: Text(
+                                message,
+                                textAlign: TextAlign.center,
+                                style: theme.textTheme.bodyLarge?.copyWith(
+                                  fontSize: 16,
+                                  height: 1.65,
+                                  color: error
+                                      ? colors.error
+                                      : colors.onSurfaceVariant,
+                                ),
                               ),
                             ),
                           ),
@@ -221,7 +226,7 @@ class CustomerPermissionLayout extends StatelessWidget {
                           const SizedBox(height: 24),
                           const Spacer(),
                           Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 6),
+                            padding: EdgeInsets.zero,
                             child: FilledButton(
                               key: ValueKey('$keyPrefix-primary'),
                               onPressed: busy ? null : primaryAction,
@@ -235,7 +240,7 @@ class CustomerPermissionLayout extends StatelessWidget {
                           if (additionalAction != null) additionalAction!,
                           const SizedBox(height: 14),
                           Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 6),
+                            padding: EdgeInsets.zero,
                             child: OutlinedButton(
                               key: ValueKey('$keyPrefix-skip'),
                               onPressed: busy ? null : onSkip,

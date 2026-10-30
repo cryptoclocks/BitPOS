@@ -3,6 +3,7 @@ import 'presentation/customer_navigation.dart';
 
 import 'package:flutter/material.dart';
 import 'package:mobile_shared/mobile_api.dart';
+import 'package:mobile_shared/presentation/bitpos_state_view.dart';
 import 'package:mobile_shared/mobile_v1.generated.dart';
 
 class FavouritesSheet extends StatefulWidget {
@@ -209,10 +210,13 @@ class _FavouritesSheetState extends State<FavouritesSheet> {
                   if (page.items.isEmpty)
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: 32),
-                      child: Text(
-                        t(
-                          'ยังไม่มีร้านโปรด กดหัวใจที่รายการร้านเพื่อบันทึก',
-                          'No favourites yet. Tap a merchant’s heart to save it.',
+                      child: BitPosStateView(
+                        kind: BitPosStateKind.empty,
+                        thai: widget.thai,
+                        title: t('ยังไม่มีร้านโปรด', 'No favourites yet.'),
+                        message: t(
+                          'กดหัวใจที่รายการร้านเพื่อบันทึก',
+                          'Tap a merchant’s heart to save it.',
                         ),
                       ),
                     ),

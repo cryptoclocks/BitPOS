@@ -336,7 +336,7 @@ class _ProductOptionsSheetState extends State<ProductOptionsSheet> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(18, 8, 24, 12),
+                  padding: const EdgeInsets.fromLTRB(12, 8, 24, 12),
                   child: Row(
                     children: [
                       IconButton(
@@ -532,7 +532,7 @@ class _ProductOptionsSheetState extends State<ProductOptionsSheet> {
                                     ),
                                     hintMaxLines: 2,
                                     helperText: t(
-                                      'ไม่ใช่การรับรองว่าปลอดสารก่อภูมิแพ้ กรุณาตรวจสอบกับร้าน',
+                                      'ไม่ใช่การรับรองว่าปลอดสารก่อภูมิแพ้\nกรุณาตรวจสอบกับร้าน',
                                       'Not an allergen-free guarantee. Confirm with the merchant.',
                                     ),
                                     helperMaxLines: 8,
@@ -541,7 +541,9 @@ class _ProductOptionsSheetState extends State<ProductOptionsSheet> {
                               ],
                               const SizedBox(height: 20),
                               Wrap(
+                                alignment: WrapAlignment.center,
                                 crossAxisAlignment: WrapCrossAlignment.center,
+                                spacing: 12,
                                 children: [
                                   IconButton(
                                     tooltip: t(

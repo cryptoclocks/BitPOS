@@ -6,7 +6,7 @@ void main(){
   await tester.pumpWidget(MaterialApp(home:Builder(builder:(context)=>MediaQuery(data:MediaQuery.of(context).copyWith(textScaler:const TextScaler.linear(1.5)),child:CustomerWelcome(thai:true,onStart:()=>started++,onLanguage:()=>language++)))));await tester.pumpAndSettle();
   expect(find.text('มื้ออร่อย ในจังหวะของคุณ'),findsOneWidget);expect(find.text('สั่งจากร้านโปรด แล้วให้ BitPOS ดูแลทุกขั้นตอนจนถึงมือคุณ'),findsOneWidget);expect(started,0);
   await tester.tap(find.text('English'));expect(language,1);
-  await tester.scrollUntilVisible(find.byKey(const ValueKey('customer-welcome-start')),200,scrollable:find.byType(Scrollable).first);
+  await tester.ensureVisible(find.byKey(const ValueKey('customer-welcome-start')));await tester.pump();
   await tester.tap(find.byKey(const ValueKey('customer-welcome-start')));expect(started,1);expect(tester.takeException(),isNull);
  });
  testWidgets('welcome keeps the approved phone art bounded on English desktop',(tester)async{

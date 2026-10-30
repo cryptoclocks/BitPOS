@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:mobile_shared/presentation/bitpos_layout.dart';
+import 'package:mobile_shared/presentation/bitpos_state_view.dart';
 import 'package:flutter/services.dart';
 import 'package:mobile_shared/presentation/bitpos_info.dart';
 import 'package:mobile_shared/mobile_api.dart';
@@ -348,14 +350,14 @@ class _RideRequestPageState extends State<RideRequestPage> {
 
   Widget _card(List<Widget> children) => Container(
     margin: const EdgeInsets.only(bottom: 16),
-    padding: const EdgeInsets.all(18),
+    padding: const EdgeInsets.all(16),
     decoration: BoxDecoration(
       color: Colors.white,
       borderRadius: BorderRadius.circular(18),
       border: Border.all(color: _border),
     ),
     child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: children,
     ),
   );
@@ -392,15 +394,19 @@ class _RideRequestPageState extends State<RideRequestPage> {
       ),
     );
     if (_addresses.length < 2) {
-      return _card([
-        Text(
-          t(
-            'ต้องมีที่อยู่ที่บันทึกพร้อมพิกัดอย่างน้อย 2 แห่งเพื่อเรียกรถ',
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 16),
+        child: BitPosStateView(
+          key: const ValueKey('ride-need-addresses'),
+          kind: BitPosStateKind.empty,
+          thai: widget.thai,
+          title: t('ยังเรียกรถไม่ได้', 'Not ready to request a ride'),
+          message: t(
+            'ต้องมีที่อยู่ที่บันทึกพร้อมพิกัด\nอย่างน้อย 2 แห่งเพื่อเรียกรถ',
             'Save at least two addresses with a map pin to request a ride.',
           ),
-          key: const ValueKey('ride-need-addresses'),
         ),
-      ]);
+      );
     }
     return _card([
       pick('ride-from', t('จุดรับ', 'Pickup'), _from, (a) => _from = a),
@@ -643,6 +649,10 @@ class _RideRequestPageState extends State<RideRequestPage> {
     backgroundColor: _bg,
     appBar: AppBar(
       backgroundColor: _bg,
+      toolbarHeight: BitPosLayout.toolbarHeight,
+      leadingWidth: BitPosLayout.leadingWidth,
+      titleSpacing: 0,
+      leading: const BitPosBackButton(),
       title: Text(
         t('เรียกรถ', 'Request a ride'),
         style: const TextStyle(

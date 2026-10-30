@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mobile_shared/presentation/bitpos_layout.dart';
 import 'package:mobile_shared/mobile_api.dart';
 import 'package:mobile_shared/mobile_v1.generated.dart';
 import 'package:mobile_shared/presentation/bitpos_info.dart';
@@ -95,13 +96,17 @@ class _CartCouponPageState extends State<CartCouponPage> {
         widget.newKey != null &&
         widget.appliedCode == null;
     return Scaffold(
-      appBar: AppBar(title: Text(t('คูปองส่วนลด', 'Discount coupons'))),
+      appBar: bitPosAppBar(
+        context,
+        title: Text(t('คูปองส่วนลด', 'Discount coupons')),
+      ),
       body: SafeArea(
-        child: Center(
+        child: Align(
+          alignment: Alignment.topCenter,
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 520),
             child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
+              padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -184,12 +189,15 @@ class _CartCouponPageState extends State<CartCouponPage> {
                       onSubmitted: (_) => _apply(),
                     ),
                     if (widget.vouchers.isNotEmpty) ...[
+                      const SizedBox(height: 16),
                       Text(
                         t('คูปองรางวัลของคุณที่ร้านนี้', 'Your reward vouchers at this shop'),
                         style: Theme.of(context).textTheme.titleSmall,
                       ),
+                      const SizedBox(height: 8),
                       Wrap(
                         spacing: 8,
+                        runSpacing: 8,
                         children: [
                           for (final v in widget.vouchers)
                             ActionChip(
@@ -199,7 +207,7 @@ class _CartCouponPageState extends State<CartCouponPage> {
                             ),
                         ],
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 24),
                     ],
                     if (_error != null)
                       Padding(

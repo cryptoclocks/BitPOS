@@ -1696,10 +1696,13 @@ class _FoodPageState extends State<FoodPage> with WidgetsBindingObserver {
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
       if (_payment.destinationOrigin.isEmpty)
-        Text(
-          t(
-            'ยังไม่ตั้งค่าช่องทางชำระเงิน ไม่สามารถเปิดการชำระได้',
-            'Payment unavailable: checkout origin is not configured.',
+        Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: Text(
+            t(
+              'ยังไม่ตั้งค่าช่องทางชำระเงิน ไม่สามารถเปิดการชำระได้',
+              'Payment unavailable: checkout origin is not configured.',
+            ),
           ),
         ),
       FilledButton(
@@ -1713,6 +1716,7 @@ class _FoodPageState extends State<FoodPage> with WidgetsBindingObserver {
           ),
         ),
       ),
+      const SizedBox(height: 12),
       BitPosInfoLine(
         thai: widget.thai,
         summary: t('ระบบตรวจสถานะออเดอร์เดิมเมื่อกลับมา', 'We re-check this order when you return'),
@@ -2464,11 +2468,12 @@ class _FoodPageState extends State<FoodPage> with WidgetsBindingObserver {
                   total: money(q.total),
                 ),
                 if (q.delivery != null) _destination(q.delivery!),
-                Text(
-                  '${t('ยอดชำระทดสอบ', 'Test settlement')}: ${money(q.settlement.money)}',
-                ),
-                Text(
-                  'Solana devnet · ${t('ไม่ใช่เงินจริง', 'not real money')}',
+                Padding(
+                  padding: const EdgeInsets.only(top: 4, bottom: 8),
+                  child: Text(
+                    '${t('ยอดชำระทดสอบ', 'Test settlement')}: ${money(q.settlement.money)}\n'
+                    'Solana devnet · ${t('ไม่ใช่เงินจริง', 'not real money')}',
+                  ),
                 ),
                 if (_couponQuoteId == q.id)
                   Text(
@@ -2746,6 +2751,7 @@ class _FoodPageState extends State<FoodPage> with WidgetsBindingObserver {
                   '${t('ตรวจตะกร้า', 'Review cart')} · ${_cart.values.fold<int>(0, (a, b) => a + b.qty)}',
                 ),
               ),
+              const SizedBox(height: 12),
               OutlinedButton(
                 onPressed: _busy || _pending != null
                     ? null

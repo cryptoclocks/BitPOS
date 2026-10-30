@@ -23,7 +23,7 @@ class CustomerSignInHeading extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        SizedBox(height: sent ? 20 : 40),
+        const SizedBox(height: 40),
         Semantics(
           header: true,
           child: Text(
@@ -51,7 +51,7 @@ class CustomerSignInHeading extends StatelessWidget {
             color: dark ? colors.onSurfaceVariant : const Color(0xFF7B7088),
           ),
         ),
-        SizedBox(height: sent ? 41 : 32),
+        const SizedBox(height: 32),
       ],
     );
   }

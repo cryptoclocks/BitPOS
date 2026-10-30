@@ -67,6 +67,9 @@ class ScheduleSlotTile extends StatelessWidget {
       key: const ValueKey('cart-schedule-entry'),
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 14),
+        horizontalTitleGap: 14,
+        minLeadingWidth: 44,
+        minTileHeight: 82,
         leading: Container(
           width: 44,
           height: 44,
@@ -114,11 +117,12 @@ class _SlotSheet extends StatelessWidget {
         constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.7),
         child: ListView(
           shrinkWrap: true,
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
           children: [
             Text(t('เลือกเวลารับ', 'Choose a time'), style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: 8),
             ListTile(
+              contentPadding: EdgeInsets.zero,
               key: const ValueKey('slot-asap'),
               leading: Icon(selected == null ? Icons.radio_button_checked : Icons.radio_button_unchecked),
               title: Text(t('ทันที (ไม่นัดเวลา)', 'As soon as possible')),
@@ -126,6 +130,7 @@ class _SlotSheet extends StatelessWidget {
             ),
             for (final slot in slots)
               ListTile(
+                contentPadding: EdgeInsets.zero,
                 key: ValueKey('slot-${slot.id}'),
                 leading: Icon(selected?.id == slot.id ? Icons.radio_button_checked : Icons.radio_button_unchecked),
                 title: Text(ScheduleSlotTile.format(slot, thai)),

@@ -238,13 +238,14 @@ class _RewardsPageState extends State<RewardsPage> {
       key: ValueKey('reward-offer-${o.id}'),
       margin: const EdgeInsets.only(top: 12),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(_name(o.nameTh, o.nameEn), style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 4),
             Text(o.merchantName),
-            const SizedBox(height: 6),
+            const SizedBox(height: 8),
             Text(
               t(
                 'ลด ${minorText(o.discountMinor, o.decimals, o.currency)} เมื่อสั่งอาหารขั้นต่ำ ${minorText(o.minimumSpendMinor, o.decimals, o.currency)} · ใช้ ${o.pointsCost} แต้ม · มีอายุ ${o.validityDays} วัน',
@@ -255,7 +256,7 @@ class _RewardsPageState extends State<RewardsPage> {
               t('คุณมี ${o.balance} แต้มที่ร้านนี้', 'You have ${o.balance} points at this shop'),
               style: Theme.of(context).textTheme.bodySmall,
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 16),
             FilledButton(
               key: ValueKey('redeem-${o.id}'),
               onPressed: o.redeemable && !busy ? () => _redeem(o) : null,
@@ -273,18 +274,21 @@ class _RewardsPageState extends State<RewardsPage> {
     key: ValueKey('voucher-${v.id}'),
     margin: const EdgeInsets.only(top: 12),
     child: Padding(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(_name(v.nameTh, v.nameEn), style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 4),
           Text(v.merchantName),
+          const SizedBox(height: 8),
           Text(
             t(
               'ลด ${minorText(v.discountMinor, v.decimals, v.currency)} เมื่อสั่งอาหารขั้นต่ำ ${minorText(v.minimumSpendMinor, v.decimals, v.currency)} · หมดอายุ ${v.expiresAt.substring(0, 10)}',
               '${minorText(v.discountMinor, v.decimals, v.currency)} off food of at least ${minorText(v.minimumSpendMinor, v.decimals, v.currency)} · expires ${v.expiresAt.substring(0, 10)}',
             ),
           ),
+          const SizedBox(height: 8),
           Text(_stateLabel(v.state), key: ValueKey('voucher-state-${v.id}'), style: const TextStyle(fontWeight: FontWeight.w600)),
           if (v.state == 'AVAILABLE') ...[
             Row(
@@ -318,10 +322,10 @@ class _RewardsPageState extends State<RewardsPage> {
       appBar: AppBar(
         backgroundColor: const Color(0xfff8f5fc),
         toolbarHeight: 72,
-        leadingWidth: 76,
+        leadingWidth: 84,
         titleSpacing: 0,
         leading: Padding(
-          padding: const EdgeInsets.fromLTRB(18, 14, 14, 14),
+          padding: const EdgeInsets.fromLTRB(24, 12, 12, 12),
           child: IconButton.filledTonal(
             tooltip: MaterialLocalizations.of(context).backButtonTooltip,
             onPressed: () => Navigator.of(context).maybePop(),

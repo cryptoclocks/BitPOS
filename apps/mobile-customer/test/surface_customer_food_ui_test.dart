@@ -309,7 +309,7 @@ void registerCustomerFoodSurfaceTests({bool native = false}) {
         final backSurface = find.byKey(
           const ValueKey('customer-food-back-surface'),
         );
-        expect(tester.getRect(backSurface), const Rect.fromLTWH(18, 52, 44, 44));
+        expect(tester.getRect(backSurface), const Rect.fromLTWH(24, 52, 44, 44));
         expect(
           tester
               .getRect(

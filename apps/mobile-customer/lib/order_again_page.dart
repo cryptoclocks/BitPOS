@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:mobile_shared/presentation/bitpos_layout.dart';
 import 'package:mobile_shared/presentation/bitpos_info.dart';
 import 'package:mobile_shared/mobile_api.dart';
 import 'package:mobile_shared/mobile_v1.generated.dart';
@@ -140,8 +141,8 @@ class _OrderAgainPageState extends State<OrderAgainPage> {
     if (_invalidated || !_current) return const SizedBox.shrink();
     return Scaffold(
       backgroundColor: const Color(0xfff8f5fc),
-      appBar: AppBar(
-        backgroundColor: const Color(0xfff8f5fc),
+      appBar: bitPosAppBar(
+        context,
         title: Text(t('สั่งอีกครั้ง', 'Order again')),
       ),
       body: ListView(
