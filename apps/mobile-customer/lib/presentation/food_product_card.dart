@@ -11,10 +11,13 @@ class FoodProductCard extends StatelessWidget {
     required this.product,
     required this.thai,
     this.onConfigure,
+    this.inCart = 0,
   });
   final MobileProduct product;
   final bool thai;
   final VoidCallback? onConfigure;
+  /// Quantity of this product already in the cart, shown where the customer just added it.
+  final int inCart;
   String t(String th, String en) => thai ? th : en;
 
   @override
@@ -44,6 +47,14 @@ class FoodProductCard extends StatelessWidget {
           Text(
             t('สินค้าหมด', 'Sold out'),
             style: TextStyle(color: colors.error),
+          ),
+        if (inCart > 0)
+          Text(
+            '${t('ในตะกร้า', 'In cart')} ×$inCart',
+            style: Theme.of(context).textTheme.labelMedium?.copyWith(
+              color: colors.primary,
+              fontWeight: FontWeight.w700,
+            ),
           ),
       ],
     );

@@ -1287,8 +1287,10 @@ class _FoodWorkPageState extends State<FoodWorkPage>
                     ? 8
                     : 24,
               ),
+              // While a job is active the page shows only that job: no online banner or day totals.
               if (!navigating &&
                   !showingDetails &&
+                  duty == null &&
                   widget.availability != null) ...[
                 widget.availability!,
                 const SizedBox(height: 18),
@@ -1305,6 +1307,7 @@ class _FoodWorkPageState extends State<FoodWorkPage>
               ],
               if (!navigating &&
                   !showingDetails &&
+                  duty == null &&
                   widget.dailySummary != null) ...[
                 widget.dailySummary!,
                 const SizedBox(height: 28),

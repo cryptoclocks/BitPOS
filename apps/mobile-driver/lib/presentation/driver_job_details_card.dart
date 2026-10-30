@@ -145,7 +145,7 @@ class DriverJobDetailsCard extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 20),
-        sectionTitle(_t('ตรวจสอบก่อนรับอาหาร', 'Check before pickup')),
+        sectionTitle(_t('รายการที่ต้องตรวจ', 'Items to check')),
         const SizedBox(height: 8),
         borderedCard(
           child: a.items.isEmpty

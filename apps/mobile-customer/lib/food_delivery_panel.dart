@@ -1251,6 +1251,9 @@ class DeliveryCodeCard extends StatelessWidget {
             textAlign: TextAlign.center,
             style: TextStyle(
               fontFamily: 'monospace',
+              // A slashed zero keeps 0 and O apart; the code is case- and shape-sensitive.
+              fontFeatures: const [FontFeature.slashedZero()],
+              letterSpacing: 1,
               fontSize: 24,
               height: 1.5,
               fontWeight: FontWeight.w700,

@@ -2692,6 +2692,7 @@ class _FoodPageState extends State<FoodPage> with WidgetsBindingObserver {
                 return FoodProductCard(
                   product: p,
                   thai: widget.thai,
+                  inCart: _productQuantity(p.id),
                   onConfigure: enabled
                       ? () => _run(() => _editProduct(p))
                       : null,
