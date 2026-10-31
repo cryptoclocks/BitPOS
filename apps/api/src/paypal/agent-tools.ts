@@ -53,7 +53,8 @@ export const toolSchemas={
  read_recent_sales:z.object({productId:z.string().uuid(),hours:z.number().int().min(1).max(72)}).strict(),
  read_merchant_limits:z.object({}).strict(),
  validate_campaign:z.object({productId:z.string().uuid(),maxUnits:z.number().int(),maxUnitsPerOrder:z.number().int().optional(),discountPercent:z.number().int(),endsAt:z.string().max(40)}).strict(),
- save_campaign_draft:z.object({productId:z.string().uuid(),maxUnits:z.number().int(),maxUnitsPerOrder:z.number().int().optional(),discountPercent:z.number().int(),endsAt:z.string().max(40),rationale:z.string().min(1).max(600)}).strict()
+ save_campaign_draft:z.object({productId:z.string().uuid(),maxUnits:z.number().int(),maxUnitsPerOrder:z.number().int().optional(),discountPercent:z.number().int(),endsAt:z.string().max(40),rationale:z.string().min(1).max(600)}).strict(),
+ ask_owner:z.object({question:z.string().min(3).max(300)}).strict()
 };
 export type ToolName=keyof typeof toolSchemas;
 
@@ -63,7 +64,8 @@ export const functionDeclarations=[
  {name:'read_recent_sales',description:'Units of one product paid in the last N hours (aggregate only).',parameters:{type:'OBJECT',properties:{productId:{type:'STRING'},hours:{type:'INTEGER'}},required:['productId','hours']}},
  {name:'read_merchant_limits',description:'Shop limits: max discount, max units, max duration, current local time, closing information and screens.',parameters:{type:'OBJECT',properties:{}}},
  {name:'validate_campaign',description:'Check a proposed offer against stock, the owner limits and the shop limits. Returns violations and the server-computed price.',parameters:{type:'OBJECT',properties:{productId:{type:'STRING'},maxUnits:{type:'INTEGER'},maxUnitsPerOrder:{type:'INTEGER'},discountPercent:{type:'INTEGER'},endsAt:{type:'STRING',description:'ISO 8601 end time'}},required:['productId','maxUnits','discountPercent','endsAt']}},
- {name:'save_campaign_draft',description:'Save the validated offer as a DRAFT for the owner to review. It is not published and not shown to customers.',parameters:{type:'OBJECT',properties:{productId:{type:'STRING'},maxUnits:{type:'INTEGER'},maxUnitsPerOrder:{type:'INTEGER'},discountPercent:{type:'INTEGER'},endsAt:{type:'STRING'},rationale:{type:'STRING',description:'Two sentences citing tool results'}},required:['productId','maxUnits','discountPercent','endsAt','rationale']}}
+ {name:'save_campaign_draft',description:'Save the validated offer as a DRAFT for the owner to review. It is not published and not shown to customers.',parameters:{type:'OBJECT',properties:{productId:{type:'STRING'},maxUnits:{type:'INTEGER'},maxUnitsPerOrder:{type:'INTEGER'},discountPercent:{type:'INTEGER'},endsAt:{type:'STRING'},rationale:{type:'STRING',description:'Two sentences citing tool results'}},required:['productId','maxUnits','discountPercent','endsAt','rationale']}},
+ {name:'ask_owner',description:'Ask the owner ONE short question when the request is unclear or cannot be met within the limits. Ends this run; nothing is saved.',parameters:{type:'OBJECT',properties:{question:{type:'STRING',description:'One short question in the owner\'s language'}},required:['question']}}
 ];
 
 export interface ToolContext {merchant:string;actor:string;role:string;runId:string;intent:string;language:'th'|'en';caps:IntentCaps;now:()=>Date;tenant:<T>(fn:(db:pg.PoolClient)=>Promise<T>)=>Promise<T>;}
@@ -142,6 +144,7 @@ export async function runTool(ctx:ToolContext,name:string,rawArgs:unknown):Promi
     screens:screens.map(s=>({label:s.label,online:s.online,busy:s.busy})),note:'The owner chooses the screen after approval.'}};
   }
   case 'validate_campaign':{const r=await validateCampaign(ctx,a);return {result:{ok:r.ok,violations:r.violations,computed:r.computed},violations:r.violations};}
+  case 'ask_owner':return {result:{asked:true,note:'The owner will answer in a new request.'}};
   case 'save_campaign_draft':{const r=await saveCampaignDraft(ctx,a);return {result:r,violations:'violations' in r?r.violations:undefined};}
  }
 }

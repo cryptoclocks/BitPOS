@@ -178,3 +178,16 @@ test('U-AG: an empty Gemini turn after a tool result (seen with gemini-2.5-flash
   for(const r of roles)for(let i=1;i<r.length;i++)assert.notEqual(r[i],r[i-1],'turns alternate: '+r.join(','));
  }finally{s.copilot.setCopilotModel(undefined);await s.close();}
 });
+
+test('U-AG: reasoning text is not mistaken for a question; ask_owner asks one (gemini-2.5-flash-lite behaviour on OCI)',integration,async()=>{
+ const s=await setup();
+ try{
+  const plan=fullPlan(new Date(Date.now()+2*3600_000).toISOString());
+  s.copilot.setCopilotModel(scriptedModel([plan[0],()=>({text:'Rationale: the owner wants to sell 2 coffees with at most 10% off; the shop limit is 20%.'}),...plan.slice(1)]).model);
+  const run=await s.req('/api/paypal/copilot/runs','POST',{intent:'ขายกาแฟที่เหลือไม่เกิน 2 ชิ้น ลดไม่เกิน 10%',language:'th'});
+  assert.equal(run.state,'DRAFTED',JSON.stringify(run.failure??run.question));
+  s.copilot.setCopilotModel(scriptedModel([plan[0],()=>({name:'ask_owner',args:{question:'Which product should be on offer?'}})]).model);
+  const asked=await s.req('/api/paypal/copilot/runs','POST',{intent:'make an offer',language:'en'});
+  assert.deepEqual([asked.state,asked.question,asked.envelopeId],['NEEDS_INPUT','Which product should be on offer?',null]);
+ }finally{s.copilot.setCopilotModel(undefined);await s.close();}
+});
