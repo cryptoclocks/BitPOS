@@ -15,3 +15,6 @@ export function categorySummary(products: Pick<Product, 'category'>[]): { catego
   for (const product of products) counts.set(product.category || '', (counts.get(product.category || '') ?? 0) + 1);
   return [...counts].map(([category, count]) => ({ category, count })).sort((a, b) => a.category.localeCompare(b.category));
 }
+// Same names the guest table menu shows for the stored English category (TableMenu); unknown categories stay as stored.
+const thaiCategories: Record<string, string> = { 'Coffee': 'กาแฟ', 'Tea & Chocolate': 'ชาและช็อกโกแลต', 'Bakery': 'เบเกอรี่', 'Desserts': 'ของหวาน', 'Savory': 'อาหาร' };
+export function categoryLabel(category: string, language: 'th' | 'en'): string { return language === 'th' ? thaiCategories[category] ?? category : category; }
