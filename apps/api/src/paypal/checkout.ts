@@ -28,6 +28,10 @@ export function paypalDeps():PayPalDeps|null{
 }
 const MIN_CAPTURE_MS=60_000,MIN_CREATE_MS=120_000;
 const LIVE=['CREATING','CREATED','APPROVED','CAPTURING','PENDING','UNKNOWN'];
+// A capture PayPal refused with one of these moved no money and the buyer can approve again.
+const DEFINITIVE=['ORDER_NOT_APPROVED','INSTRUMENT_DECLINED','PAYER_ACTION_REQUIRED'];
+// Refusals that only mean "not now" (another capture with this order is in flight): try again, keep the bill protected.
+const TRANSIENT=['PREVIOUS_REQUEST_IN_PROGRESS','DUPLICATE_REQUEST_ID','RESOURCE_CONFLICT'];
 
 export type CheckoutView={status:'none'|'creating'|'awaiting_approval'|'confirming'|'checking'|'paid'|'recovery'|'pending'|'declined'|'expired'|'failed'|'mismatch';
  paypalOrderId:string|null;captureId:string|null;amount:{currency:'USD';value:string}|null;issue:string|null};
@@ -165,7 +169,7 @@ export async function advanceCheckout(merchant:string,checkoutId:string,mode:'ca
   else{
    issue=e.issue??e.code;
    // A refused capture is not "unpaid": ask PayPal what the order really is (already captured, duplicate invoice, …).
-   if(start.act==='capture'&&issue!=='ORDER_NOT_APPROVED'&&issue!=='INSTRUMENT_DECLINED'&&issue!=='PAYER_ACTION_REQUIRED'){
+   if(start.act==='capture'&&!DEFINITIVE.includes(issue)){
     try{order=await d.client.getOrder(start.k.paypal_order_id!);source='order_lookup';}catch(x){if(x instanceof PayPalError&&x.code==='OUTCOME_UNKNOWN')unknown=true;else if(!(x instanceof PayPalError))throw x;}
    }
   }
@@ -177,9 +181,9 @@ export async function advanceCheckout(merchant:string,checkoutId:string,mode:'ca
    const verdict=verifyOrder(expected,order);
    if(verdict.state==='NONE'){
     // PayPal has no capture: approval may be pending, or the buyer must approve again (declined instrument).
-    // An approved order whose capture was refused for another reason (e.g. a capture already in progress) may still
-    // be captured: keep it UNKNOWN, which blocks closing the bill, and look again shortly.
-    const next=order.status==='APPROVED'?(issue?'UNKNOWN':'APPROVED'):'CREATED';
+    // An approved order whose capture was refused only for now (another capture in progress) may still be captured:
+    // keep it UNKNOWN, which blocks closing the bill, and look again shortly. Any other refusal moved no money.
+    const next=order.status==='APPROVED'&&issue&&TRANSIENT.includes(issue)?'UNKNOWN':order.status==='APPROVED'&&!issue?'APPROVED':'CREATED';
     if(LIVE.includes(k.status))k=(await db.query<CheckoutRow>(`UPDATE paypal_checkouts SET status=$3,last_issue=$4,last_debug_id=$5,next_check_at=CASE WHEN $3='UNKNOWN' THEN clock_timestamp()+interval '15 seconds' END WHERE merchant_id=$1 AND id=$2 RETURNING *`,[merchant,k.id,next,issue,order.debugId??debugId])).rows[0];
     return {k,order:o,captureId:null};
    }
@@ -192,8 +196,14 @@ export async function advanceCheckout(merchant:string,checkoutId:string,mode:'ca
    if(LIVE.includes(k.status))k=(await db.query<CheckoutRow>("UPDATE paypal_checkouts SET status=CASE WHEN status='CAPTURING' THEN 'UNKNOWN' ELSE status END,next_check_at=clock_timestamp()+interval '15 seconds',last_debug_id=$3 WHERE merchant_id=$1 AND id=$2 RETURNING *",[merchant,k.id,debugId])).rows[0];
    return {k,order:o,captureId:null};
   }
-  // Definitive refusal before any money moved (not approved / instrument declined): the buyer can approve again.
-  if(LIVE.includes(k.status))k=(await db.query<CheckoutRow>("UPDATE paypal_checkouts SET status='CREATED',last_issue=$3,last_debug_id=$4 WHERE merchant_id=$1 AND id=$2 RETURNING *",[merchant,k.id,issue,debugId])).rows[0];
+  // Definitive capture refusal before any money moved (not approved / instrument declined): the buyer can approve again.
+  if(start.act==='capture'&&issue&&DEFINITIVE.includes(issue)){
+   if(LIVE.includes(k.status))k=(await db.query<CheckoutRow>("UPDATE paypal_checkouts SET status='CREATED',last_issue=$3,last_debug_id=$4 WHERE merchant_id=$1 AND id=$2 RETURNING *",[merchant,k.id,issue,debugId])).rows[0];
+   return {k,order:o,captureId:null};
+  }
+  // Anything else (a failed lookup, credentials refused, …) proves nothing about the money: keep the state, so a
+  // PENDING or possibly-captured checkout still blocks closing the bill, and look again later.
+  if(LIVE.includes(k.status))k=(await db.query<CheckoutRow>("UPDATE paypal_checkouts SET status=CASE WHEN status='CAPTURING' THEN 'UNKNOWN' ELSE status END,last_issue=$3,last_debug_id=$4,next_check_at=clock_timestamp()+interval '60 seconds' WHERE merchant_id=$1 AND id=$2 RETURNING *",[merchant,k.id,issue,debugId])).rows[0];
   return {k,order:o,captureId:null};
  });
 }

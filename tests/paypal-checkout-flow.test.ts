@@ -111,3 +111,19 @@ test('I-14: a PayPal shop stays a PayPal shop when the server has no PayPal conf
  try{const st=await checkout.paypalStatus(b.access_token);assert.equal(st.paypalShop,true);assert.equal(st.enabled,false);assert.equal(st.clientId,null);}
  finally{checkout.setPayPalDeps(undefined);}
 });
+
+test('I-15: a permanent capture refusal is not left UNKNOWN; a failed lookup never unprotects a PENDING checkout',integration,async()=>{
+ const {f,pp,checkout,bill}=await setup();
+ const row=(orderId:string)=>f.tenant(f.merchant,async db=>(await db.query("SELECT id,status,bitpos.unpaid_order_safe($1,$2) AS closable FROM paypal_checkouts WHERE order_id=$2",[f.merchant,orderId])).rows[0]);
+ const a=await bill(1);const ca=await checkout.createPayPalOrder(a.access_token);pp.approve(ca.paypalOrderId!);
+ pp.fail.capture=new PayPalError('REJECTED','PAYEE_ACCOUNT_RESTRICTED','dbg',422);
+ await checkout.capturePayPalOrder(a.access_token,ca.paypalOrderId!);
+ assert.deepEqual({status:(await row(a.id)).status,closable:(await row(a.id)).closable},{status:'CREATED',closable:true},'nothing moved: the bill can still expire and release stock');
+ // A second shop (the fixture screen holds one unpaid bill at a time).
+ const s2=await setup();const row2=(orderId:string)=>s2.f.tenant(s2.f.merchant,async db=>(await db.query("SELECT id,status,bitpos.unpaid_order_safe($1,$2) AS closable FROM paypal_checkouts WHERE order_id=$2",[s2.f.merchant,orderId])).rows[0]);
+ const b=await s2.bill(1);const cb=await s2.checkout.createPayPalOrder(b.access_token);s2.pp.approve(cb.paypalOrderId!);
+ const k=await row2(b.id);await s2.f.tenant(s2.f.merchant,db=>db.query("UPDATE paypal_checkouts SET status='PENDING' WHERE merchant_id=$1 AND id=$2",[s2.f.merchant,k.id]));
+ s2.pp.fail.get=new PayPalError('AUTH_FAILED',undefined,'dbg',401);
+ await s2.checkout.advanceCheckout(s2.f.merchant,k.id,'lookup',s2.checkout.paypalDeps()!);
+ assert.deepEqual({status:(await row2(b.id)).status,closable:(await row2(b.id)).closable},{status:'PENDING',closable:false},'a lookup error proves nothing about money that may still move');
+});

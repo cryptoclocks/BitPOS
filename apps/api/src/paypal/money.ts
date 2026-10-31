@@ -12,10 +12,16 @@ export function toCents(amountMinor:bigint|string,decimals:number):bigint|null{
  const cents=decimals<=2?v*10n**BigInt(2-decimals):v%10n**BigInt(decimals-2)===0n?v/10n**BigInt(decimals-2):null;
  return cents!==null&&cents>0n&&cents<=PAYPAL_MAX_CENTS?cents:null;
 }
+/** Exact decimal string from integer minor units, at least two decimals: 450@2 → "4.50", 38250@4 → "3.825", -62@2 → "-0.62". */
+export function minorToValue(amountMinor:bigint|string,decimals:number):string{
+ const v=BigInt(amountMinor),neg=v<0n,a=neg?-v:v,unit=10n**BigInt(decimals);
+ let frac=decimals?(a%unit).toString().padStart(decimals,'0'):'';while(frac.length>2&&frac.endsWith('0'))frac=frac.slice(0,-1);
+ return `${neg?'-':''}${a/unit}${frac?'.'+frac:''}`;
+}
 /** USD cents → PayPal `value` string ("4.50"). */
 export function centsToValue(cents:bigint):string{
  if(cents<=0n||cents>PAYPAL_MAX_CENTS)throw new RangeError('PAYPAL_AMOUNT_OUT_OF_RANGE');
- return `${cents/100n}.${(cents%100n).toString().padStart(2,'0')}`;
+ return minorToValue(cents,2);
 }
 /** Catalog minor units → PayPal `value`, or null when the price cannot be charged exactly. */
 export function toPayPalValue(amountMinor:bigint|string,decimals:number):string|null{const c=toCents(amountMinor,decimals);return c===null?null:centsToValue(c);}

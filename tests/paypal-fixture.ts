@@ -15,7 +15,7 @@ export const config:PayPalConfig={apiBase:'https://api-m.sandbox.paypal.com',cli
 /** In-memory PayPal Sandbox. `fail` injects one failure into the next matching call. */
 export function fakePayPal(){
  const uid=()=>randomBytes(8).toString('hex').toUpperCase().slice(0,15);const orders=new Map<string,{input:CreateOrderInput;status:string;captureId:string|null;value:bigint;payee:string}>();
- const calls:string[]=[];const fail:{create?:PayPalError;capture?:PayPalError|'after'}= {};
+ const calls:string[]=[];const fail:{create?:PayPalError;capture?:PayPalError|'after';get?:PayPalError}= {};
  const byRequest=new Map<string,string>();
  const shape=(id:string):PayPalOrder=>{const o=orders.get(id)!;const cid=customId(o.input.merchantId,o.input.orderId,o.input.checkoutId);
   return {id,status:o.status,debugId:'dbg',payerActionUrl:'https://www.sandbox.paypal.com/checkoutnow?token='+id,units:[{referenceId:o.input.orderId,customId:cid,invoiceId:invoiceId(o.input.checkoutId),currency:'USD',valueCents:o.input.amountCents,payeeMerchantId:o.payee,
@@ -30,7 +30,7 @@ export function fakePayPal(){
    if(!o.captureId){o.captureId='CP'+uid();o.status='COMPLETED';}
    if(fail.capture==='after'){fail.capture=undefined;throw new PayPalError('OUTCOME_UNKNOWN');}
    return shape(id);},
-  async getOrder(id){calls.push('get');return shape(id);},
+  async getOrder(id){calls.push('get');if(fail.get){const e=fail.get;fail.get=undefined;throw e;}return shape(id);},
   async getCapture(){throw new Error('unused');}
  };
  return {client,calls,fail,approve:(id:string)=>{orders.get(id)!.status='APPROVED';},tamper:(id:string,f:(o:{value:bigint;payee:string})=>void)=>f(orders.get(id)!)};

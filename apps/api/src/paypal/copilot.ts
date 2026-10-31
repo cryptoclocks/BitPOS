@@ -17,6 +17,7 @@ import {routingLock,RequestError} from '../authority';
 import {promotionsRequest,promotionDevices} from '../promotions';
 import {runCopilot,AgentFailure,type AgentModel} from './agent';
 import {parseIntent,saveCampaignDraft,validateCampaign,type ToolContext} from './agent-tools';
+import {minorToValue} from './money';
 
 const uuid=z.string().uuid();
 // PayPal-specific codes are not in the shared ConsumerError union; the HTTP layer only needs status + code.
@@ -26,7 +27,7 @@ let model:AgentModel|undefined;
 /** Tests inject a scripted model; production uses Gemini through the existing BITPOS_AI_* configuration. */
 export function setCopilotModel(m:AgentModel|undefined){model=m;}
 // Report formatting, not a PayPal request amount: zero (no sales yet, zero fee) must format instead of throwing.
-const usd=(cents:string|number|bigint|null)=>{if(cents===null)return null;const c=BigInt(cents),a=c<0n?-c:c;return `${c<0n?'-':''}${a/100n}.${(a%100n).toString().padStart(2,'0')}`;};
+const usd=(cents:string|number|bigint|null)=>cents===null?null:minorToValue(BigInt(cents),2);
 
 async function runView(merchant:string,id:string){
  return tenant(merchant,async db=>{
@@ -84,9 +85,14 @@ async function publish(merchant:string,actor:string,role:string,id:string,input:
  return tenant(merchant,async db=>{
   await routingLock(db,merchant);
   const devices=await promotionDevices(db,merchant);if(!devices.length)refuse(409,'NO_SCREENS');
+  // Publishing bumps the campaign version, so a request key cannot dedupe a retry. Instead: if every current screen
+  // already has a live target for this campaign (same assignment), a repeat publish changes nothing.
+  const live=(await db.query<{device:string;generation:string}>(`SELECT target_device_id AS device,assignment_generation::text AS generation FROM promotion_playlist_targets
+   WHERE merchant_id=$1 AND campaign_id=$2 AND state NOT IN ('REVOKED','EXPIRED','TARGET_CHANGED')`,[merchant,e.campaign!.id])).rows;
+  if(devices.every(x=>live.some(t=>t.device===x.deviceId&&t.generation===x.assignmentGeneration)))return {published:true,alreadyPublished:true};
   const targets=devices.map(x=>({deviceId:x.deviceId,assignmentGeneration:x.assignmentGeneration,authGeneration:x.authGeneration,screenGeneration:x.screenGeneration}));
   const c=(await db.query('SELECT version FROM promotion_campaigns WHERE merchant_id=$1 AND id=$2',[merchant,e.campaign!.id])).rows[0];
-  const result=await promotionsRequest(db,merchant,actor,role,`/api/promotions/${e.campaign!.id}/publish`,'POST',{expectedVersion:c.version,idempotencyKey:`copilot-publish-${id}-${c.version}`,confirmTargets:true,targets});
+  const result=await promotionsRequest(db,merchant,actor,role,`/api/promotions/${e.campaign!.id}/publish`,'POST',{expectedVersion:c.version,idempotencyKey:'copilot-publish-'+randomUUID(),confirmTargets:true,targets});
   return {published:true,result};
  });
 }

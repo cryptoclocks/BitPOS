@@ -24,6 +24,11 @@ test('U-INT: owner limits are read from Thai and English intents',()=>{
  assert.deepEqual(parseIntent('Cut latte price by 15% before 5pm, 10 cups max',now),{discountPercent:15,units:10,endsAt:'2026-11-06T10:00:00.000Z'});
  assert.deepEqual(parseIntent('ลดครัวซองต์ 10% ขาย 8 ชิ้น ก่อน 16:00',now),{discountPercent:10,units:8,endsAt:'2026-11-06T09:00:00.000Z'});
  assert.equal(parseIntent('sell lattes before 5',now).endsAt,'2026-11-06T10:00:00.000Z','"before 5" at noon means 17:00');
+ // Second review: unrelated or 3-digit percentages, and a space before %.
+ assert.equal(parseIntent('We sold 30% more yesterday, give 10% off',now).discountPercent,10);
+ assert.equal(parseIntent('100% arabica, sell 8 before 5pm',now).discountPercent,null);
+ assert.equal(parseIntent('lower the price by 15 % before 6pm',now).endsAt,'2026-11-06T11:00:00.000Z');
+ assert.equal(parseIntent('ก่อน 16:30 8 ชิ้น ลดไม่เกิน 10%',now).endsAt,'2026-11-06T09:30:00.000Z');
 });
 
 /** Scripted model: follows a plan, reading tool answers from the conversation like a real model would. */
@@ -108,6 +113,10 @@ test('U-AG + D-CMP + I-15: Copilot drafts within limits; owner approves and publ
   assert.ok((await s.req('/api/paypal/copilot/envelopes','GET')).envelopes.some((e:any)=>e.id===run.envelopeId&&e.state==='APPROVED'));
   await assert.rejects(s.req(`/api/paypal/copilot/envelopes/${run.envelopeId}/publish`,'POST',{deviceIds:[s.f.b.id]}),/Unrecognized|invalid/i,'a subset of screens is not accepted for a daily offer');
   await s.req(`/api/paypal/copilot/envelopes/${run.envelopeId}/publish`,'POST',{confirmAllScreens:true});
+  const targetCount=async()=>Number((await s.f.tenant(s.f.merchant,db=>db.query('SELECT count(*) FROM promotion_playlist_targets t JOIN paypal_campaign_envelopes e ON e.merchant_id=t.merchant_id AND e.campaign_id=t.campaign_id WHERE e.id=$1',[run.envelopeId]))).rows[0].count);
+  const published=await targetCount();
+  assert.equal((await s.req(`/api/paypal/copilot/envelopes/${run.envelopeId}/publish`,'POST',{confirmAllScreens:true})).alreadyPublished,true,'a retried publish does not send the offer again');
+  assert.equal(await targetCount(),published);
   const first=await s.tableOrder();
   assert.equal(first.status,200,JSON.stringify(first.error));assert.equal(first.quote.lines[0].unitPrice.amountMinor,'243');
   let env=await s.req(`/api/paypal/copilot/envelopes/${run.envelopeId}`);assert.deepEqual(env.units,{reserved:1,consumed:0,released:0,remaining:1});

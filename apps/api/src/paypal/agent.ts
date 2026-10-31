@@ -53,6 +53,8 @@ export interface RunResult {runId:string;state:'DRAFTED'|'NEEDS_INPUT'|'FAILED';
 /** `model` is injected by tests; without it the run uses Gemini and takes one admission from the shared Gemini free-tier budget. */
 export async function runCopilot(input:{merchant:string;actor:string;role:string;intent:string;language:'th'|'en'},injected?:AgentModel,now:()=>Date=()=>new Date()):Promise<RunResult>{
  const model=injected??geminiModel();
+ // Without a usable Gemini configuration the first model call fails CONFIGURATION_REQUIRED; don't spend a shared admission on it.
+ const configured=!!injected||(()=>{try{coffeeConfiguration();return true;}catch{return false;}})();
  if(!['owner','manager'].includes(input.role))throw new AgentFailure('ROLE_REQUIRED');
  const intent=input.intent.trim();if(intent.length<3||intent.length>600)throw new AgentFailure('INVALID_INTENT');
  const runId=randomUUID();
@@ -62,7 +64,7 @@ export async function runCopilot(input:{merchant:string;actor:string;role:string
   const n=(await db.query("SELECT count(*)::int AS n FROM paypal_agent_runs WHERE merchant_id=$1 AND kind='model' AND started_at>clock_timestamp()-interval '1 day'",[input.merchant])).rows[0].n as number;
   if(n>=MAX_RUNS_PER_DAY)return 'DAILY_LIMIT';
   // Same Gemini free-tier budget as the promotion generator and the table Copilot (migration 029): one admission per run.
-  if(!injected&&!await reserveAiFree(db,input.merchant,runId,'copilot',null,createHash('sha256').update(intent).digest('hex')))return 'AI_FREE_LIMIT';
+  if(!injected&&configured&&!await reserveAiFree(db,input.merchant,runId,'copilot',null,createHash('sha256').update(intent).digest('hex')))return 'AI_FREE_LIMIT';
   await db.query("INSERT INTO paypal_agent_runs(merchant_id,id,actor,intent,language,kind) VALUES($1,$2,$3,$4,$5,'model')",[input.merchant,runId,input.actor,intent,input.language]);
   return null;
  });

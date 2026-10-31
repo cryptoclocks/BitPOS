@@ -4,7 +4,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {paypalConfig,PayPalError,PAYPAL_SANDBOX_API} from '../apps/api/src/paypal/config';
-import {toCents,toPayPalValue,valueToCents,centsToValue} from '../apps/api/src/paypal/money';
+import {toCents,toPayPalValue,valueToCents,centsToValue,minorToValue} from '../apps/api/src/paypal/money';
 import {paypalClient,createOrderBody,parseOrder,customId,invoiceId,type CreateOrderInput,type PayPalFetch} from '../apps/api/src/paypal/client';
 import {verifyOrder,type ExpectedPayment} from '../apps/api/src/paypal/verify';
 
@@ -48,6 +48,7 @@ test('U-MNY: exact cents only, two-decimal strings both ways',()=>{
  assert.equal(toPayPalValue(45001n,4),null,'sub-cent price cannot be charged exactly');
  assert.equal(toCents(0n,2),null);assert.equal(toCents(-1n,2),null);assert.equal(toCents(1_000_001n,2),null);assert.equal(toCents('x',2),null);assert.equal(toCents(1n,19),null);
  assert.equal(centsToValue(1n),'0.01');assert.equal(centsToValue(1_000_000n),'10000.00');assert.throws(()=>centsToValue(0n));
+ assert.deepEqual([minorToValue(450n,2),minorToValue('38250',4),minorToValue(0n,2),minorToValue(-62n,2),minorToValue(5n,0)],['4.50','3.825','0.00','-0.62','5']);
  assert.equal(valueToCents('4.50'),450n);assert.equal(valueToCents('0.65'),65n);
  for(const bad of ['4.5','4.500','04.50','-4.50','4,50',' 4.50','1e2',4.5,null])assert.equal(valueToCents(bad),null,String(bad));
 });
