@@ -56,3 +56,12 @@
 .table-product-dialog-header{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}.table-product-dialog-header h2{font-size:24px;overflow-wrap:anywhere;margin:0 0 20px}
 .table-menu .table-product-dialog-photo .table-product-photo{height:200px;border-radius:18px}.table-menu .table-product-dialog-photo .table-photo-placeholder{height:200px}
 .table-product-dialog-actions{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-top:24px}
+/* Product story: shop cover, play chip on the photo, loop video and story text in the detail dialog. */
+.table-menu .table-cover{display:block;width:100%;height:auto;aspect-ratio:16/9;object-fit:cover;border-radius:22px;margin:16px 0 16px}
+.table-product-image{position:relative}
+.table-play-chip{position:absolute;top:8px;right:8px;width:36px;height:36px;border-radius:999px;border:0;display:grid;place-items:center;background:#ffffffe6;color:var(--bp-purple,#5b21b6);box-shadow:0 2px 8px #29183f40;cursor:pointer}
+.table-play-chip svg{width:20px;height:20px;fill:currentColor}
+.table-menu .table-product-dialog-photo .table-story-video{display:block;width:100%;aspect-ratio:1/1;max-height:320px;object-fit:cover;border-radius:18px;background:#0000000d}
+.table-story{margin:12px 0 0}.table-story p{margin:0 0 10px;line-height:1.5}.table-story-text{font-size:16px}
+@media (prefers-reduced-motion:reduce){.table-story-video{animation:none}}
+

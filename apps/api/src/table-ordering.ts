@@ -1,3 +1,4 @@
+import {storiesFor} from './product-story';
 import type pg from 'pg';
 import {randomUUID} from 'node:crypto';
 import {z} from 'zod';
@@ -48,7 +49,8 @@ export async function tableRequest(path:string,method:string,input:unknown){
   const e=(await db.query<Entry>('SELECT id,merchant_id,device_id,table_id,assignment_generation::text,auth_generation::text,entry_token FROM table_entries WHERE merchant_id=$1 AND entry_token=$2',[merchant,entryToken])).rows[0];if(!e)fail('RESOURCE_NOT_FOUND',404);
   if(!match[2]&&method==='GET'){
    await currentEntry(db,e);const o=await occupancy(db,e);const menu=await effectiveCatalog(db,merchant,e.table_id);const table=(await db.query('SELECT label FROM merchant_tables WHERE merchant_id=$1 AND id=$2',[merchant,e.table_id])).rows[0];
-   return {tableLabel:table.label,menu,online:o.online,available:o.available,occupancy:await tableOccupancyView(db,merchant,e.table_id),collectionPolicy:await collectionPolicy(db,merchant)};
+   const stories=Object.fromEntries(await storiesFor(db,merchant,menu.products.map(p=>p.id)));const coverUrl=(await db.query<{cover_url:string|null}>('SELECT cover_url FROM marketplace_branches WHERE merchant_id=$1 AND cover_url IS NOT NULL ORDER BY enabled DESC,id LIMIT 1',[merchant])).rows[0]?.cover_url??'';
+   return {tableLabel:table.label,menu,stories,coverUrl,online:o.online,available:o.available,occupancy:await tableOccupancyView(db,merchant,e.table_id),collectionPolicy:await collectionPolicy(db,merchant)};
   }
   if(match[2]&&!match[3]&&method==='POST'){
    const d=z.object({requestId:uuid,offer:capability.optional(),sourceVisitToken:capability.optional(),customerSessionToken:capability.optional()}).strict().parse(input);await currentEntry(db,e);
