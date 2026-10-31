@@ -40,7 +40,7 @@ const LOOK:Record<string,{image:string;category:string;description:string}>={
  'Croissant':{image:'/images/menu/croissant.jpg',category:'Bakery',description:'A golden butter croissant with crisp, flaky layers.'},
  'Latte':{image:'/images/menu/latte.jpg',category:'Coffee',description:'Espresso with steamed milk and silky microfoam.'},
  'Americano':{image:'/images/menu/americano.jpg',category:'Coffee',description:'Espresso and hot water for a clean, bold coffee.'},
- 'Matcha':{image:'/images/menu/matcha.jpg',category:'Tea',description:'Smooth green tea with warm milk and a creamy finish.'},
+ 'Matcha':{image:'/images/menu/matcha.jpg',category:'Tea & Chocolate',description:'Smooth green tea with warm milk and a creamy finish.'},
  'Blueberry Muffin':{image:'/images/menu/blueberry-muffin.jpg',category:'Bakery',description:'A soft muffin baked with juicy blueberries.'},
  'Iced Latte':{image:'/images/menu/iced-latte.jpg',category:'Coffee',description:'Espresso and chilled milk served over ice.'}
 };
