@@ -1,3 +1,33 @@
+## PayPal hackathon — Phase 0 gate passed — 31 October 2026
+
+- Real PayPal Sandbox: order `9GA10264K77259045` approved by a US sandbox buyer and captured by the server (`3NJ75207B63619939`, COMPLETED, USD 4.50, fee 0.65, net 3.85); server verification 9/9 PASS; JS SDK v6 popup flow also verified (`60868501X2803334W`).
+- Finding F1: the TH sandbox business account is declined at buyer approval ("To comply with international regulations…") for TH and US buyers. Demo merchant moved to a US sandbox business account + app "BitPOS PayPal Cafe US" (credentials only in `~/.bitpos-paypal/paypal-sandbox.env`, chmod 600; TH app copy kept). Submission must say the Thai-merchant path is not verified in sandbox.
+- Idempotency facts: capture replay (same or new request id) returns the single existing capture (201); create replay after capture → 422 `ORDER_ALREADY_CAPTURED`; duplicate invoice_id → capture 422 `DUPLICATE_INVOICE_ID`. Plan 01 updated with these facts.
+- Details: `paypal-hackathon/evidence/phase0-spike.md`. Not committed. Next: Phase 1 (client, money, verify) and Phase 2 (ledger + settlement).
+
+## PayPal hackathon — Phase 0 started — 31 October 2026
+
+- D1–D7 taken as recommended. Imported current POS from h2 `bb176462` (314 files: apps/api, apps/web, apps/worker, packages, supabase, tests, tools/runtime, root package files) as staged changes; 5 production SSH/ops scripts left out. Not committed.
+- Disposable DB `tools/paypal/fixture-db.py` on 127.0.0.1:55466 (separate from the shared W01 fixture on 55446 owned by the main checkout); 174 migrations applied. Worktree `.env` points only at it (no real keys/wallets; the main checkout `.env` targets a tunnel and was not used).
+- Baseline: typecheck 7 pre-existing errors; unit 484 pass / 0 fail / 209 skipped; integration 664 pass / 27 fail / 2 skipped (pre-existing; list in `paypal-hackathon/evidence/phase0-test-baseline.md`).
+- Spike tools ready (`tools/paypal/sandbox-*.ts`, `sdk-spike/`); private env `~/.bitpos-paypal/paypal-sandbox.env` created empty. Blocked on owner credentials + sandbox buyer approval. OCI rules from the Meta session recorded in plan/06 (port 3103, migrations 4xx, compose `bitpos-paypal`, no OCI before 5 Nov 09:00).
+
+## PayPal hackathon — FigCraft PayPal edition — 31 October 2026
+
+- Copied the Solana design master into `paypal-hackathon/design/pp-edition/source/` (read-only) and built `BitPOS-PayPal-Platform-UI.figcraft` with a reproducible script: PayPal palette, Solana devnet payments (USDG/USDC/USDT, wallet, x402, crypto payouts) removed or replaced, all non-payment screens kept, 64 new PayPal screens (customer checkout states, merchant PayPal ops, Café Copilot AI, Mini P1 / terminal P0, guide and diff boards). Badges separate INHERITED from NEW.
+- Subagent roles defined in `.claude/agents/` (inventory analyst, PayPal product designer, FigCraft builder, SVG screen designer, design QA reviewer).
+- Validation: build checks pass (0 crypto terms outside guide, 0 purple, 0 dangling links, 0 missing sandbox markers, 0 text outside frames, 0 overlapping hotspots); 16 unreachable frames were already unreachable in the master; two runs give identical output (`3f73431b…`); independent QA: 19 first-round defects fixed, re-check passed with 3 follow-ups that were then fixed.
+- Plan correction: Mini firmware `table_settlement()` only accepts Solana devnet settlements, so PayPal on the Mini is P1 (firmware change + reflash); browser terminal is P0. Plan docs updated.
+- Not committed (D7). Next: confirm D1–D7 and start Phase 0.
+
+## PayPal hackathon — worktree and implementation plan — 31 October 2026
+
+- PayPal work now lives in worktree `~/Desktop/BitPOS-PayPal-2026` on `hackathon/paypal-2026` (tracks origin, still `9eb34ea`); local tag `paypal-hackathon-baseline` = `9eb34ea`. Planning docs copied untracked into `paypal-hackathon/` from the main checkout's untracked `PayPal/` folder.
+- Added `paypal-hackathon/IMPLEMENTATION_PLAN_TH.md`: decisions D1–D7, P0/P1 scope, PayPal-only code paths, migrations 400–449 (`paypal_*`), checkout state machine, endpoints, phase checklists, test matrix, schedule 1–12 Nov, risks and hard gates.
+- Findings: no PayPal code in any branch; baseline settlement is Solana-specific (`payments.signature NOT NULL`, `settle_verified_attempt`); the shared OCI DB is at migration 176 plus Meta `300–327`; Devpost 1259502 was submitted 25 Oct and says the integration is not implemented.
+- Detailed plan files added in `paypal-hackathon/plan/01–08` (PayPal API facts checked against PayPal docs and Orders v2 schema.json on 31 Oct: SDK v6 uses `createInstance({clientId})`, offline webhook verification over raw-body CRC32, capture statuses/reasons, `invoice_id` unique per account; SQL drafts, agent tools, UI, test IDs, deploy/rollback, daily tasks, submission).
+- Validation: plan only, no runtime, schema, deploy, push or PayPal/AI calls. Next: confirm D1–D7, then Phase 0 sandbox spike (real capture reaches `COMPLETED`). No OCI changes before Meta's 5 Nov 09:00 ICT deadline.
+
 ## Direct implementation update — Customer U21 delivered page and FigCraft spacing — 21 October 2026
 
 - Calibrated the delivered/review root against the 390×844 FigCraft canvas: back `(18,52,44,44)`, success badge `(141,155,108,108)`, review field `(24,504,342,52)`, submit `(24,632,342,52)`, receipt `(24,695,342,52)`, and bottom navigation/safe-area `(0,758,390,86)`. Star centers align to the five SVG anchors within 0.1dp. Removed the review counter from this compact field, set its exact height, and corrected the system inset/toolbar spacing. Selected AVD screenshot was manually compared against `design/figcraft/previews/U21-delivered.png`; no full-page pixel diff is claimed.

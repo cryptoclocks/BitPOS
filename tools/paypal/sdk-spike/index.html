@@ -1,0 +1,50 @@
+<!doctype html>
+<!-- PayPal AI Hackathon work (2026-10-31..11-12). See paypal-hackathon/PROVENANCE.md. Phase 0 spike page, not product UI. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PayPal SDK v6 spike</title>
+<style>
+ body{font:16px/1.5 system-ui,sans-serif;max-width:420px;margin:32px auto;padding:0 16px;color:#001C64;background:#F5F8FC}
+ .strip{background:#FFF4D6;color:#6B4E00;padding:6px 10px;border-radius:8px;font-size:13px}
+ .card{background:#fff;border:1px solid #DCE5F2;border-radius:16px;padding:16px;margin:16px 0}
+ button{width:100%;height:52px;border:0;border-radius:26px;background:#FFC439;color:#003087;font-weight:700;font-size:17px;cursor:pointer}
+ button:disabled{opacity:.5;cursor:default}
+ pre{white-space:pre-wrap;font-size:12px;background:#fff;border:1px solid #DCE5F2;border-radius:8px;padding:8px}
+</style>
+</head>
+<body>
+<p class="strip">PayPal Sandbox — test money only · Phase 0 spike</p>
+<div class="card"><strong>Croissant (sample)</strong><br>Total <strong>USD 4.50</strong> (set by the server)</div>
+<button id="pay" disabled>Pay with PayPal</button>
+<p id="state">Loading PayPal SDK…</p>
+<pre id="log"></pre>
+<script>
+const log=(...a)=>{document.getElementById('log').textContent+=a.map(x=>typeof x==='string'?x:JSON.stringify(x)).join(' ')+'\n';};
+const state=t=>{document.getElementById('state').textContent=t;};
+async function onLoad(){
+ try{
+  const sdk=await window.paypal.createInstance({clientId:'__CLIENT_ID__',components:['paypal-payments']});
+  const eligibility=await sdk.findEligibleMethods();
+  const eligible=eligibility.isEligible('paypal');log('eligible paypal:',eligible);
+  if(!eligible){state('PayPal not eligible in this browser.');return;}
+  const session=sdk.createPayPalOneTimePaymentSession({
+   onApprove:async data=>{state('Confirming with PayPal…');log('onApprove',data);
+    const r=await fetch(`/api/orders/${data.orderId}/capture`,{method:'POST'});const body=await r.json();log('server capture',body);
+    state(body.paid?'Paid (verified by server).':`Not paid: ${body.captureStatus||''} ${body.reason||''} ${(body.issues||[]).join(',')}`);},
+   onCancel:data=>{state('Cancelled. You can try again.');log('onCancel',data);},
+   onError:err=>{state('Error: '+(err&&err.message));log('onError',String(err&&err.message));},
+  });
+  const button=document.getElementById('pay');button.disabled=false;state('Ready.');
+  // start() must run inside the click handler; pass the create-order promise without awaiting it first.
+  button.addEventListener('click',()=>{state('Opening PayPal…');
+   const createOrder=fetch('/api/orders',{method:'POST'}).then(r=>r.json()).then(b=>{log('server create',b);if(!b.orderId)throw Error('create failed');return {orderId:b.orderId};});
+   session.start({presentationMode:'auto'},createOrder).catch(e=>{state('start failed: '+e.message);log('start error',e.message);});
+  });
+ }catch(e){state('SDK init failed: '+e.message);log('init error',e.message);}
+}
+</script>
+<script async src="https://www.sandbox.paypal.com/web-sdk/v6/core" onload="onLoad()"></script>
+</body>
+</html>
