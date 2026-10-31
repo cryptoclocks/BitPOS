@@ -145,6 +145,6 @@ New code:
 
 - **Sandbox only.** Live mode is refused in code.
 - **The demo merchant is a US sandbox business.** The Thai sandbox merchant was declined by PayPal at approval ("to comply with international regulations").
-- **Screens.** Table orders need the shop's screen to be online. The hosted demo depends on a provisioned BitPOS Mini or a labelled simulated screen; see `DEPLOY_OCI.md`.
+- **Screens.** Table orders need the shop's screen (a BitPOS Mini) to be online. If the Mini is offline, the table menu refuses new bills (`DEVICE_OFFLINE`) instead of taking an order nobody sees.
 - **AI quota.** Café Copilot shares a small daily Gemini free-tier quota with the other BitPOS AI features. When it is used up, the rules form still works.
 - **Hidden quote anchor.** The core schema prices every order against a Solana test asset. The PayPal shop keeps it hidden as a quote anchor; customers of this shop only see PayPal.

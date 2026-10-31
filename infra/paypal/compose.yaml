@@ -4,7 +4,7 @@
 # (bitpos-paypal-base:pinned, same image id as bitpos-runtime:current at first deploy, so a later retag by another
 # stream cannot change it) and the PayPal source and the prebuilt web are mounted read-only; modules resolve from the
 # image's /app/node_modules. Everything listens on 127.0.0.1 only; the Cloudflare tunnel routes
-#   paypal-pos.<domain>  → 127.0.0.1:4361 (merchant POS + Café Copilot)
+#   paypal-pos.<domain>  → 127.0.0.1:4361 (merchant POS + Café Copilot), path ^/api/device$ → 127.0.0.1:3103 (BitPOS Mini)
 #   paypal-pay.<domain>  → 127.0.0.1:4361 (customer pay / table pages), path ^/paypal/webhooks$ → 127.0.0.1:3103
 # Env: the existing private runtime env (database, auth) plus the private PayPal env, which wins on overlap
 # (PayPal Sandbox credentials, PUBLIC_URL, BITPOS_CUSTOMER_PUBLIC_URL). Both stay outside any repository.

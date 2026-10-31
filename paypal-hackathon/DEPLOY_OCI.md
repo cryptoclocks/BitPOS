@@ -87,8 +87,9 @@ export OCI_HOST=ubuntu@<host> OCI_SSH_KEY=<path to key>
    ```
 
 8. **Cloudflare tunnel.** The owner adds the hostnames in the dashboard. Add only new public hostnames to the existing tunnel and do not reorder existing routes:
-   - `paypal-pay.cashlessthailand.com`, path `^/paypal/webhooks$` → `http://127.0.0.1:3103`. List it **before** the next line.
+   - `paypal-pay.cashlessthailand.com`, path `^/paypal/webhooks$` → `http://127.0.0.1:3103`. List it **before** the plain `paypal-pay` line.
    - `paypal-pay.cashlessthailand.com` → `http://127.0.0.1:4361`
+   - `paypal-pos.cashlessthailand.com`, path `^/api/device$` → `http://127.0.0.1:3103` (BitPOS Mini WebSocket). List it **before** the plain `paypal-pos` line.
    - `paypal-pos.cashlessthailand.com` → `http://127.0.0.1:4361`
 9. **Webhook.** In the sandbox app "BitPOS PayPal Cafe US", add the webhook URL `https://paypal-pay.cashlessthailand.com/paypal/webhooks` with these events:
    - `CHECKOUT.ORDER.APPROVED`
@@ -103,12 +104,41 @@ export OCI_HOST=ubuntu@<host> OCI_SSH_KEY=<path to key>
     - `pay.` and `meta-pay.` still answer 200.
     - Record the results in `paypal-hackathon/evidence/`.
 
-## Open item before judges can order at a table
+## BitPOS Mini for the PayPal shop (needed before judges can order at a table)
 
-Table and counter orders are routed to the shop's screen, and the API refuses a bill while that screen is offline (`DEVICE_OFFLINE`). The hosted demo shop has no physical screen yet. One of these is needed before the judge flow works end to end:
+Table and counter orders are routed to the shop's screen. The API refuses a bill while that screen is offline (`DEVICE_OFFLINE`), so the hosted shop needs a real Mini. The decision is to use a real Mini.
 
-- a BitPOS Mini provisioned for the PayPal shop; or
-- a clearly labelled simulated screen service. Not written yet.
+**Why the Mini connects to the PayPal API.** The firmware takes its pay/QR origin and table link from the server's `CONFIG` (`paymentOrigin` = the API's customer origin). Connected to the PayPal API (`wss://paypal-pos.cashlessthailand.com/api/device`), the Mini's QR codes open the **PayPal** pay page. Connected to the main API, they would open the Solana page. No firmware change is needed: the firmware accepts any `wss://` endpoint and any `https://` pay origin. Checked locally with `tools/paypal/device-config-check.ts` against the PayPal API: CONFIG gives the PayPal web origin for both the pay and table links.
+
+Steps (after deploy, seed and the step 8 tunnel routes):
+
+1. **Issue the device credential on the host.** It goes into a private file only; the token is never shown:
+
+   ```bash
+   ssh -i "$OCI_SSH_KEY" "$OCI_HOST" 'umask 077; docker compose -p bitpos-paypal -f ~/bitpos-paypal/compose.yaml exec -T -e BITPOS_PAYPAL_SEED_TARGET=oci api node --import tsx tools/paypal/device-credential.ts "Terminal Table 2" > ~/bitpos-private/paypal/mini-table2.json'
+   ```
+
+2. **Copy it to the Mac's private folder** (mode 600, not displayed):
+
+   ```bash
+   (umask 077; scp -i "$OCI_SSH_KEY" "$OCI_HOST:bitpos-private/paypal/mini-table2.json" ~/Desktop/BitPOS/local/private/paypal-mini-table2.json)
+   ```
+
+3. **Check what the Mini will get, before flashing.** Expect `paymentOrigin` `https://paypal-pay.cashlessthailand.com`:
+
+   ```bash
+   pnpm exec tsx tools/paypal/device-config-check.ts ~/Desktop/BitPOS/local/private/paypal-mini-table2.json
+   ```
+
+4. **Provision the board** with the existing coordinator tool in the main checkout (`tools/firmware/provision.py --device-config local/private/paypal-mini-table2.json`, dry run first, then `--write`). Two constraints of that tool decide which board to use:
+   - It is pinned to one board: MAC `14:c1:9f:4e:62:48` and its original full-flash backup.
+   - It refuses a board whose BitPOS NVS already holds state. This protects paid-order sound dedup.
+
+   So the café board that is already provisioned cannot be reused by this tool. A second board needs its own install and backup first, plus `provision.py` extended to its MAC and backup.
+5. Power the Mini on the café Wi-Fi.
+   - In **PayPal · Copilot → Send to all screens**, it should show as online and supported.
+   - A table order shows a QR that opens `https://paypal-pay…/pay/…`.
+   - Record the result in `evidence/`.
 
 ## Rollback
 
@@ -117,4 +147,4 @@ Table and counter orders are routed to the shop's screen, and the API refuses a 
   - To switch PayPal off: `UPDATE bitpos.paypal_merchant_settings SET enabled=false`.
   - The only trigger on a pre-existing table is `paypal_block_solana_attempt` on `payment_attempts` (drop it if needed).
   - Never restore the whole schema: it would overwrite Meta's and Solana's data.
-- **Tunnel:** remove the three hostnames added in step 8.
+- **Tunnel:** remove the four routes added in step 8.
