@@ -26,6 +26,10 @@ Conventions: every new file starts with `PayPal AI Hackathon work (2026-10-31..1
 | 2026-10-31 | `paypal-hackathon/evidence/phase0-*.md` | Phase 0 test baseline and spike record |
 | 2026-10-31 | `apps/api/src/paypal/{config,money,client,verify,webhook-verify}.ts`, `tests/paypal-client.test.ts`, `tests/paypal-webhook-verify.test.ts`, `tools/paypal/client-check.ts` | Phase 1: sandbox-only config, exact USD cents, Orders v2 client (token cache, idempotent request ids, outcome-unknown mapping), 9-point capture verification, offline webhook signature check; 12 unit tests; live read-only check against real sandbox captures |
 | 2026-10-31 | `supabase/migrations/400_paypal_merchant.sql`, `401_paypal_ledger.sql`, `402_paypal_settlement.sql`, `apps/api/src/paypal/settle.ts`, `tests/paypal-settlement.test.ts` | Phase 2: PayPal settings and ledger (checkouts, captures, settlements, payment events) with RLS, immutable/terminal guards, one-channel mutex trigger, `paypal_settle_capture()` mirroring the Solana settlement effects; `applyVerdict` used by capture route, webhook and worker; 9 DB integration tests |
+| 2026-10-31 | `apps/api/src/paypal/{checkout,routes}.ts`, `apps/web/src/components/paypal/PayPalPayment.tsx`, `apps/web/src/lib/paypal-sdk.ts`, `apps/web/src/styles/paypal.css`, `tests/paypal-checkout-flow.test.ts`, `tests/paypal-fixture.ts`, `tools/paypal/{seed-demo,dev-api}.ts` | Phase 3: customer PayPal checkout (status/create/capture/cancel routes keyed by the bill access token, no lock across PayPal calls, capture only while payable, unknown outcomes kept for reconcile), JS SDK v6 pay page with server-decided "paid", US demo shop seed, local preview API; 7 integration tests |
+| 2026-10-31 | `supabase/migrations/403_paypal_webhooks.sql`, `apps/api/src/paypal/{webhook,reconcile}.ts`, `tests/paypal-webhook-flow.test.ts` | Phase 4: signature-verified webhook inbox (SECURITY DEFINER functions, unique event id, redacted), processing that re-asks PayPal, refund/reversal events, reconcile worker for lost create/capture, pending reviews and stale bills; 5 integration tests |
+| 2026-10-31 | `supabase/migrations/404_paypal_campaign.sql`, `405_paypal_agent_trace.sql`, `apps/api/src/paypal/{agent,agent-tools,copilot}.ts`, `apps/web/src/components/paypal/PayPalWorkspace.tsx`, `tests/paypal-copilot.test.ts` | Phase 5–6: Café Copilot — Gemini function-calling agent with 5 read/validate/draft tools (no publish/charge/refund tool), intent limits parsed by the server, drafts through the existing promotion pipeline, owner approval + publish, envelope unit cap enforced by a database trigger on the daily-promotion order freeze, units following the order's money state, sold-out/time ending, rules-form fallback labelled as non-AI, campaign outcome and per-order evidence trace, merchant PayPal ledger; 3 tests (scripted model, real pipeline) |
+| 2026-10-31 | `apps/web/src/components/paypal/PayPalTerminal.tsx` | Phase 7: browser terminal for PayPal shops (USD total, pay QR, server-verified status); Mini firmware unchanged (PayPal on the Mini is P1) |
 
 ### Pre-existing files touched
 | Date | File | Change |
@@ -34,6 +38,15 @@ Conventions: every new file starts with `PayPal AI Hackathon work (2026-10-31..1
 | 2026-10-31 | `apps/api/src/orders.ts` | extract the tail of `settleAttempt` into exported `publishSettlementRow()` (same behaviour) so PayPal settlement publishes through the same code |
 | 2026-10-31 | `bitpos.unpaid_order_safe()` (redefined in migration 401) | also refuses to close/expire an order while a PayPal capture is in flight or settled; rest of the body identical to migration 055 |
 | 2026-10-31 | `payment_attempts` (trigger added in migration 401) | new Solana attempts are refused while a PayPal checkout for the order is live or captured |
+| 2026-10-31 | `apps/api/src/index.ts` | `servePayPal` added to the server handler chain (one line + import) |
+| 2026-10-31 | `apps/worker/src/index.ts` | PayPal reconcile lane added when PayPal is configured (throttled to 5 s) |
+| 2026-10-31 | `apps/web/src/pages/pay/[accessToken].astro` | renders `PayPalPayment`, which falls back to the unchanged `Payment` for shops without PayPal |
+| 2026-10-31 | `apps/web/src/lib/api-routes.ts` | allow-list the PayPal pay routes and the merchant PayPal/Copilot routes in the web proxy |
+| 2026-10-31 | `apps/api/src/index.ts` (second line) | `/api/paypal/*` merchant routes dispatched after session check, outside the shared transaction |
+| 2026-10-31 | `apps/api/src/authority.ts` | map the four Copilot campaign-limit database errors to HTTP 409 codes |
+| 2026-10-31 | `apps/web/src/components/Pos.tsx` | new "PayPal · Copilot" workspace tab (type, navigation entry, button, render) |
+| 2026-10-31 | `apps/web/src/pages/terminal/[accessToken].astro` | renders `PayPalTerminal`, which falls back to the unchanged terminal display for shops without PayPal |
+| 2026-10-31 | `paypal_due_merchants()` (redefined in migration 404) | also wakes the worker for Copilot offers that ended |
 
 ## Development tools disclosure
 

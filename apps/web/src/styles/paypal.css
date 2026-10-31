@@ -1,0 +1,38 @@
+/* PayPal AI Hackathon work (2026-10-31..11-12). See paypal-hackathon/PROVENANCE.md. */
+/* PayPal edition additions on top of customer-checkout.css. Palette from design/pp-edition theme.md. */
+.paypal-checkout{--pp-navy:#003087;--pp-deep:#001C64;--pp-blue:#0070E0;--pp-gold:#FFC439;--pp-sandbox-bg:#FFF4D6;--pp-sandbox-fg:#6B4E00}
+.pp-sandbox{margin:8px 0 0;padding:6px 12px;border-radius:12px;background:var(--pp-sandbox-bg);color:var(--pp-sandbox-fg);font-size:13px;font-weight:600;text-align:center}
+.pp-button{display:flex;align-items:center;justify-content:center;gap:4px;width:100%;min-height:52px;border:0;border-radius:26px;background:var(--pp-gold);color:var(--pp-navy);font-size:17px;font-weight:700;cursor:pointer}
+.pp-button:hover{filter:brightness(.97)}
+.pp-button:focus-visible{outline:3px solid var(--pp-blue);outline-offset:2px}
+.pp-button:disabled{opacity:.55;cursor:default}
+.pp-caption{margin:8px 0 0;font-size:13px;color:#5B6B85;text-align:center}
+.pp-capture{margin-top:8px;font-size:14px;color:var(--pp-deep)}
+.pp-browser{display:grid;gap:8px;padding:12px;border:1px solid #DCE5F2;border-radius:12px;background:#E5F1FF;color:var(--pp-deep)}
+/* Merchant PayPal workspace (Café Copilot, ledger). */
+.paypal-workspace{--pp-navy:#003087;--pp-deep:#001C64;--pp-blue:#0070E0;--pp-sandbox-bg:#FFF4D6;--pp-sandbox-fg:#6B4E00;display:grid;gap:16px;padding:16px;max-width:1100px;margin:0 auto;color:var(--pp-deep)}
+.pp-ws-header{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:end;gap:12px}
+.pp-ws-header h1{margin:0}
+.pp-ws-tabs{display:flex;gap:8px}
+.pp-ws-tabs button[aria-pressed="true"]{background:var(--pp-navy);color:#fff}
+.pp-card{display:grid;gap:10px;padding:16px;border:1px solid #DCE5F2;border-radius:12px;background:#fff}
+.pp-card h2{margin:0;font-size:18px}
+.pp-card textarea{width:100%;font:inherit;padding:10px;border:1px solid #DCE5F2;border-radius:8px}
+.pp-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.pp-steps{margin:0;padding-left:20px;display:grid;gap:4px}
+.pp-steps .has-violations{color:#8A1F11}
+.pp-question{padding:8px 12px;border-radius:8px;background:#E5F1FF}
+.pp-trace{overflow:auto}.pp-trace table,.pp-table{width:100%;border-collapse:collapse;font-size:13px}
+.pp-trace td,.pp-trace th,.pp-table td,.pp-table th{border-bottom:1px solid #DCE5F2;padding:6px;text-align:left;vertical-align:top}
+.pp-envelope{display:grid;grid-template-columns:max-content 1fr;gap:6px 16px;margin:0}.pp-envelope dt{color:#5B6B85}.pp-envelope dd{margin:0}
+.pp-confirm{padding:12px;border:2px solid var(--pp-blue);border-radius:10px;background:#F5F8FC}
+.pp-screens label{display:block;padding:4px 0}
+.pp-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.pp-tile{display:grid;gap:4px;padding:12px;border:1px solid #DCE5F2;border-radius:10px;background:#F5F8FC}.pp-tile strong{font-size:20px}
+.pp-timeline{margin:0;padding-left:20px;display:grid;gap:8px}
+/* Browser terminal (public bill display) for PayPal shops. */
+.pp-terminal .badge{background:#FFF4D6;color:#6B4E00}
+.pp-terminal .panel{text-align:center}
+.pp-terminal-qr{display:block;margin:12px auto;border-radius:12px;background:#fff}
+.pp-terminal-paid{font-size:28px;font-weight:700;color:#1E7A46}
+.pp-terminal.is-paid h1{color:#1E7A46}

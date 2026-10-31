@@ -1,3 +1,12 @@
+## PayPal hackathon — Phases 3–7 code complete (local) — 31 October 2026
+
+- Phase 3 customer checkout: `apps/api/src/paypal/{checkout,routes}.ts` (status/create/capture/cancel keyed by bill token; lock → decide → commit, never across a PayPal call; capture only while payable; unknown outcomes kept for reconcile), `PayPalPayment.tsx` + `paypal-sdk.ts` on `/pay/[token]` (falls back to the unchanged Solana `Payment` for non-PayPal shops), US demo shop seed `tools/paypal/seed-demo.ts`, local preview API `tools/paypal/dev-api.ts` (ports 3061/4361; fixture DB only).
+- Phase 4: migration 403 verified webhook inbox (SECURITY DEFINER access only), `webhook.ts` (offline signature check, unique event id, re-fetch from PayPal), `reconcile.ts` + worker lane (lost create/capture, pending, stale bills).
+- Phase 5–6: migrations 404 (Copilot envelope, unit cap trigger on `daily_order_promotions`, units follow order status, sold-out end) and 405 (agent trace); `agent.ts` (Gemini function calling, ≤6 calls, daily run cap), `agent-tools.ts` (5 read/validate/draft tools, server prices, owner-intent limits), `copilot.ts` (runs, rules-form fallback, approve, publish to all shop screens per the existing daily rule, stop, outcome, evidence, ledger), merchant tab `PayPalWorkspace.tsx`.
+- Phase 7: `PayPalTerminal.tsx` on `/terminal/[token]`. Mini firmware unchanged (P1).
+- Tests: PayPal suites 36/36 (client 8, webhook-verify 4, settlement 9, checkout 7, webhook-flow 5, copilot 3). Earlier full run after Phase 3–4: no new failures except one caused by the preview `.env` PUBLIC_URL, fixed by passing the preview URL only to the preview process. Full run after Phase 5–7 in progress.
+- Not yet: real Gemini key in the local env (Copilot shows "AI not configured" until set; the form fallback works), owner browser click-through of the PayPal popup on the new pay page, OCI deploy, video/Devpost.
+
 ## PayPal hackathon — Phase 2 ledger and settlement — 31 October 2026
 
 - Migrations 400 (per-shop PayPal Sandbox settings), 401 (checkouts/captures/settlements/payment events with RLS, immutability/terminal guards, one-channel mutex trigger on payment_attempts, `unpaid_order_safe()` extended to protect in-flight PayPal captures), 402 (`paypal_settle_capture()`, same effects/locks/shape as `settle_verified_attempt`).

@@ -91,6 +91,15 @@ export const apiRoutes: [RegExp, readonly string[]][] = [
   [/^food\/returns\/[0-9a-f-]{36}\/receive$/, ['POST']],
   [/^orders\/[0-9a-f-]{36}\/delivery$/, ['GET']],
   [/^orders\/[0-9a-f-]{36}\/delivery\/pickup-proof$/, ['POST']],
+  // PayPal AI Hackathon work: merchant PayPal ledger and Café Copilot (see paypal-hackathon/PROVENANCE.md).
+  [/^paypal\/(screens|ledger)$/, ['GET']],
+  [/^paypal\/copilot\/runs$/, ['GET', 'POST']],
+  [/^paypal\/copilot\/rules$/, ['POST']],
+  [/^paypal\/copilot\/runs\/[0-9a-f-]{36}$/, ['GET']],
+  [/^paypal\/copilot\/envelopes\/[0-9a-f-]{36}$/, ['GET']],
+  [/^paypal\/copilot\/envelopes\/[0-9a-f-]{36}\/(approve|publish|stop)$/, ['POST']],
+  [/^paypal\/envelopes\/[0-9a-f-]{36}\/outcome$/, ['GET']],
+  [/^paypal\/orders\/[0-9a-f-]{36}\/evidence$/, ['GET']],
   [/^promotions$/, ['GET']],
   [/^promotions\/generate$/, ['POST']],
   [/^promotions\/recipients$/, ['GET']],
@@ -108,5 +117,8 @@ export const apiRoutes: [RegExp, readonly string[]][] = [
   [/^pay\/[A-Za-z0-9_-]+\/(challenge|bind|attempt|submit|dismiss)$/, ['POST']],
   [/^pay\/[A-Za-z0-9_-]+\/customer\/(challenge|verify|session|use|revoke)$/, ['POST']],
   [/^pay\/[A-Za-z0-9_-]+\/x402$/, ['POST']],
+  // PayPal AI Hackathon work: PayPal checkout for a bill (see paypal-hackathon/PROVENANCE.md).
+  [/^pay\/[A-Za-z0-9_-]+\/paypal$/, ['GET']],
+  [/^pay\/[A-Za-z0-9_-]+\/paypal\/(orders|capture|cancel)$/, ['POST']],
   [/^x402\/supported$/, ['GET']],
 ];
