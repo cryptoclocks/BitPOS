@@ -17,6 +17,8 @@ The owner approved deploying before the Meta deadline. Times are ICT.
 | Demo shop | `70707070-…` seeded (6 sample products, Table 1/2, Counter, Terminal Table 2); owner `owner@paypal-cafe.test` created (password only in `~/bitpos-private/paypal/demo-owner.json`); sign-in checked through the API |
 | Café Copilot on OCI | First run FAILED `PROVIDER_RESPONSE_INVALID`: `gemini-2.5-flash-lite` (runtime model) returned an empty turn after a tool result. Second run NEEDS_INPUT: the model wrote reasoning text instead of a tool call. Both fixed (empty turns tolerated; function calling mode ANY with an `ask_owner` tool), tests added, redeployed. Third run **DRAFTED in 3.5 s** (run `be733ed0`): limits → stock → validate (`END_TOO_LATE`, corrected) → save. The runtime worker then wrote the offer copy (job SUCCEEDED). |
 
+| Webhook (owner approved) | Registered through the sandbox REST API from inside the PayPal API container: `https://paypal-pay.cashlessthailand.com/paypal/webhooks`, id `6VF6543551710091K`, 7 events (`CHECKOUT.ORDER.APPROVED`, `PAYMENT.CAPTURE.COMPLETED`/`PENDING`/`DENIED`/`DECLINED`/`REFUNDED`/`REVERSED`). The id was added to the host env and the project redeployed: an unsigned POST now returns 400. |
+| Webhook simulator | `PAYMENT.CAPTURE.COMPLETED` via `/v1/notifications/simulate-event` (202). The event `WH-58D329510W468432D-…` arrived through Cloudflare → front → API, its signature verified offline, and it was stored and processed: 1 delivery, `processed_at` set, no error. No effect, because its `custom_id` is not a BitPOS checkout. Simulator events are not payment proof. |
+
 Not done yet:
-- PayPal webhook registration (needs the owner's go-ahead).
 - BitPOS Mini for the shop. Until it is online, table orders are refused with `DEVICE_OFFLINE`, so no hosted PayPal payment has been made yet.
