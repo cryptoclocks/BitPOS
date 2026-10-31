@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io' show SocketException, HandshakeException;
+import 'package:flutter/foundation.dart' show ValueNotifier;
 import 'dart:typed_data';
 import 'package:crypto/crypto.dart' as crypto;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -19,10 +21,29 @@ const _configuredResponseBytes=24*1024*1024;
 class MobileApiException implements Exception {
   final String code;
   final int status;
-  const MobileApiException(this.code, this.status);
+  /// Server refusal reason (for example COUPON_ACCOUNT_LIMIT) when the error carries one.
+  final String? reason;
+  const MobileApiException(this.code, this.status, [this.reason]);
   @override
   String toString() => code;
 }
+
+String? _refusalReason(Object? error) {
+  if (error is! Map) return null;
+  final details = error['details'];
+  final reason = details is Map ? details['reasonCode'] : error['message'];
+  return reason is String && RegExp(r'^(COUPON|SCHEDULE)_[A-Z_]+$').hasMatch(reason) ? reason : null;
+}
+
+/// True for failures that mean "could not reach / hear back from the server"
+/// (offline, DNS, TLS, timeout, proxy 502/503/504). These are transient: the UI
+/// shows one calm reconnecting banner and retries instead of an error block.
+bool isConnectivityError(Object? error) =>
+    error is TimeoutException ||
+    error is SocketException ||
+    error is HandshakeException ||
+    error is http.ClientException ||
+    (error is MobileApiException && error.code == 'UPSTREAM_UNAVAILABLE');
 
 enum MobilePushApp {customer,driver}
 
@@ -34,6 +55,30 @@ class MobileApi {
   final bool fixture;
   final FlutterSecureStorage storage;
   final http.Client _client;
+  /// Whether the last server round trip reached the server. Drives the single
+  /// calm "reconnecting" banner; never a source of business data.
+  final ValueNotifier<bool> connected = ValueNotifier<bool>(true);
+  /// Incremented each time connectivity returns after a failure; pages refresh on it.
+  final ValueNotifier<int> reconnects = ValueNotifier<int>(0);
+  /// Base delay unit for repeating failed idempotent reads (tests may shrink it).
+  Duration readRetryUnit = const Duration(milliseconds: 500);
+  void _markConnected(bool value) {
+    if (value == connected.value) return;
+    connected.value = value;
+    if (value) reconnects.value++;
+  }
+  /// Cheap reachability check: any HTTP answer below 502 proves the server is reachable.
+  Future<bool> probe() async {
+    try {
+      final response = await _client.get(base.resolve('health')).timeout(const Duration(seconds: 6));
+      final reachable = response.statusCode != 502 && response.statusCode != 503 && response.statusCode != 504;
+      _markConnected(reachable);
+      return reachable;
+    } catch (_) {
+      _markConnected(false);
+      return false;
+    }
+  }
   MobileSession? _session;
   String? _deviceId;
   Future<void>? _refreshing;
@@ -107,7 +152,32 @@ class MobileApi {
     },onError:(Object error)=>fail(error),onDone:(){if(!done.isCompleted)done.complete(bytes.takeBytes());});
     try{return await done.future;}finally{deadline.cancel();await subscription.cancel();await changed.cancel();}
   }
+  /// Repeats idempotent reads (GET without body) after transient network failures
+  /// with backoff. Mutations are single-send: ambiguity is resolved by domain idempotency.
   Future<Map<String,dynamic>> _request(String path, {String method = 'GET',
+      Map<String,dynamic>? body, bool authenticated = false, int maxResponseBytes=1024*1024,Map<String,String> extraHeaders=const {}}) async {
+    final repeatable = method == 'GET' && body == null;
+    final owner = _session;
+    for (var attempt = 0;; attempt++) {
+      try {
+        final result = await _requestOnce(path, method: method, body: body, authenticated: authenticated, maxResponseBytes: maxResponseBytes, extraHeaders: extraHeaders);
+        _markConnected(true);
+        return result;
+      } catch (error) {
+        if (!isConnectivityError(error)) {
+          // Any real server answer (even a refusal) proves the link works.
+          if (error is MobileApiException && error.code != 'SESSION_CHANGED' && error.code != 'AUTH_REQUIRED') _markConnected(true);
+          rethrow;
+        }
+        _markConnected(false);
+        // A 15 s deadline is not repeated here (it would stall the UI for minutes); pages retry it with backoff.
+        if (!repeatable || attempt >= 2 || error is TimeoutException) rethrow;
+        await Future<void>.delayed(readRetryUnit * (attempt == 0 ? 1 : 3));
+        if (authenticated && !identical(_session, owner)) throw const MobileApiException('SESSION_CHANGED', 409);
+      }
+    }
+  }
+  Future<Map<String,dynamic>> _requestOnce(String path, {String method = 'GET',
       Map<String,dynamic>? body, bool authenticated = false, int maxResponseBytes=1024*1024,Map<String,String> extraHeaders=const {}}) async {
     if (authenticated) {
       if (_session == null) throw const MobileApiException('AUTH_REQUIRED', 401);
@@ -116,13 +186,29 @@ class MobileApi {
       }
     }
     final requestSession = _session;
-    final request = http.Request(method, base.resolve(path));
-    request.headers['Content-Type'] = 'application/json';
-    request.headers.addAll(extraHeaders);
-    if (authenticated) request.headers['Authorization'] = 'Bearer ${_session!.accessToken}';
-    if (body != null) request.body = jsonEncode(body);
+    http.Request makeRequest() {
+      final request = http.Request(method, base.resolve(path));
+      request.headers['Content-Type'] = 'application/json';
+      request.headers.addAll(extraHeaders);
+      if (authenticated) request.headers['Authorization'] = 'Bearer ${requestSession!.accessToken}';
+      if (body != null) request.body = jsonEncode(body);
+      return request;
+    }
     final elapsed=Stopwatch()..start();
-    final streamed = await _client.send(request).timeout(const Duration(seconds: 15));
+    http.StreamedResponse streamed;
+    try {
+      streamed = await _client.send(makeRequest()).timeout(const Duration(seconds: 15));
+    } on http.ClientException catch (error) {
+      // A server may close an idle keep-alive socket just as the client reuses it.
+      // Repeat only a read whose response never began; mutation commands are single-send.
+      if (method != 'GET' || body != null ||
+          !error.message.startsWith('Connection closed before full header was received')) rethrow;
+      if (authenticated && !identical(_session, requestSession))
+        throw const MobileApiException('SESSION_CHANGED', 409);
+      final retryBudget=const Duration(seconds:15)-elapsed.elapsed;
+      if (retryBudget<=Duration.zero) rethrow;
+      streamed=await _client.send(makeRequest()).timeout(retryBudget);
+    }
     final remaining=const Duration(seconds:15)-elapsed.elapsed;
     if(remaining<=Duration.zero||authenticated&&!identical(_session,requestSession)){
       await streamed.stream.listen((_){}).cancel();
@@ -131,14 +217,23 @@ class MobileApi {
     }
     final bytes=await _readResponse(streamed,maxResponseBytes,remaining,requestSession,authenticated);
     if(authenticated&&!identical(_session,requestSession))throw const MobileApiException('SESSION_CHANGED',409);
-    final decoded = jsonDecode(utf8.decode(bytes));
+    final Object? decoded;
+    try {
+      decoded = jsonDecode(utf8.decode(bytes));
+    } on FormatException {
+      // A proxy/gateway page (not our JSON) while the upstream restarts or is down.
+      if (streamed.statusCode == 502 || streamed.statusCode == 503 || streamed.statusCode == 504) {
+        throw MobileApiException('UPSTREAM_UNAVAILABLE', streamed.statusCode);
+      }
+      rethrow;
+    }
     if (decoded is! Map<String,dynamic>) throw const FormatException('Invalid API response');
     if (streamed.statusCode < 200 || streamed.statusCode >= 300) {
       if (authenticated && streamed.statusCode == 401) {
         await _writeSession(requestSession,null);
       }
       final error = decoded['error'];
-      throw MobileApiException(error is Map && error['code'] is String ? error['code'] as String : 'REQUEST_FAILED', streamed.statusCode);
+      throw MobileApiException(error is Map && error['code'] is String ? error['code'] as String : 'REQUEST_FAILED', streamed.statusCode, _refusalReason(error));
     }
     return decoded;
   }
@@ -181,6 +276,45 @@ class MobileApi {
   Future<MobileAccountSessions> accountSessions({String? cursor})async=>MobileAccountSessions.fromJson(await _request('account/sessions${cursor==null?'':'?cursor=${Uri.encodeQueryComponent(cursor)}'}',authenticated:true));
   Future<MobileSessionRevoked> revokeAccountSession(String sessionId)async=>MobileSessionRevoked.fromJson(await _request('account/sessions/${Uri.encodeComponent(sessionId)}',method:'PUT',body:MobileSessionRevoke(revoked:true).toJson(),authenticated:true));
   Future<MobileProfile> profile() async=>MobileProfile.fromJson(await _request('account/profile',authenticated:true));
+  Future<MobileRewards> rewards() async=>MobileRewards.fromJson(await _request('account/rewards',authenticated:true));
+  /// Rewards of shops where the caller has a paid order, with the server-computed per-shop balance.
+  Future<MobileRewardCatalog> rewardCatalog() async=>MobileRewardCatalog.fromJson(await _request('account/rewards/catalog',authenticated:true));
+  /// Debits points and issues one voucher; the same idempotency key replays the same voucher.
+  Future<MobileRewardRedemption> redeemReward(MobileRewardRedeemRequest request) async=>MobileRewardRedemption.fromJson(await _request('account/rewards/redeem',method:'POST',body:request.toJson(),authenticated:true));
+  Future<MobileVouchers> vouchers() async=>MobileVouchers.fromJson(await _request('account/vouchers',authenticated:true));
+  Future<MobileAccountErased> eraseAccountData() async=>MobileAccountErased.fromJson(await _request('account/erase',method:'POST',body:MobileAccountErase(idempotencyKey:const Uuid().v4(),confirm:'ERASE').toJson(),authenticated:true));
+  Future<MobileAccountExport> accountExport() async=>MobileAccountExport.fromJson(await _request('account/export',authenticated:true));
+  Future<MobileRideQuote> quoteRide(MobileRideQuoteRequest request) async=>MobileRideQuote.fromJson(await _request('rides/quote',method:'POST',body:request.toJson(),authenticated:true));
+  Future<MobileRideRequested> requestRide(MobileRideRequest request) async=>MobileRideRequested.fromJson(await _request('rides',method:'POST',body:request.toJson(),authenticated:true));
+  Future<MobileRideTrip> ride(String tripId) async=>MobileRideTrip.fromJson(await _request('rides/${Uri.encodeComponent(tripId)}',authenticated:true));
+  Future<MobileRideOpen> openRides() async=>MobileRideOpen.fromJson(await _request('rides/open',authenticated:true));
+  Future<MobileRideTrip> _rideAction(String tripId,String action,[Map<String,Object?> body=const {}]) async=>MobileRideTrip.fromJson(await _request('rides/${Uri.encodeComponent(tripId)}/$action',method:'POST',body:body,authenticated:true));
+  Future<MobileRideTrip> acceptRide(String tripId)=>_rideAction(tripId,'accept');
+  Future<MobileRideTrip> arriveRide(String tripId)=>_rideAction(tripId,'arrive');
+  Future<MobileRideTrip> startRide(String tripId,String pin)=>_rideAction(tripId,'start',MobileRideStart(pin:pin).toJson());
+  Future<MobileRideTrip> completeRide(String tripId)=>_rideAction(tripId,'complete');
+  Future<MobileRideTrip> cancelRide(String tripId)=>_rideAction(tripId,'cancel');
+  Future<MobileRideIncidentQueue> rideIncidentQueue() async=>MobileRideIncidentQueue.fromJson(await _request('rides/incidents',authenticated:true));
+  Future<MobileRideIncidentReviewed> reviewRideIncident(String incidentId,String outcome,String note) async=>MobileRideIncidentReviewed.fromJson(await _request('rides/incidents/${Uri.encodeComponent(incidentId)}/review',method:'POST',body:MobileRideIncidentReview(outcome:outcome,note:note).toJson(),authenticated:true));
+  Future<MobileRideLocation> rideLocation(String tripId) async=>MobileRideLocation.fromJson(await _request('rides/${Uri.encodeComponent(tripId)}/location',authenticated:true));
+  Future<MobileRideLocationConsent> setRideLocationConsent(String tripId,bool enabled) async=>MobileRideLocationConsent.fromJson(await _request('rides/${Uri.encodeComponent(tripId)}/location/consent',method:'PUT',body:MobileRideLocationConsent(enabled:enabled).toJson(),authenticated:true));
+  Future<MobileRideLocationConsent> sendRideLocation(String tripId,MobileRidePoint point) async=>MobileRideLocationConsent.fromJson(await _request('rides/${Uri.encodeComponent(tripId)}/location',method:'POST',body:point.toJson(),authenticated:true));
+  Future<MobileRideCurrent> currentRide() async=>MobileRideCurrent.fromJson(await _request('rides/current',authenticated:true));
+  Future<MobileGroups> groups() async=>MobileGroups.fromJson(await _request('groups',authenticated:true));
+  Future<MobileGroup> createGroup() async=>MobileGroup.fromJson(await _request('groups',method:'POST',body:const {},authenticated:true));
+  Future<MobileGroup> group(String groupId) async=>MobileGroup.fromJson(await _request('groups/${Uri.encodeComponent(groupId)}',authenticated:true));
+  Future<MobileGroupInvite> inviteToGroup(String groupId) async=>MobileGroupInvite.fromJson(await _request('groups/${Uri.encodeComponent(groupId)}/invite',method:'POST',body:const {},authenticated:true));
+  Future<MobileGroup> joinGroup(String token) async=>MobileGroup.fromJson(await _request('groups/join',method:'POST',body:MobileGroupJoin(token:token).toJson(),authenticated:true));
+  Future<MobileGroup> setGroupLine(String groupId,String branchId,String productId,int qty) async=>MobileGroup.fromJson(await _request('groups/${Uri.encodeComponent(groupId)}/lines',method:'POST',body:MobileGroupLineSet(branchId:branchId,productId:productId,qty:qty).toJson(),authenticated:true));
+  Future<MobileGroup> removeGroupMemberLine(String groupId,String memberId,String branchId,String productId) async=>MobileGroup.fromJson(await _request('groups/${Uri.encodeComponent(groupId)}/members/${Uri.encodeComponent(memberId)}',method:'POST',body:MobileGroupLineSet(branchId:branchId,productId:productId,qty:0).toJson(),authenticated:true));
+  Future<MobileGroup> lockGroup(String groupId,String expectedVersion) async=>MobileGroup.fromJson(await _request('groups/${Uri.encodeComponent(groupId)}/lock',method:'POST',body:MobileGroupLock(expectedVersion:expectedVersion).toJson(),authenticated:true));
+  Future<MobileGroup> cancelGroup(String groupId) async=>MobileGroup.fromJson(await _request('groups/${Uri.encodeComponent(groupId)}/cancel',method:'POST',body:const {},authenticated:true));
+  Future<MobileGroupLeft> leaveGroup(String groupId) async=>MobileGroupLeft.fromJson(await _request('groups/${Uri.encodeComponent(groupId)}/leave',method:'POST',body:const {},authenticated:true));
+  Future<MobileRideFareState> rideFare() async=>MobileRideFareState.fromJson(await _request('rides/fare',authenticated:true));
+  Future<MobileRideFare> publishRideFare(MobileRideFarePublish fare) async=>MobileRideFare.fromJson(await _request('rides/fare',method:'PUT',body:fare.toJson(),authenticated:true));
+  Future<MobileRideShare> shareRide(String tripId) async=>MobileRideShare.fromJson(await _request('rides/${Uri.encodeComponent(tripId)}/share',method:'POST',body:const {},authenticated:true));
+  Future<MobileRideShareRevoked> revokeRideShares(String tripId) async=>MobileRideShareRevoked.fromJson(await _request('rides/${Uri.encodeComponent(tripId)}/share/revoke',method:'POST',body:const {},authenticated:true));
+  Future<MobileRideIncidentReceipt> reportRideIncident(String tripId,String kind,String body) async=>MobileRideIncidentReceipt.fromJson(await _request('rides/${Uri.encodeComponent(tripId)}/incidents',method:'POST',body:MobileRideIncident(idempotencyKey:const Uuid().v4(),kind:kind,body:body).toJson(),authenticated:true));
   Future<MobileAddresses> addresses({String? cursor}) async=>MobileAddresses.fromJson(await _request('account/addresses${cursor==null?'':'?cursor=${Uri.encodeQueryComponent(cursor)}'}',authenticated:true));
   ProfileMutation profileMutation(MobileProfile profile,String displayName,String locale)=>ProfileMutation(MobileProfileUpdate(displayName:displayName,locale:locale,expectedVersion:profile.version,idempotencyKey:const Uuid().v4()));
   CreateAddressMutation createAddressMutation(MobileAddressFields address)=>CreateAddressMutation(MobileAddressCreate(idempotencyKey:const Uuid().v4(),address:address));
@@ -402,12 +536,23 @@ class MobileApi {
   FoodArrivalMutation arriveFoodCommand(FoodDriverAssignment assignment,String stage)=>FoodArrivalMutation(assignment.id,FoodArrivalCommand(idempotencyKey:const Uuid().v4(),generation:assignment.generation,leaseGeneration:assignment.leaseGeneration,stage:stage));
   FoodConsumeMutation consumeFoodCommand(FoodDriverAssignment assignment,FoodDriverProof proof,String secret)=>FoodConsumeMutation(assignment.id,FoodProofConsumeCommand(idempotencyKey:const Uuid().v4(),proofId:proof.id,generation:assignment.generation,leaseGeneration:assignment.leaseGeneration,secret:secret));
   FoodDeliveryProofMutation deliveryProofCommand(FoodCustomerAssignment assignment,{required bool rotate})=>FoodDeliveryProofMutation(assignment.id,FoodProofIssueCommand(idempotencyKey:const Uuid().v4(),generation:assignment.generation,leaseGeneration:assignment.leaseGeneration,rotate:rotate));
-  Future<Object> submitFoodDispatch(FoodDispatchMutation mutation){
+  Future<Object> submitFoodDispatch(FoodDispatchMutation mutation)async{
+    // Rotate an expiring access token BEFORE the unresolved-command marker is written and the session
+    // identity is captured: a refresh (ours or the realtime watcher's) that lands after the marker used
+    // to throw SESSION_CHANGED with nothing sent, stranding a "pending" command that never reached the server.
+    if(_session!=null&&!DateTime.parse(_session!.accessExpiresAt).isAfter(DateTime.now().add(const Duration(seconds:30)))){
+      await (_refreshing??=_refresh().whenComplete(()=>_refreshing=null));
+    }
     final owner=_session,key=_dispatchMutationKey,encoded=jsonEncode(mutation.toJson());
     return _accountOperation(() async{
       if(!identical(owner,_session))throw const MobileApiException('SESSION_CHANGED',409);
       final saved=await storage.read(key:key);if(saved!=null&&saved!=encoded)throw const MobileApiException('PENDING_DISPATCH_RECOVERY_REQUIRED',409);
-      await storage.write(key:key,value:encoded);if(!identical(owner,_session))throw const MobileApiException('SESSION_CHANGED',409);
+      await storage.write(key:key,value:encoded);
+      if(!identical(owner,_session)){
+        // Nothing has been sent yet, so a marker written only for this attempt is not an unresolved command.
+        if(saved==null)await storage.delete(key:key);
+        throw const MobileApiException('SESSION_CHANGED',409);
+      }
       try{
         final value=await _request(mutation.path,method:'POST',body:mutation.body,authenticated:true);
         final Object receipt=switch(mutation){
@@ -608,6 +753,16 @@ class MobileApi {
     final key=_activeFoodKey;
     return _foodOperation(()=>storage.delete(key:key));
   }
+  /// Fresh account-scoped idempotency key for a coupon or slot command.
+  String newCommandKey() => const Uuid().v4();
+  /// Attach a coupon code to a quote. The server returns a replacement quote whose discount and total it computed.
+  Future<MobileCouponQuote> applyFoodCoupon(String quoteId, MobileCouponApplyRequest request) async => MobileCouponQuote.fromJson(
+    await _request('food/quotes/${Uri.encodeComponent(quoteId)}/coupon', method: 'POST', body: request.toJson(), authenticated: true,maxResponseBytes:_configuredResponseBytes));
+  /// Currently bookable slots the branch has published; an empty list means none are published.
+  Future<MobileScheduleSlots> scheduleSlots(String branchId, String serving) async => MobileScheduleSlots.fromJson(
+    await _request('branches/${Uri.encodeComponent(branchId)}/schedule-slots?serving=${Uri.encodeQueryComponent(serving)}', authenticated: true));
+  Future<MobileScheduleHold> holdScheduleSlot(String quoteId, MobileScheduleHoldRequest request) async => MobileScheduleHold.fromJson(
+    await _request('food/quotes/${Uri.encodeComponent(quoteId)}/schedule-hold', method: 'POST', body: request.toJson(), authenticated: true));
   Future<MobileFoodOrderResult> submitFoodOrder(MobileFoodOrderRequest command) {
     final owner=_session;
     return _foodOperation(() {

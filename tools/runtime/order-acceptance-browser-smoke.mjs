@@ -34,19 +34,19 @@ try{
  for(const [language,width] of [['en',1440],['th',390],['en',320]]){
   const page=await browser.newPage({viewport:{width,height:1000}}),errors=[];page.on('pageerror',e=>errors.push(e.message));
   await page.goto('http://127.0.0.1:'+server.address().port+'/?lang='+language);
-  const accept=page.getByRole('button',{name:language==='th'?'รับออร์เดอร์':'Accept order',exact:true});
+  const accept=page.getByRole('button',{name:language==='th'?'รับออเดอร์':'Accept order',exact:true});
   await accept.waitFor();assert.equal(await accept.isDisabled(),true);
   const preparation=page.getByRole('spinbutton',{name:language==='th'?'เวลาเตรียมโดยประมาณ (นาที)':'Estimated preparation (minutes)'});
   for(const invalid of ['0','1.5','1441']){await preparation.fill(invalid);assert.equal(await accept.isDisabled(),true);await accept.evaluate(button=>button.click());}
   assert.equal(await page.evaluate(()=>window.commandCount),0);await preparation.fill('37');assert.equal(await accept.isEnabled(),true);
   await page.locator('.merchant-order-rejection>summary').click();
   await page.getByRole('textbox',{name:language==='th'?'เหตุผลที่ปฏิเสธ (ลูกค้ามองเห็น)':'Rejection reason (visible to customer)'}).fill('Synthetic reason');
-  const reject=page.getByRole('button',{name:language==='th'?'ปฏิเสธออร์เดอร์':'Reject order',exact:true});
+  const reject=page.getByRole('button',{name:language==='th'?'ปฏิเสธออเดอร์':'Reject order',exact:true});
   assert.equal(await reject.isEnabled(),true);
   await page.waitForFunction(button=>button.disabled,await accept.elementHandle(),{timeout:7000});
   assert.equal(await accept.isDisabled(),true);assert.equal(await reject.isDisabled(),true);
   assert.equal(await page.evaluate(()=>window.commandCount),0);assert.deepEqual(errors,[]);
-  await page.getByText(language==='th'?'หมดเวลารับออร์เดอร์ โหลดสถานะล่าสุดก่อนดำเนินการต่อ':'Acceptance deadline elapsed. Refresh the latest state before continuing.',{exact:true}).waitFor();
+  await page.getByText(language==='th'?'หมดเวลารับออเดอร์ โหลดสถานะล่าสุดก่อนดำเนินการต่อ':'Acceptance deadline elapsed. Refresh the latest state before continuing.',{exact:true}).waitFor();
   checks.push({language,width,expiryDisablesBoth:true,commands:0});await page.close();
  }
  for(const [source,serving,channel] of [['online','delivery','App delivery'],['online','pickup','App pickup'],['register','table','Table'],['register','counter','Counter']]){

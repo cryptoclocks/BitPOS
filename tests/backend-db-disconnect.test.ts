@@ -26,6 +26,8 @@ test('lost checked-out and idle database connections preserve rollback and permi
   assert.equal((await tenant(merchant,db=>db.query('SELECT stock FROM products WHERE id=$1',[product]))).rows[0].stock,3,'replacement connection must commit normally');
  }finally{
   await tenant(merchant,db=>db.query('DELETE FROM products WHERE merchant_id=$1',[merchant]));
+  // New merchants are auto-enrolled in payment assets; remove those rows before the merchant (FK).
+  await admin.query('DELETE FROM bitpos.merchant_payment_assets WHERE merchant_id=$1',[merchant]);
   await pool.query('DELETE FROM merchants WHERE id=$1',[merchant]);await admin.end();await pool.end();
  }
 });

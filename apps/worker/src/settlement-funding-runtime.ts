@@ -1,4 +1,5 @@
-import pg from 'pg';import {Connection} from '@solana/web3.js';
+import pg from 'pg';
+import {createRpcConnection} from '../../api/src/rpc-resilience';
 import {createSettlementFundingRecorder} from './settlement-funding';
 import {createDriverSettlementTransaction} from './driver-settlement';
 import type {PayoutProviderDeps} from './payout-provider';
@@ -9,5 +10,5 @@ export function createSettlementFundingRuntime(env:NodeJS.ProcessEnv=process.env
  if(!database||!rpc)throw Error('SETTLEMENT_FUNDING_CONFIGURATION_REQUIRED');
  try{const url=new URL(rpc);if(url.username||url.password||!['http:','https:'].includes(url.protocol)||url.protocol==='http:'&&!['127.0.0.1','localhost','[::1]'].includes(url.hostname))throw Error();}catch{throw Error('SETTLEMENT_RPC_CONFIGURATION_INVALID');}
  const pool=new pg.Pool({connectionString:database,max:2,connectionTimeoutMillis:2000});
- return {recorder:createSettlementFundingRecorder({transaction:createDriverSettlementTransaction(pool),connection:transport??new Connection(rpc,'finalized')}),close:()=>pool.end()};
+ return {recorder:createSettlementFundingRecorder({transaction:createDriverSettlementTransaction(pool),connection:transport??createRpcConnection(rpc,'finalized')}),close:()=>pool.end()};
 }

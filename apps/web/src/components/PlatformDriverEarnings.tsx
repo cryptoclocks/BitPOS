@@ -1,4 +1,5 @@
 import {parseSettlementSourcePairs} from '../lib/settlement-source-input';
+import PlatformSidebar from './PlatformSidebar';
 import {formatMoney} from '../lib/money';
 import {useEffect,useRef,useState} from 'react';
 import {DriverSettlementSession,type DriverSettlementJournal,type DriverSettlementResult,type PendingDriverSettlement} from '../lib/driver-settlement-session';
@@ -131,13 +132,7 @@ export default function PlatformDriverEarnings(){
   };return labels[value]?t(...labels[value]):value;
  };
  return <main className="dispatch-console" lang={thai?'th':'en'}>
-  <aside className="dispatch-sidebar"><strong>BitPOS</strong><small>PLATFORM · {t('การเงินไรเดอร์','DRIVER FINANCE')}</small><nav><a href="/platform/support">{t('ช่วยเหลือลูกค้า','Customer support')}</a>
-   <a href="/platform/food-dispatch">{t('จัดส่งและไรเดอร์','Food dispatch')}</a>
-   <a href="/platform/food-incidents">{t('เหตุและความช่วยเหลือ','Incidents and support')}</a>
-   <a href="/platform/food-cancellation-reviews">{t('ตรวจคำขอยกเลิก','Cancellation reviews')}</a>
-   <a href="/platform/drivers">{t('ตรวจสิทธิ์ไรเดอร์','Driver verification')}</a>
-   <a href="/platform/driver-earnings" aria-current="page">{t('รายได้และรอบจ่ายไรเดอร์','Driver earnings and settlement')}</a>
-  </nav></aside>
+  <PlatformSidebar thai={thai} current="/platform/driver-earnings"/>
   <div className="dispatch-main">
    <header><span>{t('เจ้าหน้าที่การเงิน · เซสชันแยกจากร้าน','Finance staff · independent mobile session')}</span><button onClick={()=>setThai(!thai)}>{thai?'English':'ไทย'}</button></header>
    <div className="dispatch-heading"><h1>{t('รายได้และรอบจ่ายไรเดอร์','Driver earnings and settlement')}</h1><p>{t('รายการจริงตามสิทธิ์ร้าน ไม่มีช่วงวันที่หรือยอดรายวันสมมติ สิทธิ์และรุ่นตรวจซ้ำที่เซิร์ฟเวอร์ทุกคำสั่ง','Server earning facts within merchant scope. No date-range or daily-total claims. Every command rechecks authority and versions.')}</p></div>
@@ -184,10 +179,10 @@ export default function PlatformDriverEarnings(){
         <div className="dispatch-actions"><button disabled={busy} onClick={()=>void run(()=>load())}>{t('หน้าแรก / โหลดใหม่','First page / reload')}</button><button disabled={busy||!page.nextAfterId} onClick={()=>{const after=page.nextAfterId;if(after)void run(()=>load(after));}}>{t('หน้าถัดไป','Next page')}</button></div>
        </>}
        {item&&<section className="dispatch-detail"><h3>{t('รายละเอียดรายได้','Earning detail')}</h3>
-        <dl><dt>{t('ออร์เดอร์ / งาน','Order / assignment')}</dt><dd>{item.orderId} / {item.assignmentId}</dd><dt>{t('สร้างเมื่อ / พร้อมตามบัญชีเมื่อ','Created / available at')}</dt><dd>{item.createdAt} / {item.availableAt}</dd><dt>{t('ผลพิจารณาล่าสุด','Last eligibility decision')}</dt><dd>{item.eligibilityDecision?`${item.eligibilityDecision.decision} · ${item.eligibilityDecision.decidedAt}`:t('ยังไม่มีผลพิจารณา','No eligibility decision')}</dd><dt>{t('จำนวนรายได้จริง / ทศนิยม','Earning minor units / decimals')}</dt><dd>{item.money.amountMinor} / {item.money.decimals} · {item.money.currency}</dd></dl>
+        <dl><dt>{t('ออเดอร์ / งาน','Order / assignment')}</dt><dd>{item.orderId} / {item.assignmentId}</dd><dt>{t('สร้างเมื่อ / พร้อมตามบัญชีเมื่อ','Created / available at')}</dt><dd>{item.createdAt} / {item.availableAt}</dd><dt>{t('ผลพิจารณาล่าสุด','Last eligibility decision')}</dt><dd>{item.eligibilityDecision?`${item.eligibilityDecision.decision} · ${item.eligibilityDecision.decidedAt}`:t('ยังไม่มีผลพิจารณา','No eligibility decision')}</dd><dt>{t('จำนวนรายได้จริง / ทศนิยม','Earning minor units / decimals')}</dt><dd>{item.money.amountMinor} / {item.money.decimals} · {item.money.currency}</dd></dl>
         {item.payout.status==='FROZEN_POLICY_AVAILABLE'&&<dl><dt>{t('จำนวนโทเคนจริง / ทศนิยม','Payout atoms / decimals')}</dt><dd>{item.payout.payoutMoney.amountMinor} / {item.payout.payoutMoney.decimals} · {item.payout.payoutMoney.currency}</dd><dt>Network / mint / token program</dt><dd>{item.payout.asset.cluster} / {item.payout.asset.mint} / {item.payout.asset.tokenProgram}</dd></dl>}
         <label>{t('เหตุผลการ HOLD / RELEASE (บันทึกตรวจสอบ)','HOLD / RELEASE reason (audited)')}<textarea maxLength={1000} value={reason} disabled={blocked} onChange={event=>setReason(event.target.value)}/></label>
-        <p>{t('รุ่นที่คาดหวัง','expectedVersion')}: {item.version} · {t('ทุกคำสั่งสร้างรหัส idempotency และเก็บก่อนส่ง','Every new command gets an idempotency key persisted before sending')}</p>
+        <p>{t('รุ่นที่คาดหวัง','Expected version')}: {item.version} · {t('ทุกคำสั่งสร้างรหัส idempotency และเก็บก่อนส่ง','Every new command gets an idempotency key persisted before sending')}</p>
         <div className="dispatch-actions"><button disabled={blocked||!reason.trim()||!['ACCRUED','HELD','AVAILABLE'].includes(item.state)} onClick={()=>eligibility('HOLD')}>{t('พักสิทธิ์รายได้ (HOLD)','Hold eligibility (HOLD)')}</button><button disabled={blocked||!reason.trim()||!['ACCRUED','HELD','AVAILABLE'].includes(item.state)} onClick={()=>eligibility('RELEASE')}>{t('ปล่อยสิทธิ์รายได้ (RELEASE)','Release eligibility (RELEASE)')}</button></div>
         <p>{t('RELEASE ไม่ใช่การจ่ายเงิน HOLD ไม่ใช่การคืนเงิน','RELEASE is not a payout; HOLD is not a refund.')}</p>
         {batch&&<><button type="button" disabled={blocked} onClick={()=>{setDriver(item.driverId);setBeneficiary(batch.beneficiaryId);setBeneficiaryVersion(batch.beneficiaryVersion);setPicked([]);}}>{t('ใช้ข้อมูลผู้รับจากรอบนี้ในแบบฟอร์ม','Use this batch recipient in the preparation form')}</button><p>{t('ใช้รหัสและรุ่นที่แสดงเท่านั้น ไม่ยืนยันว่าผู้รับยังมีสิทธิ์ เซิร์ฟเวอร์ตรวจใหม่เมื่อส่ง','Copies displayed IDs and version only. Eligibility is rechecked by the server on submission.')}</p><h3>{t('รอบจ่ายปัจจุบันจากเซิร์ฟเวอร์','Current server settlement')}</h3><p>{batch.batchId} · {batch.state} · v{batch.version}</p><p>{readiness(batch.readiness)} <small>({batch.readiness})</small></p>
@@ -203,13 +198,13 @@ export default function PlatformDriverEarnings(){
          <label>{t('รหัสไรเดอร์ (UUID)','Driver UUID')}<input required pattern={uuidPattern} value={driver} onChange={event=>{setDriver(event.target.value);setPicked([]);}}/></label>
          <label>{t('รหัสผู้รับที่ลงทะเบียนแล้ว (UUID)','Enrolled beneficiary UUID')}<input required pattern={uuidPattern} value={beneficiary} onChange={event=>setBeneficiary(event.target.value)}/></label>
          <label>{t('รุ่นผู้รับที่คาดหวัง','Expected beneficiary version')}<input required pattern="[1-9][0-9]{0,18}" inputMode="numeric" value={beneficiaryVersion} onChange={event=>setBeneficiaryVersion(event.target.value)}/></label>
-         <p>expectedVersion: 0 · {t('ต้นทางที่เลือก','Selected sources')}: {sources.length}</p>
+         <p>{t('รุ่นที่คาดหวัง','Expected version')}: 0 · {t('ต้นทางที่เลือก','Selected sources')}: {sources.length}</p>
          <div style={{overflowWrap:'anywhere'}}>{sources.map(row=><p key={row.accrualId}>{row.accrualId} · v{row.version} · {money(row.money)}</p>)}</div>
          <p>{t('หน้านี้ไม่มี API ค้นผู้รับหรืออนุมัติสิทธิ์กระเป๋า ใช้ UUID และรุ่นจากกระบวนการที่ได้รับอนุญาต เซิร์ฟเวอร์ตรวจความเป็นเจ้าของอีกครั้ง','This surface has no beneficiary discovery or wallet-proof approval API. Supply the UUID/version from authorized enrollment; the server rechecks ownership.')}</p>
          <button disabled={blocked||!sources.length||sources.some(row=>row.driverId!==driver.trim().toLowerCase())}>{t('เตรียมร่าง — ยังไม่สำรองหรือโอน','Prepare draft — no reserve or transfer')}</button>
         </fieldset>
        </form>
-       {batch?.state==='DRAFT'&&<section className="dispatch-detail"><h3>{t('ควบคุมร่างที่เลือก','Selected draft controls')}</h3><p>{batch.batchId} · expectedVersion: {batch.version}</p>
+       {batch?.state==='DRAFT'&&<section className="dispatch-detail"><h3>{t('ควบคุมร่างที่เลือก','Selected draft controls')}</h3><p>{batch.batchId} · {t('รุ่นที่คาดหวัง','Expected version')}: {batch.version}</p>
         <p>{t('การอนุมัติเป็นการสำรองทางบัญชีเท่านั้น ผู้รับต้องผ่านการตรวจสอบและผู้ให้บริการต้องพร้อม การโอนยังต้องมีเงินทุนจริงที่ตรวจสอบแล้ว','Approval only reserves accounting funds. The beneficiary must be verified and provider configured. A transfer still requires independently verified funding.')}</p>
         {draft?<details><summary>{t('ข้อมูลต้นทางจากใบรับร่างเดิมที่เก็บในบัญชีนี้','Exact source context from this account’s saved draft receipt')}</summary><div style={{overflowWrap:'anywhere'}}>{draft.receipt.sourceIds.map((id,index)=><p key={id}>{id} · v{draft.receipt.sourceVersions[index]}</p>)}</div></details>:<><p>{t('ไม่มีใบรับร่างเดิมของบัญชีนี้สำหรับรุ่นปัจจุบัน กรอกต้นทางทั้งหมดจากใบรับเดิม ห้ามเดาจากรายการในหน้านี้ เซิร์ฟเวอร์ตรวจว่าตรงทุกคู่','No matching draft receipt is stored for this account. Supply all original source/version pairs from the original receipt, never infer them from this page. The server checks every pair.')}</p><label>{t('ต้นทางเดิม เรียงตาม UUID: UUID ตามด้วยเวอร์ชัน บรรทัดละหนึ่งคู่','Original sources in UUID order: UUID then version, one pair per line')}<textarea value={batchSources} disabled={blocked} onChange={event=>setBatchSources(event.target.value)} spellCheck={false}/></label></>}
         <label>{t('เหตุผลอนุมัติหรือยกเลิกร่าง','Reserve / cancel reason')}<textarea maxLength={1000} value={batchReason} disabled={blocked} onChange={event=>setBatchReason(event.target.value)}/></label>

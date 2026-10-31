@@ -70,6 +70,10 @@ export default function FoodHandoff({session,orderId,language,onChange}:{session
   } as Record<string,string>)[assignment.state]??t('ตรวจสอบสถานะคนส่ง','Check rider status')}</p>}
   {receipt?.secret&&proof?.id===receipt.proofId&&Date.parse(receipt.expiresAt)>Date.now()&&<p><label>{t('แสดงให้ไรเดอร์ที่มารับอาหารจริงเท่านั้น','Show only to the assigned rider physically collecting this order')}<input readOnly value={receipt.secret} autoComplete="off" spellCheck={false} aria-label={t('รหัสรับอาหาร','Pickup proof secret')}/></label></p>}
   {receipt?.secretRecoveryRequired&&<p>{t('คำขอเดิมสำเร็จแล้ว ไม่สามารถอ่านรหัสเดิมซ้ำได้ เลือกเปลี่ยนรหัสอย่างชัดเจน','Original issue succeeded. The secret cannot be recovered. Explicitly replace the proof if needed.')}</p>}
+  {assignment?.state==='AT_PICKUP'&&<section className="handoff-blocked" aria-label={t('ยืนยันรหัสส่งมอบและแจ้งปัญหา','Confirm handoff code and report a problem')}>
+   <p className="notice" role="status">{t('ร้านออกรหัสรับอาหารให้ไรเดอร์ตรวจที่แอปไรเดอร์เท่านั้น ยังไม่มีบริการฝั่งร้านสำหรับยืนยันรหัสแทนไรเดอร์หรือแจ้งปัญหาการส่งมอบ จึงปิดปุ่มไว้ (BLOCKED)','The store issues the pickup code and the rider verifies it in the rider app. There is no store-side service yet to confirm the code for the rider or to report a handoff problem, so these actions stay disabled (BLOCKED).')}</p>
+   <div className="toolbar"><button type="button" className="secondary" disabled aria-disabled="true">{t('ยืนยันรหัสส่งมอบ (ยังไม่เปิดใช้)','Confirm handoff code (unavailable)')}</button><button type="button" className="secondary" disabled aria-disabled="true">{t('แจ้งปัญหาการส่งมอบ (ยังไม่เปิดใช้)','Report handoff problem (unavailable)')}</button></div>
+  </section>}
   <MerchantFoodReturn key={`${session.token}:${orderId}:${assignment?.id??"none"}`} session={session} orderId={orderId} assignmentId={assignment?.id} language={language} onChange={onChange}/>
   {error&&<p role="alert">{error}</p>}
  </aside>;

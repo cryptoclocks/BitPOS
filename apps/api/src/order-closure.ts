@@ -29,7 +29,8 @@ async function closeLocked(db:pg.PoolClient,merchant:string,orderId:string,cause
   await db.query('SELECT id FROM payment_attempts WHERE merchant_id=$1 AND order_id=$2 ORDER BY id FOR UPDATE',[merchant,orderId]);
   const safe=(await db.query<{safe:boolean}>('SELECT bitpos.unpaid_order_safe($1::uuid,$2::uuid) AS safe',[merchant,orderId])).rows[0].safe;
   if(!safe){if(exact)fail('PAYMENT_PENDING');return {replayed:false,closed:false};}
-  await releaseReservation(db,o);
+  const anomalies=await releaseReservation(db,o);
+  if(anomalies>0){console.warn('Reservation counter anomaly clamped to 0',orderId,anomalies);await audit(db,merchant,actor,'order.reservation_anomaly',orderId);}
   const updated=(await db.query<OrderRow>("UPDATE orders SET status='EXPIRED',closure_reason=$3,version=version+1 WHERE merchant_id=$1 AND id=$2 RETURNING *",[merchant,orderId,reason])).rows[0];
   await db.query("UPDATE payment_attempts SET status='EXPIRED',error=$3 WHERE merchant_id=$1 AND order_id=$2 AND status='BUILDING' AND signature IS NULL AND signed_base64 IS NULL AND transaction_base64 IS NULL",[merchant,orderId,reason==='canceled'?'Canceled before transaction issuance':'Timed out before transaction issuance']);
   await db.query('UPDATE challenges SET used_at=coalesce(used_at,clock_timestamp()) WHERE merchant_id=$1 AND order_id=$2',[merchant,orderId]);

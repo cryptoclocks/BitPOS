@@ -105,7 +105,8 @@ export async function promotionsRequest(db:pg.PoolClient,merchant:string,actor:s
   const result=await derivePromotion(db,merchant,actor,c,command.data);
   await db.query('INSERT INTO promotion_requests(merchant_id,idempotency_key,request_hash,result) VALUES($1,$2,$3,$4)',[merchant,d.idempotencyKey,digest,result]);await audit(db,merchant,actor,'promotion.derive.'+command.data.mode,id);return result;
  }
- if(action!=='revoke'){const current=(await db.query('SELECT active_price_version_id FROM merchant_pricing WHERE merchant_id=$1',[merchant])).rows[0]?.active_price_version_id;if(current!==c.snapshot.priceVersion)fail('PROMOTION_REVIEW_REQUIRED');}
+ // preview/edit are the refresh path: they rebuild the snapshot at the current price, so they must not be blocked by the stale-price gate they exist to clear.
+ if(action!=='revoke'&&action!=='preview'&&action!=='edit'){const current=(await db.query('SELECT active_price_version_id FROM merchant_pricing WHERE merchant_id=$1',[merchant])).rows[0]?.active_price_version_id;if(current!==c.snapshot.priceVersion)fail('PROMOTION_REVIEW_REQUIRED');}
  const destination=await campaignPromotionDestination(db,merchant,c.id);if(destination&&action!=='revoke')await guardPromotionDestination(db,merchant,destination);
  const lineage=await campaignDerivation(db,merchant,c.id);if(lineage&&action!=='revoke')await guardDerivation(db,merchant,lineage.binding);
  if(action==='revoke'){

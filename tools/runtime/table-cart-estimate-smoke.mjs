@@ -6,8 +6,8 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {chromium} from '../../local/toolchains/browser-contract/node_modules/playwright/index.mjs';
 const origin=new URL(process.env.BITPOS_UI_ORIGIN??'');assert.equal(origin.hostname,'127.0.0.1');
-const root='.omp/work/flutter-delivery-20261016/evidence/',stamp=new Date().toISOString().replaceAll(':','-');
-const scratch=await mkdtemp(join(tmpdir(),'bitpos-table-cart-estimate-'));
+const root=(process.env.BITPOS_UI_EVIDENCE_DIR??'.omp/work/flutter-delivery-20261016/evidence/').replace(/\/?$/,'/'),stamp=new Date().toISOString().replaceAll(':','-');
+const scratch=await mkdtemp(join(tmpdir(),'bitpos-table-cart-estimate-')),captureDirectory=process.env.BITPOS_UI_CAPTURE_DIR??scratch;
 const receipt={status:'RUNNING',fixture:true,checks:[],captures:[],scratchDirectory:scratch,scratchCleanup:'pending_parent_visual_analysis',limits:['Hydrated HTTP presentation fixtures, not persisted API/SQL/payment or full visual acceptance'],physicalTesting:'deferred_by_user_2026-10-16'};
 let browser;
 try{
@@ -28,6 +28,7 @@ try{
   if(thai)await page.getByRole('button',{name:'เปลี่ยนเป็นภาษาไทย',exact:true}).click();
   const before=await page.evaluate(key=>localStorage.getItem(key),key);
   assert.match(await page.locator('.table-cart-trigger').innerText(),/3\.00/);
+  await page.locator('.table-cart-trigger').click();const selectedSheet=page.getByRole('dialog');await selectedSheet.getByRole('heading',{name:thai?'รายการที่เลือก':'Selected items',exact:true}).waitFor();const selectedCapture='table-cart-selected-'+(thai?'th':'en')+'-'+width+'-'+stamp+'.png';await page.screenshot({path:join(captureDirectory,selectedCapture),fullPage:true});receipt.captures.push(selectedCapture);await page.keyboard.press('Escape');
   removed=true;
   await page.mouse.move(8,300);await page.mouse.wheel(0,3000);
   await page.getByRole('button',{name:thai?'รีเฟรชเมนู':'Refresh menu',exact:true}).click();
@@ -60,7 +61,7 @@ try{
   }
   receipt.checks.at(-1).hoverContrasts=contrasts;
   const capture='table-cart-missing-'+(thai?'th':'en')+'-'+width+'-'+stamp+'.png';
-  await page.screenshot({path:join(scratch,capture),fullPage:true});receipt.captures.push(capture);
+  await page.screenshot({path:join(captureDirectory,capture),fullPage:true});receipt.captures.push(capture);
   await sheet.getByRole('button',{name:thai?'ลบเมนูที่ไม่พร้อม':'Remove unavailable item',exact:true}).click();
   const after=JSON.parse(await page.evaluate(key=>localStorage.getItem(key),key));
   assert.deepEqual(after.items,[]);assert.equal(after.requestId,JSON.parse(before).requestId);

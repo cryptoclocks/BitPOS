@@ -35,7 +35,8 @@ class FoodNavigationMap extends StatefulWidget {
     Widget controls,
     Widget? estimate,
     Widget notices,
-  )? presentationBuilder;
+  )?
+  presentationBuilder;
   @override
   State<FoodNavigationMap> createState() => _FoodNavigationMapState();
 }
@@ -89,6 +90,11 @@ class _FoodNavigationMapState extends State<FoodNavigationMap>
   Timer? _expiry;
   bool _expired = false;
   String t(String th, String en) => widget.thai ? th : en;
+  String _localTime(String iso) {
+    final at = DateTime.parse(iso).toLocal();
+    return '${at.hour.toString().padLeft(2, '0')}:${at.minute.toString().padLeft(2, '0')}';
+  }
+
   String _routeReason(String reason) => switch (reason) {
     'no_assignment' => t(
       'ยังไม่มีงานส่งที่ติดตามได้',
@@ -303,32 +309,40 @@ class _FoodNavigationMapState extends State<FoodNavigationMap>
     }
     return LayoutBuilder(
       builder: (context, constraints) {
-        final viewport = LayoutBuilder(builder: (context, constraints) {
-        final previousWidth = _viewportWidth;
-        final previousAnchor = _viewportAnchor;
-        _viewportWidth = constraints.maxWidth;
-        _viewportAnchor = Offset(
-          _viewportWidth / 2,
-          math.min(widget.height / 2, math.max(24, widget.height - widget.cameraBottomInset - 24)),
-        );
-        if (previousWidth > 0 &&
-            ((_viewportWidth - previousWidth).abs() > 1 || (_viewportAnchor - previousAnchor).distance > 1) &&
-            _snapshot != null) {
-          final epoch = _epoch;
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (!_current || epoch != _epoch) return;
-            final matrix = _cameraController.value;
-            final focus = _cameraController.toScene(previousAnchor);
-            setState(() {
-              _cameraController.value = _cameraAt(
-                focus,
-                math.max(matrix.getMaxScaleOnAxis(), _minimumCameraScale * 1.2),
-                _viewportAnchor,
-              );
-            });
-          });
-        }
-          return SizedBox(
+        final viewport = LayoutBuilder(
+          builder: (context, constraints) {
+            final previousWidth = _viewportWidth;
+            final previousAnchor = _viewportAnchor;
+            _viewportWidth = constraints.maxWidth;
+            _viewportAnchor = Offset(
+              _viewportWidth / 2,
+              math.min(
+                widget.height / 2,
+                math.max(24, widget.height - widget.cameraBottomInset - 24),
+              ),
+            );
+            if (previousWidth > 0 &&
+                ((_viewportWidth - previousWidth).abs() > 1 ||
+                    (_viewportAnchor - previousAnchor).distance > 1) &&
+                _snapshot != null) {
+              final epoch = _epoch;
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (!_current || epoch != _epoch) return;
+                final matrix = _cameraController.value;
+                final focus = _cameraController.toScene(previousAnchor);
+                setState(() {
+                  _cameraController.value = _cameraAt(
+                    focus,
+                    math.max(
+                      matrix.getMaxScaleOnAxis(),
+                      _minimumCameraScale * 1.2,
+                    ),
+                    _viewportAnchor,
+                  );
+                });
+              });
+            }
+            return SizedBox(
               height: widget.height,
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(22),
@@ -421,40 +435,47 @@ class _FoodNavigationMapState extends State<FoodNavigationMap>
                 ),
               ),
             );
-        });
-        final controls = Row(
-              children: [
-                IconButton(
-                  tooltip: t('ย่อ', 'Zoom out'),
-                  onPressed: _loading || _zoom <= 12
-                      ? null
-                      : () {
-                          _zoom--;
-                          _load(reset: true);
-                        },
-                  icon: const Icon(Icons.remove),
-                ),
-                IconButton(
-                  tooltip: t('ขยาย', 'Zoom in'),
-                  onPressed: _loading || _zoom >= 18
-                      ? null
-                      : () {
-                          _zoom++;
-                          _load(reset: true);
-                        },
-                  icon: const Icon(Icons.add),
-                ),
-                const Spacer(),
-                IconButton(
-                  tooltip: t('โหลดเส้นทางใหม่', 'Refresh route'),
-                  onPressed: _loading ? null : () => _load(reset: true),
-                  icon: const Icon(Icons.refresh),
-                ),
-              ],
-            );
-        final estimate = route == null ? null : Text(
-          '${t('ประมาณ', 'Estimated')} ${(route.durationSeconds / 60).ceil()} ${t('นาที', 'min')} · ${(route.distanceMetres / 1000).toStringAsFixed(1)} ${t('กม.', 'km')}',
+          },
         );
+        final controls = Row(
+          children: [
+            IconButton(
+              tooltip: t('ย่อ', 'Zoom out'),
+              onPressed: _loading || _zoom <= 12
+                  ? null
+                  : () {
+                      _zoom--;
+                      _load(reset: true);
+                    },
+              icon: const Icon(Icons.remove),
+            ),
+            IconButton(
+              tooltip: t('ขยาย', 'Zoom in'),
+              onPressed: _loading || _zoom >= 18
+                  ? null
+                  : () {
+                      _zoom++;
+                      _load(reset: true);
+                    },
+              icon: const Icon(Icons.add),
+            ),
+            const Spacer(),
+            IconButton(
+              tooltip: t('โหลดเส้นทางใหม่', 'Refresh route'),
+              onPressed: _loading ? null : () => _load(reset: true),
+              icon: const Icon(Icons.refresh),
+            ),
+          ],
+        );
+        final estimate = route == null
+            ? null
+            : Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Text(
+                  '${t('เวลาเดินทางตามเส้นทาง', 'Route travel estimate')} ${(route.durationSeconds / 60).ceil()} ${t('นาที', 'min')} · ${(route.distanceMetres / 1000).toStringAsFixed(1)} ${t('กม.', 'km')}',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+              );
         final notices = Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -469,7 +490,7 @@ class _FoodNavigationMapState extends State<FoodNavigationMap>
               ),
             if (a?.location case final location?)
               Text(
-                '${t('อัปเดตตำแหน่ง', 'Location updated')}: ${location.receivedAt}${_stale(location) ? ' · STALE' : ''}',
+                '${t('อัปเดตตำแหน่ง', 'Location updated')} ${_localTime(location.receivedAt)}${_stale(location) ? t(' · ข้อมูลเก่า', ' · STALE') : ''}',
               ),
             if (_error != null)
               Text(
@@ -493,9 +514,10 @@ class _FoodNavigationMapState extends State<FoodNavigationMap>
                 route.attribution,
                 style: Theme.of(context).textTheme.labelSmall,
               ),
-            if (a?.fixture == true ||
+            if (widget.api.fixture &&
+                (a?.fixture == true ||
                 snapshot?.tileFixture == true ||
-                route?.fixture == true)
+                route?.fixture == true))
               Text(
                 t(
                   'AVD / ข้อมูลจำลอง ไม่ใช่ GPS หรือการส่งจริง',
@@ -506,36 +528,68 @@ class _FoodNavigationMapState extends State<FoodNavigationMap>
         );
         final builder = widget.presentationBuilder;
         if (builder != null) {
-          return builder(context, viewport, controls, estimate, Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [if (_loading) const LinearProgressIndicator(), notices],
-          ));
+          return builder(
+            context,
+            viewport,
+            controls,
+            estimate,
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                if (_loading) const LinearProgressIndicator(),
+                notices,
+              ],
+            ),
+          );
         }
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [viewport, if (_loading) const LinearProgressIndicator(), controls, ?estimate, notices],
+          children: [
+            viewport,
+            if (_loading) const LinearProgressIndicator(),
+            controls,
+            ?estimate,
+            notices,
+          ],
         );
       },
     );
   }
 
-  double get _minimumCameraScale => math.max(.4, math.max(_viewportWidth, widget.height) / 768);
+  double get _minimumCameraScale =>
+      math.max(.4, math.max(_viewportWidth, widget.height) / 768);
 
   Matrix4 _cameraAt(Offset focus, double scale, Offset anchor) {
     // Fit the finite tile grid around the retained world focus, not a clamped replacement focus.
-    scale = math.max(scale, math.max(
-      math.max(anchor.dx / focus.dx, (_viewportWidth - anchor.dx) / (768 - focus.dx)),
-      math.max(anchor.dy / focus.dy, (widget.height - anchor.dy) / (768 - focus.dy)),
-    ));
-    final x = (anchor.dx - focus.dx * scale).clamp(_viewportWidth - 768 * scale, 0.0).toDouble();
-    final y = (anchor.dy - focus.dy * scale).clamp(widget.height - 768 * scale, 0.0).toDouble();
+    scale = math.max(
+      scale,
+      math.max(
+        math.max(
+          anchor.dx / focus.dx,
+          (_viewportWidth - anchor.dx) / (768 - focus.dx),
+        ),
+        math.max(
+          anchor.dy / focus.dy,
+          (widget.height - anchor.dy) / (768 - focus.dy),
+        ),
+      ),
+    );
+    final x = (anchor.dx - focus.dx * scale)
+        .clamp(_viewportWidth - 768 * scale, 0.0)
+        .toDouble();
+    final y = (anchor.dy - focus.dy * scale)
+        .clamp(widget.height - 768 * scale, 0.0)
+        .toDouble();
     return Matrix4.diagonal3Values(scale, scale, 1)..setTranslationRaw(x, y, 0);
   }
 
   Widget _camera(Widget child) => InteractiveViewer(
     transformationController: _cameraController,
     minScale: _minimumCameraScale,
-    maxScale: math.max(_cameraController.value.getMaxScaleOnAxis(), math.max(2, _minimumCameraScale * 4)),
+    maxScale: math.max(
+      _cameraController.value.getMaxScaleOnAxis(),
+      math.max(2, _minimumCameraScale * 4),
+    ),
     constrained: false,
     boundaryMargin: EdgeInsets.zero,
     child: child,

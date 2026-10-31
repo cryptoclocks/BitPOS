@@ -8,7 +8,7 @@ export async function verifyFoodSearchBoundary(c:{db:pg.Client;shipment:string;m
  const initialState=(await db.query('SELECT state FROM bitpos.food_shipments WHERE id=$1',[shipment])).rows[0].state;
  const started=await call(search,'PUT',{idempotencyKey:randomUUID(),expectedVersion:'0',action:'START',reason:'W02 bounded search'},dispatcher.access);
  await db.query(`CREATE ROLE ${role} LOGIN INHERIT NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS`);await db.query(`GRANT bitpos_food_search_worker TO ${role}`);
- const exec=promisify(execFile),workerUrl=`postgresql://${role}@127.0.0.1:55446/bitpos_w01_fixture`;
+ const exec=promisify(execFile),workerUrl=process.env.BITPOS_DELIVERY_FIXTURE_DATABASE_URL?.includes(':55440/bitpos_delivery_fixture')?`postgresql://${role}@127.0.0.1:55440/bitpos_delivery_fixture`:`postgresql://${role}@127.0.0.1:55446/bitpos_w01_fixture`;
  let ticks=0;
  const tick=async()=>{const result=await exec('pnpm',['exec','tsx','tools/runtime/fixture/search-worker-once.ts',...(unavailable?['--unavailable']:[])],{env:{...process.env,DOTENV_CONFIG_PATH:'/dev/null',BITPOS_W02_WORKER_URL:workerUrl},maxBuffer:1024*1024,timeout:20000});assert.ok(result.stdout.includes('PASS_RESTRICTED_WORKER_PROCESS_TICK_NO_PROVIDER'));ticks++;};
  try{

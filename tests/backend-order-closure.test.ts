@@ -23,7 +23,7 @@ test('timeout leaves unexpired and CONFIRMING orders owned; Cancel refuses confi
  await f.tenant(f.merchant,db=>expireUnpaidOrders(db,f.merchant));
  assert.equal((await f.tenant(f.merchant,async db=>(await db.query('SELECT status,closure_reason FROM orders WHERE id=$1',[o.order.id])).rows[0])).status,'CONFIRMING');
 });
-test('an inconsistent old reservation cannot roll back safe expiry of another bill',integration,async()=>{
+test('an inconsistent reservation counter is clamped, audited, and no longer blocks expiry',integration,async()=>{
  const f=await tableFixture();const {expireUnpaidOrders}=await import('../apps/api/src/order-closure');
  await f.tenant(f.merchant,async db=>{
   const customer=(await db.query('INSERT INTO customers(merchant_id) VALUES($1) RETURNING id',[f.merchant])).rows[0].id;
@@ -36,10 +36,11 @@ test('an inconsistent old reservation cannot roll back safe expiry of another bi
   await db.query('UPDATE products SET reserved=1 WHERE id=$1',[f.product]);
   await expireUnpaidOrders(db,f.merchant);
   const rows=(await db.query('SELECT id,status,closure_reason,reservation_released FROM orders WHERE id=ANY($1::uuid[])',[ids])).rows;
-  assert.equal(rows.find(row=>row.id===ids[0]).reservation_released,false);
+  assert.equal(rows.find(row=>row.id===ids[0]).closure_reason,'timeout');assert.equal(rows.find(row=>row.id===ids[0]).reservation_released,true);
+  assert.equal((await db.query("SELECT count(*)::int AS n FROM audit_logs WHERE action='order.reservation_anomaly' AND subject=ANY($1::text[])",[ids])).rows[0].n,1);
   assert.equal(rows.find(row=>row.id===ids[1]).closure_reason,'timeout');
   assert.equal((await db.query('SELECT reserved FROM products WHERE id=$1',[f.product])).rows[0].reserved,0);
-  await db.query('UPDATE products SET reserved=2 WHERE id=$1',[f.product]);await expireUnpaidOrders(db,f.merchant);
+  await expireUnpaidOrders(db,f.merchant);
   assert.equal((await db.query('SELECT reserved FROM products WHERE id=$1',[f.product])).rows[0].reserved,0);
  });
 });

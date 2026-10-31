@@ -33,7 +33,16 @@ export async function validateConfiguredQuote(db:pg.PoolClient,merchant:string,q
  if(delivery){const destination=await deliverySnapshot(db,merchant,quote);if(!destination)fail('QUOTE_CHANGED');current=deliveryConfiguredSnapshot(current,destination);}
  // Definitions and product snapshots are immutable; only current option pointers
  // are consulted here, never when reading historical bills or settling payments.
+ current=withFrozenCouponDiscount(current,frozen.snapshot);
  if(JSON.stringify(current)!==JSON.stringify(frozen.snapshot))fail('QUOTE_CHANGED',409,{reason:'CONFIGURED_QUOTE_CHANGED'});
+}
+/** A coupon quote (migration 098) freezes the base snapshot plus a server-computed discount; only that
+ * discount may differ from the live recomputation, and the total must move by exactly the same amount.
+ * The amount itself is verified by the coupon SQL gates, so this never trusts a client value. */
+function withFrozenCouponDiscount(current:MobileConfiguredFoodSnapshot,frozen:MobileConfiguredFoodSnapshot):MobileConfiguredFoodSnapshot{
+ const extra=BigInt(frozen.discount.amountMinor)-BigInt(current.discount.amountMinor);
+ if(extra<=0n||BigInt(frozen.total.amountMinor)!==BigInt(current.total.amountMinor)-extra)return current;
+ return {...current,discount:frozen.discount,total:frozen.total};
 }
 export async function freezeConfiguredOrder(db:pg.PoolClient,merchant:string,order:string,quote:string){
  const result=await db.query('INSERT INTO order_configured_food(merchant_id,order_id,quote_id,snapshot) SELECT merchant_id,$2,quote_id,snapshot FROM quote_configured_food WHERE merchant_id=$1 AND quote_id=$3',[merchant,order,quote]);

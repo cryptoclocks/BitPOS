@@ -9,7 +9,7 @@ export async function verifyPickupCurrent({db,call,merchant,branch,product,custo
  // Actual upstream commits; this owned loopback proxy deliberately drops only
  // the downstream response. Exact replay must recover the original order.
  const upstream=new URL(process.env.BITPOS_DISPATCH_FIXTURE_BASE??'');
- assert.equal(upstream.hostname,'127.0.0.1');assert.equal(upstream.port,'3046');
+ assert.equal(upstream.hostname,'127.0.0.1');assert.ok(['3046','3001'].includes(upstream.port),'Only the W01 (3046) or own delivery fixture (3001) API');
  let committedId:string|undefined,proxyError:unknown;
  const proxy=createServer(async(req,res)=>{try{
   assert.equal(req.method,'POST');assert.equal(req.url,'/orders');

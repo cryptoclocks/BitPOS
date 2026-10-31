@@ -14,16 +14,24 @@ import type {FrozenPayment} from './payment-assets';
 import {RequestError} from './authority';
 import {tenant} from './db';
 import {verifyX402Transfer,type X402Binding} from './x402-payment';
+import {createRpcConnection} from './rpc-resilience';
 // Canonical finalized devnet inspection: assets-preflight.json, 2026-10-12.
 // Wire ID16 is present but unnamed by the installed SDK; never treat it as absent.
 export const USDG_MINT_EXTENSION_TYPES=[3,12,1,4,16,14,18,19] as const;
 export const USDG_ISSUER_AUTHORITY='DFWDTsWsyGgFLbVARTS92wHDKK2hwTUNk71uPM3mf16S';
 export const kitRpc=createSolanaRpc(config.SOLANA_RPC);
-export const chain=new Connection(config.SOLANA_RPC,{commitment:'confirmed',disableRetryOnRateLimit:true,fetch:(url,init)=>fetch(url,{...init,signal:AbortSignal.timeout(12_000)})});
+export const chain=createRpcConnection(config.SOLANA_RPC,'confirmed');
 let sponsorKey:Keypair|undefined;
 export function loadSponsor(){sponsorKey??=Keypair.fromSecretKey(Uint8Array.from(JSON.parse(fs.readFileSync(config.DEVNET_PRIVATE_DIR+'/keys/fee-sponsor.json','utf8'))));return sponsorKey;}
 export const ata=(owner:string,asset:PaymentAsset)=>spl.getAssociatedTokenAddressSync(new PublicKey(asset.mint),new PublicKey(owner),false,new PublicKey(asset.tokenProgram));
-export async function assertCluster(){if(await kitRpc.getGenesisHash().send({abortSignal:AbortSignal.timeout(12_000)})!==DEVNET_GENESIS)throw new RequestError(503,'PAYMENT_UNAVAILABLE','Devnet genesis mismatch');}
+// The genesis hash of a cluster never changes while this process runs, and the worker checks it on every tick: remember a
+// successful match so the public endpoint is not asked 80 times a minute. A mismatch or failure is never cached.
+let clusterVerifiedUntil=0;
+export async function assertCluster(){
+ if(Date.now()<clusterVerifiedUntil)return;
+ if(await chain.getGenesisHash()!==DEVNET_GENESIS)throw new RequestError(503,'PAYMENT_UNAVAILABLE','Devnet genesis mismatch');
+ clusterVerifiedUntil=Date.now()+10*60_000;
+}
 // Shared CLI/runtime inspection seam: never accept merely a mint label or client program.
 export function assertMintPolicy(asset:PaymentAsset,m:spl.Mint){
  assertAssetDescriptor(asset);

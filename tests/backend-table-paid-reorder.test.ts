@@ -1,0 +1,23 @@
+import test,{after} from 'node:test';
+import assert from 'node:assert/strict';
+import {randomUUID} from 'node:crypto';
+import {tableFixture} from './backend-table-fixture';
+const integration={skip:process.env.BITPOS_BACKEND_INTEGRATION!=='1'};
+after(async()=>{if(process.env.BITPOS_BACKEND_INTEGRATION==='1'){const {pool}=await import('../apps/api/src/db');await pool.end();}});
+test('a PAID, device-rendered bill no longer blocks the next guest; an unpaid or unrendered bill still does',integration,async()=>{
+ const f=await tableFixture(3);const {tableRequest}=await import('../apps/api/src/table-ordering');const {emitOrder}=await import('../apps/api/src/orders');
+ const entry=await f.tenant(f.merchant,async db=>(await db.query('SELECT entry_token FROM table_entries WHERE device_id=$1 AND auth_generation=$2',[f.b.id,f.devices.get(f.b.id)!.authGeneration])).rows[0].entry_token);const base='/api/table/'+entry;
+ const visit=async()=>{const v=await tableRequest(base+'/visit','POST',{requestId:randomUUID()}) as {visitToken:string};return base+'/visit/'+v.visitToken;};
+ const available=async()=>(await tableRequest(base,'GET',undefined) as {available:boolean}).available;
+ const first=await visit();const q=await tableRequest(first+'/quotes','POST',{items:[{productId:f.product,qty:1}]}) as {quote:{id:string;priceVersion:string}};
+ const {order}=await tableRequest(first+'/orders','POST',{quoteId:q.quote.id,priceVersion:q.quote.priceVersion,idempotencyKey:randomUUID()}) as {order:{id:string}};
+ const second=await visit();
+ assert.equal(await available(),false,'open bill blocks');await assert.rejects(tableRequest(second+'/quotes','POST',{items:[{productId:f.product,qty:1}]}),/DEVICE_BUSY/);
+ const paid=await f.tenant(f.merchant,async db=>{const row=(await db.query("UPDATE orders SET status='PAID',version=version+1 WHERE id=$1 RETURNING *",[order.id])).rows[0];await emitOrder(db,row);return (await db.query('SELECT * FROM outbox_events WHERE order_id=$1 AND order_version=$2 ORDER BY device_seq DESC LIMIT 1',[order.id,row.version])).rows[0];});
+ assert.equal(await available(),false,'paid but receipt not yet rendered on the device');await assert.rejects(tableRequest(second+'/quotes','POST',{items:[{productId:f.product,qty:1}]}),/DEVICE_BUSY/);
+ await f.tenant(f.merchant,db=>db.query('INSERT INTO device_event_deliveries(merchant_id,device_id,event_id,device_seq,connection_generation,status) VALUES($1,$2,$3,$4,$5,$6) ON CONFLICT DO NOTHING',[f.merchant,f.b.id,paid.id,paid.device_seq,f.devices.get(f.b.id)!.connectionGeneration,'rendered']));
+ assert.equal(await available(),true,'paid and rendered bill is closed for ordering');
+ const next=await tableRequest(second+'/quotes','POST',{items:[{productId:f.product,qty:1}],confirmJoin:true}) as {quote:{id:string}};assert.ok(next.quote.id);
+ const screen=await f.tenant(f.merchant,async db=>(await db.query('SELECT kind,order_id FROM device_screen_state WHERE device_id=$1',[f.b.id])).rows[0]);assert.equal(screen.kind,'cart');assert.equal(screen.order_id,null);
+ assert.equal(((await tableRequest(first,'GET',undefined)) as {order:{id:string;status:string}}).order.status,'PAID','first guest keeps their receipt');
+});

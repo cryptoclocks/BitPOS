@@ -6,7 +6,7 @@ export const FoodScheduleHoldCandidateSchema=z.object({
  id:uuid,slotId:uuid,quoteId:uuid,state:z.enum(['HELD','RELEASED','EXPIRED']),
  expiresAt:z.string().datetime({offset:true}),replayed:z.boolean(),checkoutReady:z.literal(false),
 }).strict();
-function boundary(error:unknown):never {
+export function boundary(error:unknown):never {
  if(error instanceof Error){
   const code=(error as {code?:string}).code;
   if(error.message==='AUTH_REQUIRED')throw new RequestError(401,'AUTH_REQUIRED');

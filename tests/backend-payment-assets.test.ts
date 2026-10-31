@@ -45,7 +45,7 @@ test('selection preserves bill evidence, serializes attempts, replays exact resu
   const available=await paymentAssets(db,o);assert.equal(available.selectedAssetId,'usdg-devnet');assert.equal(available.canChange,true);assert.equal(available.assets.find(a=>a.asset.assetId==='usdc-devnet')?.settlement.amountMinor,'5400000');
   const key=randomUUID(),request={assetId:'usdc-devnet',expectedVersion:o.version,idempotencyKey:key};
   const selected=await selectPaymentAsset(db,o,request);assert.equal(selected.order.version,o.version+1);assert.equal(selected.order.settlement.currency,'USDC');assert.deepEqual(selected.order.pricing,created.order.pricing);assert.deepEqual(await evidence(),before);
-  const replay=await selectPaymentAsset(db,await locked(),request);assert.equal(replay.replayed,true);assert.deepEqual(replay.order,selected.order);
+  const replay=await selectPaymentAsset(db,await locked(),request);assert.equal(replay.replayed,true);assert.deepEqual(JSON.parse(JSON.stringify(replay.order)),JSON.parse(JSON.stringify(selected.order)));// wire equality: a replay is read back from persisted JSON, which drops undefined-valued keys
   await assert.rejects(selectPaymentAsset(db,await locked(),{...request,assetId:'usdg-devnet'}),/IDEMPOTENCY_CONFLICT/);
   await assert.rejects(selectPaymentAsset(db,await locked(),{...request,idempotencyKey:randomUUID()}),/PAYMENT_ASSET_VERSION_CONFLICT/);
   await assert.rejects(merchantPaymentAssets(db,f.merchant,f.actor,'staff','PUT',{}),/ROLE_REQUIRED/);

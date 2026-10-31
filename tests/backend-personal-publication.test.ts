@@ -131,7 +131,7 @@ test('from-order requires finalized settlement, excludes the purchased product, 
   await f.denied('/api/promotions/generate',f.generation(target,'from_order'),['PROMOTION_OFFER_INVALID'],f.owner);
   // Finalize the SAME synthetic verifier fact, then ACK/dismiss via the real public lifecycle.
   await f.paidAndDismiss(source.v,source.order,attempt);
-  await f.denied('/api/promotions/generate',{...f.generation(target,'from_order'),productIds:[f.product,f.addon]},['PROMOTION_REVIEW_REQUIRED'],f.owner);
+  await f.denied('/api/promotions/generate',{...f.generation(target,'from_order'),productIds:[f.product]},['PROMOTION_REVIEW_REQUIRED'],f.owner);
   const draft=await f.generate(target,'from_order',input=>{
    assert.ok(input.context?.kind==='from_order');assert.equal(input.context.historyBasis,'current_order_only');assert.equal(input.context.historyIncluded,false);assert.deepEqual(input.context.items,[]);assert.deepEqual(input.context.currentOrderItems,[{productId:f.product,quantity:1}]);assert.deepEqual(input.products.map(p=>p.productId),[f.addon]);
   }),approved=await f.approve(draft),sent=await f.publish(approved),binding=draft.scope?.binding;assert.ok(binding);

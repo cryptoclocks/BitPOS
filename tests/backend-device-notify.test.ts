@@ -251,8 +251,11 @@ test('notification claim refresh publishes current assignment without delivering
   // Loading boundary: skipped integration tests cannot import private runtime config.
   const b=await w.connect(f.b.id);const {streamEvent}=await import('../apps/api/src/orders');
   const held=w.hold((sql,args)=>sql.startsWith('SELECT bitpos.device_claim_events(')&&args[1]===f.b.id);
+  // Stop the sole pump before creating the stale candidate. A claim already in
+  // flight when hold() is installed can otherwise legally send that candidate
+  // before reassignment; the gate would then pause a later, unrelated claim.
+  await notify(f);await held.entered();
   const obsolete=await f.tenant(f.merchant,db=>streamEvent(db,f.merchant,f.b.id,'1',b.snapshot.screenGeneration,'SNAPSHOT',{screen:{kind:'idle',screenGeneration:b.snapshot.screenGeneration},recoverableDraft:null}));
-  await held.entered();
   await f.reg('/api/devices/'+f.b.id,'PATCH',{label:'New assignment',tableId:null,expectedAssignmentGeneration:'1'});
   held.release();
   const config=await b.next('CONFIG',event=>event.payload.assignmentGeneration==='2');

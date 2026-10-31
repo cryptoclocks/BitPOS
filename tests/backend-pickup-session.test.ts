@@ -36,7 +36,7 @@ for(const kind of ['unused','expired'] as const)test('public pickup survives a l
 });
 test('acquired replacement rejects stale guest ACK before poll and emits one safely matching TARGET_CHANGED tombstone',integration,async()=>{
  const f=await ready(),rendered=await f.notice();
- const replacement=await f.visit();await f.request(replacement.path+'/quotes','POST',{items:[{productId:f.product,qty:1}]});await f.request(replacement.path+'/release','POST',{});
+ const replacement=await f.visit();await f.request(replacement.path+'/quotes','POST',{items:[{productId:f.product,qty:1}],confirmJoin:true});await f.request(replacement.path+'/release','POST',{});
  // Adverse boundary fixture: preserve the old idle display generation while a
  // genuine public quote/release has acquired and ended a DIFFERENT guest session.
  // This removes screen-change rejection as an accidental explanation of success.
