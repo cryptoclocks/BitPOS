@@ -17,7 +17,7 @@
 1. **Owner: ask Copilot.**
    - Press **Owner** under quick sign-in, then open **PayPal · Copilot**.
    - Try **Staff** too: staff can see the tab, but drafting and approving are refused ("Owner or manager only"; the server enforces it).
-   - Type, for example, *"Sell 12 cold brews before 10pm, max 15% off"*, then press **Draft with Copilot**.
+   - Type, for example, *"Sell 12 iced lattes before 10pm, max 15% off"*, then press **Draft with Copilot**.
    - You see each tool step: shop limits → stock → recent sales → validation → draft.
    - If the model proposes something outside the limits, the server rejects it, and you can watch the model correct itself. **Details (trace)** shows every model call and tool result.
 2. **Owner: approve.**

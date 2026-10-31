@@ -31,10 +31,19 @@ const MENU=[
  ['70707070-7070-4070-8070-000000000001','ครัวซองต์','Croissant','🥐',450,8],
  ['70707070-7070-4070-8070-000000000002','ลาเต้','Latte','🥛',500,30],
  ['70707070-7070-4070-8070-000000000003','อเมริกาโน่','Americano','☕',350,30],
- ['70707070-7070-4070-8070-000000000004','มัทฉะ','Matcha','🍵',550,30],
- ['70707070-7070-4070-8070-000000000005','บานาน่าเบรด','Banana bread','🍌',400,30],
- ['70707070-7070-4070-8070-000000000006','โคลด์บรูว์','Cold brew','🧊',450,30]
+ ['70707070-7070-4070-8070-000000000004','ชาเขียว','Matcha','🍵',550,30],
+ ['70707070-7070-4070-8070-000000000005','มัฟฟินบลูเบอร์รี','Blueberry Muffin','🧁',400,30],
+ ['70707070-7070-4070-8070-000000000006','ลาเต้เย็น','Iced Latte','🧊',450,30]
 ] as const;
+// Menu photos that ship with the web (apps/web/public/images/menu), category and a short description per item.
+const LOOK:Record<string,{image:string;category:string;description:string}>={
+ 'Croissant':{image:'/images/menu/croissant.jpg',category:'Bakery',description:'A golden butter croissant with crisp, flaky layers.'},
+ 'Latte':{image:'/images/menu/latte.jpg',category:'Coffee',description:'Espresso with steamed milk and silky microfoam.'},
+ 'Americano':{image:'/images/menu/americano.jpg',category:'Coffee',description:'Espresso and hot water for a clean, bold coffee.'},
+ 'Matcha':{image:'/images/menu/matcha.jpg',category:'Tea',description:'Smooth green tea with warm milk and a creamy finish.'},
+ 'Blueberry Muffin':{image:'/images/menu/blueberry-muffin.jpg',category:'Bakery',description:'A soft muffin baked with juicy blueberries.'},
+ 'Iced Latte':{image:'/images/menu/iced-latte.jpg',category:'Coffee',description:'Espresso and chilled milk served over ice.'}
+};
 const env:Record<string,string>=oci?{PAYPAL_MERCHANT_ID:process.env.PAYPAL_MERCHANT_ID??''}:Object.fromEntries(readFileSync(process.env.PAYPAL_ENV_FILE??join(homedir(),'.bitpos-paypal/paypal-sandbox.env'),'utf8').split('\n').filter(l=>/^[A-Z_]+=/.test(l)).map(l=>[l.slice(0,l.indexOf('=')),l.slice(l.indexOf('=')+1).trim()]));
 const payee=env.PAYPAL_MERCHANT_ID;if(!/^[A-Z0-9]{13}$/.test(payee??''))throw Error('PAYPAL_MERCHANT_ID (US sandbox business) missing in the private env file');
 const reg=(path:string,method:string,input?:unknown)=>tenant(SHOP,d=>registry(d,SHOP,OWNER,'owner',path,method,input));
@@ -43,6 +52,9 @@ async function shop(){
  // Each step checks what already exists, so a partial run can simply be repeated.
  await pool.query("INSERT INTO merchants(id,name,treasury) VALUES($1,'BitPOS PayPal Café','11111111111111111111111111111111') ON CONFLICT(id) DO NOTHING",[SHOP]);
  await tenant(SHOP,async d=>{for(const [id,name,nameEn,emoji,price,stock] of MENU)await d.query('INSERT INTO products(id,merchant_id,name,name_en,emoji,price_minor,stock) VALUES($1,$2,$3,$4,$5,$6,$7) ON CONFLICT DO NOTHING',[id,SHOP,name,nameEn,emoji,price,stock]);});
+ // Names, photo, category and description of this demo shop's own items only (fixed ids); prices and stock untouched.
+ await tenant(SHOP,async d=>{for(const [id,name,nameEn,emoji] of MENU){const l=LOOK[nameEn];
+  await d.query('UPDATE products SET name=$3,name_en=$4,emoji=$5,image_url=$6,category=$7,description=$8 WHERE merchant_id=$1 AND id=$2 AND (name,name_en,emoji,image_url,category,description) IS DISTINCT FROM ($3,$4,$5,$6,$7,$8)',[SHOP,id,name,nameEn,emoji,l.image,l.category,l.description]);}});
  const one=async(sql:string,args:unknown[])=>(await tenant(SHOP,d=>d.query(sql,args))).rows[0] as {id:string}|undefined;
  for(const label of ['Table 1','Table 2'])if(!await one('SELECT id FROM merchant_tables WHERE merchant_id=$1 AND label=$2',[SHOP,label]))await reg('/api/tables','POST',{label});
  const t2=(await one("SELECT id FROM merchant_tables WHERE merchant_id=$1 AND label='Table 2'",[SHOP]))!;

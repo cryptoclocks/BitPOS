@@ -67,7 +67,7 @@ function Copilot({session,t,language}:{session:Session;t:(th:string,en:string)=>
  const open=async(id:string)=>{setError('');setRun(null);setOutcome(null);setConfirming(false);try{await loadEnvelope(id);}catch(e){setError(ownerError(e,t));}};
  const openEvidence=async(orderId:string)=>{try{setEvidence({orderId,data:await call<Evidence>(`/paypal/orders/${orderId}/evidence`)});}catch(e){setError(ownerError(e,t));}};
 
- const examples=[t('ขายครัวซองต์ที่เหลือ 8 ชิ้นก่อน 16:00 ลดไม่เกิน 10%','Sell the 8 croissants left before 4pm, at most 10% off'),t('ดันโคลด์บรูว์ช่วงบ่าย 20 แก้ว ลดไม่เกิน 15% ก่อน 17:00','Push 20 cold brews this afternoon, max 15% off, before 5pm')];
+ const examples=[t('ขายครัวซองต์ที่เหลือ 8 ชิ้นก่อน 16:00 ลดไม่เกิน 10%','Sell the 8 croissants left before 4pm, at most 10% off'),t('ดันลาเต้เย็นช่วงบ่าย 20 แก้ว ลดไม่เกิน 15% ก่อน 17:00','Push 20 iced lattes this afternoon, max 15% off, before 5pm')];
  const c=envelope?.campaign;
  return <section className="pp-copilot">
   {!manage&&<p className="notice">{t('ต้องเป็นเจ้าของหรือผู้จัดการร้าน','Owner or manager only')}</p>}
