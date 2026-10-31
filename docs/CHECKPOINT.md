@@ -1,3 +1,10 @@
+## PayPal hackathon — Phase 1 PayPal client — 31 October 2026
+
+- Added `apps/api/src/paypal/`: `config.ts` (sandbox only, live refused), `money.ts` (exact USD cents), `client.ts` (OAuth cache, Orders v2 create/capture/get, capture lookup, PayPal-Request-Id per operation, 401 refresh once, network/timeout/429/5xx = OUTCOME_UNKNOWN, 4xx = REJECTED with PayPal issue, 256 KiB cap, id validation), `verify.ts` (9 attribution checks, gross not net, multiple-capture and refund states), `webhook-verify.ts` (offline SHA256withRSA over raw-body CRC32, PayPal-host cert allowlist, cert cache/expiry).
+- Tests: `tests/paypal-client.test.ts` (8) + `tests/paypal-webhook-verify.test.ts` (4) all pass. Live read-only check `tools/paypal/client-check.ts`: both real sandbox captures verify COMPLETED through the production modules.
+- Regression: typecheck still only the 7 pre-existing errors; unit 496 pass / 0 fail / 209 skipped; integration 677 pass / 26 fail / 2 skipped — no new failures vs baseline (one baseline failure passed this run, untouched code, likely order-dependent).
+- Pre-existing file touched: `tsconfig.json` (include tools/paypal). Next: Phase 2 — migrations 400–402 (ledger, mutex trigger, `paypal_settle_capture`) and settlement tests.
+
 ## PayPal hackathon — Phase 0 gate passed — 31 October 2026
 
 - Real PayPal Sandbox: order `9GA10264K77259045` approved by a US sandbox buyer and captured by the server (`3NJ75207B63619939`, COMPLETED, USD 4.50, fee 0.65, net 3.85); server verification 9/9 PASS; JS SDK v6 popup flow also verified (`60868501X2803334W`).

@@ -24,9 +24,12 @@ Conventions: every new file starts with `PayPal AI Hackathon work (2026-10-31..1
 | 2026-10-31 | `tools/paypal/fixture-db.py` | Disposable PostgreSQL for this branch (port 55466), all migrations |
 | 2026-10-31 | `tools/paypal/sandbox-lib.ts`, `tools/paypal/sandbox-smoke.ts`, `tools/paypal/sdk-spike/*` | Phase 0 PayPal Sandbox spike tools (Orders v2 create/capture/get, idempotency probes, JS SDK v6 page) |
 | 2026-10-31 | `paypal-hackathon/evidence/phase0-*.md` | Phase 0 test baseline and spike record |
+| 2026-10-31 | `apps/api/src/paypal/{config,money,client,verify,webhook-verify}.ts`, `tests/paypal-client.test.ts`, `tests/paypal-webhook-verify.test.ts`, `tools/paypal/client-check.ts` | Phase 1: sandbox-only config, exact USD cents, Orders v2 client (token cache, idempotent request ids, outcome-unknown mapping), 9-point capture verification, offline webhook signature check; 12 unit tests; live read-only check against real sandbox captures |
 
 ### Pre-existing files touched
-_(none yet)_
+| Date | File | Change |
+|---|---|---|
+| 2026-10-31 | `tsconfig.json` | include `tools/paypal/**/*.ts` in typecheck |
 
 ## Development tools disclosure
 

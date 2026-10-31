@@ -15,6 +15,7 @@
     "apps/**/*.tsx",
     "packages/**/*.ts",
     "tools/runtime/**/*.ts",
+    "tools/paypal/**/*.ts",
     "tests/**/*.ts"
   ]
 }
