@@ -18,3 +18,9 @@ Downloaded photographs from Unsplash; no generated menu images. Source pages wer
 | Chocolate Brownie | Honey Yanibel Minaya Cruz | [Photo](https://unsplash.com/photos/brownies-in-close-up-photography-2hnVd9JJ3Uk) |
 | Cheesecake | Mohammadreza alidoost | [Photo](https://unsplash.com/photos/a-slice-of-cake-on-a-plate-xacOkVZnGfo) |
 | Grilled Cheese Sandwich | Asnim Ansari | [Photo](https://unsplash.com/photos/two-slices-of-sandwich-on-brown-container-SqYmTDQYMjo) |
+
+## Shop cover photo
+
+`apps/web/public/images/cover/bitpos-purple-cafe.jpg` is a cropped, purple-graded copy of an Unsplash photo by `@babak22ir`
+([A bright coffee shop counter with baked goods](https://unsplash.com/photos/a-bright-coffee-shop-counter-with-baked-goods-QFTFsEdvrwE)),
+free under the [Unsplash License](https://unsplash.com/license). It is stock photography of a cafe, not a photo of the demo cafe.

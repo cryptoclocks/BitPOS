@@ -891,6 +891,7 @@ export const MobileMenuSchema=z.object({
  pricingRevision:z.string().regex(new RegExp("^(0|[1-9][0-9]*)$")).max(19),
  products:z.array(MobileProductSchema).max(30),
  nextCursor:z.string().uuid().nullable(),
+ coverUrl:z.string().max(2000),
 }).strict();
 export type MobileMenu=z.infer<typeof MobileMenuSchema>;
 export const MobileDeliverySelectionSchema=z.object({

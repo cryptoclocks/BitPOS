@@ -18,7 +18,7 @@ class MenuPagesApi extends MobileApi{
   if(start>0&&failContinuation){failContinuation=false;throw Exception('offline fixture');}
   if(start>0&&menuVersion!='fixture-version')throw StateError('Missing pinned version');
   final end=(start+30).clamp(0,productCount),money=MobileMoney(currency:'USD',decimals:2,amountMinor:'270');
-  return MobileMenu(branch:branch,asOf:'2026-10-16T00:00:00Z',priceValidUntil:'2099-01-01T00:00:00Z',menuVersion:'fixture-version',priceVersion:id(3),pricingRevision:'1',nextCursor:end<productCount?id(end):null,products:List.generate(end-start,(offset){final n=start+offset+1;return MobileProduct(id:id(1000+n),name:'เมนู$n',nameEn:'Searchable food $n',category:'Fixture',description:'',imageUrl:'',story:MobileProductStory(story:'',storyEn:'',ingredients:'',ingredientsEn:'',benefits:'',benefitsEn:'',videoUrl:''),available:10,unitPrice:money,basePrice:money,options:MobileProductOptions(version:null,revision:'0',noteEnabled:true,groups:[]));}));
+  return MobileMenu(branch:branch,coverUrl:'',asOf:'2026-10-16T00:00:00Z',priceValidUntil:'2099-01-01T00:00:00Z',menuVersion:'fixture-version',priceVersion:id(3),pricingRevision:'1',nextCursor:end<productCount?id(end):null,products:List.generate(end-start,(offset){final n=start+offset+1;return MobileProduct(id:id(1000+n),name:'เมนู$n',nameEn:'Searchable food $n',category:'Fixture',description:'',imageUrl:'',story:MobileProductStory(story:'',storyEn:'',ingredients:'',ingredientsEn:'',benefits:'',benefitsEn:'',videoUrl:''),available:10,unitPrice:money,basePrice:money,options:MobileProductOptions(version:null,revision:'0',noteEnabled:true,groups:[]));}));
  }
 }
 void main(){

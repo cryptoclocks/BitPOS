@@ -53,6 +53,7 @@ class SurfaceFoodApi extends CartReviewApi {
     product['nameEn'] = 'Searchable food 1';
     return MobileMenu(
       branch: branch,
+      coverUrl: '',
       asOf: '2026-10-23T00:00:00Z',
       priceValidUntil: '2099-01-01T00:00:00Z',
       menuVersion: 'surface-ui',

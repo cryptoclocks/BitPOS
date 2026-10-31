@@ -2515,7 +2515,7 @@ class _FoodPageState extends State<FoodPage> with WidgetsBindingObserver {
                   label: Text(t('ร้านอาหาร', 'Merchants')),
                 ),
               Semantics(
-                label: t('ยังไม่มีภาพร้าน', 'Merchant photo unavailable'),
+                label: menu.coverUrl.isNotEmpty ? t('ภาพหน้าร้าน', 'Merchant cover photo') : t('ยังไม่มีภาพร้าน', 'Merchant photo unavailable'),
                 image: true,
                 child: ExcludeSemantics(
                   child: Container(
@@ -2529,11 +2529,14 @@ class _FoodPageState extends State<FoodPage> with WidgetsBindingObserver {
                           .surfaceContainerHighest,
                       borderRadius: BorderRadius.circular(20),
                     ),
-                    child: Icon(
-                      Icons.storefront_outlined,
-                      size: 64,
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
+                    clipBehavior: Clip.antiAlias,
+                    child: menu.coverUrl.isNotEmpty
+                        ? FoodImage(url: menu.coverUrl, hero: true)
+                        : Icon(
+                            Icons.storefront_outlined,
+                            size: 64,
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
                   ),
                 ),
               ),

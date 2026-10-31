@@ -2294,10 +2294,11 @@ class MobileMenu {
  final String pricingRevision;
  final List<MobileProduct> products;
  final String? nextCursor;
- const MobileMenu._({required this.branch, required this.asOf, required this.priceValidUntil, required this.menuVersion, required this.priceVersion, required this.pricingRevision, required this.products, required this.nextCursor});
- factory MobileMenu({required MobileBranch branch, required String asOf, required String priceValidUntil, required String menuVersion, required String? priceVersion, required String pricingRevision, required List<MobileProduct> products, required String? nextCursor}) => MobileMenu.fromJson({"branch": branch.toJson(), "asOf": asOf, "priceValidUntil": priceValidUntil, "menuVersion": menuVersion, "priceVersion": priceVersion, "pricingRevision": pricingRevision, "products": products.map((value) => value.toJson()).toList(), "nextCursor": nextCursor});
+ final String coverUrl;
+ const MobileMenu._({required this.branch, required this.asOf, required this.priceValidUntil, required this.menuVersion, required this.priceVersion, required this.pricingRevision, required this.products, required this.nextCursor, required this.coverUrl});
+ factory MobileMenu({required MobileBranch branch, required String asOf, required String priceValidUntil, required String menuVersion, required String? priceVersion, required String pricingRevision, required List<MobileProduct> products, required String? nextCursor, required String coverUrl}) => MobileMenu.fromJson({"branch": branch.toJson(), "asOf": asOf, "priceValidUntil": priceValidUntil, "menuVersion": menuVersion, "priceVersion": priceVersion, "pricingRevision": pricingRevision, "products": products.map((value) => value.toJson()).toList(), "nextCursor": nextCursor, "coverUrl": coverUrl});
  factory MobileMenu.fromJson(Map<String,dynamic> json) {
-  if (json.length != 8 || !json.keys.every(["branch","asOf","priceValidUntil","menuVersion","priceVersion","pricingRevision","products","nextCursor"].contains)) throw const FormatException('Invalid MobileMenu fields');
+  if (json.length != 9 || !json.keys.every(["branch","asOf","priceValidUntil","menuVersion","priceVersion","pricingRevision","products","nextCursor","coverUrl"].contains)) throw const FormatException('Invalid MobileMenu fields');
   final branch=(() { final value=json["branch"]; const path="MobileMenu.branch"; return MobileBranch.fromJson(_object(value, path)); })();
   final asOf=(() { final value=json["asOf"]; const path="MobileMenu.asOf"; return _string(value, path, pattern: null, format: "date-time", min: 0, max: null); })();
   final priceValidUntil=(() { final value=json["priceValidUntil"]; const path="MobileMenu.priceValidUntil"; return _string(value, path, pattern: null, format: "date-time", min: 0, max: null); })();
@@ -2306,9 +2307,10 @@ class MobileMenu {
   final pricingRevision=(() { final value=json["pricingRevision"]; const path="MobileMenu.pricingRevision"; return _string(value, path, pattern: "^(0|[1-9][0-9]*)\$", format: null, min: 0, max: 19); })();
   final products=(() { final value=json["products"]; const path="MobileMenu.products"; return List<MobileProduct>.unmodifiable(_list(value, path, 0, 30).map((value) => MobileProduct.fromJson(_object(value, path)))); })();
   final nextCursor=(() { final value=json["nextCursor"]; const path="MobileMenu.nextCursor"; return value == null ? null : (_string(value, path, pattern: null, format: "uuid", min: 0, max: null)); })();
-  return MobileMenu._(branch: branch, asOf: asOf, priceValidUntil: priceValidUntil, menuVersion: menuVersion, priceVersion: priceVersion, pricingRevision: pricingRevision, products: products, nextCursor: nextCursor);
+  final coverUrl=(() { final value=json["coverUrl"]; const path="MobileMenu.coverUrl"; return _string(value, path, pattern: null, format: null, min: 0, max: 2000); })();
+  return MobileMenu._(branch: branch, asOf: asOf, priceValidUntil: priceValidUntil, menuVersion: menuVersion, priceVersion: priceVersion, pricingRevision: pricingRevision, products: products, nextCursor: nextCursor, coverUrl: coverUrl);
  }
- Map<String,dynamic> toJson() => {"branch": branch.toJson(), "asOf": asOf, "priceValidUntil": priceValidUntil, "menuVersion": menuVersion, "priceVersion": priceVersion, "pricingRevision": pricingRevision, "products": products.map((value) => value.toJson()).toList(), "nextCursor": nextCursor};
+ Map<String,dynamic> toJson() => {"branch": branch.toJson(), "asOf": asOf, "priceValidUntil": priceValidUntil, "menuVersion": menuVersion, "priceVersion": priceVersion, "pricingRevision": pricingRevision, "products": products.map((value) => value.toJson()).toList(), "nextCursor": nextCursor, "coverUrl": coverUrl};
 }
 
 class MobileDeliverySelection {

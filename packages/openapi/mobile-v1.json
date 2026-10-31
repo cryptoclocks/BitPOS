@@ -10200,7 +10200,8 @@
           "priceVersion",
           "pricingRevision",
           "products",
-          "nextCursor"
+          "nextCursor",
+          "coverUrl"
         ],
         "properties": {
           "branch": {
@@ -10251,6 +10252,10 @@
                 "type": "null"
               }
             ]
+          },
+          "coverUrl": {
+            "type": "string",
+            "maxLength": 2000
           }
         }
       },

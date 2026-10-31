@@ -163,7 +163,8 @@ export async function mobileFoodRequest(url:URL,method:string,input:unknown,bear
    const start=found+1,candidates=m.products.slice(start,start+30),pointers=new Map(heads.map(h=>[h.product_id,h.active_version_id]));
    const options=await productOptionsAt(db,b.merchant_id,candidates.map(p=>({productId:p.id,version:pointers.get(p.id)??null})));
    const stories=await storiesFor(db,b.merchant_id,candidates.map(p=>p.id));
-   const metadata={branch:b.profile,asOf:m.asOf,priceValidUntil:m.priceValidUntil,menuVersion,priceVersion:m.priceVersion,pricingRevision:m.pricingRevision};
+   const coverUrl=(await db.query<{cover_url:string|null}>('SELECT cover_url FROM marketplace_branches WHERE merchant_id=$1 AND id=$2',[b.merchant_id,b.profile.id])).rows[0]?.cover_url??'';
+   const metadata={branch:b.profile,coverUrl,asOf:m.asOf,priceValidUntil:m.priceValidUntil,menuVersion,priceVersion:m.priceVersion,pricingRevision:m.pricingRevision};
    const products:MobileProduct[]=[];let bytes=Buffer.byteLength(JSON.stringify({...metadata,products:[],nextCursor:'00000000-0000-4000-8000-000000000000'}));
    for(const p of candidates){
     const value=MobileProductSchema.parse({id:p.id,name:p.name,nameEn:p.nameEn,category:p.category??'',description:p.description??'',imageUrl:p.imageUrl??'',available:Math.max(0,p.available),unitPrice:p.unitPrice,basePrice:p.basePrice,options:options.get(p.id)!,story:stories.get(p.id)!});
