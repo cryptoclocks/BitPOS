@@ -1,5 +1,7 @@
 # 03 · AI campaign agent
 
+> **อัปเดต 31 ต.ค.:** ใช้ `gemini-3.5-flash-lite` (key ใหม่เรียก `gemini-2.5-flash-lite` ไม่ได้แล้ว) — run จริงครั้งแรก DRAFTED ใน 4.2 วิ ดู `evidence/ai-calls.md`
+
 > ส่วนหนึ่งของ [แผน implement](../IMPLEMENTATION_PLAN_TH.md) · ใช้ Gemini ผ่าน `generativelanguage.googleapis.com` แบบเดียวกับ `coffee-provider.ts` เดิม แต่เพิ่ม function calling ใหม่ใน `apps/api/src/paypal/agent.ts`
 
 ## 1. บทบาท
