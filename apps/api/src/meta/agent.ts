@@ -16,7 +16,7 @@ import type {Card,Outgoing,QuickReply} from './messenger';
 import {kitchenStages} from './kitchen';
 import {saveChatCart,talkCart} from './cart-agent';
 import {CartError,customerCartOrders,formatCart,parseCart,quoteCart,startCartAuto,type CartLine} from './cart';
-import {AUTOPAY_CAPS,AUTOPAY_DAYS,AutopayError,MISS_TEXT,allowanceLine,autopayStatus,daysLabel,revokeAutopay,shopCurrency,startAutopay} from './autopay';
+import {AUTOPAY_CAPS,AUTOPAY_DAYS,AutopayError,MISS_TEXT,allowanceLine,autopayStatus,daysLabel,daysThai,revokeAutopay,shopCurrency,startAutopay} from './autopay';
 import {formatTapAmount} from './staff';
 
 /** shopMerchant: the shop served at the root of publicOrigin (meta-pay), so menu cards can link to its item pages. */
@@ -308,7 +308,7 @@ const stopButton={type:'postback' as const,title:'หยุดสิทธิ์
 
 /** Chat checkout: paid at once from the customer's AI auto-pay allowance when it fits; otherwise the Stripe Pay button. */
 async function payCart(deps:ChatAgentDeps,merchantId:string,linkId:string,psid:string,cart:CartLine[]):Promise<Outgoing[]>{
- const r=await startCartAuto(deps,merchantId,cart,{channel:'chat',linkId,publicOrigin:deps.publicOrigin},deps.onConfirmed&&(id=>deps.onConfirmed!(merchantId,id)));
+ const r=await startCartAuto(deps,merchantId,cart,{channel:'chat',linkId,publicOrigin:deps.publicOrigin});
  if(r.kind==='paid'||r.kind==='processing'){
   const v=await autopayStatus(deps.db,merchantId,linkId);
   return [{kind:'buttons',psid,text:`${r.kind==='paid'?'🤖 AI จ่ายให้แล้วด้วยสิทธิ์ที่คุณตั้งไว้ ไม่ต้องกดจ่าย\nPaid from your AI auto-pay allowance.':'🤖 กำลังตัดบัตรตามสิทธิ์ที่ตั้งไว้ จะส่งใบเสร็จเมื่อ Stripe ยืนยัน\nCharging your auto-pay card; the receipt follows when Stripe confirms.'}${v?`\n${allowanceLine(v)}`:''}\n${LABEL}`,buttons:[stopButton]}];
@@ -329,16 +329,17 @@ async function autopayMessages(deps:ChatAgentDeps,merchantId:string,linkId:strin
   if(!active)return [{kind:'buttons',psid,text:'ยังไม่ได้เปิดสิทธิ์ให้ AI จ่ายแทนค่ะ\nAI auto-pay is off.',buttons:[{type:'postback',title:'ตั้งค่า / Set up',payload:'BITPOS_AUTOPAY'}]}];
   return [{kind:'buttons',psid,text:`🤖 AI จ่ายแทนได้ · บัตร ${active.cardLabel??'card'}\nAI auto-pay is on.\n${allowanceLine(active)}\n${LABEL}`,buttons:[stopButton,{type:'postback',title:'ตั้งใหม่ / New',payload:'BITPOS_AUTOPAY'}]}];
  }
- const currency=await shopCurrency(deps,merchantId),f=(m:number)=>formatTapAmount(String(m),currency).replace(/\.00$/,'');
  if(a.step==='start')return [{kind:'text',psid,text:`${active?`ตอนนี้เปิดอยู่: ${allowanceLine(active)}\nตั้งใหม่จะแทนที่ของเดิม\n\n`:''}ให้ AI ของร้านจ่ายแทนคุณนานแค่ไหนคะ? ระหว่างนั้นสั่งในแชท (หรือให้ AI agent ของคุณสั่ง) แล้วร้านตัดบัตรที่บันทึกไว้เลย ไม่ต้องกดจ่าย มีวงเงินต่อครั้งและวงเงินรวม หยุดได้ทุกเมื่อ\nHow long may the shop's AI pay for you? Orders are charged to your saved card without a Pay button, within your caps. Stop any time.`,
-  quick:AUTOPAY_DAYS.map(d=>({title:daysLabel(d).split(' / ')[0],payload:`BITPOS_AUTOPAY_DAYS:${d}`}))}];
+  quick:AUTOPAY_DAYS.map(d=>({title:daysThai(d),payload:`BITPOS_AUTOPAY_DAYS:${d}`}))}];
+ // Messenger titles are at most 20 characters, so amounts drop ".00" and the chip shows "per order · total" only.
+ const currency=await shopCurrency(deps,merchantId),f=(m:number)=>formatTapAmount(String(m),currency).replace(/\.00$/,'');
  if(a.step==='days')return [{kind:'text',psid,text:`${daysLabel(a.days)} · เลือกวงเงินค่ะ (ต่อครั้ง · รวมทั้งหมด)\nPick the caps (per order · in total).`,
-  quick:AUTOPAY_CAPS[currency].map(([o,t])=>({title:`${f(o)}/ครั้ง · รวม ${f(t)}`,payload:`BITPOS_AUTOPAY_SET:${a.days}:${o}:${t}`}))}];
+  quick:AUTOPAY_CAPS[currency].map(([o,t])=>({title:`${f(o)} · ${f(t)}`,payload:`BITPOS_AUTOPAY_SET:${a.days}:${o}:${t}`}))}];
  if(a.step!=='set')return [];
  try{
-  const s=await startAutopay(deps,merchantId,linkId,{days:a.days,perOrderMinor:a.perOrder,totalMinor:a.total},deps.publicOrigin);
+  const s=await startAutopay(deps,merchantId,linkId,{days:a.days,perOrderMinor:a.perOrder,totalMinor:a.total},deps.publicOrigin,currency);
   return [{kind:'buttons',psid,text:`สรุปสิทธิ์: AI จ่ายแทนได้ ${daysLabel(a.days)} · ไม่เกิน ${f(a.perOrder)}/ครั้ง · รวมไม่เกิน ${f(a.total)}\nบันทึกบัตรบนหน้า Stripe แล้วเริ่มใช้ได้ทันที ทุกครั้งที่ตัดเงินจะส่งใบเสร็จมาในแชท กด "หยุดสิทธิ์" ได้ทุกเมื่อ\nSave a card on Stripe to start. Every charge sends a receipt here.\n${LABEL} · บัตรทดสอบ 4242 4242 4242 4242`,
-   buttons:[{type:'web_url',title:'บันทึกบัตร / Save card',url:s.url}]}];
+   buttons:[{type:'web_url',title:'บันทึกบัตร / Card',url:s.url}]}];
  }catch(e){
   if(e instanceof AutopayError)return [{kind:'text',psid,text:e.code==='INVALID_INPUT'?'ตัวเลือกนี้ใช้ไม่ได้แล้ว เริ่มใหม่ได้เลยค่ะ / That choice is no longer valid; start again.':'ตอนนี้ตั้งค่าไม่ได้ ลองใหม่อีกครั้งค่ะ / Could not set it up now; try again.'}];
   throw e;
@@ -404,7 +405,7 @@ How about these?`},cards];
       buttons:[{type:'postback',title:'ดูเมนู / Menu',payload:'BITPOS_MENU'},{type:'web_url',title:'🎙️ สั่งด้วยเสียง',url:`${deps.publicOrigin}/meta/order`}]},
      {title:'🗓️ จองโต๊ะ',subtitle:'บอกวัน เวลา จำนวนคน แล้วแตะมือถือที่โต๊ะเพื่อเช็กอิน',imageUrl:pic(1),buttons:[{type:'postback',title:'จองโต๊ะ / Book',payload:'BITPOS_BOOK'}]},
      {title:'🧾 ออเดอร์และการจองของฉัน',subtitle:'ดูสถานะ รหัสรับสินค้า หรือยกเลิกการจอง',imageUrl:pic(2),buttons:[{type:'postback',title:'ออเดอร์ของฉัน',payload:'BITPOS_MY_ORDERS'}]},
-     {title:'🤖 ให้ AI จ่ายแทน',subtitle:'1 วัน ถึง 3 เดือน มีวงเงินต่อครั้งและวงเงินรวม สั่งแล้วตัดบัตรเลย หยุดได้ทุกเมื่อ',imageUrl:pic(3),buttons:[{type:'postback',title:'ตั้งค่า / Set up',payload:'BITPOS_AUTOPAY'},{type:'postback',title:'ดูสิทธิ์ / Status',payload:'BITPOS_AUTOPAY_STATUS'}]}]}];
+     {title:'🤖 ให้ AI จ่ายแทน',subtitle:'1 วัน–3 เดือน มีวงเงินต่อครั้งและรวม สั่งแล้วตัดบัตรเลย หยุดได้ทุกเมื่อ',imageUrl:pic(3),buttons:[{type:'postback',title:'ตั้งค่า / Set up',payload:'BITPOS_AUTOPAY'},{type:'postback',title:'ดูสิทธิ์ / Status',payload:'BITPOS_AUTOPAY_STATUS'}]}]}];
   }
   if(req.kind==='my_orders'){
    const stages=await kitchenStages(deps.db,merchantId);

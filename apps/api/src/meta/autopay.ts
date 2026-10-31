@@ -27,7 +27,8 @@ const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$
 const KEY=/^bpa_[A-Za-z0-9_-]{32}$/;
 const sha=(s:string)=>createHash('sha256').update(s).digest();
 /** Minor units already used under an allowance: paid orders and charges still in flight (refunded or failed ones do not count). */
-const SPENT=`(SELECT coalesce(sum(amount_minor),0) FROM meta_cart_orders WHERE autopay_grant_id=g.id AND status IN ('PENDING','PAID'))
+// A cart whose charge never settled stops counting once it expires (its status column stays PENDING).
+const SPENT=`(SELECT coalesce(sum(amount_minor),0) FROM meta_cart_orders WHERE autopay_grant_id=g.id AND (status='PAID' OR status='PENDING' AND expires_at>clock_timestamp()))
  +(SELECT coalesce(sum(amount_minor),0) FROM meta_agent_orders WHERE autopay_grant_id=g.id AND status IN ('PENDING','CONFIRMED','REFUNDING'))`;
 type Row={id:string;status:'SETUP'|'ACTIVE'|'REVOKED';expired:boolean;days:number;currency:Currency;per_order_max_minor:string;total_max_minor:string;spent:string;expires_at:Date|null;card_label:string|null};
 const COLS=`g.id,g.status,(g.status='ACTIVE' AND g.expires_at<=clock_timestamp()) AS expired,g.days,g.currency,g.per_order_max_minor::text,g.total_max_minor::text,(${SPENT})::text AS spent,g.expires_at,g.card_label`;
@@ -43,9 +44,9 @@ export async function shopCurrency(deps:AgentDeps,merchantId:string):Promise<Cur
 }
 
 /** Step 3 in chat: records the allowance (not yet active) and opens Stripe Checkout in setup mode to save a card. */
-export async function startAutopay(deps:AgentDeps,merchantId:string,linkId:string,input:{days:number;perOrderMinor:number;totalMinor:number},publicOrigin:string):Promise<{grantId:string;url:string}>{
+export async function startAutopay(deps:AgentDeps,merchantId:string,linkId:string,input:{days:number;perOrderMinor:number;totalMinor:number},publicOrigin:string,known?:Currency):Promise<{grantId:string;url:string}>{
  if(!deps.stripe)throw new AutopayError('PAYMENTS_UNAVAILABLE');
- const currency=await shopCurrency(deps,merchantId);
+ const currency=known??await shopCurrency(deps,merchantId);
  if(!(AUTOPAY_DAYS as readonly number[]).includes(input.days)||!AUTOPAY_CAPS[currency].some(([o,t])=>o===input.perOrderMinor&&t===input.totalMinor))throw new AutopayError('INVALID_INPUT');
  const grantId=await deps.db.tenant(merchantId,async c=>(await c.query<{id:string}>('INSERT INTO meta_autopay_grants(merchant_id,link_id,days,currency,per_order_max_minor,total_max_minor) VALUES($1,$2,$3,$4,$5,$6) RETURNING id',
   [merchantId,linkId,input.days,currency,input.perOrderMinor,input.totalMinor])).rows[0].id);
@@ -109,7 +110,8 @@ export async function reserveAllowance(c:pg.PoolClient,by:{linkId:string}|{agent
 }
 
 const DAYS_TH:Record<number,string>={1:'1 วัน',7:'1 สัปดาห์',30:'1 เดือน',90:'3 เดือน'},DAYS_EN:Record<number,string>={1:'1 day',7:'1 week',30:'1 month',90:'3 months'};
-export const daysLabel=(d:number)=>`${DAYS_TH[d]??`${d} วัน`} / ${DAYS_EN[d]??`${d} days`}`;
+export const daysThai=(d:number)=>DAYS_TH[d]??`${d} วัน`;
+export const daysLabel=(d:number)=>`${daysThai(d)} / ${DAYS_EN[d]??`${d} days`}`;
 export const MISS_TEXT:Record<AllowanceMiss,string>={NONE:'',EXPIRED:'สิทธิ์จ่ายอัตโนมัติหมดอายุแล้ว / Your auto-pay allowance has ended.',
  CURRENCY:'สิทธิ์จ่ายอัตโนมัติใช้กับสกุลเงินนี้ไม่ได้ / Auto-pay does not cover this currency.',OVER_ORDER:'ยอดนี้เกินวงเงินต่อครั้งที่ตั้งไว้ จ่ายเองได้เลยค่ะ / Over your per-order cap; pay by hand.',
  OVER_TOTAL:'วงเงินรวมที่ตั้งไว้เหลือไม่พอ จ่ายเองได้เลยค่ะ / Not enough left in your allowance; pay by hand.'};

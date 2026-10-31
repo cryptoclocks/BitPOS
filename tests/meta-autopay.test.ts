@@ -50,8 +50,8 @@ const stripeFetch=async(u:string,init:RequestInit)=>{
   currency:body.get('line_items[0][price_data][currency]'),status:'open',payment_status:'unpaid',payment_intent:null,metadata:{bitpos_order:body.get('metadata[bitpos_order]'),bitpos_merchant:M}});
  return new Response('{}',{status:404});
 };
-const sum=async(grant:string)=>(await autopayStatus(db,M,link))!;
-const chat=(lines:{productId:string;quantity:number}[],paid?:(id:string)=>Promise<void>)=>startCartAuto(deps,M,lines,{channel:'chat',linkId:link,publicOrigin:'https://pay.example.test'},paid);
+const current=async()=>(await autopayStatus(db,M,link))!;
+const chat=(lines:{productId:string;quantity:number}[])=>startCartAuto(deps,M,lines,{channel:'chat',linkId:link,publicOrigin:'https://pay.example.test'});
 let grantId='',agentKey='';
 
 before(async()=>{
@@ -104,7 +104,9 @@ test('setup: preset caps only; card saved on Stripe activates once and shows the
 
 test('chat checkout: paid off-session inside the caps, stock taken once, receipt once; over a cap falls back to Pay',{skip},async()=>{
  const sent:string[]=[];const s0=await stock(latte);
- const r=await chat([{productId:latte,quantity:2}],async id=>{sent.push(id);});
+ deps.onConfirmed=async(_m,id)=>{sent.push(id);};
+ const r=await chat([{productId:latte,quantity:2}]);
+ deps.onConfirmed=undefined;
  assert.equal(r.kind,'paid');
  const o=(await admin.query('SELECT status,paid_source,autopay_grant_id,amount_minor::int AS a FROM meta_cart_orders WHERE id=$1',[r.orderId])).rows[0];
  assert.deepEqual([o.status,o.paid_source,o.autopay_grant_id,o.a],['PAID','charge',grantId,800]);
@@ -117,7 +119,7 @@ test('chat checkout: paid off-session inside the caps, stock taken once, receipt
  const ts=Math.floor(Date.now()/1000);
  assert.equal(await applyStripeWebhook({db} as any,deps.stripe as any,raw,`t=${ts},v1=${createHmac('sha256','whsec_auto').update(`${ts}.${raw}`).digest('hex')}`),'ALREADY_PAID');
  assert.equal(await stock(latte),s0-2);
- assert.equal((await sum(grantId)).spent,'$8.00');
+ assert.equal((await current()).spent,'$8.00');
  // Per-order cap $10: a $13.00 cart is not auto-paid.
  const big=await chat([{productId:cake,quantity:2}]);
  assert.equal(big.kind,'checkout');assert.equal(big.kind==='checkout'&&big.miss,'OVER_ORDER');
@@ -129,7 +131,7 @@ test('decline: the allowance is released and the same order gets the Pay button'
  decline=false;
  assert.equal(r.kind,'checkout');assert.equal(r.kind==='checkout'&&r.miss,'DECLINED');
  assert.equal((await admin.query('SELECT autopay_grant_id FROM meta_cart_orders WHERE id=$1',[r.orderId])).rows[0].autopay_grant_id,null);
- assert.equal((await sum(grantId)).spent,'$8.00','a declined order does not use the allowance');
+ assert.equal((await current()).spent,'$8.00','a declined order does not use the allowance');
 });
 
 test('Muse Connector: pay_with_allowance with the customer key, once per quote; wrong key refused',{skip},async()=>{
@@ -143,7 +145,14 @@ test('Muse Connector: pay_with_allowance with the customer key, once per quote; 
  assert.equal((again.structuredContent as any).orderId,(out.structuredContent as any).orderId);assert.equal(intents,n+1,'no second charge');
  const wrong=await callTool(deps,M,'pay_with_allowance',{quote_id:(await createQuote(deps,M,'mcp',latte,1)).quoteId,allowance_key:`bpa_${'x'.repeat(32)}`});
  assert.equal((wrong.structuredContent as any).error,'NO_ALLOWANCE');
- assert.equal((await sum(grantId)).spent,'$16.00');
+ assert.equal((await current()).spent,'$16.00');
+ // An auto-pay charge with an unknown outcome is never paid again with a Shared Payment Token for the same quote.
+ const q2=await createQuote(deps,M,'mcp',latte,1);
+ await admin.query("INSERT INTO meta_agent_orders(merchant_id,quote_id,product_id,quantity,currency,amount_minor,link_id,autopay_grant_id) SELECT merchant_id,id,product_id,quantity,currency,amount_minor,$2,$3 FROM meta_quotes WHERE id=$1",[q2.quoteId,link,grantId]);
+ const before=intents;
+ const spt=await callTool(deps,M,'complete_checkout',{quote_id:q2.quoteId,shared_payment_token:'spt_test123'});
+ assert.equal((spt.structuredContent as any).status,'PENDING');assert.equal(intents,before,'no second charge');
+ await admin.query("UPDATE meta_agent_orders SET status='FAILED' WHERE quote_id=$1",[q2.quoteId]);
 });
 
 test('total cap under parallel orders: the locked allowance lets only what fits through',{skip},async()=>{
@@ -151,7 +160,7 @@ test('total cap under parallel orders: the locked allowance lets only what fits 
  const rs=await Promise.all([1,2,3,4,5].map(()=>chat([{productId:latte,quantity:2}])));
  assert.equal(rs.filter(r=>r.kind==='paid').length,4);
  assert.equal(rs.filter(r=>r.kind==='checkout'&&r.miss==='OVER_TOTAL').length,1);
- assert.equal((await sum(grantId)).spent,'$48.00');
+ assert.equal((await current()).spent,'$48.00');
 });
 
 test('stop and expiry: no more auto-pay in chat or through the key; other shops cannot see it',{skip},async()=>{

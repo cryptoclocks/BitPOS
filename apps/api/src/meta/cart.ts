@@ -80,7 +80,7 @@ export async function startCart(deps:AgentDeps,merchantId:string,lines:CartLine[
 export type AutoCartResult={orderId:string;access:string}&({kind:'paid';paidNow:boolean}|{kind:'processing'}|{kind:'checkout';checkoutUrl:string;miss:AllowanceMiss|'DECLINED'});
 /** A chat checkout for a customer who may have an AI auto-pay allowance (migration 328): if the total fits, the saved card
  * is charged off-session at once; otherwise, or if the bank declines, the customer gets the normal Pay button for the same order. */
-export async function startCartAuto(deps:AgentDeps,merchantId:string,lines:CartLine[],opts:CartOpts&{linkId:string},onPaid?:(orderId:string)=>Promise<void>):Promise<AutoCartResult>{
+export async function startCartAuto(deps:AgentDeps,merchantId:string,lines:CartLine[],opts:CartOpts&{linkId:string}):Promise<AutoCartResult>{
  const o=await createCartOrder(deps,merchantId,lines,opts,true);
  const g=o.grant;
  if(!g)return {orderId:o.orderId,access:o.access,kind:'checkout',miss:o.miss??'NONE',checkoutUrl:await cartCheckout(deps,merchantId,o,opts.publicOrigin)};
@@ -94,7 +94,7 @@ export async function startCartAuto(deps:AgentDeps,merchantId:string,lines:CartL
  const res=r;
  if(res.outcome==='SUCCEEDED'){
   const m=await deps.db.tenant(merchantId,c=>markCartPaid(c,o.orderId,{paymentIntentId:res.paymentIntentId!,amountMinor:o.total,currency:o.currency,source:'charge'}));
-  if(m==='PAID'&&onPaid)await onPaid(o.orderId).catch(()=>{});
+  if(m==='PAID'&&deps.onConfirmed)await deps.onConfirmed(merchantId,o.orderId).catch(()=>{});
   return {orderId:o.orderId,access:o.access,kind:'paid',paidNow:m==='PAID'};
  }
  if(res.outcome==='PROCESSING')return {orderId:o.orderId,access:o.access,kind:'processing'};

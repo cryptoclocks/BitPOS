@@ -107,8 +107,9 @@ export async function completeCheckout(deps:AgentDeps,merchantId:string,quoteIdI
  if(!deps.stripe)throw new AgentOrderError('PAYMENTS_UNAVAILABLE');
  const stripe=deps.stripe;
  const prep=await deps.db.tenant(merchantId,async db=>{
-  const existing=(await db.query<OrderRow>(`SELECT ${ORDER_COLS} FROM meta_agent_orders WHERE quote_id=$1 FOR UPDATE`,[quoteId])).rows[0];
-  if(existing&&existing.status!=='PENDING')return {kind:'done' as const,order:existing};
+  const existing=(await db.query<OrderRow&{grant:string|null}>(`SELECT ${ORDER_COLS},autopay_grant_id AS grant FROM meta_agent_orders WHERE quote_id=$1 FOR UPDATE`,[quoteId])).rows[0];
+  // An order already being paid from an auto-pay allowance is never charged again with another payment method.
+  if(existing&&(existing.status!=='PENDING'||existing.grant))return {kind:'done' as const,order:existing};
   // SPT checkout is for connector (MCP) quotes; a chat quote is paid only through its own Stripe Checkout.
   const q=(await db.query<{product_id:string;quantity:number;currency:Currency;amount_minor:string;live:boolean}>("SELECT product_id,quantity,currency,amount_minor::text,expires_at>clock_timestamp() AS live FROM meta_quotes WHERE id=$1 AND channel='mcp'",[quoteId])).rows[0];
   if(!q)throw new AgentOrderError('NOT_FOUND');
