@@ -1,7 +1,7 @@
 <!-- PayPal AI Hackathon work (2026-10-31..11-12). See paypal-hackathon/PROVENANCE.md. -->
 # Deploy the PayPal edition to OCI (runbook)
 
-Status: **prepared, not run.** Every step that touches OCI, Cloudflare or the PayPal dashboard needs the owner's go-ahead at the time. Nothing here may run before **5 Nov 2026 09:00 ICT** (Meta deadline on the same host). The scripts enforce that date for anything that writes.
+Status: the owner approved deploying on **31 Oct 2026**, before the Meta deadline, on the shared host. Every step that touches OCI, Cloudflare or the PayPal dashboard still needs the owner's go-ahead at the time, and only project `bitpos-paypal` and migrations `400`–`405` may change.
 
 ## What gets deployed
 

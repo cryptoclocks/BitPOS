@@ -11,13 +11,12 @@
 # starts/restarts ONLY project bitpos-paypal, checks health and restores the previous source if unhealthy.
 # Never touches bitpos-runtime, bitpos-meta, bitpos-staging or ccp containers; never builds images, prunes, `down`s
 # another project or uses --remove-orphans. Migrations are applied separately (tools/paypal/migrate-oci.sh, after a
-# backup). Refuses --apply before 2026-11-05 09:00 ICT (the Meta hackathon deadline on the same host).
+# backup). The owner approved deploying before the Meta deadline on 31 Oct 2026; the host is shared, so nothing else is touched.
 set -euo pipefail
 : "${OCI_HOST:?set OCI_HOST=user@host}" "${OCI_SSH_KEY:?set OCI_SSH_KEY=/path/to/private/key}"
 APPLY=0; [ "${1:-}" = "--apply" ] && APPLY=1
 cd "$(git rev-parse --show-toplevel)"
 POS_ORIGIN=https://paypal-pos.cashlessthailand.com
-NOT_BEFORE=1793844000 # 2026-11-05T09:00:00+07:00
 SSH=(ssh -i "$OCI_SSH_KEY" -o BatchMode=yes "$OCI_HOST")
 TMP=$(mktemp -d); trap 'rm -rf "$TMP"' EXIT
 step(){ printf '\n== %s\n' "$*"; }
@@ -26,7 +25,6 @@ step "local checks"
 branch=$(git rev-parse --abbrev-ref HEAD)
 [ "$branch" = "hackathon/paypal-2026" ] || { echo "refusing: on $branch, expected hackathon/paypal-2026" >&2; exit 1; }
 if [ "$APPLY" = 1 ]; then
-  [ "$(date +%s)" -ge "$NOT_BEFORE" ] || { echo "refusing --apply before 2026-11-05 09:00 ICT (Meta deadline on the shared host)" >&2; exit 1; }
   git diff --quiet && git diff --cached --quiet || { echo "refusing --apply with uncommitted changes" >&2; exit 1; }
 fi
 echo "source $(git rev-parse --short HEAD)$(git diff --quiet || echo '+dirty')"

@@ -9,7 +9,6 @@
 # (`python3 tools/runtime/backup-bitpos-db.py`, run from ~/Desktop/BitPOS; it writes local/private/db-backups/).
 # All missing files go in ONE transaction with lock_timeout 5 s, each recorded in public.bitpos_migrations with its
 # sha256; any error rolls everything back. Only 4xx PayPal files are ever sent; 0xx/1xx/3xx belong to other streams.
-# Refuses --apply before 2026-11-05 09:00 ICT (the Meta hackathon deadline on the same host).
 set -euo pipefail
 : "${OCI_HOST:?set OCI_HOST=user@host}" "${OCI_SSH_KEY:?set OCI_SSH_KEY=/path/to/private/key}"
 APPLY=0;BACKUP=
@@ -38,7 +37,6 @@ if printf '%s\n' "${missing[@]}" | grep -q 401_paypal_ledger; then
 fi
 [ "$APPLY" = 1 ] || { echo; echo "read-only listing; nothing changed. Back up, then re-run with --apply --backup <dump>."; exit 0; }
 
-[ "$(date +%s)" -ge 1793844000 ] || { echo "refusing --apply before 2026-11-05 09:00 ICT" >&2; exit 1; }
 [ -n "$BACKUP" ] && [ -s "$BACKUP" ] || { echo "refusing: --backup <dump file> is required and must not be empty" >&2; exit 1; }
 age=$(( $(date +%s) - $(stat -f %m "$BACKUP" 2>/dev/null || stat -c %Y "$BACKUP") ))
 [ "$age" -le 7200 ] || { echo "refusing: backup is $((age/60)) minutes old (max 120)" >&2; exit 1; }
