@@ -7,9 +7,10 @@ Status: the owner approved deploying on **31 Oct 2026**, before the Meta deadlin
 
 | Piece | Where | Notes |
 |---|---|---|
-| API (PayPal edition) | `bitpos-paypal-api-1`, `127.0.0.1:3103` | `tools/paypal/server.ts`; refuses to start unless PayPal is Sandbox |
+| Front (path router) | `bitpos-paypal-front-1`, `127.0.0.1:3103` | where the tunnel sends both PayPal hostnames |
+| API (PayPal edition) | `bitpos-paypal-api-1`, `127.0.0.1:3104` | `tools/paypal/server.ts`; refuses to start unless PayPal is Sandbox |
 | PayPal worker | `bitpos-paypal-worker-1` | webhook inbox, checkout reconcile, ends Copilot offers. **No** Solana, expiry or promotion lanes (the existing runtime worker runs those for every shop) |
-| Web (prebuilt) | `bitpos-paypal-web-1`, `127.0.0.1:4361` | Astro build for `https://paypal-pos.cashlessthailand.com`, proxies `/api` to 3103 |
+| Web (prebuilt) | `bitpos-paypal-web-1`, `127.0.0.1:4361` | Astro build for `https://paypal-pos.cashlessthailand.com`, proxies its allow-listed `/api` routes to 3104 |
 | Database | existing `bitpos-staging-db-1` | migrations `400`–`405` only, one transaction |
 | Demo shop | merchant `70707070-7070-4070-8070-707070707070` "BitPOS PayPal Café" | **not** `33333333-…`, which is Meta's Muse Café on this database |
 
@@ -86,11 +87,10 @@ export OCI_HOST=ubuntu@<host> OCI_SSH_KEY=<path to key>
    ssh -i "$OCI_SSH_KEY" "$OCI_HOST" 'bash -s' < tools/paypal/create-demo-owner.sh
    ```
 
-8. **Cloudflare tunnel.** The owner adds the hostnames in the dashboard. Add only new public hostnames to the existing tunnel and do not reorder existing routes:
-   - `paypal-pay.cashlessthailand.com`, path `^/paypal/webhooks$` → `http://127.0.0.1:3103`. List it **before** the plain `paypal-pay` line.
-   - `paypal-pay.cashlessthailand.com` → `http://127.0.0.1:4361`
-   - `paypal-pos.cashlessthailand.com`, path `^/api/device$` → `http://127.0.0.1:3103` (BitPOS Mini WebSocket). List it **before** the plain `paypal-pos` line.
-   - `paypal-pos.cashlessthailand.com` → `http://127.0.0.1:4361`
+8. **Cloudflare tunnel.** Nothing to change. The existing tunnel already sends `paypal-pos.cashlessthailand.com` and `paypal-pay.cashlessthailand.com` to `127.0.0.1:3103` (checked 31 Oct). That port is the PayPal front (`tools/paypal/front.ts`), which routes by path:
+   - `POST /paypal/webhooks` → API `3104` (raw body unchanged)
+   - the `/api/device` WebSocket (BitPOS Mini) → API `3104`
+   - everything else → web `4361`
 9. **Webhook.** In the sandbox app "BitPOS PayPal Cafe US", add the webhook URL `https://paypal-pay.cashlessthailand.com/paypal/webhooks` with these events:
    - `CHECKOUT.ORDER.APPROVED`
    - `PAYMENT.CAPTURE.COMPLETED`, `PAYMENT.CAPTURE.PENDING`, `PAYMENT.CAPTURE.DENIED`, `PAYMENT.CAPTURE.DECLINED`
@@ -110,7 +110,7 @@ Table and counter orders are routed to the shop's screen. The API refuses a bill
 
 **Why the Mini connects to the PayPal API.** The firmware takes its pay/QR origin and table link from the server's `CONFIG` (`paymentOrigin` = the API's customer origin). Connected to the PayPal API (`wss://paypal-pos.cashlessthailand.com/api/device`), the Mini's QR codes open the **PayPal** pay page. Connected to the main API, they would open the Solana page. No firmware change is needed: the firmware accepts any `wss://` endpoint and any `https://` pay origin. Checked locally with `tools/paypal/device-config-check.ts` against the PayPal API: CONFIG gives the PayPal web origin for both the pay and table links.
 
-Steps (after deploy, seed and the step 8 tunnel routes):
+Steps (after deploy and seed):
 
 1. **Issue the device credential on the host.** It goes into a private file only; the token is never shown:
 
@@ -147,4 +147,4 @@ Steps (after deploy, seed and the step 8 tunnel routes):
   - To switch PayPal off: `UPDATE bitpos.paypal_merchant_settings SET enabled=false`.
   - The only trigger on a pre-existing table is `paypal_block_solana_attempt` on `payment_attempts` (drop it if needed).
   - Never restore the whole schema: it would overwrite Meta's and Solana's data.
-- **Tunnel:** remove the four routes added in step 8.
+- **Tunnel:** no PayPal-specific routes were added. Stopping project `bitpos-paypal` makes both PayPal hostnames return 502.

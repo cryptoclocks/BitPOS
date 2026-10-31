@@ -35,7 +35,7 @@ PUBLIC_URL="$POS_ORIGIN" pnpm exec astro build --root apps/web --outDir "$TMP/we
 
 step "pack"
 SRC=(apps/api/src apps/worker/src packages/contracts/src packages/domain/src packages/openapi
-     tools/paypal/server.ts tools/paypal/worker.ts tools/paypal/oci-preflight.ts tools/paypal/seed-demo.ts tools/paypal/device-credential.ts
+     tools/paypal/server.ts tools/paypal/worker.ts tools/paypal/oci-preflight.ts tools/paypal/seed-demo.ts tools/paypal/device-credential.ts tools/paypal/front.ts
      tsconfig.json package.json)
 for p in "${SRC[@]}"; do [ -e "$p" ] || { echo "missing $p" >&2; exit 1; }; done
 COPYFILE_DISABLE=1 tar --exclude node_modules --exclude '*.test.ts' --no-xattrs -czf "$TMP/src.tgz" "${SRC[@]}" 2>/dev/null \
@@ -60,7 +60,7 @@ avail=$(df -BG --output=avail /home | tail -1 | tr -dc 0-9); [ "${avail:-0}" -ge
 if docker image inspect bitpos-paypal-base:pinned >/dev/null 2>&1; then IMG=bitpos-paypal-base:pinned; ok "pinned image exists"
 elif docker image inspect bitpos-runtime:current >/dev/null 2>&1; then IMG=bitpos-runtime:current; ok "runtime image present (will be pinned on --apply)"
 else bad "no bitpos-runtime:current image"; IMG=; fi
-for port in 3103 4361; do
+for port in 3103 3104 4361; do
   holder=$(ss -ltn 2>/dev/null | awk -v p=":$port" '$4 ~ p"$"')
   if [ -z "$holder" ]; then ok "port $port free"
   elif docker ps --filter label=com.docker.compose.project=bitpos-paypal -q | grep -q .; then ok "port $port held (bitpos-paypal running)"
@@ -106,11 +106,11 @@ rm -rf src.old web.old; [ -d src ] && mv src src.old; [ -d web ] && mv web web.o
 mv preflight/src src; mv preflight/web web
 docker compose -p bitpos-paypal -f compose.yaml up -d >/dev/null
 docker compose -p bitpos-paypal -f compose.yaml restart >/dev/null
-health(){ a=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3103/api/pay/xxxxxxxxxxxxxxxxxxxxxxxx/paypal || true)
-          w=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:4361/ || true)
+health(){ a=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3104/api/pay/xxxxxxxxxxxxxxxxxxxxxxxx/paypal || true)
+          w=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3103/ || true)
           h=$(curl -s -o /dev/null -w '%{http_code}' -X POST http://127.0.0.1:3103/paypal/webhooks || true); }
 for i in $(seq 1 30); do health; [ "$a" = 404 ] && [ "$w" = 200 ] && break; sleep 2; done
-echo "health: api pay-status $a (want 404), web / $w (want 200), webhook POST $h (want 400, or 503 before the webhook id is set)"
+echo "health: api pay-status $a (want 404), front→web / $w (want 200), front→webhook POST $h (want 400, or 503 before the webhook id is set)"
 if [ "$a" != 404 ] || [ "$w" != 200 ]; then
   echo "unhealthy: restoring previous source"; docker compose -p bitpos-paypal -f compose.yaml logs --tail 20 2>&1 | tail -20
   rm -rf src web; [ -d src.old ] && mv src.old src; [ -d web.old ] && mv web.old web
