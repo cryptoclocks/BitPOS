@@ -46,7 +46,10 @@ export type MessengerEvent=
  {kind:'cart_menu';pageId:string;psid:string;timestamp:number;cart:string}|
  {kind:'book_start';pageId:string;psid:string;timestamp:number}|
  {kind:'book_set';pageId:string;psid:string;timestamp:number;date:string|null;time:string|null}|
- {kind:'book_cancel';pageId:string;psid:string;timestamp:number;reservationId:string;confirmed:boolean};
+ {kind:'book_cancel';pageId:string;psid:string;timestamp:number;reservationId:string;confirmed:boolean}|
+ {kind:'autopay';pageId:string;psid:string;timestamp:number;autopay:AutopayAction};
+/** AI auto-pay allowance steps (migration 328): start → period → caps → save card on Stripe; status; stop. */
+export type AutopayAction={step:'start'|'status'|'stop'}|{step:'days';days:number}|{step:'set';days:number;perOrder:number;total:number};
 
 export interface ParsedEvent {event:MessengerEvent;key:Buffer}
 
@@ -86,6 +89,12 @@ export function parseMessengerWebhook(body:unknown):ParsedEvent[]{
    else if(payload==='BITPOS_MENU')event={...base,kind:'menu'};
    else if(payload&&CART.test(payload)){const [,k,cart]=payload.match(CART)!;event=k==='ADD'?{...base,kind:'cart_add',cart}:k==='PAY'?{...base,kind:'cart_pay',cart}:{...base,kind:'cart_menu',cart};}
    else if(payload==='BITPOS_MY_ORDERS')event={...base,kind:'my_orders'};
+   else if(payload==='BITPOS_AUTOPAY'||payload==='BITPOS_AUTOPAY_STATUS'||payload==='BITPOS_AUTOPAY_STOP')event={...base,kind:'autopay',autopay:{step:payload==='BITPOS_AUTOPAY'?'start':payload==='BITPOS_AUTOPAY_STOP'?'stop':'status'}};
+   else if(payload?.startsWith('BITPOS_AUTOPAY_')){
+    const d=payload.match(/^BITPOS_AUTOPAY_DAYS:(1|7|30|90)$/),t=payload.match(/^BITPOS_AUTOPAY_SET:(1|7|30|90):([0-9]{2,6}):([0-9]{2,7})$/);
+    if(d)event={...base,kind:'autopay',autopay:{step:'days',days:Number(d[1])}};
+    else if(t)event={...base,kind:'autopay',autopay:{step:'set',days:Number(t[1]),perOrder:Number(t[2]),total:Number(t[3])}};
+   }
    else if(payload==='BITPOS_BOOK')event={...base,kind:'book_start'};
    else if(payload?.startsWith('BITPOS_BOOK_CANCEL:')&&ANY_UUID.test(payload.slice(19)))event={...base,kind:'book_cancel',reservationId:payload.slice(19),confirmed:false};
    // The second step after a warning that a paid pre-order is not refunded.

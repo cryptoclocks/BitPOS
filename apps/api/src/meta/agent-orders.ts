@@ -10,9 +10,11 @@ import type pg from 'pg';
 import type {MetaDb,OfferDeps} from './identity';
 import {approvedOffers} from './offer-select';
 import {formatTapAmount} from './staff';
-import {STRIPE_MINIMUM,chargeSharedPaymentToken,createCheckoutSession,refundPaymentIntent,retrieveCheckoutSession,toStripeMinor,StripePaymentError,type PaymentFact,type StripeFetch,type StripeSandboxConfig} from './stripe';
+import {reserveAllowance} from './autopay';
+import {STRIPE_MINIMUM,chargeSavedCard,chargeSharedPaymentToken,createCheckoutSession,refundPaymentIntent,retrieveCheckoutSession,toStripeMinor,StripePaymentError,type PaymentFact,type StripeFetch,type StripeSandboxConfig} from './stripe';
 
-export interface AgentDeps {db:MetaDb;offers:OfferDeps;stripe:{config:StripeSandboxConfig;fetch?:StripeFetch}|null}
+/** onConfirmed: runs after a charge the server made itself is confirmed and committed (e.g. the Messenger receipt). */
+export interface AgentDeps {db:MetaDb;offers:OfferDeps;stripe:{config:StripeSandboxConfig;fetch?:StripeFetch}|null;onConfirmed?:(merchantId:string,orderId:string)=>Promise<void>}
 export type Currency='thb'|'usd';
 export interface MenuItem {productId:string;name:string;nameEn:string;emoji:string;category:string|null;available:number;imageUrl:string|null;
  price:{amountMinor:string;currency:Currency;display:string};basePrice:{amountMinor:string;display:string};
@@ -23,7 +25,7 @@ export interface QuoteView {quoteId:string;productId:string;name:string;nameEn:s
 export type OrderStatus='PENDING'|'CONFIRMED'|'FAILED'|'REFUNDING'|'CANCELLED';
 export interface OrderView {orderId:string;quoteId:string;status:OrderStatus;productId:string;quantity:number;currency:Currency;amountMinor:string;total:string;
  pickupCode:string;paymentIntentId:string|null;declineCode:string|null;confirmedAt:string|null;handedOverAt:string|null;cancelledAt:string|null}
-export class AgentOrderError extends Error {constructor(readonly code:'NOT_FOUND'|'OUT_OF_STOCK'|'CURRENCY'|'BELOW_MINIMUM'|'INVALID_INPUT'|'QUOTE_EXPIRED'|'PAYMENTS_UNAVAILABLE'|'NOT_CANCELLABLE'|'PAYMENT_FAILED'|'PROVIDER_OUTCOME_UNKNOWN'){super(code);}}
+export class AgentOrderError extends Error {constructor(readonly code:'NOT_FOUND'|'OUT_OF_STOCK'|'CURRENCY'|'BELOW_MINIMUM'|'INVALID_INPUT'|'QUOTE_EXPIRED'|'PAYMENTS_UNAVAILABLE'|'NOT_CANCELLABLE'|'PAYMENT_FAILED'|'PROVIDER_OUTCOME_UNKNOWN'|'NO_ALLOWANCE'|'ALLOWANCE_EXCEEDED'){super(code);}}
 
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 const TERMS='Pick up at the counter. Cancel with a full refund until staff hand the order over. Stripe sandbox, test mode, no real money.';
@@ -118,20 +120,56 @@ export async function completeCheckout(deps:AgentDeps,merchantId:string,quoteIdI
  });
  if(prep.kind==='done')return view(prep.order);
  const o=prep.order;
+ // Unknown outcome: the row stays PENDING; a retry repeats the same idempotent request, and the webhook can still confirm it.
+ return settleCharge(deps,merchantId,o,()=>chargeSharedPaymentToken(stripe.config,{checkoutId:o.id,merchantId,orderId:o.id,quoteId,amountMinor:BigInt(o.amount_minor),currency:o.currency,sharedPaymentToken:sptIn},stripe.fetch));
+}
+
+/**
+ * Pay a connector quote from the customer's AI auto-pay allowance (migration 328), using the agent key the customer got
+ * when they saved their card. The server checks the allowance (period, per-order and total caps) with the allowance row
+ * locked, then charges the saved card off-session. Same quote → same order; a retry never charges twice.
+ */
+export async function completeCheckoutWithAllowance(deps:AgentDeps,merchantId:string,quoteIdIn:unknown,keyIn:unknown):Promise<OrderView>{
+ const quoteId=uuidOrFail(quoteIdIn);
+ if(typeof keyIn!=='string'||!/^bpa_[A-Za-z0-9_-]{32}$/.test(keyIn))throw new AgentOrderError('INVALID_INPUT');
+ if(!deps.stripe)throw new AgentOrderError('PAYMENTS_UNAVAILABLE');
+ const stripe=deps.stripe;
+ const prep=await deps.db.tenant(merchantId,async db=>{
+  const existing=(await db.query<OrderRow&{grant:string|null}>(`SELECT ${ORDER_COLS},autopay_grant_id AS grant FROM meta_agent_orders WHERE quote_id=$1 FOR UPDATE`,[quoteId])).rows[0];
+  if(existing&&existing.status!=='PENDING')return {kind:'done' as const,order:existing};
+  const q=(await db.query<{product_id:string;quantity:number;currency:Currency;amount_minor:string;live:boolean}>("SELECT product_id,quantity,currency,amount_minor::text,expires_at>clock_timestamp() AS live FROM meta_quotes WHERE id=$1 AND channel='mcp'",[quoteId])).rows[0];
+  if(!q)throw new AgentOrderError('NOT_FOUND');
+  if(!existing&&!q.live)throw new AgentOrderError('QUOTE_EXPIRED');
+  const a=await reserveAllowance(db,{agentKey:keyIn},existing?0n:BigInt(q.amount_minor),q.currency);
+  if(!('grant' in a))throw new AgentOrderError(a.miss==='NONE'||a.miss==='EXPIRED'?'NO_ALLOWANCE':'ALLOWANCE_EXCEEDED');
+  if(existing){if(existing.grant!==a.grant.id)throw new AgentOrderError('NOT_FOUND');return {kind:'charge' as const,order:existing,grant:a.grant};}
+  // The order belongs to the customer who gave the key, so the receipt reaches their Messenger chat.
+  const order=(await db.query<OrderRow>(`INSERT INTO meta_agent_orders(merchant_id,quote_id,product_id,quantity,currency,amount_minor,link_id,autopay_grant_id) VALUES($1,$2,$3,$4,$5,$6,$7,$8) RETURNING ${ORDER_COLS}`,
+   [merchantId,quoteId,q.product_id,q.quantity,q.currency,q.amount_minor,a.grant.linkId,a.grant.id])).rows[0];
+  return {kind:'charge' as const,order,grant:a.grant};
+ });
+ if(prep.kind==='done')return view(prep.order);
+ const o=prep.order,g=prep.grant;
+ return settleCharge(deps,merchantId,o,()=>chargeSavedCard(stripe.config,{checkoutId:o.id,merchantId,orderId:o.id,quoteId,grantId:g.id,amountMinor:BigInt(o.amount_minor),currency:o.currency,customerId:g.customerId,paymentMethodId:g.paymentMethodId},stripe.fetch));
+}
+
+/** Phase 3 of a server-made charge: record Stripe's checked outcome; an unknown outcome stays PENDING for a retry or the webhook. */
+async function settleCharge(deps:AgentDeps,merchantId:string,o:OrderRow,charge:()=>Promise<import('./stripe').AgentChargeResult>):Promise<OrderView>{
  let r;
- try{r=await chargeSharedPaymentToken(stripe.config,{checkoutId:o.id,merchantId,orderId:o.id,quoteId,amountMinor:BigInt(o.amount_minor),currency:o.currency,sharedPaymentToken:sptIn},stripe.fetch);}
+ try{r=await charge();}
  catch(e){
-  // Unknown outcome: the row stays PENDING; a retry repeats the same idempotent request, and the webhook can still confirm it.
   if(e instanceof StripePaymentError&&e.code==='PAYMENT_FAILED')r={outcome:'FAILED' as const,paymentIntentId:null,declineCode:e.detail??'payment_failed'};
   else throw new AgentOrderError('PROVIDER_OUTCOME_UNKNOWN');
  }
- const res=r;
- return deps.db.tenant(merchantId,async db=>{
-  if(res.outcome==='SUCCEEDED')await confirm(db,o.id,{paymentIntentId:res.paymentIntentId!,amountMinor:BigInt(o.amount_minor),currency:o.currency,source:'charge'});
+ const res=r;let confirmedNow=false;
+ const out=await deps.db.tenant(merchantId,async db=>{
+  if(res.outcome==='SUCCEEDED')confirmedNow=(await confirm(db,o.id,{paymentIntentId:res.paymentIntentId!,amountMinor:BigInt(o.amount_minor),currency:o.currency,source:'charge'}))==='CONFIRMED';
   else if(res.outcome==='FAILED')await db.query("UPDATE meta_agent_orders SET status='FAILED',decline_code=$2,stripe_payment_intent_id=coalesce(stripe_payment_intent_id,$3) WHERE id=$1 AND status='PENDING'",[o.id,res.declineCode?.slice(0,80)??'payment_failed',res.paymentIntentId]);
   else await db.query("UPDATE meta_agent_orders SET stripe_payment_intent_id=coalesce(stripe_payment_intent_id,$2) WHERE id=$1 AND status='PENDING'",[o.id,res.paymentIntentId]);
   return view((await db.query<OrderRow>(`SELECT ${ORDER_COLS} FROM meta_agent_orders WHERE id=$1`,[o.id])).rows[0]);
  });
+ if(confirmedNow&&deps.onConfirmed)await deps.onConfirmed(merchantId,o.id).catch(()=>{});
+ return out;
 }
 
 export async function orderStatus(deps:AgentDeps,merchantId:string,orderIdIn:unknown):Promise<OrderView>{

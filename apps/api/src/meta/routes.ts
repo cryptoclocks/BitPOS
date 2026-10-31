@@ -32,6 +32,7 @@ import {CartError,cartChatReceipt,cartOrderMerchant,formatCart,handOverCart,pars
 import {receiptAvailable,receiptImageKeyValid,receiptImageUrl,receiptPng} from './receipt-image';
 import {deviceKeyValid,deviceView} from './device';
 import {readFile} from 'node:fs/promises';
+import {activateAutopay,allowanceLine,daysLabel} from './autopay';
 import {AgentOrderError,agentOrderMerchant,agentReceipt,createQuote,listMenu,reconcileAgentCheckout,startAgentCheckout,type MenuItem} from './agent-orders';
 import {MessengerError,messengerConfigFromEnv,parseMessengerWebhook,sendMessenger,verifyMessengerSignature,verifySubscription,type MessengerConfig,type MessengerFetch} from './messenger';
 
@@ -217,7 +218,7 @@ export async function serveMeta(req:http.IncomingMessage,res:http.ServerResponse
    // Offers are chosen after the webhook transaction committed, so the model call never holds a lock.
    for(const o of offers){const view=await offerOrNull(deps,o.merchantId,o.linkId,o.tapSessionId);if(view)for(const m of await animatedOffer(deps,o.merchantId,o.psid,view))await send(m);}
    // Chat orders also run after commit, so the model and Stripe calls never hold a transaction.
-   const chat=chatDeps(deps);
+   const chat=chatDeps(deps,log);
    for(const a of agent){
     if(!chat){await send({kind:'text',psid:a.psid,text:'ร้านยังไม่เปิดสั่งผ่านแชทค่ะ / Chat ordering is not available.'});continue;}
     try{for(const m of await handleAgentRequest(chat,a))await send(m);}catch{log('Chat agent failed');}
@@ -293,6 +294,22 @@ export async function serveMeta(req:http.IncomingMessage,res:http.ServerResponse
   page(res,ok?200:401,ok?'ลบการเชื่อมต่อแล้ว':'ไม่พบการเชื่อมต่อ',[ok?'ร้านจะไม่จำคุณอีก / The shop no longer remembers you.':'Nothing to forget.'],{'Set-Cookie':sessionCookie(deps,'',0)});
   return true;
  }
+ if(path==='/meta/autopay/done'&&method==='GET'){
+  // Back from Stripe's setup page: ask Stripe server to server, activate once, show the agent key once, tell the chat.
+  const chat=chatDeps(deps,log);
+  if(!chat){page(res,503,'ยังรับชำระไม่ได้',['Payments are not configured.']);return true;}
+  let r;try{r=await activateAutopay(chat,url.searchParams.get('g'));}catch{r=undefined;}
+  if(r===null){page(res,404,'ไม่พบรายการ',['Not found.']);return true;}
+  if(!r||r.view.status==='SETUP'){page(res,202,'ยังไม่ได้บันทึกบัตร',['ยังไม่ได้รับการยืนยันจาก Stripe ถ้าบันทึกบัตรแล้วลองรีเฟรช ถ้ายกเลิก กลับไปตั้งใหม่ใน Messenger ได้เลย','The card is not saved yet. Refresh if you finished on Stripe, or start again in Messenger.']);return true;}
+  const v=r.view;
+  if(r.agentKey&&r.psid&&deps.messenger)await sendMessenger(deps.messenger,{kind:'buttons',psid:r.psid,text:`🤖 เปิดสิทธิ์ให้ AI จ่ายแทนแล้ว · บัตร ${v.cardLabel??'card'}\nสั่งในแชทได้เลย ร้านจะตัดบัตรให้โดยไม่ต้องกดจ่าย\nAI auto-pay is on.\n${allowanceLine(v)}\nStripe sandbox · test mode · no real money`,
+   buttons:[{type:'postback',title:'หยุดสิทธิ์ / Stop',payload:'BITPOS_AUTOPAY_STOP'},{type:'postback',title:'ดูเมนู / Menu',payload:'BITPOS_MENU'}]},deps.fetch).catch(()=>log('Autopay notice failed'));
+  const lines=v.status==='ACTIVE'?[`AI ของร้านจ่ายแทนคุณได้ ${esc(daysLabel(v.days))} · บัตร ${esc(v.cardLabel??'card')}`,esc(allowanceLine(v)).replace('\n','<br>'),'กลับไปสั่งใน Messenger ได้เลย ทุกครั้งที่ตัดเงินจะมีใบเสร็จในแชท และกด "หยุดสิทธิ์" ได้ทุกเมื่อ','Go back to Messenger and order; every charge sends a receipt there. Stop any time.']
+   :[`สิทธิ์นี้${v.status==='REVOKED'?'ถูกหยุดแล้ว':'หมดอายุแล้ว'} / This allowance has ${v.status==='REVOKED'?'been stopped':'ended'}.`];
+  if(r.agentKey)lines.push(`<b>ใช้กับ AI agent ของคุณเอง (ไม่บังคับ)</b><br>ให้ agent ที่รองรับ MCP ต่อ <code>${esc(deps.identity.publicOrigin)}/meta/mcp/${esc(r.merchantId)}</code> แล้วจ่ายด้วย <code>pay_with_allowance</code> และคีย์นี้ (แสดงครั้งเดียว เก็บไว้เป็นความลับ):<br><code style="word-break:break-all">${esc(r.agentKey)}</code><br><small>Your own MCP agent can pay with this key inside the same caps. It is shown once. Stopping the allowance also stops the key.</small>`);
+  lines.push('<small>Stripe sandbox · test mode · no real money</small>');
+  page(res,200,v.status==='ACTIVE'?'เปิดสิทธิ์แล้ว ✓':'สิทธิ์ไม่ทำงาน',lines);return true;
+ }
  if(path==='/meta/agent/paid'&&method==='GET'){
   const chat=chatDeps(deps);
   if(!chat){page(res,503,'ยังรับชำระไม่ได้',['Payments are not configured.']);return true;}
@@ -316,7 +333,7 @@ export async function serveMeta(req:http.IncomingMessage,res:http.ServerResponse
  if(mcp){
   if(!deps.offers){json(res,503,{error:'NOT_CONFIGURED'});return true;}
   if(!allowAttempt(req,Date.now(),mcpCalls,120,60_000)){json(res,429,{error:'RATE_LIMITED'});return true;}
-  if(!(await serveMcp(req,res,{db:deps.identity.db,offers:deps.offers,stripe:deps.stripe??null},mcp[1])))json(res,404,{error:'RESOURCE_NOT_FOUND'});
+  if(!(await serveMcp(req,res,{db:deps.identity.db,offers:deps.offers,stripe:deps.stripe??null,onConfirmed:(m,o)=>sendReceipt(deps,m,o,log)},mcp[1])))json(res,404,{error:'RESOURCE_NOT_FOUND'});
   return true;
  }
  json(res,404,{error:'RESOURCE_NOT_FOUND'});return true;
@@ -358,8 +375,10 @@ export function liveDepsOf(deps:MetaRouteDeps):LiveDeps{
   customer:async req=>(await who(req))?.linkId??null,
   keywords:async req=>{const me=await who(req),chat=chatDeps(deps);return me&&chat?(await listMenu(chat,me.merchantId)).flatMap(i=>[i.name,i.nameEn]):[];}};
 }
-function chatDeps(deps:MetaRouteDeps):ChatAgentDeps|null{
- return deps.offers?{db:deps.identity.db,offers:deps.offers,stripe:deps.stripe??null,router:deps.offers.router,publicOrigin:deps.identity.publicOrigin,shopMerchant:deps.demoMerchant??null}:null;
+function chatDeps(deps:MetaRouteDeps,log:(m:string)=>void=()=>{}):ChatAgentDeps|null{
+ // onConfirmed: a charge the server made itself (AI auto-pay) sends the paid receipt once it is committed.
+ return deps.offers?{db:deps.identity.db,offers:deps.offers,stripe:deps.stripe??null,router:deps.offers.router,publicOrigin:deps.identity.publicOrigin,shopMerchant:deps.demoMerchant??null,
+  onConfirmed:(merchantId,orderId)=>sendReceipt(deps,merchantId,orderId,log)}:null;
 }
 
 // Requests per client address (behind the tunnel, Cloudflare's client IP header) per window: staff sign-in and MCP calls.

@@ -258,8 +258,8 @@ test('Get Started: a connected customer gets the picture menu; a stranger gets h
  assert.equal(msg(PSID,{postback:{payload:'BITPOS_GET_STARTED'}},70)[0].event.kind,'welcome');
  assert.equal(msg(PSID,{postback:{payload:'BITPOS_HELP'}},71)[0].event.kind,'welcome');
  const [hi,cards]=await handleAgentRequest(deps,{merchantId:A,linkId,psid:PSID,kind:'welcome'}) as any[];
- assert.match(hi.text,/ยินดีต้อนรับ/);assert.equal(cards.cards.length,3);
- assert.deepEqual(cards.cards.map((c:any)=>c.buttons[0].payload),['BITPOS_MENU','BITPOS_BOOK','BITPOS_MY_ORDERS']);assert.ok(cards.quick,'chips');
+ assert.match(hi.text,/ยินดีต้อนรับ/);assert.equal(cards.cards.length,4);
+ assert.deepEqual(cards.cards.map((c:any)=>c.buttons[0].payload),['BITPOS_MENU','BITPOS_BOOK','BITPOS_MY_ORDERS','BITPOS_AUTOPAY']);assert.ok(cards.quick,'chips');
  const s=await handleMessengerEvents(identity,msg(STRANGER,{postback:{payload:'BITPOS_GET_STARTED'}},72));
  assert.equal(s.agent.length,0,'a stranger never reaches the agent');
  const g=s.outbox[0] as any;assert.equal(g.kind,'cards');assert.match(g.cards[0].buttons[0].url,/\/help#tap$/);

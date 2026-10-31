@@ -47,9 +47,24 @@ export async function chargeSharedPaymentToken(config:StripeSandboxConfig,charge
  const form=new URLSearchParams({amount:charge.amountMinor.toString(),currency:charge.currency,confirm:'true',
   'payment_method_data[shared_payment_granted_token]':charge.sharedPaymentToken,
   'metadata[bitpos_merchant]':charge.merchantId,'metadata[bitpos_order]':charge.orderId,'metadata[bitpos_quote]':charge.quoteId,'metadata[bitpos_checkout]':charge.checkoutId});
+ return confirmIntent(config,form,`bitpos-meta-spt-${charge.checkoutId}`,charge,fetchImpl);
+}
+
+export interface SavedCardCharge {checkoutId:string;merchantId:string;orderId:string;quoteId:string;grantId:string;amountMinor:bigint;currency:string;customerId:string;paymentMethodId:string}
+/** Auto-pay: charges the customer's saved card off-session for a server total, inside an allowance the server already checked.
+ * A bank that asks for authentication answers FAILED (authentication_required); the caller then offers the normal Pay button. */
+export async function chargeSavedCard(config:StripeSandboxConfig,charge:SavedCardCharge,fetchImpl:StripeFetch=fetch):Promise<AgentChargeResult>{
+ if(charge.amountMinor<=0n||charge.amountMinor>MAX_MINOR||!CURRENCY.test(charge.currency))throw new StripePaymentError('INVALID_AMOUNT');
+ if(!/^cus_[A-Za-z0-9]+$/.test(charge.customerId)||!/^pm_[A-Za-z0-9]+$/.test(charge.paymentMethodId))throw new StripePaymentError('PAYMENT_FAILED','invalid_card');
+ const form=new URLSearchParams({amount:charge.amountMinor.toString(),currency:charge.currency,confirm:'true',off_session:'true',customer:charge.customerId,payment_method:charge.paymentMethodId,
+  'metadata[bitpos_merchant]':charge.merchantId,'metadata[bitpos_order]':charge.orderId,'metadata[bitpos_quote]':charge.quoteId,'metadata[bitpos_checkout]':charge.checkoutId,'metadata[bitpos_autopay]':charge.grantId});
+ return confirmIntent(config,form,`bitpos-meta-autopay-${charge.checkoutId}`,charge,fetchImpl);
+}
+
+async function confirmIntent(config:StripeSandboxConfig,form:URLSearchParams,idempotencyKey:string,charge:{amountMinor:bigint;currency:string;checkoutId:string},fetchImpl:StripeFetch):Promise<AgentChargeResult>{
  let res:Response;
  try{res=await fetchImpl(`${config.apiBase??'https://api.stripe.com'}/v1/payment_intents`,{method:'POST',redirect:'error',signal:AbortSignal.timeout(config.timeoutMs??20000),
-  headers:{Authorization:`Bearer ${config.secretKey}`,'Content-Type':'application/x-www-form-urlencoded','Idempotency-Key':`bitpos-meta-spt-${charge.checkoutId}`},body:form});}
+  headers:{Authorization:`Bearer ${config.secretKey}`,'Content-Type':'application/x-www-form-urlencoded','Idempotency-Key':idempotencyKey},body:form});}
  catch{throw new StripePaymentError('PROVIDER_OUTCOME_UNKNOWN');}
  let body:any;try{body=await res.json();}catch{throw new StripePaymentError('PROVIDER_OUTCOME_UNKNOWN');}
  if(res.status>=500)throw new StripePaymentError('PROVIDER_OUTCOME_UNKNOWN');
@@ -140,6 +155,37 @@ export async function createCheckoutSession(config:StripeSandboxConfig,req:Check
 export async function retrieveCheckoutSession(config:StripeSandboxConfig,id:string,fetchImpl:StripeFetch=fetch):Promise<CheckoutSession>{
  if(!/^cs_test_[A-Za-z0-9]+$/.test(id))throw new StripePaymentError('INVALID_AMOUNT');
  return checkoutView(await stripeCall(config,'GET',`/v1/checkout/sessions/${id}`,null,null,fetchImpl));
+}
+
+export interface SetupView {id:string;url:string|null;complete:boolean;customerId:string|null;paymentMethodId:string|null;cardLabel:string|null;grantId:string|null;merchantId:string|null}
+function setupView(body:any):SetupView{
+ if(body?.object!=='checkout.session'||typeof body.id!=='string'||!/^cs_test_[A-Za-z0-9]+$/.test(body.id)||body.mode!=='setup')throw new StripePaymentError('PROVIDER_OUTCOME_UNKNOWN');
+ if(body.livemode!==false)throw new StripePaymentError('LIVE_MODE_REFUSED');
+ const si=typeof body.setup_intent==='object'&&body.setup_intent?body.setup_intent:null,pm=typeof si?.payment_method==='object'&&si.payment_method?si.payment_method:null;
+ const pmId=typeof pm?.id==='string'?pm.id:typeof si?.payment_method==='string'?si.payment_method:null;
+ const card=pm?.card?`${String(pm.card.brand??'card').slice(0,12)} ·${String(pm.card.last4??'').slice(0,4)}`:null;
+ return {id:body.id,url:typeof body.url==='string'&&body.url.startsWith('https://checkout.stripe.com/')?body.url:null,
+  complete:body.status==='complete'&&si?.status==='succeeded'&&pmId!==null,customerId:typeof body.customer==='string'?body.customer:null,paymentMethodId:pmId,cardLabel:card,
+  grantId:typeof body.metadata?.bitpos_autopay==='string'?body.metadata.bitpos_autopay:null,merchantId:typeof body.metadata?.bitpos_merchant==='string'?body.metadata.bitpos_merchant:null};
+}
+/** Auto-pay: a Stripe customer and a hosted Checkout in setup mode that saves one card for off-session use. Same allowance → same session. */
+export async function createSetupCheckout(config:StripeSandboxConfig,req:{grantId:string;merchantId:string;currency:string;successUrl:string;cancelUrl:string;description:string},fetchImpl:StripeFetch=fetch):Promise<SetupView&{customerId:string}>{
+ const cus=await stripeCall(config,'POST','/v1/customers',new URLSearchParams({description:req.description.slice(0,200),'metadata[bitpos_merchant]':req.merchantId,'metadata[bitpos_autopay]':req.grantId}),`bitpos-meta-autopay-cus-${req.grantId}`,fetchImpl);
+ if(cus?.object!=='customer'||typeof cus.id!=='string'||!/^cus_[A-Za-z0-9]+$/.test(cus.id))throw new StripePaymentError('PROVIDER_OUTCOME_UNKNOWN');
+ if(cus.livemode!==false)throw new StripePaymentError('LIVE_MODE_REFUSED');
+ // Payment methods come from the account's dashboard settings (Stripe no longer takes payment_method_types here); setup mode then needs the currency.
+ if(!CURRENCY.test(req.currency))throw new StripePaymentError('INVALID_AMOUNT');
+ const form=new URLSearchParams({mode:'setup',customer:cus.id,currency:req.currency,success_url:req.successUrl,cancel_url:req.cancelUrl,client_reference_id:req.grantId,
+  'metadata[bitpos_merchant]':req.merchantId,'metadata[bitpos_autopay]':req.grantId,'setup_intent_data[metadata][bitpos_merchant]':req.merchantId,'setup_intent_data[metadata][bitpos_autopay]':req.grantId,
+  'custom_text[submit][message]':req.description.slice(0,1000)});
+ const v=setupView(await stripeCall(config,'POST','/v1/checkout/sessions',form,`bitpos-meta-autopay-setup-${req.grantId}`,fetchImpl));
+ if(!v.url||v.grantId!==req.grantId||v.customerId!==cus.id)throw new StripePaymentError('RESPONSE_MISMATCH');
+ return {...v,customerId:cus.id};
+}
+/** Server-side lookup of a setup session (the return redirect proves nothing): the saved card and its label. */
+export async function retrieveSetupCheckout(config:StripeSandboxConfig,id:string,fetchImpl:StripeFetch=fetch):Promise<SetupView>{
+ if(!/^cs_test_[A-Za-z0-9]+$/.test(id))throw new StripePaymentError('INVALID_AMOUNT');
+ return setupView(await stripeCall(config,'GET',`/v1/checkout/sessions/${id}?expand[]=setup_intent.payment_method`,null,null,fetchImpl));
 }
 
 export interface Refund {id:string;status:string}

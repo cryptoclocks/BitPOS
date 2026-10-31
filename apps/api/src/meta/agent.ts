@@ -15,7 +15,9 @@ import {cancelReservation,customerReservations,openBookingRequest,parseBooking,r
 import type {Card,Outgoing,QuickReply} from './messenger';
 import {kitchenStages} from './kitchen';
 import {saveChatCart,talkCart} from './cart-agent';
-import {CartError,customerCartOrders,formatCart,parseCart,quoteCart,startCart,type CartLine} from './cart';
+import {CartError,customerCartOrders,formatCart,parseCart,quoteCart,startCartAuto,type CartLine} from './cart';
+import {AUTOPAY_CAPS,AUTOPAY_DAYS,AutopayError,MISS_TEXT,allowanceLine,autopayStatus,daysLabel,revokeAutopay,shopCurrency,startAutopay} from './autopay';
+import {formatTapAmount} from './staff';
 
 /** shopMerchant: the shop served at the root of publicOrigin (meta-pay), so menu cards can link to its item pages. */
 export interface ChatAgentDeps extends AgentDeps {router:MetaRouter|null;publicOrigin:string;modelCallsPerHour?:number;shopMerchant?:string|null}
@@ -301,6 +303,48 @@ export function bookingMessages(psid:string,r:BookingResult,reply=''):Outgoing[]
 }
 const RES_STATUS:Record<ReservationView['status'],string>={HELD:'🗓️ จองไว้ / booked',CHECKED_IN:'✅ เช็กอินแล้ว / checked in',NO_SHOW:'⌛ หลุดคิว / lapsed',CANCELLED:'↩️ ยกเลิก / cancelled'};
 
+const AUTOPAY_WORDS=/^(?:จ่ายอัตโนมัติ|ตั้งจ่ายอัตโนมัติ|ให้\s*ai\s*จ่าย(?:แทน)?|สิทธิ์\s*ai|auto\s*-?pay|autopay)$/i;
+const stopButton={type:'postback' as const,title:'หยุดสิทธิ์ / Stop',payload:'BITPOS_AUTOPAY_STOP'};
+
+/** Chat checkout: paid at once from the customer's AI auto-pay allowance when it fits; otherwise the Stripe Pay button. */
+async function payCart(deps:ChatAgentDeps,merchantId:string,linkId:string,psid:string,cart:CartLine[]):Promise<Outgoing[]>{
+ const r=await startCartAuto(deps,merchantId,cart,{channel:'chat',linkId,publicOrigin:deps.publicOrigin},deps.onConfirmed&&(id=>deps.onConfirmed!(merchantId,id)));
+ if(r.kind==='paid'||r.kind==='processing'){
+  const v=await autopayStatus(deps.db,merchantId,linkId);
+  return [{kind:'buttons',psid,text:`${r.kind==='paid'?'🤖 AI จ่ายให้แล้วด้วยสิทธิ์ที่คุณตั้งไว้ ไม่ต้องกดจ่าย\nPaid from your AI auto-pay allowance.':'🤖 กำลังตัดบัตรตามสิทธิ์ที่ตั้งไว้ จะส่งใบเสร็จเมื่อ Stripe ยืนยัน\nCharging your auto-pay card; the receipt follows when Stripe confirms.'}${v?`\n${allowanceLine(v)}`:''}\n${LABEL}`,buttons:[stopButton]}];
+ }
+ const why=r.miss==='DECLINED'?'ธนาคารไม่อนุมัติการตัดอัตโนมัติ จ่ายเองได้เลยค่ะ / The bank declined auto-pay; pay by hand.\n':r.miss!=='NONE'?`${MISS_TEXT[r.miss]}\n`:'';
+ return [{kind:'buttons',psid,text:`${why}ยอดรวมจากร้าน · จ่ายทีเดียวบนหน้า Stripe Checkout\nPay the whole cart on Stripe Checkout.\n${LABEL}`,buttons:[{type:'web_url',title:'จ่าย / Pay',url:r.checkoutUrl}]}];
+}
+
+/** AI auto-pay allowance in chat: period → caps → save a card on Stripe (setup mode); status; stop. */
+async function autopayMessages(deps:ChatAgentDeps,merchantId:string,linkId:string,psid:string,a:import('./messenger').AutopayAction):Promise<Outgoing[]>{
+ if(a.step==='stop'){
+  const n=await revokeAutopay(deps.db,merchantId,linkId);
+  return [{kind:'text',psid,text:n?'หยุดสิทธิ์แล้วค่ะ ต่อจากนี้ AI จะไม่จ่ายแทนคุณ ต้องกดจ่ายเองทุกครั้ง\nStopped: the AI will not pay for you any more.':'ยังไม่ได้เปิดสิทธิ์ให้ AI จ่ายแทนค่ะ / No auto-pay allowance is on.'}];
+ }
+ const now=await autopayStatus(deps.db,merchantId,linkId);
+ const active=now?.status==='ACTIVE'?now:null;
+ if(a.step==='status'){
+  if(!active)return [{kind:'buttons',psid,text:'ยังไม่ได้เปิดสิทธิ์ให้ AI จ่ายแทนค่ะ\nAI auto-pay is off.',buttons:[{type:'postback',title:'ตั้งค่า / Set up',payload:'BITPOS_AUTOPAY'}]}];
+  return [{kind:'buttons',psid,text:`🤖 AI จ่ายแทนได้ · บัตร ${active.cardLabel??'card'}\nAI auto-pay is on.\n${allowanceLine(active)}\n${LABEL}`,buttons:[stopButton,{type:'postback',title:'ตั้งใหม่ / New',payload:'BITPOS_AUTOPAY'}]}];
+ }
+ const currency=await shopCurrency(deps,merchantId),f=(m:number)=>formatTapAmount(String(m),currency).replace(/\.00$/,'');
+ if(a.step==='start')return [{kind:'text',psid,text:`${active?`ตอนนี้เปิดอยู่: ${allowanceLine(active)}\nตั้งใหม่จะแทนที่ของเดิม\n\n`:''}ให้ AI ของร้านจ่ายแทนคุณนานแค่ไหนคะ? ระหว่างนั้นสั่งในแชท (หรือให้ AI agent ของคุณสั่ง) แล้วร้านตัดบัตรที่บันทึกไว้เลย ไม่ต้องกดจ่าย มีวงเงินต่อครั้งและวงเงินรวม หยุดได้ทุกเมื่อ\nHow long may the shop's AI pay for you? Orders are charged to your saved card without a Pay button, within your caps. Stop any time.`,
+  quick:AUTOPAY_DAYS.map(d=>({title:daysLabel(d).split(' / ')[0],payload:`BITPOS_AUTOPAY_DAYS:${d}`}))}];
+ if(a.step==='days')return [{kind:'text',psid,text:`${daysLabel(a.days)} · เลือกวงเงินค่ะ (ต่อครั้ง · รวมทั้งหมด)\nPick the caps (per order · in total).`,
+  quick:AUTOPAY_CAPS[currency].map(([o,t])=>({title:`${f(o)}/ครั้ง · รวม ${f(t)}`,payload:`BITPOS_AUTOPAY_SET:${a.days}:${o}:${t}`}))}];
+ if(a.step!=='set')return [];
+ try{
+  const s=await startAutopay(deps,merchantId,linkId,{days:a.days,perOrderMinor:a.perOrder,totalMinor:a.total},deps.publicOrigin);
+  return [{kind:'buttons',psid,text:`สรุปสิทธิ์: AI จ่ายแทนได้ ${daysLabel(a.days)} · ไม่เกิน ${f(a.perOrder)}/ครั้ง · รวมไม่เกิน ${f(a.total)}\nบันทึกบัตรบนหน้า Stripe แล้วเริ่มใช้ได้ทันที ทุกครั้งที่ตัดเงินจะส่งใบเสร็จมาในแชท กด "หยุดสิทธิ์" ได้ทุกเมื่อ\nSave a card on Stripe to start. Every charge sends a receipt here.\n${LABEL} · บัตรทดสอบ 4242 4242 4242 4242`,
+   buttons:[{type:'web_url',title:'บันทึกบัตร / Save card',url:s.url}]}];
+ }catch(e){
+  if(e instanceof AutopayError)return [{kind:'text',psid,text:e.code==='INVALID_INPUT'?'ตัวเลือกนี้ใช้ไม่ได้แล้ว เริ่มใหม่ได้เลยค่ะ / That choice is no longer valid; start again.':'ตอนนี้ตั้งค่าไม่ได้ ลองใหม่อีกครั้งค่ะ / Could not set it up now; try again.'}];
+  throw e;
+ }
+}
+
 /** Handles one chat request after the webhook transaction committed; returns the replies to send. */
 export async function handleAgentRequest(deps:ChatAgentDeps,req:AgentRequest):Promise<Outgoing[]>{
  const out=await agentReplies(deps,req);
@@ -326,10 +370,11 @@ async function agentReplies(deps:ChatAgentDeps,req:AgentRequest):Promise<Outgoin
      return [{kind:'text',psid,text:'เลือกเพิ่มได้เลยค่ะ กด "ใส่ตะกร้า" แล้วจ่ายทีเดียว\nAdd more, then pay once.'},menuCards(deps,psid,items,cart,merchantId)];
     }
     if(req.kind==='cart_add'){await saveChatCart(deps.db,merchantId,linkId,cart);return await cartMessages(deps,merchantId,psid,cart,'ใส่ตะกร้าแล้ว ✓ / Added to cart');}
-    const r=await startCart(deps,merchantId,cart,{channel:'chat',linkId,publicOrigin:deps.publicOrigin});
-    return [{kind:'buttons',psid,text:`ยอดรวมจากร้าน · จ่ายทีเดียวบนหน้า Stripe Checkout\nPay the whole cart on Stripe Checkout.\n${LABEL}`,buttons:[{type:'web_url',title:'จ่าย / Pay',url:r.checkoutUrl}]}];
+    return await payCart(deps,merchantId,linkId,psid,cart);
    }catch(e){if(e instanceof CartError)return [{kind:'text',psid,text:CART_ERR[e.code]}];throw e;}
   }
+  if(req.kind==='autopay')return await autopayMessages(deps,merchantId,linkId,psid,req.autopay);
+  if(req.kind==='text'&&AUTOPAY_WORDS.test(req.text))return await autopayMessages(deps,merchantId,linkId,psid,{step:'start'});
   if(req.kind==='suggest'){
    const {picks,by}=await suggestItems(deps,merchantId,linkId);
    if(!picks.length)return [{kind:'text',psid,text:'ตอนนี้ยังไม่มีเมนูที่สั่งได้ค่ะ / Nothing can be ordered right now.'}];
@@ -358,7 +403,8 @@ How about these?`},cards];
      {title:'☕ สั่งจากเมนู',subtitle:top?`วันนี้ ${top.name} ลด ${top.offer!.discountPercent}% · ใส่ตะกร้าแล้วจ่ายทีเดียว`:'ใส่ตะกร้าแล้วจ่ายทีเดียวด้วย Stripe',imageUrl:pic(0),
       buttons:[{type:'postback',title:'ดูเมนู / Menu',payload:'BITPOS_MENU'},{type:'web_url',title:'🎙️ สั่งด้วยเสียง',url:`${deps.publicOrigin}/meta/order`}]},
      {title:'🗓️ จองโต๊ะ',subtitle:'บอกวัน เวลา จำนวนคน แล้วแตะมือถือที่โต๊ะเพื่อเช็กอิน',imageUrl:pic(1),buttons:[{type:'postback',title:'จองโต๊ะ / Book',payload:'BITPOS_BOOK'}]},
-     {title:'🧾 ออเดอร์และการจองของฉัน',subtitle:'ดูสถานะ รหัสรับสินค้า หรือยกเลิกการจอง',imageUrl:pic(2),buttons:[{type:'postback',title:'ออเดอร์ของฉัน',payload:'BITPOS_MY_ORDERS'}]}]}];
+     {title:'🧾 ออเดอร์และการจองของฉัน',subtitle:'ดูสถานะ รหัสรับสินค้า หรือยกเลิกการจอง',imageUrl:pic(2),buttons:[{type:'postback',title:'ออเดอร์ของฉัน',payload:'BITPOS_MY_ORDERS'}]},
+     {title:'🤖 ให้ AI จ่ายแทน',subtitle:'1 วัน ถึง 3 เดือน มีวงเงินต่อครั้งและวงเงินรวม สั่งแล้วตัดบัตรเลย หยุดได้ทุกเมื่อ',imageUrl:pic(3),buttons:[{type:'postback',title:'ตั้งค่า / Set up',payload:'BITPOS_AUTOPAY'},{type:'postback',title:'ดูสิทธิ์ / Status',payload:'BITPOS_AUTOPAY_STATUS'}]}]}];
   }
   if(req.kind==='my_orders'){
    const stages=await kitchenStages(deps.db,merchantId);
@@ -402,8 +448,8 @@ How about these?`},cards];
     const t=await talkCart(deps,merchantId,linkId,req.text);
     if(!t.booking){
      if(t.checkout){
-      const r=await startCart(deps,merchantId,t.cart,{channel:'chat',linkId,publicOrigin:deps.publicOrigin});await saveChatCart(deps.db,merchantId,linkId,[]);
-      return [{kind:'text',psid,text:`${t.reply}\n✦ ${t.by}`},{kind:'buttons',psid,text:`ยอดรวมจากร้าน · จ่ายทีเดียวบนหน้า Stripe Checkout\nPay the whole cart on Stripe Checkout.\n${LABEL}`,buttons:[{type:'web_url',title:'จ่าย / Pay',url:r.checkoutUrl}]}];
+      const pay=await payCart(deps,merchantId,linkId,psid,t.cart);await saveChatCart(deps.db,merchantId,linkId,[]);
+      return [{kind:'text',psid,text:`${t.reply}\n✦ ${t.by}`},...pay];
      }
      if(t.cart.length)return await cartMessages(deps,merchantId,psid,t.cart,`${t.reply}\n✦ ${t.by}`);
      return [{kind:'text',psid,text:`${t.reply}\n✦ ${t.by}`},menuCards(deps,psid,(await listMenu(deps,merchantId)).filter(i=>i.payable),[],merchantId)];

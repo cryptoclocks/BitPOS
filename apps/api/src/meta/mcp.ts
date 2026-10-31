@@ -3,9 +3,11 @@
 // server-sent events) at POST /meta/mcp/<merchantId>. Stateless JSON-RPC 2.0; hand-written so it runs on the
 // existing runtime image without a new dependency. Tools follow Muse's read / write / sensitive-write split:
 // the agent picks product ids and quote ids only, never a price, and pays with a Stripe Shared Payment Token
-// (it never sees a card number or a secret key). Stripe sandbox only.
+// (it never sees a card number or a secret key). Stripe sandbox only. A customer who set an AI auto-pay allowance in
+// Messenger can instead hand their agent an allowance key (pay_with_allowance): the server checks the allowance's
+// period and caps and charges the customer's saved card; the agent still never sees the card.
 import type http from 'node:http';
-import {AgentOrderError,cancelOrder,completeCheckout,createQuote,listMenu,orderStatus,type AgentDeps} from './agent-orders';
+import {AgentOrderError,cancelOrder,completeCheckout,completeCheckoutWithAllowance,createQuote,listMenu,orderStatus,type AgentDeps} from './agent-orders';
 
 export const MCP_PROTOCOL_VERSIONS=['2025-06-18','2025-03-26','2024-11-05'];
 const MAX_BODY=65536;
@@ -21,6 +23,9 @@ export const TOOLS=[
  {name:'complete_checkout',title:'Pay for a quote',description:`Sensitive write: charges the quoted total with a Stripe Shared Payment Token. Ask the user to confirm the exact total first. One payment per quote; retrying the same quote never charges twice. Status: CONFIRMED (paid), PENDING (outcome not yet known, check order_status), FAILED (ask for another payment method and a new quote). ${LABEL}.`,
   inputSchema:{type:'object',properties:{quote_id:uuidSchema,shared_payment_token:{type:'string',pattern:'^spt_[A-Za-z0-9_]{1,200}$'}},required:['quote_id','shared_payment_token'],additionalProperties:false},
   annotations:{readOnlyHint:false,destructiveHint:false,idempotentHint:true,openWorldHint:true}},
+ {name:'pay_with_allowance',title:'Pay from the customer\'s auto-pay allowance',description:`Sensitive write: pays the quoted total from the AI auto-pay allowance the customer set in the shop's Messenger chat (1 day to 3 months, with a per-order and a total cap), using the allowance key the customer gave you (bpa_…). The shop server checks the period and both caps and charges the customer's saved card; the receipt goes to the customer's Messenger. One payment per quote. Errors: NO_ALLOWANCE (ended, stopped or unknown key), ALLOWANCE_EXCEEDED (over a cap — use complete_checkout instead). ${LABEL}.`,
+  inputSchema:{type:'object',properties:{quote_id:uuidSchema,allowance_key:{type:'string',pattern:'^bpa_[A-Za-z0-9_-]{32}$'}},required:['quote_id','allowance_key'],additionalProperties:false},
+  annotations:{readOnlyHint:false,destructiveHint:false,idempotentHint:true,openWorldHint:true}},
  {name:'order_status',title:'Order status',description:'Status of an order: PENDING, CONFIRMED, FAILED, REFUNDING or CANCELLED, plus the pickup code and whether staff handed it over. Read only.',
   inputSchema:{type:'object',properties:{order_id:uuidSchema},required:['order_id'],additionalProperties:false},annotations:{readOnlyHint:true,openWorldHint:false}},
  {name:'cancel_order',title:'Cancel and refund',description:`Write: cancels a paid order that staff have not handed over yet and refunds it in full through Stripe. ${LABEL}.`,
@@ -33,7 +38,8 @@ const err=(id:Rpc['id'],code:number,message:string)=>({jsonrpc:'2.0',id:id??null
 const MESSAGES:Record<AgentOrderError['code'],string>={NOT_FOUND:'Not found.',OUT_OF_STOCK:'Not enough stock.',CURRENCY:'This price cannot be paid with Stripe.',
  BELOW_MINIMUM:'Total is below the Stripe minimum charge; order at the counter instead.',INVALID_INPUT:'Invalid arguments.',QUOTE_EXPIRED:'Quote expired; get a new quote.',
  PAYMENTS_UNAVAILABLE:'Payments are not configured.',NOT_CANCELLABLE:'Only a paid order that has not been handed over can be cancelled.',
- PAYMENT_FAILED:'Stripe refused the request.',PROVIDER_OUTCOME_UNKNOWN:'Stripe did not answer; the outcome is unknown. Retry the same call or check order_status.'};
+ PAYMENT_FAILED:'Stripe refused the request.',NO_ALLOWANCE:'No active auto-pay allowance for this key (ended, stopped or unknown). Ask the customer to set one in Messenger, or pay with complete_checkout.',
+ ALLOWANCE_EXCEEDED:'This total is over the customer\'s per-order or remaining total allowance. Pay with complete_checkout instead.',PROVIDER_OUTCOME_UNKNOWN:'Stripe did not answer; the outcome is unknown. Retry the same call or check order_status.'};
 
 /** One tool call. Errors become `isError` results so the agent can explain them to the user. */
 export async function callTool(deps:AgentDeps,merchantId:string,name:string,args:any):Promise<{content:{type:'text';text:string}[];structuredContent?:unknown;isError?:boolean}>{
@@ -43,6 +49,7 @@ export async function callTool(deps:AgentDeps,merchantId:string,name:string,args
   if(name==='list_menu')out={items:await listMenu(deps,merchantId),label:LABEL};
   else if(name==='get_quote')out=await createQuote(deps,merchantId,'mcp',a.product_id,a.quantity??1);
   else if(name==='complete_checkout')out=await completeCheckout(deps,merchantId,a.quote_id,a.shared_payment_token);
+  else if(name==='pay_with_allowance')out=await completeCheckoutWithAllowance(deps,merchantId,a.quote_id,a.allowance_key);
   else if(name==='order_status')out=await orderStatus(deps,merchantId,a.order_id);
   else if(name==='cancel_order')out=await cancelOrder(deps,merchantId,a.order_id);
   else return {content:[{type:'text',text:`Unknown tool: ${String(name).slice(0,60)}`}],isError:true};
@@ -64,7 +71,7 @@ export async function handleRpc(deps:AgentDeps,merchantId:string,msg:unknown):Pr
   const asked=m.params?.protocolVersion;
   return ok(m.id,{protocolVersion:MCP_PROTOCOL_VERSIONS.includes(asked)?asked:MCP_PROTOCOL_VERSIONS[0],capabilities:{tools:{listChanged:false}},
    serverInfo:{name:'bitpos-muse-connector',title:'BitPOS Muse Connector',version:'0.1.0'},
-   instructions:`Order from this shop. Flow: list_menu → get_quote → show the total and ask the user to confirm → complete_checkout with a Shared Payment Token → order_status. Prices come only from quotes. ${LABEL}.`});
+   instructions:`Order from this shop. Flow: list_menu → get_quote → show the total and ask the user to confirm → complete_checkout with a Shared Payment Token (or pay_with_allowance with the customer's allowance key) → order_status. Prices come only from quotes. ${LABEL}.`});
  }
  if(m.method==='ping')return ok(m.id,{});
  if(m.method==='tools/list')return ok(m.id,{tools:TOOLS});

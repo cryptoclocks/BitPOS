@@ -9,7 +9,8 @@ import type pg from 'pg';
 import type {MetaDb} from './identity';
 import {listMenu,type AgentDeps,type Currency} from './agent-orders';
 import {formatTapAmount} from './staff';
-import {STRIPE_MINIMUM,createCheckoutSession,refundPaymentIntent,retrieveCheckoutSession,type PaymentFact} from './stripe';
+import {STRIPE_MINIMUM,chargeSavedCard,createCheckoutSession,refundPaymentIntent,retrieveCheckoutSession,StripePaymentError,type PaymentFact} from './stripe';
+import {reserveAllowance,type AllowanceGrant,type AllowanceMiss} from './autopay';
 
 export type CartChannel='table'|'counter'|'web'|'chat';
 export interface CartLine {productId:string;quantity:number}
@@ -70,30 +71,71 @@ export async function quoteCart(deps:AgentDeps,merchantId:string,lines:CartLine[
 }
 
 /** Makes the order and its hosted Stripe Checkout. Returns the order and a one-time access token for its receipt page. */
-export async function startCart(deps:AgentDeps,merchantId:string,lines:CartLine[],opts:{channel:CartChannel;tableId?:string|null;linkId?:string|null;staffUserId?:string|null;deviceId?:string|null;publicOrigin:string}):Promise<{orderId:string;access:string;checkoutUrl:string}>{
+type CartOpts={channel:CartChannel;tableId?:string|null;linkId?:string|null;staffUserId?:string|null;deviceId?:string|null;publicOrigin:string};
+export async function startCart(deps:AgentDeps,merchantId:string,lines:CartLine[],opts:CartOpts):Promise<{orderId:string;access:string;checkoutUrl:string}>{
+ const o=await createCartOrder(deps,merchantId,lines,opts,false);
+ return {orderId:o.orderId,access:o.access,checkoutUrl:await cartCheckout(deps,merchantId,o,opts.publicOrigin)};
+}
+
+export type AutoCartResult={orderId:string;access:string}&({kind:'paid';paidNow:boolean}|{kind:'processing'}|{kind:'checkout';checkoutUrl:string;miss:AllowanceMiss|'DECLINED'});
+/** A chat checkout for a customer who may have an AI auto-pay allowance (migration 328): if the total fits, the saved card
+ * is charged off-session at once; otherwise, or if the bank declines, the customer gets the normal Pay button for the same order. */
+export async function startCartAuto(deps:AgentDeps,merchantId:string,lines:CartLine[],opts:CartOpts&{linkId:string},onPaid?:(orderId:string)=>Promise<void>):Promise<AutoCartResult>{
+ const o=await createCartOrder(deps,merchantId,lines,opts,true);
+ const g=o.grant;
+ if(!g)return {orderId:o.orderId,access:o.access,kind:'checkout',miss:o.miss??'NONE',checkoutUrl:await cartCheckout(deps,merchantId,o,opts.publicOrigin)};
+ let r;
+ try{r=await chargeSavedCard(deps.stripe!.config,{checkoutId:o.orderId,merchantId,orderId:o.orderId,quoteId:o.orderId,grantId:g.id,amountMinor:o.total,currency:o.currency,customerId:g.customerId,paymentMethodId:g.paymentMethodId},deps.stripe!.fetch);}
+ catch(e){
+  // Unknown outcome: the order stays pending under the allowance; Stripe's signed webhook settles it (and sends the receipt).
+  if(!(e instanceof StripePaymentError&&e.code==='PAYMENT_FAILED'))return {orderId:o.orderId,access:o.access,kind:'processing'};
+  r={outcome:'FAILED' as const,paymentIntentId:null,declineCode:e.detail??'payment_failed'};
+ }
+ const res=r;
+ if(res.outcome==='SUCCEEDED'){
+  const m=await deps.db.tenant(merchantId,c=>markCartPaid(c,o.orderId,{paymentIntentId:res.paymentIntentId!,amountMinor:o.total,currency:o.currency,source:'charge'}));
+  if(m==='PAID'&&onPaid)await onPaid(o.orderId).catch(()=>{});
+  return {orderId:o.orderId,access:o.access,kind:'paid',paidNow:m==='PAID'};
+ }
+ if(res.outcome==='PROCESSING')return {orderId:o.orderId,access:o.access,kind:'processing'};
+ // Declined (or the bank wants the customer present): release the allowance and fall back to Checkout.
+ await deps.db.tenant(merchantId,c=>c.query("UPDATE meta_cart_orders SET autopay_grant_id=NULL WHERE id=$1 AND status='PENDING'",[o.orderId]));
+ return {orderId:o.orderId,access:o.access,kind:'checkout',miss:'DECLINED',checkoutUrl:await cartCheckout(deps,merchantId,o,opts.publicOrigin)};
+}
+
+async function createCartOrder(deps:AgentDeps,merchantId:string,lines:CartLine[],opts:CartOpts,autopay:boolean){
  if(!deps.stripe)throw new CartError('PAYMENTS_UNAVAILABLE');
  if((opts.channel==='counter')!==Boolean(opts.staffUserId)||opts.channel==='chat'&&!opts.linkId)throw new CartError('INVALID_INPUT');
  const p=await price(deps,merchantId,lines);
  const access=randomBytes(24).toString('base64url');
- const orderId=await deps.db.tenant(merchantId,async c=>{
+ const {orderId,grant,miss}=await deps.db.tenant(merchantId,async c=>{
+  let grant:AllowanceGrant|null=null,miss:AllowanceMiss|null=null;
   const id=(await c.query<{id:string}>(`INSERT INTO meta_cart_orders(merchant_id,channel,table_id,link_id,access_sha256,currency,amount_minor,discount_minor,created_by,device_id,expires_at)
    VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,clock_timestamp()+interval '${LIFETIME_MIN} minutes') RETURNING id`,
    [merchantId,opts.channel,opts.tableId??null,opts.linkId??null,sha(access),p.currency,p.total.toString(),p.discount.toString(),opts.staffUserId??null,opts.deviceId??null])).rows[0].id;
   for(const x of p.priced)await c.query('INSERT INTO meta_cart_items(merchant_id,order_id,line,product_id,name,name_en,emoji,quantity,unit_minor,base_minor,offer_id) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)',
    [merchantId,id,x.line,x.m.productId,x.m.name,x.m.nameEn,x.m.emoji,x.quantity,x.unit.toString(),x.base.toString(),x.m.offer?.offerId??null]);
-  return id;
+  // The allowance row stays locked until this order commits, so two orders cannot both use its last part.
+  if(autopay&&opts.linkId){
+   const a=await reserveAllowance(c,{linkId:opts.linkId},p.total,p.currency);
+   if('grant' in a){grant=a.grant;await c.query('UPDATE meta_cart_orders SET autopay_grant_id=$2 WHERE id=$1',[id,a.grant.id]);}else miss=a.miss;
+  }
+  return {orderId:id,grant,miss};
  });
- const items=p.priced.reduce((n,x)=>n+x.quantity,0);
- const back=`${opts.publicOrigin}/receipt/${orderId}?a=${access}`;
- const session=await createCheckoutSession(deps.stripe.config,{merchantId,orderId,quoteId:orderId,amountMinor:p.total,currency:p.currency,
-  productName:`Muse order #${cartCode(orderId)} · ${items} item${items>1?'s':''}`,successUrl:`${back}&s={CHECKOUT_SESSION_ID}`,cancelUrl:`${opts.publicOrigin}/cart`,
-  expiresAtSeconds:Math.floor(Date.now()/1000)+LIFETIME_MIN*60},deps.stripe.fetch);
+ return {orderId,access,total:p.total,currency:p.currency,items:p.priced.reduce((n,x)=>n+x.quantity,0),grant,miss};
+}
+async function cartCheckout(deps:AgentDeps,merchantId:string,o:{orderId:string;access:string;total:bigint;currency:Currency;items:number},publicOrigin:string):Promise<string>{
+ const {orderId,items}=o;
+ const back=`${publicOrigin}/receipt/${orderId}?a=${o.access}`;
+ const session=await createCheckoutSession(deps.stripe!.config,{merchantId,orderId,quoteId:orderId,amountMinor:o.total,currency:o.currency,
+  productName:`Muse order #${cartCode(orderId)} · ${items} item${items>1?'s':''}`,successUrl:`${back}&s={CHECKOUT_SESSION_ID}`,cancelUrl:`${publicOrigin}/cart`,
+  expiresAtSeconds:Math.floor(Date.now()/1000)+LIFETIME_MIN*60},deps.stripe!.fetch);
  await deps.db.tenant(merchantId,c=>c.query('UPDATE meta_cart_orders SET stripe_checkout_id=$2,checkout_url=$3 WHERE id=$1',[orderId,session.id,session.url]));
- return {orderId,access,checkoutUrl:session.url!};
+ return session.url!;
 }
 
 /** Inside the shop's transaction: PAID once, stock once per line, recorded. */
-async function markCartPaid(c:pg.PoolClient,orderId:string,f:{paymentIntentId:string;amountMinor:bigint;currency:string;source:'webhook'|'lookup'}):Promise<'PAID'|'ALREADY_PAID'|'MISMATCH'|'UNKNOWN_ORDER'>{
+async function markCartPaid(c:pg.PoolClient,orderId:string,f:{paymentIntentId:string;amountMinor:bigint;currency:string;source:'webhook'|'lookup'|'charge'}):Promise<'PAID'|'ALREADY_PAID'|'MISMATCH'|'UNKNOWN_ORDER'>{
  const o=(await c.query<{status:string;amount_minor:string;currency:string}>('SELECT status,amount_minor::text,currency FROM meta_cart_orders WHERE id=$1 FOR UPDATE',[orderId])).rows[0];
  if(!o)return 'UNKNOWN_ORDER';
  if(o.status==='PAID'||o.status==='CANCELLED')return 'ALREADY_PAID';
