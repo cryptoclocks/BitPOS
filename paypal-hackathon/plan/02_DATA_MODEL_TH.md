@@ -2,6 +2,8 @@
 
 > ส่วนหนึ่งของ [แผน implement](../IMPLEMENTATION_PLAN_TH.md) · SQL ด้านล่างเป็น **ร่างสำหรับออกแบบ** ต้องเทียบกับ migrations ที่ import มาจาก h2 (ถึง 176) ก่อนเขียนไฟล์จริง
 
+> **ผลจาก Phase 2 (31 ต.ค.):** core schema บังคับให้ทุก order freeze quote แบบ Solana (`order_authority.settlement`, trigger `freeze_default_payment_quote`) และสร้าง order ไม่ได้ถ้าร้านไม่มี payment asset ที่เปิดอยู่ (`PAYMENT_ASSET_UNAVAILABLE`) ร้านเดโม PayPal จึง **ต้องเปิด asset ทดสอบไว้เป็น quote anchor** แต่ซ่อนตัวเลือกจ่ายด้วย crypto ใน UI (Phase 3) — ไม่ใช่ปิด asset ตามที่ §9 เขียนไว้ · `details.settlement` ที่ publish ยังเป็น quote settlement เดิม ข้อมูลการจ่ายจริงของ PayPal อยู่ใน `paypal_settlements`/`paypal_captures` → Phase 3 ต้องให้ใบเสร็จ/หน้าจ่ายแสดง provider จากตารางเหล่านี้ ไม่ใช่จาก settlement JSON · `paypal_settle_capture()` คืนค่าว่าง (ไม่ใช่ error) เมื่อ capture นี้ settle แล้ว เหมือน `settle_verified_attempt`
+
 ## 1. หลักการ
 
 - schema `bitpos`, `SET search_path TO bitpos,extensions,public;` บรรทัดแรกเหมือน migration อื่น

@@ -1,3 +1,10 @@
+## PayPal hackathon — Phase 2 ledger and settlement — 31 October 2026
+
+- Migrations 400 (per-shop PayPal Sandbox settings), 401 (checkouts/captures/settlements/payment events with RLS, immutability/terminal guards, one-channel mutex trigger on payment_attempts, `unpaid_order_safe()` extended to protect in-flight PayPal captures), 402 (`paypal_settle_capture()`, same effects/locks/shape as `settle_verified_attempt`).
+- `apps/api/src/paypal/settle.ts` (`applyVerdict`, one convergence point for capture route, webhook and worker); `orders.ts` refactor exports `publishSettlementRow()` (Solana behaviour unchanged).
+- Finding: every order must freeze a Solana-shaped quote and needs an enabled payment asset, so the PayPal demo shop keeps a hidden test asset as quote anchor; PayPal facts live in the PayPal ledger.
+- Tests: `tests/paypal-settlement.test.ts` 9/9 (settle once, replays, real concurrency, double payment → RECOVERY, late → RECOVERY, tenant fences, mutex, guards, mismatch, PENDING→COMPLETED, expiry guard). Full integration re-run: 686 pass / 26 fail / 2 skipped, no new failures vs baseline (an earlier run's 9 timeouts were machine load; the same files pass alone).
+
 ## PayPal hackathon — Phase 1 PayPal client — 31 October 2026
 
 - Added `apps/api/src/paypal/`: `config.ts` (sandbox only, live refused), `money.ts` (exact USD cents), `client.ts` (OAuth cache, Orders v2 create/capture/get, capture lookup, PayPal-Request-Id per operation, 401 refresh once, network/timeout/429/5xx = OUTCOME_UNKNOWN, 4xx = REJECTED with PayPal issue, 256 KiB cap, id validation), `verify.ts` (9 attribution checks, gross not net, multiple-capture and refund states), `webhook-verify.ts` (offline SHA256withRSA over raw-body CRC32, PayPal-host cert allowlist, cert cache/expiry).
