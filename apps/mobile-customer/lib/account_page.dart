@@ -13,6 +13,8 @@ import 'order_again_page.dart';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:mobile_shared/presentation/bitpos_layout.dart';
+import 'package:mobile_shared/presentation/bitpos_info.dart';
 import 'package:mobile_shared/mobile_api.dart';
 import 'package:mobile_shared/mobile_v1.generated.dart';
 import 'package:mobile_shared/account_mutation.dart';
@@ -521,12 +523,33 @@ class _AccountPageState extends State<AccountPage> {
               ),
         key: const ValueKey('account-order-again-tile'),
       );
+      final rewards = _accountTile(
+        Icons.card_giftcard_outlined,
+        t('แต้มและรางวัล', 'Points and rewards'),
+        t(
+          'ดูแต้มจากออเดอร์ที่ชำระแล้ว และแลกคูปองส่วนลด',
+          'See points from paid orders and redeem discount vouchers',
+        ),
+        _busy
+            ? null
+            : () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => RewardsPage(
+                    api: widget.api,
+                    owner: widget.owner,
+                    thai: widget.thai,
+                    onAuthenticationRequired: widget.onAuthenticationRequired,
+                  ),
+                ),
+              ),
+        key: const ValueKey('account-rewards-tile'),
+      );
       final previews = _accountTile(
         Icons.auto_awesome_outlined,
         t('ฟีเจอร์ที่กำลังมา', 'Coming features'),
         t(
-          'คูปอง รางวัล สั่งล่วงหน้า และอื่นๆ (ตัวอย่าง)',
-          'Coupons, rewards, scheduling and more (preview)',
+          'ตัวอย่างฟีเจอร์ที่ยังไม่เปิดใช้งานจริง',
+          'Samples of features that are not live yet',
         ),
         _busy
             ? null
@@ -554,6 +577,7 @@ class _AccountPageState extends State<AccountPage> {
             rides,
             groups,
             orderAgain,
+            rewards,
             previews,
             help,
             const SizedBox(height: 14),
@@ -570,6 +594,7 @@ class _AccountPageState extends State<AccountPage> {
           SizedBox(width: half, child: rides),
           SizedBox(width: half, child: groups),
           SizedBox(width: half, child: orderAgain),
+          SizedBox(width: half, child: rewards),
           SizedBox(width: half, child: previews),
           SizedBox(width: half, child: help),
           const SizedBox(width: 20, height: 14),
@@ -678,13 +703,15 @@ class _AccountPageState extends State<AccountPage> {
           toolbarHeight:
               (112.0 - MediaQuery.paddingOf(context).top).clamp(48.0, 68.0) +
               (MediaQuery.textScalerOf(context).scale(20) - 20) * 2,
-          leadingWidth: 76,
-          titleSpacing: _section != null && _section != _AccountSection.overview
+          leadingWidth: 84,
+          titleSpacing:
+              (_section != null && _section != _AccountSection.overview) ||
+                  Navigator.canPop(context)
               ? 0
               : 24,
           leading: _section != null && _section != _AccountSection.overview
               ? Padding(
-                  padding: const EdgeInsets.only(left: 18, right: 10),
+                  padding: const EdgeInsets.only(left: 24, right: 12),
                   child: Center(
                     child: IconButton.filledTonal(
                       tooltip: _showEditor
@@ -707,12 +734,17 @@ class _AccountPageState extends State<AccountPage> {
                         foregroundColor: Theme.of(context).colorScheme.primary,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14),
+                          side: BorderSide(
+                            color: Theme.of(context).colorScheme.outlineVariant,
+                          ),
                         ),
                       ),
                       icon: const Icon(Icons.chevron_left, size: 22),
                     ),
                   ),
                 )
+              : Navigator.canPop(context)
+              ? const BitPosBackButton(verticalPadding: 0)
               : null,
           title: _section == _AccountSection.overview
               ? Image.asset(
@@ -788,11 +820,16 @@ class _AccountPageState extends State<AccountPage> {
                   onTap: _busy ? null : _help,
                 ),
               if (detail && _section != _AccountSection.addresses)
-                Text(
-                  t(
-                    'ข้อมูลนี้เป็นของบัญชีคุณ ไม่ได้รวมกับรายชื่อลูกค้าของร้านโดยอัตโนมัติ',
-                    'These details belong to your account. They are not automatically merged with merchant customer records.',
-                  ),
+                BitPosInfoLine(
+                  thai: widget.thai,
+                  summary: t('ข้อมูลของบัญชีคุณ', 'Your account details'),
+                  title: t('เกี่ยวกับข้อมูลนี้', 'About these details'),
+                  paragraphs: [
+                    t(
+                      'ข้อมูลนี้เป็นของบัญชีคุณ ไม่ได้รวมกับรายชื่อลูกค้าของร้านโดยอัตโนมัติ',
+                      'These details belong to your account. They are not automatically merged with merchant customer records.',
+                    ),
+                  ],
                 ),
               if (_busy) const LinearProgressIndicator(),
               if (_error != null)
@@ -914,53 +951,65 @@ class _AccountPageState extends State<AccountPage> {
               ],
               if ((_section == null || _section == _AccountSection.profile) &&
                   _profile != null)
-                Form(
-                  key: _profileForm,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Text(
-                        t('โปรไฟล์', 'Profile'),
-                        style: Theme.of(context).textTheme.titleLarge,
-                      ),
-                      TextFormField(
-                        controller: _name,
-                        enabled: !locked,
-                        maxLength: 80,
-                        decoration: InputDecoration(
-                          labelText: t('ชื่อที่แสดง', 'Display name'),
+                Padding(
+                  padding: const EdgeInsets.only(top: 16),
+                  child: Form(
+                    key: _profileForm,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      spacing: 16,
+                      children: [
+                        if (_section != _AccountSection.profile)
+                          Text(
+                            t('โปรไฟล์', 'Profile'),
+                            style: Theme.of(context).textTheme.titleLarge,
+                          ),
+                        TextFormField(
+                          controller: _name,
+                          enabled: !locked,
+                          maxLength: 80,
+                          decoration: InputDecoration(
+                            labelText: t('ชื่อที่แสดง', 'Display name'),
+                          ),
                         ),
-                      ),
-                      DropdownButton<String>(
-                        value: _locale,
-                        isExpanded: true,
-                        onChanged: locked
-                            ? null
-                            : (value) => setState(() => _locale = value!),
-                        items: const [
-                          DropdownMenuItem(value: 'th', child: Text('ไทย')),
-                          DropdownMenuItem(value: 'en', child: Text('English')),
-                        ],
-                      ),
-                      FilledButton(
-                        onPressed: locked
-                            ? null
-                            : () {
-                                if (_profileForm.currentState!.validate()) {
-                                  _run(
-                                    () => _mutate(
-                                      widget.api.profileMutation(
-                                        _profile!,
-                                        _name.text.trim(),
-                                        _locale,
+                        DropdownButtonFormField<String>(
+                          key: ValueKey('profile-locale-$_locale'),
+                          initialValue: _locale,
+                          isExpanded: true,
+                          decoration: InputDecoration(
+                            labelText: t('ภาษา', 'Language'),
+                          ),
+                          onChanged: locked
+                              ? null
+                              : (value) => setState(() => _locale = value!),
+                          items: const [
+                            DropdownMenuItem(value: 'th', child: Text('ไทย')),
+                            DropdownMenuItem(
+                              value: 'en',
+                              child: Text('English'),
+                            ),
+                          ],
+                        ),
+                        FilledButton(
+                          onPressed: locked
+                              ? null
+                              : () {
+                                  if (_profileForm.currentState!.validate()) {
+                                    _run(
+                                      () => _mutate(
+                                        widget.api.profileMutation(
+                                          _profile!,
+                                          _name.text.trim(),
+                                          _locale,
+                                        ),
                                       ),
-                                    ),
-                                  );
-                                }
-                              },
-                        child: Text(t('บันทึกโปรไฟล์', 'Save profile')),
-                      ),
-                    ],
+                                    );
+                                  }
+                                },
+                          child: Text(t('บันทึกโปรไฟล์', 'Save profile')),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               if (_section == null ||
@@ -1009,18 +1058,27 @@ class _AccountPageState extends State<AccountPage> {
                       ),
                     ),
                   if (_section == _AccountSection.addresses)
-                    Text(
-                      t(
-                        'ข้อมูลนี้เป็นของบัญชีคุณ ไม่ได้รวมกับรายชื่อลูกค้าของร้านโดยอัตโนมัติ',
-                        'These details belong to your account. They are not automatically merged with merchant customer records.',
+                    BitPosInfoLine(
+                      thai: widget.thai,
+                      summary: t(
+                        'ไม่ต้องเปิด GPS ที่อยู่ไม่ถูกส่งให้ใครโดยอัตโนมัติ',
+                        'No GPS needed. Addresses are not shared automatically',
                       ),
+                      title: t(
+                        'เกี่ยวกับที่อยู่ของคุณ',
+                        'About your addresses',
+                      ),
+                      paragraphs: [
+                        t(
+                          'ข้อมูลนี้เป็นของบัญชีคุณ ไม่ได้รวมกับรายชื่อลูกค้าของร้านโดยอัตโนมัติ',
+                          'These details belong to your account. They are not automatically merged with merchant customer records.',
+                        ),
+                        t(
+                          'เพิ่มที่อยู่ด้วยตนเอง ไม่บังคับเปิด GPS ที่อยู่ยังไม่ถูกส่งให้ร้านหรือไรเดอร์จนกว่าจะใช้ในงานที่อนุญาต',
+                          'Enter an address manually; GPS is not required. Saving it does not share it with a merchant or driver.',
+                        ),
+                      ],
                     ),
-                  Text(
-                    t(
-                      'เพิ่มที่อยู่ด้วยตนเอง ไม่บังคับเปิด GPS ที่อยู่ยังไม่ถูกส่งให้ร้านหรือไรเดอร์จนกว่าจะใช้ในงานที่อนุญาต',
-                      'Enter an address manually; GPS is not required. Saving it does not share it with a merchant or driver.',
-                    ),
-                  ),
                 ],
                 if (_showEditor)
                   Form(

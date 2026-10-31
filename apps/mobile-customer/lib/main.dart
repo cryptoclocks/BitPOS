@@ -11,6 +11,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:mobile_shared/mobile_api.dart';
+import 'package:mobile_shared/presentation/bitpos_connection.dart';
 import 'package:mobile_shared/mobile_v1.generated.dart';
 import 'package:mobile_shared/bitpos_theme.dart';
 import 'package:mobile_shared/mobile_push_controller.dart';
@@ -35,6 +36,7 @@ class BitPosCustomer extends StatelessWidget {
     theme: BitPosTheme.light(),
     darkTheme: BitPosTheme.dark(),
     themeMode: ThemeMode.system,
+    builder: (context, child) => BitPosConnectionHost(child: child),
     home: const bool.fromEnvironment('BITPOS_UI_CATALOG')
         ? const BitPosUiCatalog(rider: false)
         : const CustomerSessionPage(),
@@ -100,6 +102,10 @@ class _CustomerSessionPageState extends State<CustomerSessionPage> {
   }
 
   bool _profileOpen = false;
+  bool _startupFailed = false;
+  int _startupAttempt = 0;
+  Timer? _startupRetry;
+  VoidCallback? _reconnects;
   static const _fixture = bool.fromEnvironment('BITPOS_FIXTURE');
   String text(String th, String en) => _thai ? th : en;
   @override
@@ -133,6 +139,17 @@ class _CustomerSessionPageState extends State<CustomerSessionPage> {
       final api =
           widget.api ?? MobileApi(base: Uri.parse(base), fixture: _fixture);
       _api = api;
+      BitPosConnection.useApi(api);
+      _reconnects ??= () {
+        if (!mounted) return;
+        if (_startupFailed) {
+          _startupFailed = false;
+          _startupRetry?.cancel();
+          unawaited(_initialize());
+        }
+      };
+      api.reconnects.removeListener(_reconnects!);
+      api.reconnects.addListener(_reconnects!);
       await api.restore();
       if (api.signedIn) {
         _welcome = false;
@@ -207,12 +224,39 @@ class _CustomerSessionPageState extends State<CustomerSessionPage> {
       );
       await _push!.start();
     } catch (error) {
-      _error = error;
+      // A stored session the server no longer accepts simply lands on sign-in, quietly.
+      final quiet = error is MobileApiException &&
+          error.code == 'AUTH_REQUIRED' &&
+          !(_api?.signedIn ?? false);
+      _error = quiet ? null : error;
+      if (isConnectivityError(error) && _push == null && (_api?.signedIn ?? false)) {
+        // Session intact, first server read failed: retry quietly on our own.
+        await _sessionOwner?.cancel();
+        _sessionOwner = null;
+        _startupFailed = true;
+        _startupAttempt++;
+        _startupRetry?.cancel();
+        _startupRetry = Timer(
+          Duration(seconds: (_startupAttempt * 3).clamp(3, 20)),
+          () {
+            if (mounted && _startupFailed) {
+              _startupFailed = false;
+              unawaited(_initialize());
+            }
+          },
+        );
+      }
     }
     if (mounted) setState(() => _busy = false);
   }
 
   String _message(Object error) {
+    if (isConnectivityError(error)) {
+      return text(
+        'กำลังเชื่อมต่อใหม่ รอสักครู่แล้วลองอีกครั้ง',
+        'Reconnecting. Wait a moment, then try again.',
+      );
+    }
     if (error is MobileApiException) {
       return switch (error.code) {
         'CONFIGURATION_REQUIRED' => text(
@@ -365,6 +409,9 @@ class _CustomerSessionPageState extends State<CustomerSessionPage> {
 
   @override
   void dispose() {
+    _startupRetry?.cancel();
+    if (_reconnects != null) _api?.reconnects.removeListener(_reconnects!);
+    BitPosConnection.useApi(null);
     _contentScroll.dispose();
     _foodOwner.value = false;
     _retirePushOrder();
@@ -392,7 +439,7 @@ class _CustomerSessionPageState extends State<CustomerSessionPage> {
             ? 72
             : 60) +
         (MediaQuery.textScalerOf(context).scale(20) - 20) * 2,
-    leadingWidth: 76,
+    leadingWidth: 84,
     titleSpacing: 0,
     title: Text(
       title,
@@ -400,13 +447,13 @@ class _CustomerSessionPageState extends State<CustomerSessionPage> {
     ),
     leading: Padding(
       padding: EdgeInsets.fromLTRB(
-        18,
+        24,
         ((_foodNavigation.cartReviewActive || _foodNavigation.orderReviewActive)
                 ? 8
                 : 0) +
             MediaQuery.textScalerOf(context).scale(20) -
             20,
-        10,
+        12,
         ((_foodNavigation.cartReviewActive || _foodNavigation.orderReviewActive)
                 ? 16
                 : 12) +
@@ -432,6 +479,9 @@ class _CustomerSessionPageState extends State<CustomerSessionPage> {
           decoration: BoxDecoration(
             color: Theme.of(context).cardTheme.color,
             borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: Theme.of(context).colorScheme.outlineVariant,
+            ),
           ),
           child: const Icon(Icons.chevron_left, size: 22),
         ),
@@ -570,7 +620,12 @@ class _CustomerSessionPageState extends State<CustomerSessionPage> {
   }
 
   @override
-  Widget build(BuildContext context) => _account == null && !_busy && _welcome
+  Widget build(BuildContext context) {
+    BitPosConnection.useThai(_thai);
+    return _buildPage(context);
+  }
+
+  Widget _buildPage(BuildContext context) => _account == null && !_busy && _welcome
       ? CustomerWelcome(
           thai: _thai,
           onStart: () => setState(() => _welcome = false),
@@ -612,10 +667,11 @@ class _CustomerSessionPageState extends State<CustomerSessionPage> {
             appBar: _account == null
                 ? AppBar(
                     toolbarHeight: 72,
-                    leadingWidth: 76,
+                    leadingWidth: 84,
                     titleSpacing: 0,
+                    actionsPadding: const EdgeInsetsDirectional.only(end: 12),
                     leading: Padding(
-                      padding: const EdgeInsets.fromLTRB(18, 14, 14, 14),
+                      padding: const EdgeInsets.fromLTRB(24, 12, 12, 12),
                       child: IconButton(
                         tooltip: text('ย้อนกลับ', 'Back'),
                         onPressed: _busy
@@ -702,7 +758,7 @@ class _CustomerSessionPageState extends State<CustomerSessionPage> {
                 ? AppBar(
                     centerTitle: false,
                     toolbarHeight: 44,
-                    leadingWidth: 76,
+                    leadingWidth: 84,
                     titleSpacing: 0,
                     title: Transform.translate(
                       offset: Offset.zero,
@@ -716,7 +772,7 @@ class _CustomerSessionPageState extends State<CustomerSessionPage> {
                       ),
                     ),
                     leading: Padding(
-                      padding: const EdgeInsets.fromLTRB(18, 0, 14, 0),
+                      padding: const EdgeInsets.fromLTRB(24, 0, 12, 0),
                       child: IconButton.filledTonal(
                         tooltip:
                             _foodNavigation.orderDetailBackLabel ??
@@ -752,6 +808,7 @@ class _CustomerSessionPageState extends State<CustomerSessionPage> {
                 ? AppBar(
                     toolbarHeight: 68,
                     titleSpacing: 24,
+                    actionsPadding: const EdgeInsetsDirectional.only(end: 12),
                     title: Image.asset(
                       'assets/design/bitpos-logo.png',
                       width: 104,
@@ -1022,7 +1079,9 @@ class _CustomerSessionPageState extends State<CustomerSessionPage> {
                                 child: Text(
                                   _message(_error!),
                                   style: TextStyle(
-                                    color: Theme.of(context).colorScheme.error,
+                                    color: isConnectivityError(_error)
+                          ? Theme.of(context).colorScheme.onSurfaceVariant
+                          : Theme.of(context).colorScheme.error,
                                   ),
                                 ),
                               ),

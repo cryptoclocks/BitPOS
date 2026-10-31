@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mobile_shared/presentation/bitpos_layout.dart';
 
 import 'presentation/customer_navigation.dart';
 
@@ -129,13 +130,10 @@ class _PaymentMethodPageState extends State<PaymentMethodPage> {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     return Scaffold(
-      appBar: AppBar(
+      appBar: bitPosAppBar(
+        context,
         title: Text(t('เลือกวิธีชำระเงิน', 'Choose payment method')),
-        leading: IconButton(
-          tooltip: t('กลับไปออเดอร์', 'Back to order'),
-          icon: const Icon(Icons.chevron_left),
-          onPressed: _opening ? null : () => Navigator.of(context).maybePop(),
-        ),
+        onBack: _opening ? null : () => Navigator.of(context).maybePop(),
       ),
       body: Center(
         child: ConstrainedBox(

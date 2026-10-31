@@ -175,10 +175,10 @@ class _FoodReviewPageState extends State<FoodReviewPage> {
       appBar: AppBar(
         centerTitle: false,
         toolbarHeight: 72,
-        leadingWidth: 76,
+        leadingWidth: 84,
         titleSpacing: 0,
         leading: Padding(
-          padding: const EdgeInsets.fromLTRB(18, 14, 14, 14),
+          padding: const EdgeInsets.fromLTRB(24, 12, 12, 12),
           child: IconButton.filledTonal(
             tooltip: MaterialLocalizations.of(context).backButtonTooltip,
             onPressed: () => Navigator.maybePop(context),

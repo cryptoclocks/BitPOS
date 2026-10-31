@@ -43,8 +43,10 @@ class DriverIdentityCard extends StatelessWidget {
               children: [
                 Text(
                   name,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                    fontSize: 24,
+                    fontSize: 22,
                     fontWeight: FontWeight.w600,
                     color: Colors.white,
                   ),

@@ -16,6 +16,7 @@ import PromotionGenerate from './PromotionGenerate';
 import { personalRecipientsView, type PromotionRecipientsView } from '../../../../packages/contracts/src/personal-promotions';
 import { PromotionContextReview, PromotionPublication, playlistStatusLabels } from './PromotionCampaignControl';
 import PromotionFloor from './PromotionFloor';
+import RewardSettings from './RewardSettings';
 import type { FloorSelection } from './ShopFloor';
 
 type Edit = Pick<PromotionCampaign, 'headline' | 'copy' | 'discountPercent' | 'startsAt' | 'expiresAt'>&{bundleUnitMinor?:string};
@@ -274,6 +275,7 @@ export default function Promotions({ session, language, products, tables, device
         {(view?.jobs.length ?? 0) > 5 && <button className="secondary" onClick={() => setShowAllJobs(!showAllJobs)}>{showAllJobs ? text('แสดงน้อยลง', 'Show less') : text('ดูเพิ่มเติม', 'Show more')}</button>}
       </details>
     </section></div>}
+    {presentation === 'library' && manage && <RewardSettings session={session} language={language} />}
     {presentation === 'create' && <section id="promotion-generate" className="panel promotion-create-stage" aria-label="Generate promotion"><button className="secondary" type="button" onClick={() => { setFloorSelection(null); setPresentation('library'); }}>{text('กลับไปคลังโปรโมชัน', 'Back to campaign library')}</button><h2>{text('สร้างโปรโมชัน', 'Create promotion')}</h2>{view?.jobs.filter(job => job.id === activeJobId).map(job => <section className="promotion-job" key={job.id} aria-label="Requested draft job"><h3>{status(job.state)}</h3>{job.blocker && <p className="notice">{job.blocker}</p>}{job.campaignId && <button className="secondary" disabled={locked} onClick={() => { const result = view.campaigns.find(c => c.id === job.campaignId); if (result) { setFloorSelection(null); select(result, true); setPresentation('review'); } }}>{text('เปิดรายการ', 'Open result')}</button>}</section>)}
       {manage ? <>{view && !view.provider.configured && <p className="promotion-blocker" role="status">{text('ยังไม่ได้ตั้งค่า AI: ต้องมีผู้ให้บริการ โมเดล คีย์ส่วนตัว และงบประมาณที่อนุมัติบนเซิร์ฟเวอร์ ขณะนี้ไม่เรียกโมเดลและไม่สร้างข้อความ AI จำลอง แบบร่างเดิมยังตรวจสอบและจัดการได้', 'AI is not configured: server provider, model, private credential and approved budgets are required. No model call or fabricated AI copy is made. Existing drafts remain reviewable.')}</p>}
       <PromotionGenerate devices={view?.devices??[]} language={language} products={products} disabled={locked || !fresh || !view?.provider.configured} recipients={recipients} recipientsFresh={recipientsFresh} recipientsError={recipientsError} reloadRecipients={() => { void refreshRecipients(); }} generate={body => action(() => mutate('/promotions/generate', body))} seatCustomer={async body=>{

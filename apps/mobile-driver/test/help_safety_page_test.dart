@@ -93,4 +93,17 @@ void main() {
     expect(find.text('Open help'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
+  testWidgets('incident-report explanation sits behind the info button while the emergency notice stays visible', (tester) async {
+    final api = HelpApi();
+    addTearDown(api.close);
+    await tester.pumpWidget(
+      MaterialApp(home: DriverHelpSafetyPage(api: api, thai: false)),
+    );
+    await tester.pumpAndSettle();
+    expect(find.textContaining('does not contact emergency services'), findsOneWidget);
+    expect(find.textContaining('does not release food custody'), findsNothing);
+    await tester.tap(find.descendant(of: find.byKey(const ValueKey('help-report-info')), matching: find.byType(IconButton)));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('does not release food custody'), findsOneWidget);
+  });
 }

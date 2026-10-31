@@ -90,6 +90,10 @@ void main() {
     await tester.pumpAndSettle();
     expect(api.requested, [history.id(1), history.id(4)]);
     expect(find.text('1 × Fixture food'), findsOneWidget);
+    expect(find.text('Read-only. Creates no order.'), findsOneWidget);
+    expect(find.textContaining('Read-only suggestions from your latest 30'), findsNothing);
+    await tester.tap(find.descendant(of: find.byKey(const ValueKey('order-again-info')), matching: find.byType(IconButton)));
+    await tester.pumpAndSettle();
     expect(
       find.textContaining('Read-only suggestions from your latest 30'),
       findsOneWidget,
@@ -98,6 +102,8 @@ void main() {
       find.textContaining('This page creates no order or payment'),
       findsOneWidget,
     );
+    await tester.tap(find.byKey(const ValueKey('bitpos-info-close')));
+    await tester.pumpAndSettle();
     expect(find.textContaining('2.70'), findsNothing);
     expect(find.byType(FilledButton), findsNothing);
     expect(tester.takeException(), isNull);

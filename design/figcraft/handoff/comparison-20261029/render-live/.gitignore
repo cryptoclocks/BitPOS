@@ -1,0 +1,8 @@
+*.png
+shots/
+logs/
+probe/
+.users.json
+.fixture.json
+.orders.json
+*.csv

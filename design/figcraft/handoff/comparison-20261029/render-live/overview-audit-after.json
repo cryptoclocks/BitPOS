@@ -1,0 +1,394 @@
+[
+ {
+  "label": "main",
+  "tz": "Asia/Bangkok",
+  "expected": {
+   "day": "2026-10-29",
+   "orders": 11,
+   "paid": 8,
+   "salesMinor": "5250",
+   "inProgress": 6,
+   "hours": {
+    "0": 2,
+    "6": 2,
+    "9": 2,
+    "12": 2
+   },
+   "recent": [
+    {
+     "id": "fdca666e",
+     "hhmm": "13:20"
+    },
+    {
+     "id": "e8635fab",
+     "hhmm": "13:10"
+    },
+    {
+     "id": "bb17cfbc",
+     "hhmm": "13:00"
+    },
+    {
+     "id": "592dfa97",
+     "hhmm": "12:20"
+    },
+    {
+     "id": "97896d1b",
+     "hhmm": "12:00"
+    }
+   ]
+  },
+  "fullTotals": {
+   "orders": 11,
+   "paid": 8,
+   "salesMinor": "5250"
+  },
+  "got": {
+   "salesText": "USD 52.50",
+   "paidText": "8 paid orders",
+   "orders": 11,
+   "inProgress": 6,
+   "hours": {
+    "0": 2,
+    "6": 2,
+    "9": 2,
+    "12": 2
+   },
+   "recent": [
+    {
+     "id": "fdca666e",
+     "hhmm": "13:20"
+    },
+    {
+     "id": "e8635fab",
+     "hhmm": "13:10"
+    },
+    {
+     "id": "bb17cfbc",
+     "hhmm": "13:00"
+    },
+    {
+     "id": "592dfa97",
+     "hhmm": "12:20"
+    },
+    {
+     "id": "97896d1b",
+     "hhmm": "12:00"
+    }
+   ]
+  },
+  "checks": {
+   "sales": true,
+   "paidCount": true,
+   "orders": true,
+   "inProgress": true,
+   "hourly": true,
+   "recentIds": true,
+   "noticeWhenTruncated": true,
+   "recentTimes": true
+  }
+ },
+ {
+  "label": "main",
+  "tz": "America/New_York",
+  "expected": {
+   "day": "2026-10-29",
+   "orders": 11,
+   "paid": 8,
+   "salesMinor": "5250",
+   "inProgress": 6,
+   "hours": {
+    "0": 2,
+    "6": 2,
+    "9": 2,
+    "12": 2
+   },
+   "recent": [
+    {
+     "id": "fdca666e",
+     "hhmm": "13:20"
+    },
+    {
+     "id": "e8635fab",
+     "hhmm": "13:10"
+    },
+    {
+     "id": "bb17cfbc",
+     "hhmm": "13:00"
+    },
+    {
+     "id": "592dfa97",
+     "hhmm": "12:20"
+    },
+    {
+     "id": "97896d1b",
+     "hhmm": "12:00"
+    }
+   ]
+  },
+  "fullTotals": {
+   "orders": 11,
+   "paid": 8,
+   "salesMinor": "5250"
+  },
+  "got": {
+   "salesText": "USD 52.50",
+   "paidText": "8 paid orders",
+   "orders": 11,
+   "inProgress": 6,
+   "hours": {
+    "0": 2,
+    "6": 2,
+    "9": 2,
+    "12": 2
+   },
+   "recent": [
+    {
+     "id": "fdca666e",
+     "hhmm": "13:20"
+    },
+    {
+     "id": "e8635fab",
+     "hhmm": "13:10"
+    },
+    {
+     "id": "bb17cfbc",
+     "hhmm": "13:00"
+    },
+    {
+     "id": "592dfa97",
+     "hhmm": "12:20"
+    },
+    {
+     "id": "97896d1b",
+     "hhmm": "12:00"
+    }
+   ]
+  },
+  "checks": {
+   "sales": true,
+   "paidCount": true,
+   "orders": true,
+   "inProgress": true,
+   "hourly": true,
+   "recentIds": true,
+   "noticeWhenTruncated": true,
+   "recentTimes": true
+  }
+ },
+ {
+  "label": "bulk(230 paid today)",
+  "tz": "Asia/Bangkok",
+  "expected": {
+   "day": "2026-10-29",
+   "orders": 200,
+   "paid": 200,
+   "salesMinor": "60000",
+   "inProgress": 200,
+   "hours": {
+    "2": 15,
+    "3": 15,
+    "4": 15,
+    "5": 15,
+    "6": 15,
+    "7": 15,
+    "8": 15,
+    "9": 15,
+    "10": 15,
+    "11": 15,
+    "12": 15,
+    "13": 15,
+    "14": 15,
+    "15": 5
+   },
+   "recent": [
+    {
+     "id": "1dc4fabe",
+     "hhmm": "15:16"
+    },
+    {
+     "id": "7190a56c",
+     "hhmm": "15:12"
+    },
+    {
+     "id": "513703e5",
+     "hhmm": "15:08"
+    },
+    {
+     "id": "73012113",
+     "hhmm": "15:04"
+    },
+    {
+     "id": "522bcd3c",
+     "hhmm": "15:00"
+    }
+   ]
+  },
+  "fullTotals": {
+   "orders": 230,
+   "paid": 230,
+   "salesMinor": "69000"
+  },
+  "got": {
+   "salesText": "USD 600.00",
+   "paidText": "200 paid orders",
+   "orders": 200,
+   "inProgress": 200,
+   "hours": {
+    "2": 15,
+    "3": 15,
+    "4": 15,
+    "5": 15,
+    "6": 15,
+    "7": 15,
+    "8": 15,
+    "9": 15,
+    "10": 15,
+    "11": 15,
+    "12": 15,
+    "13": 15,
+    "14": 15,
+    "15": 5
+   },
+   "recent": [
+    {
+     "id": "1dc4fabe",
+     "hhmm": "15:16"
+    },
+    {
+     "id": "7190a56c",
+     "hhmm": "15:12"
+    },
+    {
+     "id": "513703e5",
+     "hhmm": "15:08"
+    },
+    {
+     "id": "73012113",
+     "hhmm": "15:04"
+    },
+    {
+     "id": "522bcd3c",
+     "hhmm": "15:00"
+    }
+   ]
+  },
+  "checks": {
+   "sales": true,
+   "paidCount": true,
+   "orders": true,
+   "inProgress": true,
+   "hourly": true,
+   "recentIds": true,
+   "noticeWhenTruncated": true,
+   "recentTimes": true
+  }
+ },
+ {
+  "label": "bulk(230 paid today)",
+  "tz": "America/New_York",
+  "expected": {
+   "day": "2026-10-29",
+   "orders": 200,
+   "paid": 200,
+   "salesMinor": "60000",
+   "inProgress": 200,
+   "hours": {
+    "2": 15,
+    "3": 15,
+    "4": 15,
+    "5": 15,
+    "6": 15,
+    "7": 15,
+    "8": 15,
+    "9": 15,
+    "10": 15,
+    "11": 15,
+    "12": 15,
+    "13": 15,
+    "14": 15,
+    "15": 5
+   },
+   "recent": [
+    {
+     "id": "1dc4fabe",
+     "hhmm": "15:16"
+    },
+    {
+     "id": "7190a56c",
+     "hhmm": "15:12"
+    },
+    {
+     "id": "513703e5",
+     "hhmm": "15:08"
+    },
+    {
+     "id": "73012113",
+     "hhmm": "15:04"
+    },
+    {
+     "id": "522bcd3c",
+     "hhmm": "15:00"
+    }
+   ]
+  },
+  "fullTotals": {
+   "orders": 230,
+   "paid": 230,
+   "salesMinor": "69000"
+  },
+  "got": {
+   "salesText": "USD 600.00",
+   "paidText": "200 paid orders",
+   "orders": 200,
+   "inProgress": 200,
+   "hours": {
+    "2": 15,
+    "3": 15,
+    "4": 15,
+    "5": 15,
+    "6": 15,
+    "7": 15,
+    "8": 15,
+    "9": 15,
+    "10": 15,
+    "11": 15,
+    "12": 15,
+    "13": 15,
+    "14": 15,
+    "15": 5
+   },
+   "recent": [
+    {
+     "id": "1dc4fabe",
+     "hhmm": "15:16"
+    },
+    {
+     "id": "7190a56c",
+     "hhmm": "15:12"
+    },
+    {
+     "id": "513703e5",
+     "hhmm": "15:08"
+    },
+    {
+     "id": "73012113",
+     "hhmm": "15:04"
+    },
+    {
+     "id": "522bcd3c",
+     "hhmm": "15:00"
+    }
+   ]
+  },
+  "checks": {
+   "sales": true,
+   "paidCount": true,
+   "orders": true,
+   "inProgress": true,
+   "hourly": true,
+   "recentIds": true,
+   "noticeWhenTruncated": true,
+   "recentTimes": true
+  }
+ }
+]

@@ -159,9 +159,9 @@ class _AccountPrivacyPageState extends State<AccountPrivacyPage> {
       backgroundColor: const Color(0xfff8f5fc),
       appBar: AppBar(
         backgroundColor: const Color(0xfff8f5fc),
-        leadingWidth: 76,
+        leadingWidth: 84,
         leading: Padding(
-          padding: const EdgeInsets.only(left: 18, right: 10),
+          padding: const EdgeInsets.only(left: 24, right: 12),
           child: Center(
             child: IconButton.filledTonal(
               tooltip: t('กลับไปตั้งค่าบัญชี', 'Back to account settings'),

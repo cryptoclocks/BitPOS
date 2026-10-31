@@ -5,3 +5,9 @@
 /* P30 kitchen queue: four truthful fulfillment columns; payment and delivery stay out of the lane labels. */
 .shell .incoming-board.kitchen-board{grid-template-columns:minmax(0,1fr);max-width:1440px;margin:24px auto;padding:0 28px}.kitchen-board .incoming-browser{padding:0;background:transparent;border:0;box-shadow:none}.kitchen-board .incoming-heading{align-items:flex-end;margin-bottom:24px}.kitchen-board .incoming-heading .eyebrow{margin:0 0 4px;color:var(--bp-primary);font-size:11px;font-weight:700;letter-spacing:.13em}.kitchen-board .incoming-heading h1{font-size:clamp(28px,3vw,38px);line-height:1.25;color:var(--bp-ink)}.kitchen-board .incoming-heading p:not(.eyebrow){max-width:560px;font-size:14px;line-height:1.65}.kitchen-board .order-toolbar{padding:0 0 18px;margin:0 0 20px;border-bottom:1px solid var(--bp-line)}.kitchen-board .order-lane{min-height:560px;height:calc(100dvh - 332px)}.kitchen-board .order-row-main{gap:8px}.kitchen-board .order-origin{align-self:start}.kitchen-board .order-row-end>strong{display:none}.kitchen-board .order-state{align-self:start}.kitchen-board .orders-scope{display:block;margin-top:14px}
 @media(max-width:900px){.shell .incoming-board.kitchen-board{margin:16px auto;padding:0 18px}.kitchen-board .incoming-heading{align-items:flex-start}.kitchen-board .incoming-heading h1{font-size:26px}.kitchen-board .order-toolbar{margin-bottom:14px}.kitchen-board .order-lane{min-height:0;height:auto}.kitchen-board .order-lane:not(:has(.order-row)){display:none}.kitchen-board .order-row-end>strong{display:none}}
+
+/* Kanban drag-and-drop: lanes accept the next fulfillment step only. */
+.order-lane.is-drop-target{outline:2px dashed var(--purple,#64188a);outline-offset:-4px;background:#f3ecfa}
+.order-row.is-dragging{opacity:.5}
+.order-row[draggable="true"]{cursor:grab}
+.order-drag-notice{margin:0 0 .5rem}

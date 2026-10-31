@@ -9,6 +9,7 @@ import 'notification_owner_test.dart' show PushNative;
 
 import 'dart:async';
 
+import 'package:bitpos_customer/presentation/merchant_branch_card.dart';
 import 'package:bitpos_customer/presentation/merchant_search_controls.dart';
 import 'package:bitpos_customer/presentation/merchant_search_empty.dart';
 
@@ -62,6 +63,8 @@ class PagedDiscoveryApi extends DiscoveryApi {
       pickupEnabled: true,
       deliveryEnabled: false,
       version: 1,
+        openNow: null,
+        nextOpenAt: null,
     );
     return MobileBranches(
       branches: cursor == null ? [branch] : [branch, next],
@@ -131,6 +134,8 @@ class TwoMerchantApi extends DiscoveryApi {
     pickupEnabled: true,
     deliveryEnabled: false,
     version: 1,
+        openNow: null,
+        nextOpenAt: null,
   );
   @override
   Future<MobileBranches> branches({
@@ -376,6 +381,8 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.byType(MerchantDiscoveryLoading), findsNothing);
       expect(find.byType(MerchantSearchEmpty), findsNothing);
+      // DS34: transport failure shows the shared error state with its own retry.
+      expect(find.byKey(const ValueKey('bitpos-state-error')), findsOneWidget);
       final retry = find.text('Retry loading merchants');
       await tester.ensureVisible(retry);
       await tester.tap(retry);
@@ -387,6 +394,38 @@ void main() {
       await tester.pumpWidget(const SizedBox.shrink());
     },
   );
+
+  testWidgets('server discovery failure shows shared error state and retries', (
+    tester,
+  ) async {
+    final api = GatedDiscoveryApi();
+    addTearDown(api.close);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SingleChildScrollView(
+            child: FoodPage(
+              api: api,
+              thai: true,
+              onAuthenticationRequired: () => fail('Unexpected auth'),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    api.gate.completeError(const MobileApiException('DISCOVERY_FAILED', 503));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('bitpos-state-error')), findsOneWidget);
+    expect(find.text('โหลดร้านไม่สำเร็จ กรุณาลองใหม่'), findsWidgets);
+    await tester.ensureVisible(find.text('ลองอีกครั้ง'));
+    await tester.tap(find.text('ลองอีกครั้ง'));
+    await tester.pumpAndSettle();
+    expect(api.loads, 2);
+    expect(find.byType(MerchantBranchCard), findsOneWidget);
+    expect(find.byKey(const ValueKey('bitpos-state-error')), findsNothing);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
 
   testWidgets(
     'discovery pagination failure keeps results and exact query then deduplicates retry',

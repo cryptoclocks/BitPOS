@@ -1,9 +1,9 @@
 import type { PrivateOrder } from './table';
-import { channelOf, sumSingleDenomination } from './pos-overview';
+import { channelOf, shopDay, sumSingleDenomination } from './pos-overview';
 import { formatMoney } from './money';
 
-export interface Range { from: string; to: string } // yyyy-mm-dd, local, inclusive
-const dayKey = (iso: string) => { const d = new Date(iso); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+export interface Range { from: string; to: string } // yyyy-mm-dd, shop zone, inclusive
+const dayKey = (iso: string) => shopDay(new Date(iso)); // shop zone (Asia/Bangkok), same as the server reports
 export function inRange(orders: PrivateOrder[], range: Range): PrivateOrder[] {
   return orders.filter(order => order.createdAt && dayKey(order.createdAt) >= range.from && dayKey(order.createdAt) <= range.to);
 }

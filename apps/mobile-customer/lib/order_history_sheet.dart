@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'presentation/customer_order_card.dart';
 import 'presentation/customer_navigation.dart';
 
@@ -29,8 +31,31 @@ class _OrderHistorySheetState extends State<OrderHistorySheet> {
   late List<MobileFoodOrderSummary> _orders = List.of(widget.firstPage.orders);
   late String? _nextCursor = widget.firstPage.nextCursor;
   bool _loading = false;
-  bool _failed = false;
+  bool _failed = false, _reconnecting = false;
   bool _activeOnly = false;
+  Timer? _retryTimer;
+  int _retryAttempt = 0;
+  bool _hasRetry = false;
+  String? _retryCursor;
+  @override
+  void initState() {
+    super.initState();
+    widget.api.reconnects.addListener(_retryNow);
+  }
+
+  @override
+  void dispose() {
+    _retryTimer?.cancel();
+    widget.api.reconnects.removeListener(_retryNow);
+    super.dispose();
+  }
+
+  void _retryNow() {
+    if (!mounted || !_hasRetry || _loading) return;
+    _retryTimer?.cancel();
+    unawaited(_load(_retryCursor));
+  }
+
   String t(String th, String en) => widget.thai ? th : en;
   List<MobileFoodOrderSummary> get _visibleOrders {
     final orders = _orders;
@@ -116,6 +141,7 @@ class _OrderHistorySheetState extends State<OrderHistorySheet> {
     setState(() {
       _loading = true;
       _failed = false;
+      _reconnecting = false;
     });
     try {
       final page = await widget.api.foodOrders(cursor: cursor);
@@ -123,6 +149,8 @@ class _OrderHistorySheetState extends State<OrderHistorySheet> {
       if (cursor != null && page.nextCursor == cursor) {
         throw const FormatException('Repeated order history cursor');
       }
+      _hasRetry = false;
+      _retryAttempt = 0;
       setState(() {
         if (cursor == null) {
           _orders = List.of(page.orders);
@@ -144,7 +172,23 @@ class _OrderHistorySheetState extends State<OrderHistorySheet> {
         widget.onAuthenticationRequired();
         return;
       }
-      setState(() => _failed = true);
+      if (isConnectivityError(error)) {
+        // Transient: retry the same page by itself with backoff.
+        _hasRetry = true;
+        _retryCursor = cursor;
+        final seconds = const [
+          2,
+          4,
+          8,
+          15,
+        ][_retryAttempt < 3 ? _retryAttempt : 3];
+        _retryAttempt++;
+        _retryTimer?.cancel();
+        _retryTimer = Timer(Duration(seconds: seconds), _retryNow);
+        setState(() => _reconnecting = true);
+      } else {
+        setState(() => _failed = true);
+      }
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -160,42 +204,39 @@ class _OrderHistorySheetState extends State<OrderHistorySheet> {
           padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
           child: Column(
             children: [
-              Transform.translate(
-                offset: const Offset(-6, 0),
-                child: Row(
-                  children: [
-                    SizedBox(
-                      width: 44,
-                      height: 44,
-                      child: IconButton(
-                        tooltip: t('กลับ', 'Back'),
-                        onPressed: () => Navigator.pop(context),
-                        style: IconButton.styleFrom(
-                          backgroundColor: Colors.white,
-                          foregroundColor: const Color(0xff64188a),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14),
-                            side: const BorderSide(color: Color(0xffe9e1f1)),
-                          ),
-                        ),
-                        icon: const Icon(Icons.chevron_left, size: 22),
-                      ),
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Text(
-                        t('กิจกรรมของคุณ', 'Your activity'),
-                        style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xff29183f),
+              Row(
+                children: [
+                  SizedBox(
+                    width: 48,
+                    height: 48,
+                    child: IconButton(
+                      tooltip: t('กลับ', 'Back'),
+                      onPressed: () => Navigator.pop(context),
+                      style: IconButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        foregroundColor: const Color(0xff64188a),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          side: const BorderSide(color: Color(0xffe9e1f1)),
                         ),
                       ),
+                      icon: const Icon(Icons.chevron_left, size: 22),
                     ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      t('กิจกรรมของคุณ', 'Your activity'),
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xff29183f),
+                      ),
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 32),
+              const SizedBox(height: 28),
               Align(
                 alignment: Alignment.centerLeft,
                 child: Row(
@@ -220,6 +261,11 @@ class _OrderHistorySheetState extends State<OrderHistorySheet> {
               ),
               const SizedBox(height: 6),
               if (_loading) const LinearProgressIndicator(),
+              if (_reconnecting)
+                Text(
+                  t('กำลังเชื่อมต่อใหม่...', 'Reconnecting...'),
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
               if (_failed)
                 Text(
                   t(
@@ -283,6 +329,7 @@ class _OrderHistorySheetState extends State<OrderHistorySheet> {
               const SizedBox(height: 12),
               Wrap(
                 spacing: 12,
+                alignment: WrapAlignment.center,
                 children: [
                   if (_nextCursor != null)
                     OutlinedButton(

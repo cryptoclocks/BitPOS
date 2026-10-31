@@ -4,6 +4,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:mobile_shared/mobile_api.dart';
 import 'package:mobile_shared/mobile_v1.generated.dart';
 import 'package:mobile_shared/food_dispatch_mutation.dart';
@@ -613,7 +614,18 @@ class _FoodDeliveryPanelState extends State<FoodDeliveryPanel>
 
   Future<void> _issue({required bool rotate}) async {
     final assignment = _work?.assignment;
-    if (_pending != null)
+    final saved = _pending;
+    // The very same saved proof command (same idempotency key) is safe to resend, so the main button
+    // never dead-ends on an unresolved marker that only the secondary retry button could clear.
+    if (saved is FoodDeliveryProofMutation &&
+        assignment != null &&
+        assignment.serviceAvailable &&
+        saved.targetId == assignment.id &&
+        saved.command.rotate == rotate) {
+      await _submit(saved);
+      return;
+    }
+    if (saved != null)
       throw const MobileApiException('PENDING_DISPATCH_RECOVERY_REQUIRED', 409);
     if (assignment == null || !assignment.serviceAvailable)
       throw const MobileApiException('ASSIGNMENT_CHANGED', 409);
@@ -1048,13 +1060,9 @@ class _FoodDeliveryPanelState extends State<FoodDeliveryPanel>
                   if (secretValid)
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: 16),
-                      child: SelectableText(
-                        receipt.secret!,
-                        style: titleStyle,
-                        semanticsLabel: t(
-                          'รหัสส่งมอบอาหาร',
-                          'Delivery proof secret',
-                        ),
+                      child: DeliveryCodeCard(
+                        secret: receipt.secret!,
+                        thai: widget.thai,
                       ),
                     ),
                   if (receipt?.secretRecoveryRequired ?? false)
@@ -1201,6 +1209,82 @@ class _FoodDeliveryPanelState extends State<FoodDeliveryPanel>
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Shows the one-time handover secret large and in groups of four so it can be read aloud or typed by the
+/// rider; the copy button puts the exact original value on the clipboard (spaces are display-only).
+class DeliveryCodeCard extends StatelessWidget {
+  const DeliveryCodeCard({required this.secret, required this.thai});
+  final String secret;
+  final bool thai;
+  static String grouped(String value) {
+    final out = <String>[];
+    for (var i = 0; i < value.length; i += 4)
+      out.add(value.substring(i, i + 4 > value.length ? value.length : i + 4));
+    return out.join(' ');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    String t(String th, String en) => thai ? th : en;
+    return Container(
+      key: const ValueKey('delivery-code-card'),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: colors.primaryContainer,
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            t('รหัสส่งมอบอาหาร', 'Delivery code'),
+            style: Theme.of(context).textTheme.labelLarge,
+          ),
+          const SizedBox(height: 8),
+          SelectableText(
+            grouped(secret),
+            key: const ValueKey('delivery-code-text'),
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontFamily: 'monospace',
+              // A slashed zero keeps 0 and O apart; the code is case- and shape-sensitive.
+              fontFeatures: const [FontFeature.slashedZero()],
+              letterSpacing: 1,
+              fontSize: 24,
+              height: 1.5,
+              fontWeight: FontWeight.w700,
+              color: colors.onPrimaryContainer,
+            ),
+            semanticsLabel: t('รหัสส่งมอบอาหาร', 'Delivery proof secret'),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            t(
+              'ช่องว่างใช้แบ่งอ่านเท่านั้น ไม่ต้องพิมพ์ ตัวพิมพ์เล็ก/ใหญ่มีความหมาย',
+              'Spaces are only for reading; do not type them. Upper and lower case matter.',
+            ),
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            key: const ValueKey('delivery-code-copy'),
+            onPressed: () async {
+              await Clipboard.setData(ClipboardData(text: secret));
+              if (context.mounted)
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(t('คัดลอกรหัสแล้ว', 'Code copied'))),
+                );
+            },
+            icon: const Icon(Icons.copy),
+            label: Text(t('คัดลอกรหัส', 'Copy code')),
+          ),
+        ],
+      ),
     );
   }
 }

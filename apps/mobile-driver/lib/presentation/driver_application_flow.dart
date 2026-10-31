@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mobile_shared/presentation/bitpos_layout.dart';
 
 import 'package:mobile_shared/bitpos_design_tokens.dart';
 import 'package:mobile_shared/presentation/bitpos_controls.dart';
@@ -88,20 +89,12 @@ class DriverApplicationFlow extends StatelessWidget {
           Row(
             children: [
               if (onBack != null)
-                IconButton(
+                BitPosBackTile(
                   key: const ValueKey('driver-application-back'),
                   onPressed: onBack,
-                  style: IconButton.styleFrom(
-                    minimumSize: const Size(48, 48),
-                    backgroundColor: colors.surface,
-                    side: BorderSide(color: colors.outlineVariant),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                  ),
-                  icon: const Icon(Icons.chevron_left),
                   tooltip: t('ย้อนกลับ', 'Back'),
                 ),
+              if (onBack != null) const SizedBox(width: 12),
               Expanded(
                 child: Text(
                   title,

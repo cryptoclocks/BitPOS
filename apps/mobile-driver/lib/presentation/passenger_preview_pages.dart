@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mobile_shared/presentation/bitpos_layout.dart';
 
 import 'driver_navigation.dart';
 
@@ -40,24 +41,9 @@ class PassengerPreviewFrame extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: _bg,
         toolbarHeight: 72,
-        leadingWidth: 76,
+        leadingWidth: BitPosLayout.leadingWidth,
         titleSpacing: 0,
-        leading: Padding(
-          padding: const EdgeInsets.fromLTRB(18, 14, 14, 14),
-          child: IconButton.filledTonal(
-            tooltip: MaterialLocalizations.of(context).backButtonTooltip,
-            onPressed: () => Navigator.of(context).maybePop(),
-            style: IconButton.styleFrom(
-              backgroundColor: Colors.white,
-              foregroundColor: _purple,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
-                side: const BorderSide(color: _border),
-              ),
-            ),
-            icon: const Icon(Icons.chevron_left, size: 22),
-          ),
-        ),
+        leading: const BitPosBackButton(),
         title: Text(
           title,
           style: const TextStyle(

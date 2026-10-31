@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:mobile_shared/presentation/bitpos_layout.dart';
 import 'package:mobile_shared/mobile_api.dart';
 import 'package:mobile_shared/mobile_v1.generated.dart';
 import 'package:mobile_shared/bitpos_theme.dart';
@@ -162,7 +163,8 @@ class _DriverFoodCompensationPageState extends State<DriverFoodCompensationPage>
   @override
   Widget build(BuildContext context) => DriverPresentation(
     child: Scaffold(
-      appBar: AppBar(
+      appBar: bitPosAppBar(
+        context,
         title: Text(t('ค่าชดเชยงานคืนอาหาร', 'Returned food compensation')),
       ),
       body: ListView(

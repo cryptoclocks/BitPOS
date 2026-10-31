@@ -116,10 +116,10 @@ class _AddressPinPageState extends State<AddressPinPage> {
         toolbarHeight:
             (112.0 - MediaQuery.paddingOf(context).top).clamp(48.0, 68.0) +
             largeText * 2,
-        leadingWidth: 76,
+        leadingWidth: 84,
         titleSpacing: 0,
         leading: Padding(
-          padding: const EdgeInsets.only(left: 18, right: 10),
+          padding: const EdgeInsets.only(left: 24, right: 12),
           child: Center(
             child: IconButton.filledTonal(
               tooltip: MaterialLocalizations.of(context).backButtonTooltip,
@@ -225,33 +225,53 @@ class _AddressPinPageState extends State<AddressPinPage> {
                       )
                     : ColoredBox(
                         color: colors.surfaceContainerHighest,
-                        child: SingleChildScrollView(
-                          padding: const EdgeInsets.all(32),
-                          child: Column(
-                            children: [
-                              Icon(
-                                Icons.map_outlined,
-                                size: 42,
-                                color: colors.onSurfaceVariant,
+                        child: LayoutBuilder(
+                          builder: (context, box) => SingleChildScrollView(
+                            padding: EdgeInsets.fromLTRB(
+                              32,
+                              32,
+                              32,
+                              32 + sheetHeight,
+                            ),
+                            child: ConstrainedBox(
+                              constraints: BoxConstraints(
+                                minHeight: (box.maxHeight - 64 - sheetHeight)
+                                    .clamp(0.0, double.infinity),
                               ),
-                              const SizedBox(height: 12),
-                              Text(
-                                t(
-                                  'แผนที่ยังไม่พร้อมใช้งาน',
-                                  'Map is unavailable',
+                              child: Center(
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.map_outlined,
+                                      size: 42,
+                                      color: colors.onSurfaceVariant,
+                                    ),
+                                    const SizedBox(height: 12),
+                                    Text(
+                                      t(
+                                        'แผนที่ยังไม่พร้อมใช้งาน',
+                                        'Map is unavailable',
+                                      ),
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .titleMedium,
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      t(
+                                        'ยังไม่ได้ตั้งค่าผู้ให้บริการแผนที่ คุณระบุพิกัดด้านล่างได้โดยไม่ต้องเปิด GPS',
+                                        'A map provider is not configured. Enter coordinates below without using GPS.',
+                                      ),
+                                      textAlign: TextAlign.center,
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodySmall,
+                                    ),
+                                  ],
                                 ),
-                                style: Theme.of(context).textTheme.titleMedium,
                               ),
-                              const SizedBox(height: 8),
-                              Text(
-                                t(
-                                  'ยังไม่ได้ตั้งค่าผู้ให้บริการแผนที่ คุณระบุพิกัดด้านล่างได้โดยไม่ต้องเปิด GPS',
-                                  'A map provider is not configured. Enter coordinates below without using GPS.',
-                                ),
-                                textAlign: TextAlign.center,
-                                style: Theme.of(context).textTheme.bodySmall,
-                              ),
-                            ],
+                            ),
                           ),
                         ),
                       ),

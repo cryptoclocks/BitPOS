@@ -20,6 +20,7 @@ import {cancelUnpaidOrder} from './order-closure';
 import {fulfillmentRequest} from './fulfillment';
 import {mobileFoodRequest,decideOnlineOrder} from './mobile-food';
 import {mobileProfileRequest} from './mobile-profile';
+import {mobileRewardVoucherRequest,rewardSettings} from './reward-vouchers';
 import {mobileRideRequest} from './mobile-rides';
 import {mobileGroupRequest} from './mobile-groups';
 import {driverPlatformRequest,driverPlatformError} from './driver-platform';
@@ -34,6 +35,8 @@ import {FoodMerchantWorkSchema,FoodMerchantProofIssueCommandSchema,FoodProofIssu
 import {productOptions,publishProductOptions} from './online-options';
 import {promotionsRequest} from './promotions';
 import {servePromotionMedia} from './promotion-assets';
+import {serveProductImage,uploadProductImage,readRaw,maxProductImageBytes} from './product-images';
+import {readProductStory,writeProductStory} from './product-story';
 import {currentScreen} from './device-commands';
 import {avatar,hash,challengeMessage,liveOrder} from '../../../packages/domain/src/index';
 import {build,validateSigned,assertPaymentMessage} from './payments';
@@ -51,6 +54,8 @@ import {demoAccessEnabled,demoCredentials,demoRoles,type DemoRole} from './demo-
 import {assertOrderRepeatLimit,collectionSettings} from './coffee-order-constraints';
 import {openingHoursSettings} from './opening-hours';
 import {salesReport} from './reports';
+import {overviewSummary} from './overview-summary';
+import {reportExport} from './report-exports';
 import {merchantReturns} from './merchant-returns';
 import {suppliersRequest} from './suppliers';
 import {shiftsRequest} from './shifts';
@@ -120,7 +125,7 @@ async function login(credentials:z.infer<typeof credentialsSchema>,demoRole?:Dem
  return {token,userId:auth.user.id,merchantId:membership.merchant_id,role:membership.role};
 }
 export async function handle(req:http.IncomingMessage){
- const url=new URL(req.url??'/',config.PUBLIC_URL),path=url.pathname,method=req.method;let input:unknown;if(['POST','PUT','PATCH'].includes(method??''))input=await body(req,method==='POST'&&path==='/api/mobile/v1/food/quotes'?2*1024*1024:/^\/api\/table\/[A-Za-z0-9_-]{43}\/visit\/[A-Za-z0-9_-]{43}\/transcribe$/.test(path)?2900000:/^\/api\/customers(?:\/[0-9a-f-]{36})?$/.test(path)||/^\/api\/products\/[0-9a-f-]{36}\/online-options$/.test(path)?160000:16384);
+ const url=new URL(req.url??'/',config.PUBLIC_URL),path=url.pathname,method=req.method;let input:unknown;if(['POST','PUT','PATCH'].includes(method??'')&&path!=='/api/product-images')input=await body(req,method==='POST'&&path==='/api/mobile/v1/food/quotes'?2*1024*1024:/^\/api\/table\/[A-Za-z0-9_-]{43}\/visit\/[A-Za-z0-9_-]{43}\/transcribe$/.test(path)?2900000:/^\/api\/customers(?:\/[0-9a-f-]{36})?$/.test(path)||/^\/api\/products\/[0-9a-f-]{36}\/online-options$/.test(path)?160000:16384);
  if(path.startsWith('/api/mobile/v1/')){
   const result=await mobileAuthRequest(path,method??'GET',input,req.headers.authorization,mobileClientAddress(req));
   if(result!==undefined)return result;
@@ -134,6 +139,8 @@ export async function handle(req:http.IncomingMessage){
   if(support!==undefined)return support;
   const favourites=await mobileFavouritesRequest(url,method??'GET',input,req.headers.authorization);
   if(favourites!==undefined)return favourites;
+  const rewardVouchers=await mobileRewardVoucherRequest(url,method??'GET',input,req.headers.authorization);
+  if(rewardVouchers!==undefined)return rewardVouchers;
   const profile=await mobileProfileRequest(url,method??'GET',input,req.headers.authorization);
   if(profile!==undefined)return profile;
   const rides=await mobileRideRequest(url,method??'GET',input,req.headers.authorization);
@@ -233,6 +240,7 @@ export async function handle(req:http.IncomingMessage){
  });}
  const token=req.headers.authorization?.match(/^Bearer (.+)$/)?.[1];if(!token)fail('AUTH_REQUIRED',401);
  const session=(await pool.query('SELECT s.*,m.role AS current_role FROM sessions s JOIN members m ON m.user_id=s.user_id AND m.merchant_id=s.merchant_id WHERE token_hash=$1 AND expires_at>now()',[hash(token)])).rows[0];if(!session)fail('AUTH_REQUIRED',401);const merchant=session.merchant_id;
+ if(path==='/api/product-images'&&method==='POST'){const bytes=await readRaw(req,maxProductImageBytes);return tenant(merchant,db=>uploadProductImage(db,merchant,session.user_id,session.current_role,bytes));}
  return tenant(merchant,async db=>{
  const returned=await merchantFoodReturnRequest(db,url,method??'GET',input,session.current_role,hash(token));if(returned!==undefined)return returned;
  if(path==='/api/session'){if(method==='DELETE'){await db.query('DELETE FROM sessions WHERE token_hash=$1',[hash(token)]);await audit(db,merchant,session.user_id,'session.logout',session.user_id);return {ok:true};}if(method==='GET')return {userId:session.user_id,merchantId:merchant,role:session.current_role};}
@@ -240,7 +248,9 @@ export async function handle(req:http.IncomingMessage){
  if(path==='/api/settings/payment-assets')return merchantPaymentAssets(db,merchant,session.user_id,session.current_role,method??'',input);
  if(path==='/api/inventory/stock'||path==='/api/inventory/movements'||path==='/api/inventory/reorder')return inventoryRequest(db,merchant,session.user_id,session.current_role,url,method??'GET',input);
  if(path==='/api/activity'&&method==='GET')return activityHistory(db,merchant,session.current_role,url);
+ if(path==='/api/overview/summary'&&method==='GET')return overviewSummary(db,merchant,session.current_role,url);
  if(path==='/api/reports/sales'&&method==='GET')return salesReport(db,merchant,session.current_role,url);
+ if(path==='/api/reports/export'&&method==='GET')return reportExport(db,merchant,session.user_id,session.current_role,url);
  if(path==='/api/returns'&&method==='GET')return merchantReturns(db,merchant,session.current_role,url);
  if(path==='/api/shifts'||path==='/api/shifts/close')return shiftsRequest(db,merchant,session.user_id,session.current_role,url,method??'GET',input);
  if(path==='/api/team'||/^\/api\/team\/[0-9a-f-]{36}$/.test(path))return teamRequest(db,merchant,session.user_id,session.current_role,url,method??'GET',input);
@@ -249,6 +259,7 @@ export async function handle(req:http.IncomingMessage){
  if(path==='/api/settings/collection'&&(method==='GET'||method==='PUT'))return collectionSettings(db,merchant,session.user_id,session.current_role,method,input);
  if(path.startsWith('/api/promotions')){const result=await promotionsRequest(db,merchant,session.user_id,session.current_role,path,method??'',input);if(result!==undefined)return result;}
  const registered=await registry(db,merchant,session.user_id,session.current_role,path,method??'',input);if(registered!==undefined)return registered;
+ if(path==='/api/settings/rewards')return rewardSettings(db,merchant,session.user_id,session.current_role,method??'GET',input);
  if(path==='/api/settings/pricing'){if(method==='GET')return pricingView(db,merchant);if(method==='PUT')return publishPrices(db,merchant,session.user_id,session.current_role,input);}
  const registerOrder=path.match(/^\/api\/registers\/([^/]+)\/(quotes|orders|submissions)(?:\/([^/]+)(?:\/(dismiss))?)?$/);
  if(registerOrder){const id=uuid.parse(registerOrder[1]);const action=registerOrder[2];
@@ -279,6 +290,9 @@ export async function handle(req:http.IncomingMessage){
  if(recovery&&method==='POST'){requireRole(session.current_role);z.object({resolution:z.literal('acknowledged')}).strict().parse(input);const o=(await db.query('SELECT * FROM orders WHERE id=$1 FOR UPDATE',[uuid.parse(recovery[1])])).rows[0];if(!o)fail('RESOURCE_NOT_FOUND',404);if(o.status!=='RECOVERY')fail('RECOVERY_REQUIRED');if((await db.query("SELECT 1 FROM payment_attempts WHERE order_id=$1 AND status IN ('BUILDING','READY','SUBMITTING','SUBMITTED','CONFIRMED')",[o.id])).rowCount)fail('PAYMENT_PENDING');await db.query('UPDATE orders SET recovery_resolved_at=coalesce(recovery_resolved_at,clock_timestamp()) WHERE id=$1',[o.id]);await audit(db,merchant,session.user_id,'order.recovery.acknowledged',o.id);return {ok:true};}
  const productArchive=path.match(/^\/api\/products\/([^/]+)\/(archive|unarchive)$/);
  if(productArchive&&method==='POST')return (productArchive[2]==='archive'?archiveProduct:unarchiveProduct)(db,merchant,session.user_id,session.current_role,productArchive[1]);
+ const productStory=path.match(/^\/api\/products\/([^/]+)\/story$/);
+ if(productStory&&method==='GET')return readProductStory(db,merchant,session.current_role,productStory[1]);
+ if(productStory&&method==='PUT')return writeProductStory(db,merchant,session.user_id,session.current_role,productStory[1],input);
  const productEdit=path.match(/^\/api\/products\/([^/]+)$/);
  if(productEdit&&method==='PATCH')return editProduct(db,merchant,session.user_id,session.current_role,productEdit[1],input);
  if(path==='/api/products'&&method==='POST')return createProduct(db,merchant,session.user_id,session.current_role,input);
@@ -298,5 +312,5 @@ export async function handle(req:http.IncomingMessage){
  });
 }
 import {foodRealtime,attachFoodRealtime} from './food-realtime';
-export const server=http.createServer(async(req,res)=>{try{if(await foodRealtime(req,res)||await foodChatImages(req,res)||await servePromotionMedia(req,res)||await serveX402(req,res))return;const stream=(req.url??'').match(/^\/api\/pay\/([A-Za-z0-9_-]+)\/events$/);if(req.method==='GET'&&stream){await paymentStream(req,res,stream[1]);return;}const result=await handle(req);const created=req.method==='POST'&&/^\/api\/registers\/[^/]+\/orders$/.test(new URL(req.url??'/',config.PUBLIC_URL).pathname)&&!('replayed' in result&&result.replayed);res.writeHead(created?201:200,{'Content-Type':'application/json','Cache-Control':'no-store'});res.end(JSON.stringify(result));}catch(error){const e=errorView(error);res.writeHead(e.status,{'Content-Type':'application/json','Cache-Control':'no-store'});res.end(JSON.stringify({error:e.view}));}});
+export const server=http.createServer(async(req,res)=>{try{if(await foodRealtime(req,res)||await foodChatImages(req,res)||await servePromotionMedia(req,res)||await serveProductImage(req,res)||await serveX402(req,res))return;const stream=(req.url??'').match(/^\/api\/pay\/([A-Za-z0-9_-]+)\/events$/);if(req.method==='GET'&&stream){await paymentStream(req,res,stream[1]);return;}const result=await handle(req);const created=req.method==='POST'&&/^\/api\/registers\/[^/]+\/orders$/.test(new URL(req.url??'/',config.PUBLIC_URL).pathname)&&!('replayed' in result&&result.replayed);res.writeHead(created?201:200,{'Content-Type':'application/json','Cache-Control':'no-store'});res.end(JSON.stringify(result));}catch(error){const e=errorView(error);res.writeHead(e.status,{'Content-Type':'application/json','Cache-Control':'no-store'});res.end(JSON.stringify({error:e.view}));}});
 attachDevices(server);attachFoodRealtime(server);if(process.argv[1]?.endsWith('/api/src/index.ts'))server.listen(3001,process.env.BITPOS_BIND_HOST==='127.0.0.1'?'127.0.0.1':'0.0.0.0');

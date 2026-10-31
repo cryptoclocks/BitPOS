@@ -15,6 +15,7 @@ MobileProduct product({int available = 2, bool priced = true}) => MobileProduct(
   category: 'กาแฟ',
   description: 'รายละเอียดสินค้าและตัวเลือกจากร้าน',
   imageUrl: '',
+  story: MobileProductStory(story: '', storyEn: '', ingredients: '', ingredientsEn: '', benefits: '', benefitsEn: '', videoUrl: ''),
   available: available,
   unitPrice: priced
       ? MobileMoney(currency: 'USD', decimals: 2, amountMinor: '270')

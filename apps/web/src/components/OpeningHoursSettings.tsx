@@ -40,6 +40,7 @@ export default function OpeningHoursSettings({ session, language }: { session: S
   return <section className="panel" aria-label={text('สาขาและเวลาทำการ', 'Branch & opening hours')}>
     <h2>{text('สาขาและเวลาทำการ', 'Branch & opening hours')}</h2>
     <p>{text('เวลาเปิด-ปิดรายสัปดาห์ตามเขตเวลาของร้าน ช่วงเวลาข้ามเที่ยงคืนให้แยกเป็นสองวัน', 'Weekly opening windows in the shop’s time zone. Overnight service is entered as two windows on adjacent days.')}</p>
+    <p className="notice" role="note" data-blocked="multi-branch">{text('ตอนนี้ตั้งเวลาทำการได้หนึ่งชุดต่อร้าน เวลาทำการแยกรายสาขายังไม่พร้อมใช้งาน (BLOCKED)', 'One schedule per shop for now. Per-branch hours are BLOCKED (no multi-branch model yet).')}</p>
     {state === 'loading' && <p className="notice" role="status">{text('กำลังโหลด…', 'Loading…')}</p>}
     {view && !view.configured && <p className="notice" role="status">{text('ยังไม่เคยตั้งเวลาทำการ', 'Opening hours have not been set yet.')}</p>}
     {view && <>

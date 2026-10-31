@@ -5559,7 +5559,7 @@
             "mobileBearer": []
           }
         ],
-        "x-bitpos-admission": "Return+finance+BITPOS_FOOD_REFUND_EXECUTION_READ_ENABLED=1; reviewed108\u2013116 schema/grants; scoped administrator; default disabled",
+        "x-bitpos-admission": "Return+finance+BITPOS_FOOD_REFUND_EXECUTION_READ_ENABLED=1; reviewed108–116 schema/grants; scoped administrator; default disabled",
         "responses": {
           "200": {
             "description": "Return operational authority; financial review pending is not refund execution.",
@@ -6011,6 +6011,215 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/MobileRideLocationConsent"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/food/quotes/{quoteId}/coupon": {
+      "parameters": [
+        {
+          "name": "quoteId",
+          "in": "path",
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "required": true
+        }
+      ],
+      "post": {
+        "operationId": "applyFoodCoupon",
+        "security": [
+          {
+            "mobileBearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MobileCouponApplyRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Replacement server quote with the coupon discount computed in integer minor units (merchant-funded, non-zero payable only); refusals are QUOTE_CHANGED with reasonCode or CONFIGURATION_REQUIRED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileCouponQuote"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/food/quotes/{quoteId}/schedule-hold": {
+      "parameters": [
+        {
+          "name": "quoteId",
+          "in": "path",
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "required": true
+        }
+      ],
+      "post": {
+        "operationId": "holdFoodScheduleSlot",
+        "security": [
+          {
+            "mobileBearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MobileScheduleHoldRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Server-held schedule slot bound to the quote; capacity and release instants are server-owned",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileScheduleHold"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/branches/{branchId}/schedule-slots": {
+      "parameters": [
+        {
+          "name": "branchId",
+          "in": "path",
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "required": true
+        }
+      ],
+      "get": {
+        "operationId": "branchScheduleSlots",
+        "security": [
+          {
+            "mobileBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "serving",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "pickup",
+                "delivery"
+              ]
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Currently bookable published slots; an empty list means the branch publishes none",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileScheduleSlots"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/account/rewards/catalog": {
+      "get": {
+        "operationId": "getRewardCatalog",
+        "security": [
+          {
+            "mobileBearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Rewards of shops where the caller has a paid order, with the caller's per-shop balance (points of that shop's paid refund-free orders minus redemptions). Redeemable is computed by the server.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileRewardCatalog"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/account/rewards/redeem": {
+      "post": {
+        "operationId": "redeemReward",
+        "security": [
+          {
+            "mobileBearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MobileRewardRedeemRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Debits the reward's points and issues one single-use voucher in one transaction; the same idempotency key replays the same voucher. 409 REWARD_INSUFFICIENT_POINTS / REWARD_UNAVAILABLE, 409 IDEMPOTENCY_CONFLICT.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileRewardRedemption"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/account/vouchers": {
+      "get": {
+        "operationId": "listVouchers",
+        "security": [
+          {
+            "mobileBearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The caller's newest 100 vouchers; state is derived by the server (AVAILABLE, IN_USE, USED, EXPIRED). A voucher is applied by typing its code in the existing cart coupon entry; unused expired vouchers are not credited back.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileVouchers"
+                }
               }
             }
           }
@@ -7222,6 +7431,7 @@
           "expiresAt",
           "pickupLatitudeE7",
           "pickupLongitudeE7",
+          "pickupName",
           "earning",
           "fixture"
         ],
@@ -7255,6 +7465,11 @@
             "type": "integer",
             "minimum": -1800000000,
             "maximum": 1800000000
+          },
+          "pickupName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
           },
           "earning": {
             "$ref": "#/components/schemas/MobileMoney"
@@ -7296,6 +7511,26 @@
           }
         }
       },
+      "FoodDriverPickupItem": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "qty"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "qty": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000
+          }
+        }
+      },
       "FoodDriverAssignment": {
         "type": "object",
         "additionalProperties": false,
@@ -7309,6 +7544,9 @@
           "state",
           "pickupLatitudeE7",
           "pickupLongitudeE7",
+          "pickupName",
+          "pickupAddress",
+          "items",
           "recipientName",
           "phone",
           "addressText",
@@ -7365,6 +7603,22 @@
             "type": "integer",
             "minimum": -1800000000,
             "maximum": 1800000000
+          },
+          "pickupName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "pickupAddress": {
+            "type": "string",
+            "maxLength": 1000
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FoodDriverPickupItem"
+            },
+            "maxItems": 100
           },
           "recipientName": {
             "type": "string",
@@ -9329,7 +9583,9 @@
           "addressLabel",
           "pickupEnabled",
           "deliveryEnabled",
-          "version"
+          "version",
+          "openNow",
+          "nextOpenAt"
         ],
         "properties": {
           "id": {
@@ -9365,6 +9621,27 @@
           "version": {
             "type": "integer",
             "minimum": 1
+          },
+          "openNow": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "nextOpenAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         }
       },
@@ -9852,7 +10129,8 @@
           "available",
           "unitPrice",
           "basePrice",
-          "options"
+          "options",
+          "story"
         ],
         "properties": {
           "id": {
@@ -9905,6 +10183,9 @@
           },
           "options": {
             "$ref": "#/components/schemas/MobileProductOptions"
+          },
+          "story": {
+            "$ref": "#/components/schemas/MobileProductStory"
           }
         }
       },
@@ -9919,7 +10200,8 @@
           "priceVersion",
           "pricingRevision",
           "products",
-          "nextCursor"
+          "nextCursor",
+          "coverUrl"
         ],
         "properties": {
           "branch": {
@@ -9970,6 +10252,10 @@
                 "type": "null"
               }
             ]
+          },
+          "coverUrl": {
+            "type": "string",
+            "maxLength": 2000
           }
         }
       },
@@ -17611,6 +17897,484 @@
                 "type": "null"
               }
             ]
+          }
+        }
+      },
+      "MobileCouponApplyRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "idempotencyKey"
+        ],
+        "properties": {
+          "code": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{2,31}$",
+            "minLength": 3,
+            "maxLength": 32
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "MobileCouponQuote": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "couponCode",
+          "sourceQuoteId",
+          "quote"
+        ],
+        "properties": {
+          "couponCode": {
+            "type": "string",
+            "pattern": "^[A-Z0-9][A-Z0-9_-]{2,31}$",
+            "minLength": 3,
+            "maxLength": 32
+          },
+          "sourceQuoteId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "quote": {
+            "$ref": "#/components/schemas/MobileFoodQuote"
+          }
+        }
+      },
+      "MobileScheduleSlot": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "startsAt",
+          "endsAt",
+          "bookingClosesAt",
+          "timezone"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "startsAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "endsAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "bookingClosesAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "timezone": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          }
+        }
+      },
+      "MobileScheduleSlots": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "branchId",
+          "serving",
+          "slots"
+        ],
+        "properties": {
+          "branchId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "serving": {
+            "type": "string",
+            "enum": [
+              "pickup",
+              "delivery"
+            ]
+          },
+          "slots": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MobileScheduleSlot"
+            },
+            "maxItems": 48
+          }
+        }
+      },
+      "MobileScheduleHoldRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "slotId",
+          "idempotencyKey"
+        ],
+        "properties": {
+          "slotId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "MobileScheduleHold": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "slotId",
+          "quoteId",
+          "state",
+          "expiresAt",
+          "startsAt",
+          "endsAt",
+          "replayed"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "slotId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "quoteId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "HELD",
+              "RELEASED",
+              "EXPIRED"
+            ]
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "startsAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "endsAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "replayed": {
+            "type": "boolean"
+          }
+        }
+      },
+      "MobileRewardOffer": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "balance",
+          "currency",
+          "decimals",
+          "discountMinor",
+          "id",
+          "merchantId",
+          "merchantName",
+          "minimumSpendMinor",
+          "nameEn",
+          "nameTh",
+          "pointsCost",
+          "redeemable",
+          "validityDays"
+        ],
+        "properties": {
+          "merchantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "merchantName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "nameTh": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "nameEn": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "currency": {
+            "type": "string",
+            "enum": [
+              "THB",
+              "USD",
+              "USDG"
+            ]
+          },
+          "decimals": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 6
+          },
+          "discountMinor": {
+            "type": "string",
+            "pattern": "^[0-9]{1,18}$"
+          },
+          "minimumSpendMinor": {
+            "type": "string",
+            "pattern": "^[0-9]{1,18}$"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "pointsCost": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000000
+          },
+          "validityDays": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 365
+          },
+          "balance": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "redeemable": {
+            "type": "boolean"
+          }
+        }
+      },
+      "MobileRewardCatalog": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "generatedAt",
+          "rewards"
+        ],
+        "properties": {
+          "generatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "rewards": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MobileRewardOffer"
+            },
+            "maxItems": 30
+          }
+        }
+      },
+      "MobileRewardRedeemRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "rewardId",
+          "idempotencyKey"
+        ],
+        "properties": {
+          "rewardId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "MobileVoucher": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "createdAt",
+          "currency",
+          "decimals",
+          "discountMinor",
+          "expiresAt",
+          "id",
+          "merchantId",
+          "merchantName",
+          "minimumSpendMinor",
+          "nameEn",
+          "nameTh",
+          "pointsSpent",
+          "rewardId",
+          "state"
+        ],
+        "properties": {
+          "merchantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "merchantName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "nameTh": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "nameEn": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "currency": {
+            "type": "string",
+            "enum": [
+              "THB",
+              "USD",
+              "USDG"
+            ]
+          },
+          "decimals": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 6
+          },
+          "discountMinor": {
+            "type": "string",
+            "pattern": "^[0-9]{1,18}$"
+          },
+          "minimumSpendMinor": {
+            "type": "string",
+            "pattern": "^[0-9]{1,18}$"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "rewardId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "code": {
+            "type": "string",
+            "pattern": "^[A-Z0-9][A-Z0-9_-]{2,31}$"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "AVAILABLE",
+              "IN_USE",
+              "USED",
+              "EXPIRED"
+            ]
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "pointsSpent": {
+            "type": "integer",
+            "minimum": 1
+          }
+        }
+      },
+      "MobileVouchers": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "generatedAt",
+          "vouchers"
+        ],
+        "properties": {
+          "generatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "vouchers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MobileVoucher"
+            },
+            "maxItems": 100
+          }
+        }
+      },
+      "MobileRewardRedemption": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "voucher",
+          "balance",
+          "replayed"
+        ],
+        "properties": {
+          "voucher": {
+            "$ref": "#/components/schemas/MobileVoucher"
+          },
+          "balance": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "replayed": {
+            "type": "boolean"
+          }
+        }
+      },
+      "MobileProductStory": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "story",
+          "storyEn",
+          "ingredients",
+          "ingredientsEn",
+          "benefits",
+          "benefitsEn",
+          "videoUrl"
+        ],
+        "properties": {
+          "story": {
+            "type": "string",
+            "maxLength": 600
+          },
+          "storyEn": {
+            "type": "string",
+            "maxLength": 600
+          },
+          "ingredients": {
+            "type": "string",
+            "maxLength": 300
+          },
+          "ingredientsEn": {
+            "type": "string",
+            "maxLength": 300
+          },
+          "benefits": {
+            "type": "string",
+            "maxLength": 300
+          },
+          "benefitsEn": {
+            "type": "string",
+            "maxLength": 300
+          },
+          "videoUrl": {
+            "type": "string",
+            "maxLength": 200
           }
         }
       }

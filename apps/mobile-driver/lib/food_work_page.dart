@@ -9,6 +9,7 @@ import 'presentation/driver_food_custody_card.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:mobile_shared/presentation/bitpos_layout.dart';
 import 'package:mobile_shared/mobile_api.dart';
 import 'package:mobile_shared/mobile_v1.generated.dart';
 import 'package:mobile_shared/food_dispatch_mutation.dart';
@@ -74,6 +75,7 @@ class _FoodWorkPageState extends State<FoodWorkPage>
       });
     }
   }
+
   Object? _error;
   bool _busy = false, _foreground = true;
   DateTime? _loadedAt;
@@ -232,11 +234,11 @@ class _FoodWorkPageState extends State<FoodWorkPage>
     _custodyIdentity = null;
     removeOwnedRoute(route);
   }
+
   void _retireDetails() {
     _assignedPresentationMode = _AssignedPresentationMode.journey;
     _detailsIdentity = null;
   }
-
 
   late final FoodLocationController _location;
   late final FoodIdleLocationController _idleLocation;
@@ -304,9 +306,54 @@ class _FoodWorkPageState extends State<FoodWorkPage>
     WidgetsBinding.instance.addObserver(this);
     _receiptSession = widget.api.sessionScope;
     _receiptSessions = widget.api.sessionScopes.listen(_receiptOwnerChanged);
+    widget.api.reconnects.addListener(_onReconnect);
     _startWatch();
     unawaited(_run(_load));
   }
+
+  Timer? _retryTimer;
+  int _retryAttempt = 0;
+
+  /// Transient network failure: refresh by itself with backoff, never wait for a tap.
+  void _scheduleRetry() {
+    _retryTimer?.cancel();
+    final seconds = const [2, 4, 8, 15][_retryAttempt < 3 ? _retryAttempt : 3];
+    _retryAttempt++;
+    _retryTimer = Timer(Duration(seconds: seconds), () {
+      if (mounted && _foreground && !_busy && isConnectivityError(_error)) {
+        unawaited(_run(_load));
+      }
+    });
+  }
+
+  void _onReconnect() {
+    if (!mounted || !_foreground || _busy) return;
+    if (_error != null || _work == null) {
+      _retryTimer?.cancel();
+      unawaited(_run(_load));
+    }
+  }
+
+  String _errorText(Object error) {
+    if (isConnectivityError(error)) {
+      return t('กำลังเชื่อมต่อใหม่...', 'Reconnecting...');
+    }
+    if (error is MobileApiException) {
+      return t(
+        'ทำรายการไม่สำเร็จ กรุณาลองอีกครั้ง (${error.code})',
+        'That did not work. Please try again (${error.code}).',
+      );
+    }
+    return t(
+      'ทำรายการไม่สำเร็จ กรุณาลองอีกครั้ง',
+      'That did not work. Please try again.',
+    );
+  }
+
+  Color _errorColor(BuildContext context, Object error) =>
+      isConnectivityError(error)
+      ? Theme.of(context).colorScheme.onSurfaceVariant
+      : Theme.of(context).colorScheme.error;
 
   void _stopWatch() {
     _watchEpoch++;
@@ -332,6 +379,7 @@ class _FoodWorkPageState extends State<FoodWorkPage>
           _loadedAt = null;
           _error = state.error;
         });
+        if (isConnectivityError(state.error)) _scheduleRetry();
         if (state is FoodRealtimeDisconnected) {
           _locationFence = null;
           unawaited(_location.stop());
@@ -513,9 +561,13 @@ class _FoodWorkPageState extends State<FoodWorkPage>
         await Future.wait<void>([_location.stop(), _idleLocation.stop()]);
       }
       if (mounted) setState(() => _error = error);
+      if (isConnectivityError(error)) {
+        _scheduleRetry();
+      }
     } finally {
       if (mounted) setState(() => _busy = false);
     }
+    if (mounted && _error == null) _retryAttempt = 0;
   }
 
   Future<void> _submit(FoodDispatchMutation command) async {
@@ -771,8 +823,13 @@ class _FoodWorkPageState extends State<FoodWorkPage>
     decoration: BoxDecoration(
       color: tinted
           ? Theme.of(context).colorScheme.primaryContainer
-          : Theme.of(context).colorScheme.surface,
+          : Theme.of(context).brightness == Brightness.dark
+          ? Theme.of(context).colorScheme.surface
+          : Colors.white,
       borderRadius: BorderRadius.circular(BitPosDesignTokens.radiusCard),
+      border: tinted
+          ? null
+          : Border.all(color: Theme.of(context).colorScheme.outlineVariant),
     ),
     child: child,
   );
@@ -928,7 +985,10 @@ class _FoodWorkPageState extends State<FoodWorkPage>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    t('ยืนยันส่งมอบเมื่อ (เวลาท้องถิ่น)', 'Delivery confirmed at (local time)'),
+                    t(
+                      'ยืนยันส่งมอบเมื่อ (เวลาท้องถิ่น)',
+                      'Delivery confirmed at (local time)',
+                    ),
                     style: theme.textTheme.bodySmall?.copyWith(
                       fontSize: 13,
                       height: 1.3,
@@ -973,74 +1033,74 @@ class _FoodWorkPageState extends State<FoodWorkPage>
                 ? null
                 : () => _openReceiptEarnings(receipt, owner),
             child: ConstrainedBox(
-            constraints: const BoxConstraints(minHeight: 82),
-            child: Padding(
-              padding: const EdgeInsets.all(14),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  ExcludeSemantics(
-                    child: Container(
-                      width: 44,
-                      height: 44,
-                      decoration: BoxDecoration(
-                        color: dark
-                            ? colors.primaryContainer
-                            : BitPosDesignTokens.tint,
-                        borderRadius: BorderRadius.circular(13),
-                      ),
-                      child: Icon(
-                        Icons.account_balance_wallet_outlined,
-                        size: 22,
-                        color: dark ? colors.onPrimaryContainer : primary,
+              constraints: const BoxConstraints(minHeight: 82),
+              child: Padding(
+                padding: const EdgeInsets.all(14),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    ExcludeSemantics(
+                      child: Container(
+                        width: 44,
+                        height: 44,
+                        decoration: BoxDecoration(
+                          color: dark
+                              ? colors.primaryContainer
+                              : BitPosDesignTokens.tint,
+                          borderRadius: BorderRadius.circular(13),
+                        ),
+                        child: Icon(
+                          Icons.account_balance_wallet_outlined,
+                          size: 22,
+                          color: dark ? colors.onPrimaryContainer : primary,
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          receipt.accrualId != null
-                              ? t(
-                                  'บันทึกภาระรายได้แล้ว',
-                                  'Earning obligation recorded',
-                                )
-                              : t(
-                                  'ยืนยันหลักฐานส่งมอบแล้ว',
-                                  'Delivery proof confirmed',
-                                ),
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontSize: 15,
-                            height: 1.65,
-                            fontWeight: FontWeight.w600,
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            receipt.accrualId != null
+                                ? t(
+                                    'บันทึกภาระรายได้แล้ว',
+                                    'Earning obligation recorded',
+                                  )
+                                : t(
+                                    'ยืนยันหลักฐานส่งมอบแล้ว',
+                                    'Delivery proof confirmed',
+                                  ),
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontSize: 15,
+                              height: 1.65,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          receipt.accrualId != null
-                              ? t(
-                                  'ยังไม่ใช่การจ่ายเงิน ตรวจรายละเอียดในหน้ารายได้',
-                                  'Not paid out. Check details in Earnings.',
-                                )
-                              : t(
-                                  'หลักฐานนี้ยังไม่ยืนยันภาระรายได้ และไม่ใช่หลักฐานการจ่ายเงิน ตรวจสถานะในหน้ารายได้',
-                                  'This receipt does not confirm an earning obligation or a payout. Check Earnings for status.',
-                                ),
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            fontSize: 12,
-                            height: 1.65,
-                            color: muted,
+                          const SizedBox(height: 4),
+                          Text(
+                            receipt.accrualId != null
+                                ? t(
+                                    'ยังไม่ใช่การจ่ายเงิน ตรวจรายละเอียดในหน้ารายได้',
+                                    'Not paid out. Check details in Earnings.',
+                                  )
+                                : t(
+                                    'หลักฐานนี้ยังไม่ยืนยันภาระรายได้ และไม่ใช่หลักฐานการจ่ายเงิน ตรวจสถานะในหน้ารายได้',
+                                    'This receipt does not confirm an earning obligation or a payout. Check Earnings for status.',
+                                  ),
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              fontSize: 12,
+                              height: 1.65,
+                              color: muted,
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
-          ),
           ),
         ),
         const SizedBox(height: 77),
@@ -1078,13 +1138,13 @@ class _FoodWorkPageState extends State<FoodWorkPage>
         hasTravelAssignment &&
         !frozen &&
         _assignedPresentationMode == _AssignedPresentationMode.details &&
-        _detailsIdentity ==
-            (a.id, a.generation, a.leaseGeneration, a.state);
+        _detailsIdentity == (a.id, a.generation, a.leaseGeneration, a.state);
     final navigating = hasTravelAssignment && !showingDetails;
     if (_reportedTravelMode != navigating) {
       _reportedTravelMode = navigating;
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted && _reportedTravelMode == navigating) widget.onTravelModeChanged?.call(navigating);
+        if (mounted && _reportedTravelMode == navigating)
+          widget.onTravelModeChanged?.call(navigating);
       });
     }
     final error =
@@ -1100,29 +1160,22 @@ class _FoodWorkPageState extends State<FoodWorkPage>
             child: ListView(
               key: const ValueKey('food-delivery-completion-page'),
               controller: _workScroll,
-              padding: const EdgeInsets.fromLTRB(24, 28, 24, 24),
+              padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
               children: [
-                Transform.translate(
-                  offset: const Offset(-6, 0),
-                  child: Row(
+                Row(
                   children: [
-                    IconButton.outlined(
+                    BitPosBackTile(
                       key: const ValueKey('food-delivery-return-to-work'),
                       tooltip: t('กลับไปรับงาน', 'Back to work'),
                       onPressed: _returnToWork,
-                      style: IconButton.styleFrom(
-                        backgroundColor: Theme.of(context).colorScheme.surface,
-                        foregroundColor: Theme.of(context).colorScheme.primary,
-                        side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                      ),
-                      constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
-                      icon: const Icon(Icons.chevron_left),
                     ),
-                    const SizedBox(width: 10),
+                    const SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        t('ส่งสำเร็จ ขอบคุณครับ', 'Delivery complete, thank you'),
+                        t(
+                          'ส่งสำเร็จ ขอบคุณครับ',
+                          'Delivery complete, thank you',
+                        ),
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
                           fontSize: 20,
                           fontWeight: FontWeight.w600,
@@ -1131,17 +1184,18 @@ class _FoodWorkPageState extends State<FoodWorkPage>
                     ),
                   ],
                 ),
-                ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 16),
                 _deliveryReceipt(receipt, frozen: false),
                 if (error != null) ...[
                   const SizedBox(height: 16),
                   Semantics(
                     liveRegion: true,
-                    child: _panel(Text(
-                      error.toString(),
-                      style: TextStyle(color: Theme.of(context).colorScheme.error),
-                    )),
+                    child: _panel(
+                      Text(
+                        _errorText(error),
+                        style: TextStyle(color: _errorColor(context, error)),
+                      ),
+                    ),
                   ),
                 ],
               ],
@@ -1174,7 +1228,7 @@ class _FoodWorkPageState extends State<FoodWorkPage>
               navigating ? 0 : BitPosDesignTokens.mobileMargin,
               BitPosDesignTokens.mobileMargin,
             ),
-            children: [
+            children: _gutterIf(navigating, [
               if (duty == null) ...[
                 Align(
                   alignment: Alignment.centerLeft,
@@ -1191,46 +1245,53 @@ class _FoodWorkPageState extends State<FoodWorkPage>
                 const SizedBox(height: 10),
               ],
               Padding(
-                padding: EdgeInsets.symmetric(horizontal: navigating ? 18 : 0),
+                padding: EdgeInsets.symmetric(
+                  horizontal: navigating ? BitPosLayout.gutter : 0,
+                ),
                 child: Row(
-                children: [
-                  if (Navigator.of(context).canPop()) ...[
-                    IconButton.filledTonal(
-                      tooltip: t('กลับ', 'Back'),
-                      onPressed: () => Navigator.of(context).maybePop(),
-                      icon: const Icon(Icons.arrow_back),
+                  children: [
+                    if (Navigator.of(context).canPop()) ...[
+                      BitPosBackTile(
+                        tooltip: t('กลับ', 'Back'),
+                        onPressed: () => Navigator.of(context).maybePop(),
+                      ),
+                      const SizedBox(width: 12),
+                    ],
+                    Expanded(
+                      child: Text(
+                        heading,
+                        style: Theme.of(context).textTheme.headlineSmall
+                            ?.copyWith(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w600,
+                              height: 1.65,
+                            ),
+                      ),
+                    ),
+                    IconButton(
+                      tooltip: t('โหลดใหม่', 'Refresh'),
+                      onPressed: _busy ? null : () => _run(_load),
+                      icon: const Icon(Icons.refresh),
                       constraints: const BoxConstraints(
                         minWidth: 48,
                         minHeight: 48,
                       ),
                     ),
-                    SizedBox(width: navigating ? 10 : 12),
                   ],
-                  Expanded(
-                    child: Text(
-                      heading,
-                      style: Theme.of(context).textTheme.headlineSmall
-                          ?.copyWith(
-                            fontSize: 20,
-                            fontWeight: FontWeight.w600,
-                            height: 1.65,
-                          ),
-                    ),
-                  ),
-                  IconButton(
-                    tooltip: t('โหลดใหม่', 'Refresh'),
-                    onPressed: _busy ? null : () => _run(_load),
-                    icon: const Icon(Icons.refresh),
-                    constraints: const BoxConstraints(
-                      minWidth: 48,
-                      minHeight: 48,
-                    ),
-                  ),
-                ],
+                ),
               ),
+              SizedBox(
+                height: navigating
+                    ? 12
+                    : duty == null
+                    ? 8
+                    : 24,
               ),
-              SizedBox(height: navigating ? 12 : duty == null ? 8 : 24),
-              if (!navigating && !showingDetails && widget.availability != null) ...[
+              // While a job is active the page shows only that job: no online banner or day totals.
+              if (!navigating &&
+                  !showingDetails &&
+                  duty == null &&
+                  widget.availability != null) ...[
                 widget.availability!,
                 const SizedBox(height: 18),
               ],
@@ -1244,7 +1305,10 @@ class _FoodWorkPageState extends State<FoodWorkPage>
                 ),
                 const SizedBox(height: 22),
               ],
-              if (!navigating && !showingDetails && widget.dailySummary != null) ...[
+              if (!navigating &&
+                  !showingDetails &&
+                  duty == null &&
+                  widget.dailySummary != null) ...[
                 widget.dailySummary!,
                 const SizedBox(height: 28),
               ],
@@ -1277,10 +1341,8 @@ class _FoodWorkPageState extends State<FoodWorkPage>
                   liveRegion: true,
                   child: _panel(
                     Text(
-                      error.toString(),
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.error,
-                      ),
+                      _errorText(error),
+                      style: TextStyle(color: _errorColor(context, error)),
                     ),
                   ),
                 ),
@@ -1382,7 +1444,15 @@ class _FoodWorkPageState extends State<FoodWorkPage>
               if (work == null && !_busy)
                 _panel(
                   Text(
-                    t('ยังไม่มีข้อมูลล่าสุด', 'No current snapshot available'),
+                    isConnectivityError(_error)
+                        ? t(
+                            'กำลังโหลดงานล่าสุด...',
+                            'Loading the latest work...',
+                          )
+                        : t(
+                            'ยังไม่มีข้อมูลล่าสุด',
+                            'No current snapshot available',
+                          ),
                   ),
                 ),
               if (a != null) ...[
@@ -1391,23 +1461,24 @@ class _FoodWorkPageState extends State<FoodWorkPage>
                     assignment: a,
                     thai: widget.thai,
                     status: _state(a.state),
-                    mapBuilder: (height, cameraBottomInset, compose) => FoodNavigationMap(
-                      key: ValueKey((
-                        a.id,
-                        a.generation,
-                        a.leaseGeneration,
-                        a.state,
-                      )),
-                      api: widget.api,
-                      assignmentId: a.id,
-                      generation: a.generation,
-                      leaseGeneration: a.leaseGeneration,
-                      revision: _navigationRevision,
-                      thai: widget.thai,
-                      height: height,
-                      cameraBottomInset: cameraBottomInset,
-                      presentationBuilder: compose,
-                    ),
+                    mapBuilder: (height, cameraBottomInset, compose) =>
+                        FoodNavigationMap(
+                          key: ValueKey((
+                            a.id,
+                            a.generation,
+                            a.leaseGeneration,
+                            a.state,
+                          )),
+                          api: widget.api,
+                          assignmentId: a.id,
+                          generation: a.generation,
+                          leaseGeneration: a.leaseGeneration,
+                          revision: _navigationRevision,
+                          thai: widget.thai,
+                          height: height,
+                          cameraBottomInset: cameraBottomInset,
+                          presentationBuilder: compose,
+                        ),
                     onViewMap: frozen
                         ? null
                         : () {
@@ -1465,61 +1536,61 @@ class _FoodWorkPageState extends State<FoodWorkPage>
                   ),
                   const SizedBox(height: 24),
                 ] else ...[
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 6,
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Theme.of(context).colorScheme.primaryContainer
+                            : BitPosDesignTokens.tint,
+                        borderRadius: BorderRadius.circular(15),
+                      ),
+                      child: Text(
+                        a.state == 'AT_PICKUP' || a.state == 'AT_DROPOFF'
+                            ? '${t('งาน', 'Job')} #${a.id.substring(0, 8)}'
+                            : _state(a.state),
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
                     ),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).brightness == Brightness.dark
-                          ? Theme.of(context).colorScheme.primaryContainer
-                          : BitPosDesignTokens.tint,
-                      borderRadius: BorderRadius.circular(15),
-                    ),
-                    child: Text(
-                      a.state == 'AT_PICKUP' || a.state == 'AT_DROPOFF'
-                          ? '${t('งาน', 'Job')} #${a.id.substring(0, 8)}'
-                          : _state(a.state),
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 24),
-                if (a.state == 'AT_PICKUP' || a.state == 'AT_DROPOFF') ...[
-                  DriverFoodCustodyCard(
-                    assignment: a,
-                    thai: widget.thai,
-                    onEnterProof: frozen
-                        ? null
-                        : (proof) => _run(() => _proof(a, proof)),
                   ),
                   const SizedBox(height: 24),
-                ],
-                DriverJobDetailsCard(assignment: a, thai: widget.thai),
-                const SizedBox(height: 24),
-                OutlinedButton.icon(
-                  onPressed: frozen ? null : () => _openChat(a),
-                  icon: const Icon(Icons.chat_bubble_outline),
-                  label: Text(t('คุยกับลูกค้า', 'Chat with customer')),
-                ),
-                const SizedBox(height: 24),
-                FoodNavigationMap(
-                  key: ValueKey((
-                    a.id,
-                    a.generation,
-                    a.leaseGeneration,
-                    a.state,
-                  )),
-                  api: widget.api,
-                  assignmentId: a.id,
-                  generation: a.generation,
-                  leaseGeneration: a.leaseGeneration,
-                  revision: _navigationRevision,
-                  thai: widget.thai,
-                ),
-                const SizedBox(height: 24),
+                  if (a.state == 'AT_PICKUP' || a.state == 'AT_DROPOFF') ...[
+                    DriverFoodCustodyCard(
+                      assignment: a,
+                      thai: widget.thai,
+                      onEnterProof: frozen
+                          ? null
+                          : (proof) => _run(() => _proof(a, proof)),
+                    ),
+                    const SizedBox(height: 24),
+                  ],
+                  DriverJobDetailsCard(assignment: a, thai: widget.thai),
+                  const SizedBox(height: 24),
+                  OutlinedButton.icon(
+                    onPressed: frozen ? null : () => _openChat(a),
+                    icon: const Icon(Icons.chat_bubble_outline),
+                    label: Text(t('คุยกับลูกค้า', 'Chat with customer')),
+                  ),
+                  const SizedBox(height: 24),
+                  FoodNavigationMap(
+                    key: ValueKey((
+                      a.id,
+                      a.generation,
+                      a.leaseGeneration,
+                      a.state,
+                    )),
+                    api: widget.api,
+                    assignmentId: a.id,
+                    generation: a.generation,
+                    leaseGeneration: a.leaseGeneration,
+                    revision: _navigationRevision,
+                    thai: widget.thai,
+                  ),
+                  const SizedBox(height: 24),
                 ],
                 _panel(
                   Column(
@@ -1763,8 +1834,7 @@ class _FoodWorkPageState extends State<FoodWorkPage>
                       offer.earning.decimals,
                       offer.earning.currency,
                     ),
-                    pickup:
-                        '${offer.pickupLatitudeE7 / 10000000}, ${offer.pickupLongitudeE7 / 10000000}',
+                    pickup: offer.pickupName,
                     onAccept:
                         frozen ||
                             !DateTime.parse(offer.expiresAt)
@@ -1935,12 +2005,31 @@ class _FoodWorkPageState extends State<FoodWorkPage>
                             child: Text(t('เหตุผลอื่น', 'Other reason')),
                           ),
                         ],
-                        child: Padding(
-                          padding: const EdgeInsets.all(16),
+                        child: Container(
+                          margin: const EdgeInsets.only(top: 16),
+                          alignment: Alignment.center,
+                          constraints: const BoxConstraints(minHeight: 52),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 12,
+                          ),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .outlineVariant,
+                            ),
+                          ),
                           child: Text(
                             t(
                               'เลือกเหตุผลเพื่อขอถอนตัว',
                               'Choose reason to request withdrawal',
+                            ),
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              color: Theme.of(context).colorScheme.primary,
                             ),
                           ),
                         ),
@@ -1963,15 +2052,35 @@ class _FoodWorkPageState extends State<FoodWorkPage>
                   ],
                 ),
               ],
-            ],
+            ]),
           ),
         ),
       ),
     );
   }
 
+  /// Full-bleed travel mode lets only the map card touch the screen edges;
+  /// everything else snaps back to the shared 24 dp gutter.
+  List<Widget> _gutterIf(bool bleed, List<Widget> children) => !bleed
+      ? children
+      : [
+          for (final child in children)
+            child is DriverAssignedNavigationCard ||
+                    child is SizedBox ||
+                    child is Padding
+                ? child
+                : Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: BitPosLayout.gutter,
+                    ),
+                    child: child,
+                  ),
+        ];
+
   @override
   void dispose() {
+    _retryTimer?.cancel();
+    widget.api.reconnects.removeListener(_onReconnect);
     unawaited(_receiptSessions?.cancel());
     removeOwnedRoute(_receiptEarningsRoute);
     _workScroll.dispose();
@@ -2014,7 +2123,10 @@ class _CustodyProofDialogState extends State<_CustodyProofDialog> {
         child: Text(t('ยกเลิก', 'Cancel')),
       ),
       FilledButton(
-        onPressed: () => Navigator.pop(context, _controller.text.trim()),
+        onPressed: () => Navigator.pop(
+          context,
+          _controller.text.replaceAll(RegExp(r'\s+'), ''),
+        ),
         child: Text(t('ยืนยัน', 'Confirm')),
       ),
     ],

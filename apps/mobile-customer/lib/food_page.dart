@@ -1,9 +1,12 @@
 import 'presentation/cart_coupon_page.dart';
+import 'presentation/schedule_slot_picker.dart';
 
 import 'dart:async';
 
 import 'food_review_page.dart';
 import 'presentation/merchant_search_empty.dart';
+import 'package:mobile_shared/presentation/bitpos_info.dart';
+import 'package:mobile_shared/presentation/bitpos_state_view.dart';
 import 'presentation/merchant_search_controls.dart';
 import 'presentation/merchant_branch_card.dart';
 import 'presentation/food_product_card.dart';
@@ -268,6 +271,9 @@ class FoodPage extends StatefulWidget {
   final PaymentHandoff? paymentHandoff;
   final Widget? sessionTools;
   final String? initialOrderId;
+  /// Test seam for the quote lease clock; production always uses the device clock.
+  @visibleForTesting
+  final DateTime Function() clock;
   const FoodPage({
     super.key,
     required this.api,
@@ -280,6 +286,7 @@ class FoodPage extends StatefulWidget {
     this.navigation,
     this.rootOwnsHeader = false,
     this.onAccount,
+    this.clock = DateTime.now,
   });
   @override
   State<FoodPage> createState() => _FoodPageState();
@@ -297,6 +304,22 @@ class _FoodPageState extends State<FoodPage> with WidgetsBindingObserver {
   MobileMenu? _menu;
   List<MobileProduct> _products = [];
   MobileFoodQuote? _quote;
+  // The quote that carries a server-applied coupon; a refreshed quote never inherits it.
+  String? _couponQuoteId, _couponCode;
+  // One-line explanation after the app replaced the quote on its own (new totals,
+  // or a coupon the server would not re-apply). Cleared by the next manual action.
+  String? _quoteNotice;
+  // Quote lease: refresh shortly before the server lease ends so the customer never
+  // reads an expired price. Only the server decides the new totals.
+  static const _leaseMargin = Duration(seconds: 12);
+  Timer? _leaseTimer;
+  DateTime? _lastLeaseAttempt;
+  ScheduleAvailability _scheduleAvailability = ScheduleAvailability.loading;
+  List<MobileScheduleSlot> _slots = const [];
+  MobileScheduleSlot? _selectedSlot;
+  // Held slot command per quote+slot so a retried confirm replays the same server hold.
+  ({String quoteId, String slotId, String key})? _slotCommand;
+  MobileScheduleSlot? _scheduledSlot;
   bool _cartReview = false;
   bool _delivery = false;
   MobileCustomerDeliveryPolicy? _deliveryPolicy;
@@ -332,6 +355,41 @@ class _FoodPageState extends State<FoodPage> with WidgetsBindingObserver {
   MaterialPageRoute<MobileAddress>? _addressPickerRoute;
   MaterialPageRoute<void>? _paymentMethodRoute;
   bool get _current => mounted && (widget.owner?.value ?? true);
+  Timer? _retryTimer;
+  int _retryAttempt = 0;
+
+  /// A transient network failure retries by itself with backoff; the shared
+  /// banner says "reconnecting" and no manual tap is ever required.
+  void _scheduleRetry() {
+    _retryTimer?.cancel();
+    final seconds = const [2, 4, 8, 15][_retryAttempt < 3 ? _retryAttempt : 3];
+    _retryAttempt++;
+    _retryTimer = Timer(Duration(seconds: seconds), _retryAfterOutage);
+  }
+
+  void _onReconnect() {
+    if (isConnectivityError(_error)) {
+      _retryTimer?.cancel();
+      _retryAfterOutage();
+    }
+  }
+
+  void _retryAfterOutage() {
+    if (!_current) return;
+    if (_busy) {
+      _scheduleRetry();
+      return;
+    }
+    if (!isConnectivityError(_error)) return;
+    if (_branches.isEmpty && !_discoveryLoaded) {
+      unawaited(_run(_reloadBranches));
+    } else if (_order != null) {
+      unawaited(_run(_refreshOrder));
+    } else {
+      setState(() => _error = null);
+    }
+  }
+
   void _ownerChanged() {
     if (widget.owner?.value == false) {
       removeOwnedRoute(_addressPickerRoute);
@@ -469,6 +527,18 @@ class _FoodPageState extends State<FoodPage> with WidgetsBindingObserver {
     _syncOrderDetailNavigation();
   }
 
+  void _syncOrderReview() {
+    final q = _quote;
+    if (q == null) return;
+    widget.navigation?.setOrderReview(
+      this,
+      true,
+      validUntil: q.validUntil,
+      total: money(q.total),
+      delivery: q.delivery != null,
+    );
+  }
+
   void _setCartReview(bool active) {
     _cartReview = active;
     widget.navigation?.setOrderReview(this, false);
@@ -500,6 +570,7 @@ class _FoodPageState extends State<FoodPage> with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
+    widget.api.reconnects.addListener(_onReconnect);
     widget.navigation?._bind(
       this,
       () => _run(_history),
@@ -511,13 +582,7 @@ class _FoodPageState extends State<FoodPage> with WidgetsBindingObserver {
         if (!_current || _busy || _quote == null) return;
         setState(() {
           _setCartReview(false);
-          widget.navigation?.setOrderReview(
-            this,
-            true,
-            validUntil: _quote!.validUntil,
-            total: money(_quote!.total),
-            delivery: _quote!.delivery != null,
-          );
+          _syncOrderReview();
         });
       },
       () {
@@ -557,6 +622,9 @@ class _FoodPageState extends State<FoodPage> with WidgetsBindingObserver {
     _closeDelivery();
     _closeSupport();
     _closeReview();
+    _leaseTimer?.cancel();
+    _retryTimer?.cancel();
+    widget.api.reconnects.removeListener(_onReconnect);
     _searchController.dispose();
     _branchSearchController.dispose();
     WidgetsBinding.instance.removeObserver(this);
@@ -565,6 +633,7 @@ class _FoodPageState extends State<FoodPage> with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) _leaseTick();
     if (state == AppLifecycleState.resumed && _order != null) {
       if (_busy) {
         _refreshOnResume = true;
@@ -585,6 +654,7 @@ class _FoodPageState extends State<FoodPage> with WidgetsBindingObserver {
       await action();
     } catch (error) {
       _error = error;
+      if (isConnectivityError(error)) _scheduleRetry();
       if (error is MobileApiException &&
           _pending == null &&
           [
@@ -604,6 +674,7 @@ class _FoodPageState extends State<FoodPage> with WidgetsBindingObserver {
       }
     }
     if (_current) {
+      if (_error == null) _retryAttempt = 0;
       setState(() => _busy = false);
       _syncOrderDetailNavigation();
       _syncMenuNavigation();
@@ -640,13 +711,19 @@ class _FoodPageState extends State<FoodPage> with WidgetsBindingObserver {
     try {
       await _reloadBranches();
     } catch (error) {
-      _error = const MobileApiException('DISCOVERY_FAILED', 503);
+      if (isConnectivityError(error)) {
+        _error = error;
+        _scheduleRetry();
+      } else {
+        _error = const MobileApiException('DISCOVERY_FAILED', 503);
+      }
     }
     if (_recoverOrderId != null) {
       try {
         await _restoreActiveOrder();
       } catch (error) {
         _error = error;
+        if (isConnectivityError(error)) _scheduleRetry();
         if (_current &&
             error is MobileApiException &&
             error.code == 'AUTH_REQUIRED' &&
@@ -904,6 +981,11 @@ class _FoodPageState extends State<FoodPage> with WidgetsBindingObserver {
       products.addAll(page.products);
       cursor = page.nextCursor;
     }
+    if (_cartBranchId != branch.id) {
+      _couponCode = null;
+      _couponQuoteId = null;
+      _quoteNotice = null;
+    }
     _menu = first;
     _products = products;
     _cartBranchId = branch.id;
@@ -927,6 +1009,103 @@ class _FoodPageState extends State<FoodPage> with WidgetsBindingObserver {
   }
 
   Future<void> _review() async {
+    final menu = _menu!;
+    _quoteNotice = null;
+    await _requestQuote();
+    await _reapplyCoupon();
+    _setCartReview(true);
+    unawaited(_loadSlots(menu.branch.id, _delivery ? 'delivery' : 'pickup'));
+  }
+
+  /// Automatic or on-resume replacement of the quote. Keeps the stage the customer
+  /// is on, re-applies the chosen coupon on the new server quote and shows the
+  /// new server totals. The picked slot is held against whichever quote is ordered.
+  Future<void> _refreshQuote() async {
+    if (_menu == null || _quote == null) return;
+    final orderStage = !_cartReview;
+    final before = _quote!.total.amountMinor;
+    _quoteNotice = null;
+    await _requestQuote();
+    await _reapplyCoupon();
+    if (_quoteNotice == null && _quote!.total.amountMinor != before) {
+      _quoteNotice = t(
+        'ราคาถูกอัปเดตจากเซิร์ฟเวอร์ ยอดใหม่ ${money(_quote!.total)}',
+        'Price refreshed by the server. New total ${money(_quote!.total)}',
+      );
+    }
+    if (orderStage) {
+      _syncOrderReview();
+    } else {
+      _setCartReview(true);
+    }
+  }
+
+  /// Re-attaches the coupon the customer had applied to the replacement quote.
+  /// A server refusal drops it with a one-line reason; a network failure keeps
+  /// the code so the next refresh tries again.
+  Future<void> _reapplyCoupon() async {
+    final code = _couponCode, q = _quote;
+    if (code == null || q == null) return;
+    try {
+      final result = await widget.api.applyFoodCoupon(
+        q.id,
+        MobileCouponApplyRequest(
+          code: code,
+          idempotencyKey: widget.api.newCommandKey(),
+        ),
+      );
+      _quote = result.quote;
+      _couponQuoteId = result.quote.id;
+      _couponCode = result.couponCode;
+    } catch (error) {
+      if (error is MobileApiException && error.code == 'AUTH_REQUIRED') {
+        rethrow;
+      }
+      _couponQuoteId = null;
+      if (error is MobileApiException && error.status < 500) {
+        _couponCode = null;
+        _quoteNotice = t(
+          'ใส่คูปอง $code กลับไม่ได้: ${checkoutRefusalMessage(error, true)}',
+          'Coupon $code could not be re-applied: ${checkoutRefusalMessage(error, false)}',
+        );
+      } else {
+        _quoteNotice = t(
+          'ยังใส่คูปอง $code กลับไม่สำเร็จ แตะที่คูปองเพื่อลองอีกครั้ง',
+          'Coupon $code was not re-applied yet. Tap the coupon to try again.',
+        );
+      }
+    }
+  }
+
+  void _leaseTick() {
+    final q = _quote;
+    if (!_current || q == null || _order != null) {
+      _leaseTimer?.cancel();
+      _leaseTimer = null;
+      return;
+    }
+    if (_busy || _pending != null) return;
+    final until = DateTime.tryParse(q.validUntil);
+    if (until == null || until.difference(widget.clock()) > _leaseMargin) {
+      return;
+    }
+    final last = _lastLeaseAttempt;
+    if (last != null &&
+        DateTime.now().difference(last) < const Duration(seconds: 5)) {
+      return;
+    }
+    _lastLeaseAttempt = DateTime.now();
+    unawaited(_run(_refreshQuote));
+  }
+
+  void _startLeaseTimer() {
+    _leaseTimer ??= Timer.periodic(
+      const Duration(seconds: 1),
+      (_) => _leaseTick(),
+    );
+  }
+
+  Future<void> _requestQuote() async {
     final menu = _menu!;
     if (_cart.values.any(
       (item) => !_products.any(
@@ -960,14 +1139,118 @@ class _FoodPageState extends State<FoodPage> with WidgetsBindingObserver {
         ),
       );
     }
-    _setCartReview(true);
+    _startLeaseTimer();
+  }
+
+  /// Slots are optional: any failure leaves the order immediate and says so.
+  Future<void> _loadSlots(String branchId, String serving) async {
+    if (mounted) setState(() => _scheduleAvailability = ScheduleAvailability.loading);
+    ScheduleAvailability result;
+    var slots = <MobileScheduleSlot>[];
+    try {
+      final published = await widget.api.scheduleSlots(branchId, serving);
+      if (published.branchId != branchId || published.serving != serving) {
+        throw const FormatException('Schedule slots identity mismatch');
+      }
+      slots = published.slots;
+      result = slots.isEmpty ? ScheduleAvailability.none : ScheduleAvailability.published;
+    } catch (_) {
+      result = ScheduleAvailability.failed;
+    }
+    if (!mounted) return;
+    setState(() {
+      _slots = slots;
+      _scheduleAvailability = result;
+      final chosen = _selectedSlot;
+      if (chosen != null && !slots.any((s) => s.id == chosen.id)) _selectedSlot = null;
+    });
+  }
+
+  Future<void> _openCoupon(MobileFoodQuote q) async {
+    final applied = _couponQuoteId == q.id ? _couponCode : null;
+    // Reward vouchers are optional help only; a failed lookup just means the customer types the code.
+    var vouchers = const <MobileVoucher>[];
+    try {
+      vouchers = (await widget.api.vouchers()).vouchers
+          .where((v) => v.state == 'AVAILABLE' && v.merchantId == q.merchantId)
+          .toList();
+    } catch (_) {}
+    if (!mounted || !_current) return;
+    final result = await Navigator.of(context).push<Object>(
+      MaterialPageRoute<Object>(
+        builder: (_) => CartCouponPage(
+          thai: widget.thai,
+          appliedCode: applied,
+          vouchers: vouchers,
+          newKey: widget.api.newCommandKey,
+          onApply: (code, key) => widget.api.applyFoodCoupon(
+            q.id,
+            MobileCouponApplyRequest(code: code, idempotencyKey: key),
+          ),
+        ),
+      ),
+    );
+    if (!mounted || !_current) return;
+    if (result is MobileCouponQuote) {
+      setState(() {
+        _quote = result.quote;
+        _couponQuoteId = result.quote.id;
+        _couponCode = result.couponCode;
+        _error = null;
+        _quoteNotice = null;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            t(
+              'ใช้คูปอง ${result.couponCode} แล้ว ยอดใหม่ ${money(result.quote.total)}',
+              'Coupon ${result.couponCode} applied. New total ${money(result.quote.total)}',
+            ),
+          ),
+        ),
+      );
+    } else if (result is CouponRemoveRequest) {
+      _couponCode = null;
+      _couponQuoteId = null;
+      await _run(_review);
+    }
   }
 
   Future<void> _submit() async {
     final q = _quote;
     if (_pending == null) {
-      if (q == null || !DateTime.parse(q.validUntil).isAfter(DateTime.now()))
-        throw const MobileApiException('QUOTE_EXPIRED', 409);
+      if (q == null) throw const MobileApiException('QUOTE_EXPIRED', 409);
+      if (!DateTime.parse(q.validUntil).isAfter(widget.clock())) {
+        // Never order on a stale price: fetch the new server quote and ask again.
+        await _refreshQuote();
+        _quoteNotice = t(
+          'ราคาหมดอายุ จึงอัปเดตเป็น ${money(_quote!.total)} ตรวจยอดแล้วกดยืนยันอีกครั้ง',
+          'The price expired and was refreshed to ${money(_quote!.total)}. Check it and confirm again.',
+        );
+        return;
+      }
+      final slot = _selectedSlot;
+      if (slot != null) {
+        var command = _slotCommand;
+        if (command == null || command.quoteId != q.id || command.slotId != slot.id) {
+          command = (quoteId: q.id, slotId: slot.id, key: widget.api.newCommandKey());
+          _slotCommand = command;
+        }
+        try {
+          // Server-side capacity and window; an exhausted/closed slot refuses before any order exists.
+          await widget.api.holdScheduleSlot(
+            q.id,
+            MobileScheduleHoldRequest(slotId: slot.id, idempotencyKey: command.key),
+          );
+        } on MobileApiException catch (error) {
+          if (error.reason != null && error.reason!.startsWith('SCHEDULE_')) {
+            _selectedSlot = null;
+            _slotCommand = null;
+            unawaited(_loadSlots(q.branchId, q.delivery != null ? 'delivery' : 'pickup'));
+          }
+          rethrow;
+        }
+      }
       // The transport saves this UUID before sending, including process-death recovery.
       _pending = widget.api.newFoodOrderCommand(
         branchId: q.branchId,
@@ -979,6 +1262,12 @@ class _FoodPageState extends State<FoodPage> with WidgetsBindingObserver {
       final result = await widget.api.submitFoodOrder(_pending!);
       if (!mounted) return;
       _pending = null;
+      _scheduledSlot = _selectedSlot;
+      _selectedSlot = null;
+      _slotCommand = null;
+      _couponCode = null;
+      _couponQuoteId = null;
+      _quoteNotice = null;
       _order = result.order;
       _timeline = null;
       _quote = null;
@@ -1090,6 +1379,7 @@ class _FoodPageState extends State<FoodPage> with WidgetsBindingObserver {
     if (selected != null) {
       final detail = await widget.api.foodOrder(selected);
       if (!_current) return;
+      _scheduledSlot = null;
       _order = detail;
       _timeline = null;
       _quote = null;
@@ -1303,8 +1593,11 @@ class _FoodPageState extends State<FoodPage> with WidgetsBindingObserver {
 
   Widget _amount(String label, MobileMoney value, {bool total = false}) =>
       FoodAmountRow(label: label, amount: money(value), total: total);
+  // No "−0.00" line when the order has no discount.
   Widget _discountAmount(String label, MobileMoney value) =>
-      FoodAmountRow(label: label, amount: '−${money(value)}');
+      BigInt.parse(value.amountMinor) == BigInt.zero
+      ? const SizedBox.shrink()
+      : FoodAmountRow(label: label, amount: '−${money(value)}');
   Widget _orderNotice(String message) => Container(
     margin: const EdgeInsets.only(top: 10),
     padding: const EdgeInsets.all(12),
@@ -1356,7 +1649,7 @@ class _FoodPageState extends State<FoodPage> with WidgetsBindingObserver {
                 ),
                 _amount(t('ค่าบริการ', 'Service fee'), destination.serviceFee),
               ],
-              if (destination.fixture)
+              if (widget.api.fixture && destination.fixture)
                 Text(
                   t(
                     'ข้อมูลทดสอบ · ตำแหน่งและค่าจัดส่งจำลอง',
@@ -1386,7 +1679,7 @@ class _FoodPageState extends State<FoodPage> with WidgetsBindingObserver {
               _amount(t('ค่าจัดส่ง', 'Delivery fee'), destination.deliveryFee),
               _amount(t('ค่าบริการ', 'Service fee'), destination.serviceFee),
             ],
-            if (destination.fixture)
+            if (widget.api.fixture && destination.fixture)
               Text(
                 t(
                   'ข้อมูลทดสอบ · ตำแหน่งและค่าจัดส่งจำลอง',
@@ -1403,10 +1696,13 @@ class _FoodPageState extends State<FoodPage> with WidgetsBindingObserver {
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
       if (_payment.destinationOrigin.isEmpty)
-        Text(
-          t(
-            'ยังไม่ตั้งค่าช่องทางชำระเงิน ไม่สามารถเปิดการชำระได้',
-            'Payment unavailable: checkout origin is not configured.',
+        Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: Text(
+            t(
+              'ยังไม่ตั้งค่าช่องทางชำระเงิน ไม่สามารถเปิดการชำระได้',
+              'Payment unavailable: checkout origin is not configured.',
+            ),
           ),
         ),
       FilledButton(
@@ -1420,11 +1716,17 @@ class _FoodPageState extends State<FoodPage> with WidgetsBindingObserver {
           ),
         ),
       ),
-      Text(
-        t(
-          'กลับจากหน้าชำระแล้วระบบตรวจสอบสถานะออเดอร์เดิม ไม่สร้างการชำระใหม่จากผล callback',
-          'On return, the app checks the original order. A callback never creates or confirms a payment.',
-        ),
+      const SizedBox(height: 12),
+      BitPosInfoLine(
+        thai: widget.thai,
+        summary: t('ระบบตรวจสถานะออเดอร์เดิมเมื่อกลับมา', 'We re-check this order when you return'),
+        title: t('เกี่ยวกับการชำระ', 'About payment'),
+        paragraphs: [
+          t(
+            'กลับจากหน้าชำระแล้วระบบตรวจสอบสถานะออเดอร์เดิม ไม่สร้างการชำระใหม่จากผล callback',
+            'On return, the app checks the original order. A callback never creates or confirms a payment.',
+          ),
+        ],
       ),
     ],
   );
@@ -1561,7 +1863,7 @@ class _FoodPageState extends State<FoodPage> with WidgetsBindingObserver {
                   : 12,
             ),
             if (_busy) const LinearProgressIndicator(),
-            if (_error != null)
+            if (_error != null && !isConnectivityError(_error))
               Semantics(
                 liveRegion: true,
                 child: Container(
@@ -1583,7 +1885,7 @@ class _FoodPageState extends State<FoodPage> with WidgetsBindingObserver {
                       const SizedBox(width: 10),
                       Expanded(
                         child: Text(
-                          foodErrorMessage(_error!, widget.thai),
+                          checkoutRefusalMessage(_error!, widget.thai),
                           style: TextStyle(
                             color: Theme.of(context)
                                 .colorScheme
@@ -1842,6 +2144,11 @@ class _FoodPageState extends State<FoodPage> with WidgetsBindingObserver {
                           ),
                           children: [
                             const Divider(height: 28),
+                            if (_scheduledSlot case final slot?)
+                              Text(
+                                key: const ValueKey('order-scheduled-slot'),
+                                '${t('นัดเวลา', 'Scheduled for')}: ${ScheduleSlotTile.format(slot, widget.thai)} · ${t('เวลาตามที่ร้านกำหนด', 'time set by the merchant')}',
+                              ),
                             Text(
                               '${t('การชำระ', 'Payment')}: ${foodStateLabel(o.status, widget.thai)}',
                             ),
@@ -1898,16 +2205,23 @@ class _FoodPageState extends State<FoodPage> with WidgetsBindingObserver {
                               'REJECTED',
                               'TIMED_OUT',
                             ].contains(o.acceptanceStatus))
-                              Text(
-                                o.delivery == null
-                                    ? t(
-                                        'รับอาหารที่ร้าน การรับจากร้านไม่ใช่การส่งถึงลูกค้า',
-                                        'Collect at the merchant. Store collection is not delivery to a customer.',
-                                      )
-                                    : t(
-                                        'จัดส่งไปยังที่อยู่ที่ยืนยันไว้ การส่งมอบที่ร้านให้ไรเดอร์ไม่ใช่การส่งถึงลูกค้า',
-                                        'Delivery to the confirmed address. Merchant handoff to a driver is not delivery to the customer.',
-                                      ),
+                              BitPosInfoLine(
+                                thai: widget.thai,
+                                summary: o.delivery == null
+                                    ? t('รับอาหารที่ร้าน', 'Collect at the merchant')
+                                    : t('จัดส่งไปยังที่อยู่ที่ยืนยันไว้', 'Delivery to the confirmed address'),
+                                title: t('เกี่ยวกับการรับอาหาร', 'About receiving your order'),
+                                paragraphs: [
+                                  o.delivery == null
+                                      ? t(
+                                          'รับอาหารที่ร้าน การรับจากร้านไม่ใช่การส่งถึงลูกค้า',
+                                          'Collect at the merchant. Store collection is not delivery to a customer.',
+                                        )
+                                      : t(
+                                          'จัดส่งไปยังที่อยู่ที่ยืนยันไว้ การส่งมอบที่ร้านให้ไรเดอร์ไม่ใช่การส่งถึงลูกค้า',
+                                          'Delivery to the confirmed address. Merchant handoff to a driver is not delivery to the customer.',
+                                        ),
+                                ],
                               ),
                             const SizedBox(height: BitPosDesignTokens.s12),
                             if (o.delivery != null && !widget.rootOwnsHeader)
@@ -1940,11 +2254,16 @@ class _FoodPageState extends State<FoodPage> with WidgetsBindingObserver {
                                 ),
                               ),
                             if (!['PAID', 'RECOVERY'].contains(o.status))
-                              Text(
-                                t(
-                                  'ยังไม่มีหลักฐานชำระเงินที่ยืนยันแล้ว หน้านี้ไม่ใช้ลายเซ็นหรือการกดปุ่มเป็นหลักฐานชำระ',
-                                  'No verified payment yet. A signature or UI action cannot confirm payment.',
-                                ),
+                              BitPosInfoLine(
+                                thai: widget.thai,
+                                summary: t('ยังไม่มีหลักฐานชำระเงินที่ยืนยัน', 'No verified payment yet'),
+                                title: t('เกี่ยวกับการยืนยันชำระ', 'About payment confirmation'),
+                                paragraphs: [
+                                  t(
+                                    'ยังไม่มีหลักฐานชำระเงินที่ยืนยันแล้ว หน้านี้ไม่ใช้ลายเซ็นหรือการกดปุ่มเป็นหลักฐานชำระ',
+                                    'No verified payment yet. A signature or UI action cannot confirm payment.',
+                                  ),
+                                ],
                               ),
                             if (!widget.rootOwnsHeader)
                               OutlinedButton.icon(
@@ -2012,6 +2331,7 @@ class _FoodPageState extends State<FoodPage> with WidgetsBindingObserver {
                       ? null
                       : () => _run(() async {
                           await widget.api.forgetFoodOrder();
+                          _scheduledSlot = null;
                           _recoverOrderId = null;
                           _order = null;
                           _timeline = null;
@@ -2021,6 +2341,18 @@ class _FoodPageState extends State<FoodPage> with WidgetsBindingObserver {
                   child: Text(t('กลับไปร้านอาหาร', 'Back to merchants')),
                 ),
             ] else if (q != null) ...[
+              if (_quoteNotice != null)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Text(
+                    _quoteNotice!,
+                    key: const ValueKey('quote-notice'),
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                  ),
+                ),
               if (_cartReview) ...[
                 ConfiguredFoodLines(
                   lines: q.configured.lines,
@@ -2062,16 +2394,30 @@ class _FoodPageState extends State<FoodPage> with WidgetsBindingObserver {
                       child: const Icon(Icons.local_offer_outlined),
                     ),
                     title: Text(t('ใช้คูปองส่วนลด', 'Discount coupons')),
-                    subtitle: Text(t('ยังไม่เปิดใช้งาน', 'Not available yet')),
+                    subtitle: Text(
+                      _couponQuoteId == q.id
+                          ? t(
+                              'ใช้คูปอง $_couponCode · ลด ${money(q.discount)}',
+                              'Coupon $_couponCode · saves ${money(q.discount)}',
+                            )
+                          : t('ใส่รหัสคูปอง', 'Enter a coupon code'),
+                    ),
                     trailing: const Icon(Icons.chevron_right),
                     onTap: _busy || _pending != null
                         ? null
-                        : () => Navigator.of(context).push(
-                            MaterialPageRoute<void>(
-                              builder: (_) => CartCouponPage(thai: widget.thai),
-                            ),
-                          ),
+                        : () => _openCoupon(q),
                   ),
+                ),
+                ScheduleSlotTile(
+                  thai: widget.thai,
+                  availability: _scheduleAvailability,
+                  slots: _slots,
+                  selected: _selectedSlot,
+                  enabled: !_busy && _pending == null,
+                  onChanged: (slot) => setState(() {
+                    _selectedSlot = slot;
+                    _slotCommand = null;
+                  }),
                 ),
                 TextButton.icon(
                   onPressed: _busy || _pending != null
@@ -2122,12 +2468,23 @@ class _FoodPageState extends State<FoodPage> with WidgetsBindingObserver {
                   total: money(q.total),
                 ),
                 if (q.delivery != null) _destination(q.delivery!),
-                Text(
-                  '${t('ยอดชำระทดสอบ', 'Test settlement')}: ${money(q.settlement.money)}',
+                Padding(
+                  padding: const EdgeInsets.only(top: 4, bottom: 8),
+                  child: Text(
+                    '${t('ยอดชำระทดสอบ', 'Test settlement')}: ${money(q.settlement.money)}\n'
+                    'Solana devnet · ${t('ไม่ใช่เงินจริง', 'not real money')}',
+                  ),
                 ),
-                Text(
-                  'Solana devnet · ${t('ไม่ใช่เงินจริง', 'not real money')}',
-                ),
+                if (_couponQuoteId == q.id)
+                  Text(
+                    key: const ValueKey('review-coupon-line'),
+                    '${t('คูปอง', 'Coupon')} $_couponCode: -${money(q.discount)}',
+                  ),
+                if (_selectedSlot case final slot?)
+                  Text(
+                    key: const ValueKey('review-scheduled-slot'),
+                    '${t('นัดเวลา', 'Scheduled for')}: ${ScheduleSlotTile.format(slot, widget.thai)}',
+                  ),
                 if (!widget.rootOwnsHeader)
                   QuoteConfirmation(
                     key: ValueKey(q.id),
@@ -2158,7 +2515,7 @@ class _FoodPageState extends State<FoodPage> with WidgetsBindingObserver {
                   label: Text(t('ร้านอาหาร', 'Merchants')),
                 ),
               Semantics(
-                label: t('ยังไม่มีภาพร้าน', 'Merchant photo unavailable'),
+                label: menu.coverUrl.isNotEmpty ? t('ภาพหน้าร้าน', 'Merchant cover photo') : t('ยังไม่มีภาพร้าน', 'Merchant photo unavailable'),
                 image: true,
                 child: ExcludeSemantics(
                   child: Container(
@@ -2172,11 +2529,14 @@ class _FoodPageState extends State<FoodPage> with WidgetsBindingObserver {
                           .surfaceContainerHighest,
                       borderRadius: BorderRadius.circular(20),
                     ),
-                    child: Icon(
-                      Icons.storefront_outlined,
-                      size: 64,
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
+                    clipBehavior: Clip.antiAlias,
+                    child: menu.coverUrl.isNotEmpty
+                        ? FoodImage(url: menu.coverUrl, hero: true)
+                        : Icon(
+                            Icons.storefront_outlined,
+                            size: 64,
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
                   ),
                 ),
               ),
@@ -2219,6 +2579,12 @@ class _FoodPageState extends State<FoodPage> with WidgetsBindingObserver {
                   ),
                 ],
               ),
+              if (menu.branch.openNow == false)
+                BitPosStateView(
+                  kind: BitPosStateKind.closed,
+                  thai: widget.thai,
+                  message: branchClosedMessage(menu.branch, widget.thai),
+                ),
               if (!menu.branch.pickupEnabled && !menu.branch.deliveryEnabled)
                 Text(
                   t(
@@ -2235,7 +2601,7 @@ class _FoodPageState extends State<FoodPage> with WidgetsBindingObserver {
                   t('ค่าบริการ', 'Service fee'),
                   _deliveryPolicy!.serviceFee,
                 ),
-                if (_deliveryPolicy!.fixture)
+                if (widget.api.fixture && _deliveryPolicy!.fixture)
                   Text(
                     t(
                       'ข้อมูลทดสอบ · พื้นที่และค่าจัดส่งจำลอง',
@@ -2329,6 +2695,7 @@ class _FoodPageState extends State<FoodPage> with WidgetsBindingObserver {
                 return FoodProductCard(
                   product: p,
                   thai: widget.thai,
+                  inCart: _productQuantity(p.id),
                   onConfigure: enabled
                       ? () => _run(() => _editProduct(p))
                       : null,
@@ -2388,6 +2755,7 @@ class _FoodPageState extends State<FoodPage> with WidgetsBindingObserver {
                   '${t('ตรวจตะกร้า', 'Review cart')} · ${_cart.values.fold<int>(0, (a, b) => a + b.qty)}',
                 ),
               ),
+              const SizedBox(height: 12),
               OutlinedButton(
                 onPressed: _busy || _pending != null
                     ? null
@@ -2477,6 +2845,24 @@ class _FoodPageState extends State<FoodPage> with WidgetsBindingObserver {
                         }),
                 ),
               ),
+              if (_branches.isEmpty && !_discoveryLoaded && !_busy && _error != null)
+                isConnectivityError(_error)
+                    ? BitPosStateView(
+                        kind: BitPosStateKind.loading,
+                        thai: widget.thai,
+                        title: t('กำลังเชื่อมต่อใหม่...', 'Reconnecting...'),
+                        message: t(
+                          'กำลังโหลดร้านใกล้คุณ',
+                          'Loading restaurants near you',
+                        ),
+                      )
+                    : BitPosStateView(
+                        kind: BitPosStateKind.error,
+                        thai: widget.thai,
+                        message: checkoutRefusalMessage(_error!, widget.thai),
+                        actionLabel: t('ลองอีกครั้ง', 'Try again'),
+                        onAction: () => _run(_reloadBranches),
+                      ),
               if (_branches.isEmpty && _discoveryLoaded && !_busy)
                 MerchantSearchEmpty(
                   thai: widget.thai,

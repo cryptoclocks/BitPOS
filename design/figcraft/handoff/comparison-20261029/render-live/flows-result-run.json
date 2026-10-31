@@ -1,0 +1,142 @@
+{
+ "kanban-order-center-received-to-preparing": {
+  "order": "cd93cd51",
+  "before": "RECEIVED",
+  "after": "PREPARING",
+  "expectedLane": "preparing",
+  "visibleInTargetLane": true,
+  "detailPanelOpen": false,
+  "pass": true
+ },
+ "kanban-order-center-preparing-to-ready": {
+  "order": "1942b48f",
+  "before": "PREPARING",
+  "after": "READY",
+  "expectedLane": "ready",
+  "visibleInTargetLane": true,
+  "detailPanelOpen": false,
+  "pass": true
+ },
+ "kanban-kitchen-received-to-preparing": {
+  "order": "01ba9e16",
+  "before": "RECEIVED",
+  "after": "PREPARING",
+  "expectedLane": "preparing",
+  "visibleInTargetLane": true,
+  "detailPanelOpen": false,
+  "pass": true
+ },
+ "kanban-kitchen-ready-to-collected": {
+  "order": "5877895d",
+  "before": "READY",
+  "after": "COLLECTED",
+  "expectedLane": "collected",
+  "visibleInTargetLane": true,
+  "detailPanelOpen": false,
+  "pass": true
+ },
+ "kanban-invalid-jump-received-to-collected": {
+  "before": "RECEIVED",
+  "after": "RECEIVED",
+  "pass": true,
+  "notice": [
+   "Move one step at a time to the next stage"
+  ]
+ },
+ "sidebar-1440": {
+  "navButtons": [
+   "ภาพรวม",
+   "หน้าขาย",
+   "ศูนย์ออเดอร์",
+   "คิวครัว",
+   "จัดส่ง",
+   "สินค้าและคลัง",
+   "ลูกค้า",
+   "โปรโมชัน",
+   "รายงาน",
+   "ตั้งค่า",
+   "ภาพรวม",
+   "รายงาน",
+   "สินค้า",
+   "เมนู"
+  ],
+  "overflow": false
+ },
+ "sidebar-390": {
+  "navButtons": [
+   "ภาพรวม",
+   "รายงาน",
+   "สินค้า",
+   "เมนู",
+   "ตะกร้า (0)",
+   "ออเดอร์ (2)",
+   "โปรโมชัน",
+   "ลูกค้า",
+   "ตั้งค่า",
+   "เพิ่มข้อมูลลูกค้า",
+   "ตรวจบิล",
+   "ล้างตะกร้า"
+  ],
+  "overflow": false
+ },
+ "product-add-photo-1440": {
+  "created": true,
+  "imageUrl": "/images/products/0bd000d2-4a0d-46c4-b0fd-46efa67f82ca",
+  "served": {
+   "status": 200,
+   "type": "image/png",
+   "bytes": 22503
+  },
+  "errors": [],
+  "pass": true
+ },
+ "product-add-photo-390": {
+  "created": true,
+  "imageUrl": "/images/products/16fb8a52-c35a-4b60-93b5-7cc476e17af0",
+  "served": {
+   "status": 200,
+   "type": "image/png",
+   "bytes": 15939
+  },
+  "errors": [],
+  "pass": true
+ },
+ "promotions-1440": {
+  "headlinesVisible": [
+   true,
+   true,
+   true
+  ],
+  "overflow": false
+ },
+ "promotions-390": {
+  "headlinesVisible": [
+   true,
+   true,
+   true
+  ],
+  "overflow": false
+ },
+ "export-server-sales": {
+  "filename": "bitpos-sales-2026-10-30_2026-10-30.csv",
+  "dataRows": 7,
+  "header": "order_id,paid_at_utc,local_day,source_kind,currency,decimals,total_minor\r"
+ },
+ "export-server-net": {
+  "filename": "bitpos-net-2026-10-30_2026-10-30.csv",
+  "dataRows": 7,
+  "header": "order_id,currency,decimals,gross_minor,refunded_minor,net_minor\r"
+ },
+ "export-server-stock": {
+  "filename": "bitpos-stock-2026-10-30_2026-10-30.csv",
+  "dataRows": 2,
+  "header": "movement_id,created_at_utc,local_day,product_id,product_name,kind,delta,stock_before,stock_after,reason,reference,actor\r"
+ },
+ "export-csv": {
+  "filename": "bitpos-orders-2026-10-30_2026-10-30.csv",
+  "dataRows": 11,
+  "header": "order_id,created_at,status,channel,currency,amount_minor,amount,items\r",
+  "ordersInDb": 13,
+  "errors": []
+ }
+}

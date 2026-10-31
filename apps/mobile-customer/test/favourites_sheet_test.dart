@@ -40,6 +40,8 @@ MobileFavourites availableBranches() => MobileFavourites.fromJson({
         'pickupEnabled': true,
         'deliveryEnabled': true,
         'version': 1,
+  'openNow': null,
+  'nextOpenAt': null,
       },
     };
   }),

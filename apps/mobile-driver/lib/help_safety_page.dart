@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:mobile_shared/presentation/bitpos_layout.dart';
+import 'package:mobile_shared/presentation/bitpos_info.dart';
 import 'package:mobile_shared/mobile_api.dart';
 import 'package:mobile_shared/owned_route.dart';
 import 'package:mobile_shared/support_page.dart';
@@ -78,24 +80,9 @@ class _DriverHelpSafetyPageState extends State<DriverHelpSafetyPage> {
     appBar: AppBar(
       backgroundColor: const Color(0xfff8f5fc),
       toolbarHeight: 72,
-      leadingWidth: 76,
+      leadingWidth: BitPosLayout.leadingWidth,
       titleSpacing: 0,
-      leading: Padding(
-        padding: const EdgeInsets.fromLTRB(18, 14, 14, 14),
-        child: IconButton.filledTonal(
-          tooltip: MaterialLocalizations.of(context).backButtonTooltip,
-          onPressed: () => Navigator.of(context).maybePop(),
-          style: IconButton.styleFrom(
-            backgroundColor: Colors.white,
-            foregroundColor: const Color(0xff64188a),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14),
-              side: const BorderSide(color: Color(0xffe9e1f1)),
-            ),
-          ),
-          icon: const Icon(Icons.chevron_left, size: 22),
-        ),
-      ),
+      leading: const BitPosBackButton(),
       title: Text(
         t('ช่วยเหลือและความปลอดภัย', 'Help and safety'),
         style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
@@ -124,12 +111,17 @@ class _DriverHelpSafetyPageState extends State<DriverHelpSafetyPage> {
               t('เปิดงานเพื่อรายงานเหตุ', 'Open work to report an incident'),
             ),
           ),
-        const SizedBox(height: 12),
-        Text(
-          t(
-            'รายงานเหตุจากหน้างานเพื่อผูกงานที่ถูกต้อง การแจ้งเหตุไม่ปล่อยหน้าที่ดูแลอาหาร ไม่ยืนยันการยกเลิกหรือคืนเงิน',
-            'Report an incident from the work screen to link the correct assignment. Reporting does not release food custody, cancel an order or confirm a refund.',
-          ),
+        BitPosInfoLine(
+          key: const ValueKey('help-report-info'),
+          thai: widget.thai,
+          summary: t('รายงานเหตุจากหน้างานเท่านั้น', 'Report incidents from the work screen'),
+          title: t('เกี่ยวกับการรายงานเหตุ', 'About reporting an incident'),
+          paragraphs: [
+            t(
+              'รายงานเหตุจากหน้างานเพื่อผูกงานที่ถูกต้อง การแจ้งเหตุไม่ปล่อยหน้าที่ดูแลอาหาร ไม่ยืนยันการยกเลิกหรือคืนเงิน',
+              'Report an incident from the work screen to link the correct assignment. Reporting does not release food custody, cancel an order or confirm a refund.',
+            ),
+          ],
         ),
         const SizedBox(height: 24),
         for (final entry in [

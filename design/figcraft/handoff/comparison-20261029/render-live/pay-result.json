@@ -1,0 +1,62 @@
+{
+ "bill-awaiting-390": {
+  "overflow": false,
+  "text": "ไทย | English |  | ชำระบิลของคุณ |  | ตรวจสอบและชำระเงิน | Solana devnet · USDG devnet | รายการของคุณ | #b"
+ },
+ "bill-expired-390": {
+  "overflow": false,
+  "text": "ไทย | English |  | ชำระบิลของคุณ |  | บิลนี้หมดเวลาแล้ว | Solana devnet · USDG devnet | รายการของคุณ | #c3"
+ },
+ "bill-paid-390": {
+  "overflow": false,
+  "text": "ไทย | English |  | ชำระบิลของคุณ |  | ชำระเงินสำเร็จ | Solana devnet · USDG devnet | รายการของคุณ | #cd93c"
+ },
+ "pay-menu-390": {
+  "overflow": false
+ },
+ "table-menu-390": {
+  "overflow": false
+ },
+ "table-order-confirmed-390": {
+  "overflow": false
+ },
+ "table-order-bill-390": {
+  "payLink": true,
+  "overflow": false
+ },
+ "table-order-paid-390": {
+  "paidShown": true,
+  "orderAgainLink": false,
+  "overflow": false
+ },
+ "bill-awaiting-1440": {
+  "overflow": false,
+  "text": "ไทย | English | Counter |  | ชำระบิลของคุณ |  | ตรวจสอบและชำระเงิน | Solana devnet · USDG devnet | รายการข"
+ },
+ "bill-expired-1440": {
+  "overflow": false,
+  "text": "ไทย | English | Counter |  | ชำระบิลของคุณ |  | บิลนี้หมดเวลาแล้ว | Solana devnet · USDG devnet | รายการขอ"
+ },
+ "bill-paid-1440": {
+  "overflow": false,
+  "text": "ไทย | English | Counter |  | ชำระบิลของคุณ |  | ชำระเงินสำเร็จ | Solana devnet · USDG devnet | รายการของคุ"
+ },
+ "pay-menu-1440": {
+  "overflow": false
+ },
+ "table-menu-1440": {
+  "overflow": false
+ },
+ "table-order-confirmed-1440": {
+  "overflow": false
+ },
+ "table-order-bill-1440": {
+  "payLink": true,
+  "overflow": false
+ },
+ "table-order-paid-1440": {
+  "paidShown": true,
+  "orderAgainLink": false,
+  "overflow": false
+ }
+}

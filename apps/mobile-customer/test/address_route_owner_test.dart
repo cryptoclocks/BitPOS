@@ -26,6 +26,8 @@ class AddressOwnerFoodApi extends MenuPagesApi {
     pickupEnabled: true,
     deliveryEnabled: true,
     version: 1,
+        openNow: null,
+        nextOpenAt: null,
   );
   @override
   MobileBranch get branch => _deliveryBranch;

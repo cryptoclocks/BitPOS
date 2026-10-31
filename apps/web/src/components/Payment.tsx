@@ -37,7 +37,7 @@ export default function Payment({ accessToken, terminal = false }: { accessToken
   const [assets, setAssets] = useState<PaymentAssetsView>(); const [assetError, setAssetError] = useState(''); const [selection, setSelection] = useState<PaymentAssetSelection | null>(null); const [journalError, setJournalError] = useState(''); const [assetRefresh, setAssetRefresh] = useState(0);
   const [customerAuthBusy,setCustomerAuthBusy]=useState(false);
   const [customerContext,setCustomerContext]=useState<PayCustomerContext>();
-  const [done,setDone]=useState(false);
+  const [done,setDone]=useState(false);const [orderAgainUrl,setOrderAgainUrl]=useState('');
   // Thai is the default (the FigCraft Pay screens are Thai); a customer's explicit choice is remembered on this device.
   const [language, setLanguageState] = useState<'en' | 'th'>('th');
   const setLanguage = (next: 'en' | 'th') => { setLanguageState(next); try { localStorage.setItem('bitpos.pay.language', next); } catch { /* storage unavailable: keep the choice for this visit only */ } };
@@ -140,6 +140,8 @@ export default function Payment({ accessToken, terminal = false }: { accessToken
   const [whole, fraction = ''] = order ? decimalAmount(order.settlement).split('.') : [];
   const amount = order ? `${whole}.${fraction.replace(/0+$/, '').padEnd(2, '0')}` : '';
   const paid = order?.status === 'PAID';
+  // Only this bill's own table entry (server-resolved from the bill capability); no other guest's data.
+  useEffect(()=>{if(!paid)return;let live=true;void api<{tableUrl:string|null}>(`/pay/${encodeURIComponent(accessToken)}/menu`).then(r=>{if(live&&r.tableUrl&&/^\/table\/[A-Za-z0-9_-]{43}$/.test(r.tableUrl))setOrderAgainUrl(r.tableUrl);}).catch(()=>{});return()=>{live=false;};},[paid,accessToken]);
   const confirming = order?.status === 'CONFIRMING';
   const sending = !!submitted && !final && !confirming;
   const savedRecovery=hasSavedPayment&&!paid;
@@ -224,6 +226,7 @@ export default function Payment({ accessToken, terminal = false }: { accessToken
               <span className="checkout-method-icon" aria-hidden="true">▣</span>
               <div><strong>{wallet?.name || primaryChoice?.name || text('กระเป๋า Solana · Phantom', 'Solana wallet · Phantom')}</strong><small>{wallet ? text('เชื่อมต่อแล้ว', 'Connected') : primaryChoice ? text('กระเป๋าที่พบในเบราว์เซอร์นี้', 'Wallet available in this browser') : text('เปิดบิลนี้ในเบราว์เซอร์ Phantom', 'Open this bill in the Phantom browser')}</small></div>
             </div>}
+            {!progress && !final && <p className="checkout-help" data-blocked="promptpay-card" role="note"><strong>{text('ยังไม่พร้อมใช้งาน', 'Not available yet')}</strong> · {text('PromptPay และบัตรอยู่ในแผน ยังชำระด้วยวิธีนี้ไม่ได้ และไม่ใช้ QR คริปโตแทน', 'PromptPay and card are planned and cannot be used to pay yet. A crypto QR is not a substitute.')}</p>}
             {(!final || selection) && <section className="checkout-assets" aria-label={text('สินทรัพย์ชำระเงิน', 'Payment asset')}>
               <label htmlFor="payment-asset">{text('สินทรัพย์ที่เลือก', 'Selected payment asset')}</label>
               <select id="payment-asset" value={assetsReady ? assets!.selectedAssetId : ''} aria-describedby="payment-asset-quote" disabled={switchLocked} onChange={event => chooseAsset(event.target.value)}>
@@ -247,7 +250,7 @@ export default function Payment({ accessToken, terminal = false }: { accessToken
               {hasSavedX402 && <p role="status">{text('มีการอนุมัติ x402 ที่บันทึกไว้ ตรวจธุรกรรมเดิม ไม่ลงนามใหม่', 'Saved x402 authorization: check the same payment, never sign a replacement')}</p>}
             </section>}
             {busy && <p className="checkout-help" role="status" aria-live="polite" aria-atomic="true">{stageText}</p>}
-            {paid && <section className="checkout-wallet"><button className="checkout-primary" disabled={busy || done} onClick={() => void action(async () => { const result = await api<{done:boolean;returnUrl:string|null}>(`/pay/${encodeURIComponent(accessToken)}/dismiss`, {}); if (!result.done) throw new Error('Completion unavailable. Retry Done.'); if (result.returnUrl && order) { const entry = result.returnUrl.match(/^\/table\/([A-Za-z0-9_-]{43})$/)?.[1]; if (entry) finishGuestOrder(entry, order); } setReturnUrl(result.returnUrl); if (result.returnUrl) setReturnAt(Date.now() + 10000); setDone(true); })}>{done ? returnUrl ? text('เสร็จแล้ว · กำลังกลับเมนู…', 'Done · Returning to menu…') : text('เสร็จแล้ว', 'Done') : text('เสร็จแล้ว', 'Done')}</button>{done && <p className="checkout-help">{returnUrl ? text('จะเปิดเมนูในอีก 10 วินาที', 'The menu will reopen in 10 seconds.') : text('ยืนยันการชำระแล้ว กลับแอป BitPOS เพื่อดูออเดอร์', 'Payment is confirmed. Return to the BitPOS app to view your order.')}</p>}</section>}
+            {paid && <section className="checkout-wallet">{orderAgainUrl && <a className="checkout-primary" href={orderAgainUrl}>{text('สั่งอาหารใหม่', 'Order again · start a new order')}</a>}<button className="checkout-primary" disabled={busy || done} onClick={() => void action(async () => { const result = await api<{done:boolean;returnUrl:string|null}>(`/pay/${encodeURIComponent(accessToken)}/dismiss`, {}); if (!result.done) throw new Error('Completion unavailable. Retry Done.'); if (result.returnUrl && order) { const entry = result.returnUrl.match(/^\/table\/([A-Za-z0-9_-]{43})$/)?.[1]; if (entry) finishGuestOrder(entry, order); } setReturnUrl(result.returnUrl); if (result.returnUrl) setReturnAt(Date.now() + 10000); setDone(true); })}>{done ? returnUrl ? text('เสร็จแล้ว · กำลังกลับเมนู…', 'Done · Returning to menu…') : text('เสร็จแล้ว', 'Done') : text('เสร็จแล้ว', 'Done')}</button>{done && returnUrl && <button type="button" className="checkout-secondary" onClick={() => location.assign(returnUrl)}>{text('เปิดเมนูตอนนี้', 'Open menu now')}</button>}{done && <p className="checkout-help">{returnUrl ? text('จะเปิดเมนูในอีก 10 วินาที', 'The menu will reopen in 10 seconds.') : text('ยืนยันการชำระแล้ว กลับแอป BitPOS เพื่อดูออเดอร์', 'Payment is confirmed. Return to the BitPOS app to view your order.')}</p>}</section>}
           </>}
         </div>
         </div>

@@ -83,7 +83,17 @@ class FoodCartLineCard extends StatelessWidget {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  FoodImage(url: p?.imageUrl ?? '', size: 60),
+                  FoodImage(
+                    url: p?.imageUrl ?? '',
+                    size: 60,
+                    emoji: p == null
+                        ? null
+                        : foodEmoji(
+                            name: p.name,
+                            nameEn: p.nameEn,
+                            category: p.category,
+                          ),
+                  ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(

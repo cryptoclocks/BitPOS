@@ -26,7 +26,7 @@ class DriverJobDetailsCard extends StatelessWidget {
         Text(text, style: theme.textTheme.titleMedium);
 
     Widget borderedCard({required Widget child}) => Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: dark ? colors.surfaceContainer : Colors.white,
         borderRadius: BorderRadius.circular(16),
@@ -123,17 +123,11 @@ class DriverJobDetailsCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              unavailableDetail(
-                icon: Icons.storefront_outlined,
-                title: _t(
-                  'ข้อมูลร้านและจุดรับยังไม่พร้อม',
-                  'Merchant and pickup unavailable',
-                ),
-                detail: _t(
-                  'มีพิกัดจุดรับเท่านั้น ไม่มีชื่อร้านหรือที่อยู่',
-                  'Pickup coordinates are available; merchant name and address are not.',
-                ),
-              ),
+              Text(a.pickupName, style: theme.textTheme.titleMedium),
+              if (a.pickupAddress.isNotEmpty) ...[
+                const SizedBox(height: 4),
+                Text(a.pickupAddress, style: theme.textTheme.bodyMedium),
+              ],
               const SizedBox(height: 12),
               Text(
                 _t('พิกัดจุดรับ', 'Pickup coordinates'),
@@ -151,20 +145,48 @@ class DriverJobDetailsCard extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 20),
-        sectionTitle(_t('ตรวจสอบก่อนรับอาหาร', 'Check before pickup')),
+        sectionTitle(_t('รายการที่ต้องตรวจ', 'Items to check')),
         const SizedBox(height: 8),
         borderedCard(
-          child: unavailableDetail(
-            icon: Icons.receipt_long_outlined,
-            title: _t(
-              'รายการอาหารสำหรับตรวจสอบยังไม่พร้อม',
-              'Food checklist unavailable',
-            ),
-            detail: _t(
-              'งานนี้ยังไม่มีรายการอาหารหรือรายละเอียดบรรจุภัณฑ์สำหรับตรวจสอบ',
-              'This job does not include food items or packaging details to verify.',
-            ),
-          ),
+          child: a.items.isEmpty
+              ? unavailableDetail(
+                  icon: Icons.receipt_long_outlined,
+                  title: _t(
+                    'รายการอาหารสำหรับตรวจสอบยังไม่พร้อม',
+                    'Food checklist unavailable',
+                  ),
+                  detail: _t(
+                    'งานนี้ยังไม่มีรายการอาหารสำหรับตรวจสอบ',
+                    'This job has no food items to verify.',
+                  ),
+                )
+              : Column(
+                  key: const ValueKey('driver-job-items'),
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    for (final item in a.items)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 4),
+                        child: Row(
+                          children: [
+                            SizedBox(
+                              width: 44,
+                              child: Text(
+                                '${item.qty} ×',
+                                style: theme.textTheme.titleSmall,
+                              ),
+                            ),
+                            Expanded(
+                              child: Text(
+                                item.name,
+                                style: theme.textTheme.bodyLarge,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
         ),
         const SizedBox(height: 20),
         sectionTitle(_t('รายละเอียดผู้รับ', 'Recipient details')),

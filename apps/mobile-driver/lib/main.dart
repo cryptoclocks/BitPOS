@@ -1,3 +1,4 @@
+import 'package:mobile_shared/presentation/bitpos_info.dart';
 import 'package:mobile_shared/presentation/ui_catalog.dart';
 
 import 'presentation/driver_welcome.dart';
@@ -18,8 +19,10 @@ import 'food_history_page.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:mobile_shared/presentation/bitpos_layout.dart';
 import 'package:flutter/services.dart' show SystemNavigator;
 import 'package:mobile_shared/mobile_api.dart';
+import 'package:mobile_shared/presentation/bitpos_connection.dart';
 import 'package:mobile_shared/mobile_v1.generated.dart';
 import 'package:mobile_shared/driver_mutation.dart';
 import 'package:mobile_shared/bitpos_theme.dart';
@@ -42,6 +45,7 @@ class BitPosDriver extends StatelessWidget {
     debugShowCheckedModeBanner: false,
     theme: BitPosTheme.light(),
     darkTheme: BitPosTheme.dark(),
+    builder: (context, child) => BitPosConnectionHost(child: child),
     home: const bool.fromEnvironment('BITPOS_UI_CATALOG')
         ? const BitPosUiCatalog(rider: true)
         : const DriverSessionPage(),
@@ -77,6 +81,10 @@ class _DriverSessionPageState extends State<DriverSessionPage>
   bool _snapshotStale = false;
   MobilePushController? _push;
   bool _destinationOpen = false;
+  bool _startupFailed = false;
+  int _startupAttempt = 0;
+  Timer? _startupRetry;
+  VoidCallback? _reconnects;
   // FigCraft R06: the signed-in home is the Work tab; Account is the fourth root tab. One landing per session.
   String? _landedFor;
   bool _profileKnown = false;
@@ -102,7 +110,21 @@ class _DriverSessionPageState extends State<DriverSessionPage>
             base: Uri.parse(base),
             fixture: const bool.fromEnvironment('BITPOS_FIXTURE'),
           );
+      BitPosConnection.useApi(_api);
+      _reconnects ??= () {
+        if (!mounted) return;
+        if (_startupFailed) {
+          _startupFailed = false;
+          _startupRetry?.cancel();
+          unawaited(_initialize());
+        } else if (_signedIn && !_busy) {
+          unawaited(_run(_load));
+        }
+      };
+      _api!.reconnects.removeListener(_reconnects!);
+      _api!.reconnects.addListener(_reconnects!);
       await _api!.restore();
+      await _sessionChanges?.cancel();
       var previousScope = _api!.sessionScope;
       _sessionChanges = _api!.sessionScopes.listen((scope) {
         final changedOwner = previousScope != null && scope != previousScope;
@@ -140,17 +162,18 @@ class _DriverSessionPageState extends State<DriverSessionPage>
               result is MobilePushOpenDriverWork)
             Navigator.of(context).push(
               MaterialPageRoute<void>(
-                builder: (_) => FoodWorkPage(
-                  api: api,
-                  thai: _thai,
-                ),
+                builder: (_) => FoodWorkPage(api: api, thai: _thai),
               ),
             );
         },
       );
       await _push!.start();
     } catch (e) {
-      _error = e;
+      final quiet =
+          e is MobileApiException &&
+          e.code == 'AUTH_REQUIRED' &&
+          !(_api?.signedIn ?? false);
+      _error = quiet ? null : e;
       if (_signedIn && _api != null && !_api!.signedIn) {
         _owner++;
         _signedIn = false;
@@ -159,6 +182,21 @@ class _DriverSessionPageState extends State<DriverSessionPage>
         _clearApplication();
         _sent = false;
         _code.clear();
+      } else if (isConnectivityError(e) && _push == null && _signedIn) {
+        // The session is intact; only the first server read failed. Keep the
+        // calm banner and retry by itself instead of leaving a dead screen.
+        _startupFailed = true;
+        _startupAttempt++;
+        _startupRetry?.cancel();
+        _startupRetry = Timer(
+          Duration(seconds: (_startupAttempt * 3).clamp(3, 20)),
+          () {
+            if (mounted && _startupFailed) {
+              _startupFailed = false;
+              unawaited(_initialize());
+            }
+          },
+        );
       }
     }
     if (mounted) setState(() => _busy = false);
@@ -352,6 +390,11 @@ class _DriverSessionPageState extends State<DriverSessionPage>
   }
 
   String _message(Object e) {
+    if (isConnectivityError(e))
+      return t(
+        'กำลังเชื่อมต่อใหม่ รอสักครู่แล้วลองอีกครั้ง',
+        'Reconnecting. Wait a moment, then try again.',
+      );
     if (e is TimeoutException)
       return t(
         'เซิร์ฟเวอร์ยังไม่ตอบกลับ โหลดสถานะล่าสุดก่อนทำรายการต่อ',
@@ -485,7 +528,11 @@ class _DriverSessionPageState extends State<DriverSessionPage>
         }
       }
       // A tab opened as the home has nothing beneath it to return to: system back leaves the app.
-      if (landing && mounted && _signedIn && api.sessionScope == owner && destination == null) {
+      if (landing &&
+          mounted &&
+          _signedIn &&
+          api.sessionScope == owner &&
+          destination == null) {
         unawaited(SystemNavigator.pop());
       }
     } finally {
@@ -497,9 +544,12 @@ class _DriverSessionPageState extends State<DriverSessionPage>
     child: Padding(
       padding: const EdgeInsets.all(20),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Icon(Icons.delivery_dining_outlined, size: 32),
+          const Align(
+            alignment: Alignment.centerLeft,
+            child: Icon(Icons.delivery_dining_outlined, size: 32),
+          ),
           const SizedBox(height: 12),
           Text(
             t(
@@ -509,24 +559,35 @@ class _DriverSessionPageState extends State<DriverSessionPage>
             style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 8),
-          Text(
-            t(
-              'งานเสนอและงานที่รับแล้วมาจากเซิร์ฟเวอร์ การออนไลน์อย่างเดียวไม่ใช่การรับงาน',
-              'Offers and accepted assignments come from the server. Going online alone does not accept a job.',
+          BitPosInfoLine(
+            thai: _thai,
+            summary: t(
+              'งานเสนอมาจากเซิร์ฟเวอร์',
+              'Offers come from the server',
             ),
+            title: t('เกี่ยวกับงานส่งอาหาร', 'About food deliveries'),
+            paragraphs: [
+              t(
+                'งานเสนอและงานที่รับแล้วมาจากเซิร์ฟเวอร์ การออนไลน์อย่างเดียวไม่ใช่การรับงาน',
+                'Offers and accepted assignments come from the server. Going online alone does not accept a job.',
+              ),
+            ],
           ),
+          const SizedBox(height: 16),
           FilledButton(
             onPressed: _busy || _pending != null
                 ? null
                 : () => _openDestination(0),
             child: Text(t('เปิดงานส่งอาหาร', 'Open food deliveries')),
           ),
+          const SizedBox(height: 12),
           OutlinedButton(
             onPressed: _busy || _pending != null || _profile == null
                 ? null
                 : () => _openDestination(1),
             child: Text(t('ประวัติการรับงาน', 'Delivery history')),
           ),
+          const SizedBox(height: 12),
           OutlinedButton(
             onPressed: _busy || _pending != null
                 ? null
@@ -537,9 +598,19 @@ class _DriverSessionPageState extends State<DriverSessionPage>
       ),
     ),
   );
+  String _shortDate(String iso) {
+    final d = DateTime.tryParse(iso)?.toLocal();
+    if (d == null) return iso;
+    String two(int n) => n.toString().padLeft(2, '0');
+    return '${two(d.day)}/${two(d.month)}/${d.year}';
+  }
+
   @override
-  Widget build(BuildContext context) =>
-      DriverPresentation(child: Builder(builder: _buildPage));
+  Widget build(BuildContext context) {
+    BitPosConnection.useThai(_thai);
+    return DriverPresentation(child: Builder(builder: _buildPage));
+  }
+
   InputDecoration _signInDecoration(BuildContext context, String label) {
     final colors = Theme.of(context).colorScheme,
         dark = Theme.of(context).brightness == Brightness.dark;
@@ -668,25 +739,13 @@ class _DriverSessionPageState extends State<DriverSessionPage>
       },
       child: Scaffold(
         appBar: AppBar(
-          toolbarHeight: 72,
-          leadingWidth: 76,
+          toolbarHeight: BitPosLayout.toolbarHeight,
+          leadingWidth: BitPosLayout.leadingWidth,
           titleSpacing: 0,
-          leading: Padding(
-            padding: const EdgeInsets.fromLTRB(18, 14, 14, 14),
-            child: IconButton(
-              key: const ValueKey('driver-application-back'),
-              tooltip: t('ย้อนกลับ', 'Back'),
-              onPressed: _busy ? null : _leaveApplication,
-              style: IconButton.styleFrom(
-                side: BorderSide(
-                  color: Theme.of(context).colorScheme.outlineVariant,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
-                ),
-              ),
-              icon: const Icon(Icons.chevron_left),
-            ),
+          leading: BitPosBackButton(
+            key: const ValueKey('driver-application-back'),
+            tooltip: t('ย้อนกลับ', 'Back'),
+            onPressed: _busy ? () {} : _leaveApplication,
           ),
           title: Text(
             title,
@@ -695,9 +754,17 @@ class _DriverSessionPageState extends State<DriverSessionPage>
           ),
           actions: [
             if (MediaQuery.sizeOf(context).width >= 360)
-              TextButton(
-                onPressed: () => setState(() => _thai = !_thai),
-                child: Text(_thai ? 'English' : 'ไทย'),
+              Padding(
+                padding: const EdgeInsets.only(right: BitPosLayout.gutter),
+                child: TextButton(
+                  onPressed: () => setState(() => _thai = !_thai),
+                  style: TextButton.styleFrom(
+                    padding: EdgeInsets.zero,
+                    minimumSize: const Size(48, 48),
+                    alignment: Alignment.centerRight,
+                  ),
+                  child: Text(_thai ? 'English' : 'ไทย'),
+                ),
               )
             else
               IconButton(
@@ -777,7 +844,11 @@ class _DriverSessionPageState extends State<DriverSessionPage>
                           child: Text(
                             _message(_error!),
                             style: TextStyle(
-                              color: Theme.of(context).colorScheme.error,
+                              color: isConnectivityError(_error)
+                                  ? Theme.of(context)
+                                        .colorScheme
+                                        .onSurfaceVariant
+                                  : Theme.of(context).colorScheme.error,
                             ),
                           ),
                         ),
@@ -823,7 +894,13 @@ class _DriverSessionPageState extends State<DriverSessionPage>
       return _applicationPage(context);
     }
     final scope = _api?.sessionScope;
-    if (_signedIn && _profileKnown && p != null && scope != null && _landedFor != scope.sessionId && !_busy && !_destinationOpen) {
+    if (_signedIn &&
+        _profileKnown &&
+        p != null &&
+        scope != null &&
+        _landedFor != scope.sessionId &&
+        !_busy &&
+        !_destinationOpen) {
       _landedFor = scope.sessionId;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) unawaited(_openDestination(0, landing: true));
@@ -873,10 +950,10 @@ class _DriverSessionPageState extends State<DriverSessionPage>
                   builder: (context, constraints) => Row(
                     children: [
                       if (!_signedIn)
-                        IconButton(
+                        BitPosBackTile(
                           tooltip: t('ย้อนกลับ', 'Back'),
                           onPressed: _busy
-                              ? null
+                              ? () {}
                               : () => setState(() {
                                   if (_sent) {
                                     _sent = false;
@@ -886,20 +963,8 @@ class _DriverSessionPageState extends State<DriverSessionPage>
                                   }
                                   _error = null;
                                 }),
-                          icon: const Icon(Icons.chevron_left),
-                          style: IconButton.styleFrom(
-                            minimumSize: const Size(44, 44),
-                            side: BorderSide(
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .outlineVariant,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                          ),
                         ),
-                      if (!_signedIn) const SizedBox(width: 8),
+                      if (!_signedIn) const SizedBox(width: 12),
                       Expanded(
                         child: Text(
                           _signedIn
@@ -923,6 +988,11 @@ class _DriverSessionPageState extends State<DriverSessionPage>
                       else
                         TextButton(
                           onPressed: () => setState(() => _thai = !_thai),
+                          style: TextButton.styleFrom(
+                            padding: EdgeInsets.zero,
+                            minimumSize: const Size(48, 48),
+                            alignment: Alignment.centerRight,
+                          ),
                           child: Text(_thai ? 'English' : 'ไทย'),
                         ),
                     ],
@@ -936,7 +1006,9 @@ class _DriverSessionPageState extends State<DriverSessionPage>
                     child: Text(
                       _message(_error!),
                       style: TextStyle(
-                        color: Theme.of(context).colorScheme.error,
+                        color: isConnectivityError(_error)
+                            ? Theme.of(context).colorScheme.onSurfaceVariant
+                            : Theme.of(context).colorScheme.error,
                       ),
                     ),
                   ),
@@ -1145,7 +1217,7 @@ class _DriverSessionPageState extends State<DriverSessionPage>
                     if (p.decisionReason.isNotEmpty) Text(p.decisionReason),
                     if (p.verifiedUntil != null)
                       Text(
-                        '${t('ตรวจสอบถึง', 'Verified until')}: ${p.verifiedUntil}',
+                        '${t('ตรวจสอบถึง', 'Verified until')}: ${_shortDate(p.verifiedUntil.toString())}',
                       ),
                     if (!p.availability.verificationCurrent)
                       Text(
@@ -1155,11 +1227,20 @@ class _DriverSessionPageState extends State<DriverSessionPage>
                         ),
                       ),
                     const SizedBox(height: BitPosDesignTokens.s12),
-                    Text(
-                      t(
-                        'การออนไลน์มีอายุ 90 วินาที ต้องต่ออายุ ไม่ใช่การรับงานหรือการติดตามตำแหน่ง',
-                        'Online availability expires after90seconds and needs renewal. It is not an assignment or location tracking.',
+                    BitPosInfoLine(
+                      key: const ValueKey('driver-online-info'),
+                      thai: _thai,
+                      summary: t(
+                        'ออนไลน์มีอายุ 90 วินาที',
+                        'Online status lasts 90 seconds',
                       ),
+                      title: t('เกี่ยวกับการออนไลน์', 'About going online'),
+                      paragraphs: [
+                        t(
+                          'การออนไลน์มีอายุ 90 วินาที ต้องต่ออายุ ไม่ใช่การรับงานหรือการติดตามตำแหน่ง',
+                          'Online availability expires after 90 seconds and needs renewal. It is not an assignment or location tracking.',
+                        ),
+                      ],
                     ),
                     const SizedBox(height: BitPosDesignTokens.s20),
                     FilledButton(
@@ -1182,7 +1263,7 @@ class _DriverSessionPageState extends State<DriverSessionPage>
                             ),
                       child: Text(t('ออนไลน์ / ต่ออายุ', 'Go online / renew')),
                     ),
-                    const SizedBox(height: BitPosDesignTokens.s8),
+                    const SizedBox(height: 12),
                     OutlinedButton(
                       onPressed: frozen
                           ? null
@@ -1221,12 +1302,14 @@ class _DriverSessionPageState extends State<DriverSessionPage>
                       ),
                     ),
                   ],
+                  const SizedBox(height: 12),
                   OutlinedButton(
                     onPressed: _busy ? null : () => _run(_load),
                     child: Text(
                       t('โหลดสถานะเซิร์ฟเวอร์', 'Refresh server state'),
                     ),
                   ),
+                  if (_push != null) const SizedBox(height: 16),
                   if (_push != null)
                     MobilePushSettings(controller: _push!, thai: _thai),
                   TextButton(
@@ -1255,6 +1338,9 @@ class _DriverSessionPageState extends State<DriverSessionPage>
 
   @override
   void dispose() {
+    _startupRetry?.cancel();
+    if (_reconnects != null) _api?.reconnects.removeListener(_reconnects!);
+    BitPosConnection.useApi(null);
     unawaited(_sessionChanges?.cancel());
     _owner++;
     WidgetsBinding.instance.removeObserver(this);

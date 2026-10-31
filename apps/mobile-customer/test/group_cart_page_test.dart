@@ -45,6 +45,8 @@ MobileBranch branch() => MobileBranch.fromJson({
   'pickupEnabled': true,
   'deliveryEnabled': false,
   'version': 1,
+  'openNow': null,
+  'nextOpenAt': null,
 });
 
 MobileMoney usd(int minor) =>
@@ -271,6 +273,7 @@ MobileProduct product(int available) => MobileProduct.fromJson({
   'category': '',
   'description': '',
   'imageUrl': '',
+  'story': {'story': '', 'storyEn': '', 'ingredients': '', 'ingredientsEn': '', 'benefits': '', 'benefitsEn': '', 'videoUrl': ''},
   'available': available,
   'unitPrice': null,
   'basePrice': null,
@@ -304,7 +307,7 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('group-create')));
       await tester.pumpAndSettle();
       expect(find.byKey(const ValueKey('group-state')), findsOneWidget);
-      expect(find.textContaining('no group price or payment'), findsOneWidget);
+      expect(find.textContaining('No group price or payment'), findsOneWidget);
       expect(
         tester
             .widget<FilledButton>(find.byKey(const ValueKey('group-lock')))
@@ -451,7 +454,7 @@ void main() {
       await pump(tester, fake);
       await tester.tap(find.byKey(ValueKey('group-open.$gid')));
       await tester.pumpAndSettle();
-      expect(find.textContaining('takes no payment'), findsOneWidget);
+      expect(find.textContaining('No payment when ordering'), findsOneWidget);
       await tester.tap(find.byKey(const ValueKey('group-quote-btn.$branchId')));
       await tester.pumpAndSettle();
       expect(

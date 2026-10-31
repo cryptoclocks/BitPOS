@@ -36,3 +36,6 @@
 /* Opening-hours day groups: rounded cards like the rest of Settings instead of the browser's square fieldset outline. */
 .opening-day{margin:0 0 14px;padding:12px 16px 16px;border:1px solid var(--bp-line,#e9e1f1);border-radius:16px;background:#fff}
 .opening-day>legend{padding:0 8px;font-weight:700;color:var(--bp-ink,#321b50)}
+
+/* Sidebar labels stay left-aligned beside the icon; a long label (e.g. Products & inventory) wraps under itself instead of centring. */
+.shell[data-merchant-shell] .workspace-tabs>button,.shell:has(>.incoming-board) .workspace-tabs>button{text-align:left;gap:10px;padding-inline:14px;font-size:13.5px;line-height:18px;overflow:hidden}

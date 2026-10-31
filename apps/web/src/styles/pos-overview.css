@@ -25,3 +25,4 @@
 .pos-overview-recent th:first-child{border-radius:12px 0 0 12px}.pos-overview-recent th:last-child{border-radius:0 12px 12px 0}
 @media(max-width:900px){.pos-overview-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.pos-overview-grid{grid-template-columns:minmax(0,1fr)}.pos-overview-recent{overflow-x:auto}}
 @media(max-width:480px){.pos-overview-kpis{grid-template-columns:minmax(0,1fr)}.pos-overview-kpis strong{font-size:26px}}
+.pos-overview-kpis strong span.pos-overview-money{display:block;font-size:inherit;color:inherit;line-height:inherit}.pos-overview-kpis strong span.pos-overview-money+span.pos-overview-money{font-size:.72em;margin-top:2px}

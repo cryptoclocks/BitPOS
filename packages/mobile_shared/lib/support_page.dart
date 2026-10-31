@@ -4,6 +4,7 @@ import 'package:mobile_shared/mobile_api.dart';
 import 'package:mobile_shared/mobile_v1.generated.dart';
 import 'package:mobile_shared/support_mutation.dart';
 import 'package:mobile_shared/owned_route.dart';
+import 'package:mobile_shared/presentation/bitpos_layout.dart';
 class SupportPage extends StatefulWidget{
  const SupportPage({super.key,required this.api,required this.owner,required this.thai,required this.onAuthenticationRequired,this.initialSubject='',this.order});
  final MobileSupportOrder? order;final String initialSubject;final MobileApi api;final ValueListenable<bool>? owner;final bool thai;final VoidCallback onAuthenticationRequired;
@@ -38,7 +39,7 @@ class _SupportPageState extends State<SupportPage>{
  String stateLabel(String state)=>switch(state){'RESOLVED'=>t('ปิดคำร้องแล้ว','Resolved'),'WAITING_CUSTOMER'=>t('รอข้อมูลจากคุณ','Waiting for you'),_=>t('เปิดคำร้อง','Open')};
  @override Widget build(BuildContext context){
   final locked=busy||pending!=null;
-  return Scaffold(appBar:AppBar(title:Text(t('ศูนย์ช่วยเหลือ','Help centre'))),body:ListView(padding:const EdgeInsets.all(24),children:[
+  return Scaffold(appBar:bitPosAppBar(context,title:Text(t('ศูนย์ช่วยเหลือ','Help centre'))),body:ListView(padding:const EdgeInsets.all(24),children:[
    Text(t('ติดตามคำร้องของคุณและโหลดข้อความล่าสุดได้ที่นี่','Track your requests and refresh for the latest messages.')),
    if(widget.order!=null)Padding(padding:const EdgeInsets.only(top:12),child:Text('${t('เกี่ยวกับออเดอร์','Regarding order')} #${widget.order!.orderId.substring(0,8)}')),
    const SizedBox(height:16),if(busy)const LinearProgressIndicator(),if(error!=null)Text(error!,style:TextStyle(color:Theme.of(context).colorScheme.error)),
@@ -48,7 +49,7 @@ class _SupportPageState extends State<SupportPage>{
     Text(t('คำร้องของคุณ','Your requests'),style:Theme.of(context).textTheme.titleLarge),const SizedBox(height:12),
     if(cases!=null&&cases!.items.isEmpty)Text(t('ยังไม่มีคำร้อง','No requests yet.')),
     for(final ticket in cases?.items??<MobileSupportCase>[])Card(margin:const EdgeInsets.only(bottom:12),child:ListTile(title:Text(ticket.subject),subtitle:Text('${stateLabel(ticket.state)} · ${stamp(ticket.createdAt)}'),trailing:const Icon(Icons.chevron_right),onTap:busy?null:()=>run(()async{final page=await widget.api.supportMessages(ticket.id);if(current)setState((){selected=ticket;messages=page;message.clear();});}))),
-    const SizedBox(height:24),Text(t('สร้างคำร้อง','New request'),style:Theme.of(context).textTheme.titleLarge),
+    const SizedBox(height:24),Text(t('สร้างคำร้อง','New request'),style:Theme.of(context).textTheme.titleLarge),const SizedBox(height:16),
     TextField(controller:subject,enabled:!locked,maxLength:160,decoration:InputDecoration(labelText:t('หัวข้อ','Subject'))),
    ]else...[
     Text(selected!.subject,style:Theme.of(context).textTheme.titleLarge),Text(stateLabel(selected!.state)),const SizedBox(height:16),
@@ -56,7 +57,7 @@ class _SupportPageState extends State<SupportPage>{
    ],
    if(selected?.state!='RESOLVED')...[
     TextField(controller:message,enabled:!locked,maxLength:4000,minLines:3,maxLines:8,decoration:InputDecoration(labelText:t('ข้อความ','Message'))),
-    FilledButton(onPressed:locked?null:()=>run(()async{if(message.text.trim().isEmpty||selected==null&&subject.text.trim().isEmpty){setState(()=>error=t('กรุณากรอกหัวข้อและข้อความ','Enter a subject and message.'));return;}await submit(selected==null?widget.api.newSupportCase(subject.text,message.text,order:widget.order):widget.api.newSupportMessage(selected!.id,message.text));}),child:Text(t('ส่งคำร้อง / ข้อความ','Send request / message'))),
+    const SizedBox(height:8),FilledButton(onPressed:locked?null:()=>run(()async{if(message.text.trim().isEmpty||selected==null&&subject.text.trim().isEmpty){setState(()=>error=t('กรุณากรอกหัวข้อและข้อความ','Enter a subject and message.'));return;}await submit(selected==null?widget.api.newSupportCase(subject.text,message.text,order:widget.order):widget.api.newSupportMessage(selected!.id,message.text));}),child:Text(t('ส่งคำร้อง / ข้อความ','Send request / message'))),
    ],
    const SizedBox(height:16),Wrap(spacing:12,children:[OutlinedButton(onPressed:busy?null:()=>run(()=>refresh()),child:Text(t('โหลดใหม่','Refresh'))),if((selected==null?cases?.nextCursor:messages?.nextCursor)!=null)OutlinedButton(onPressed:busy?null:()=>run(()=>refresh(cursor:selected==null?cases!.nextCursor:messages!.nextCursor)),child:Text(t('หน้าถัดไป','Next page')))]),
   ]));

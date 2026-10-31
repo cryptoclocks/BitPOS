@@ -209,12 +209,13 @@ class FoodDriverOffer {
  final String expiresAt;
  final int pickupLatitudeE7;
  final int pickupLongitudeE7;
+ final String pickupName;
  final MobileMoney earning;
  final bool fixture;
- const FoodDriverOffer._({required this.id, required this.shipmentId, required this.generation, required this.version, required this.expiresAt, required this.pickupLatitudeE7, required this.pickupLongitudeE7, required this.earning, required this.fixture});
- factory FoodDriverOffer({required String id, required String shipmentId, required String generation, required String version, required String expiresAt, required int pickupLatitudeE7, required int pickupLongitudeE7, required MobileMoney earning, required bool fixture}) => FoodDriverOffer.fromJson({"id": id, "shipmentId": shipmentId, "generation": generation, "version": version, "expiresAt": expiresAt, "pickupLatitudeE7": pickupLatitudeE7, "pickupLongitudeE7": pickupLongitudeE7, "earning": earning.toJson(), "fixture": fixture});
+ const FoodDriverOffer._({required this.id, required this.shipmentId, required this.generation, required this.version, required this.expiresAt, required this.pickupLatitudeE7, required this.pickupLongitudeE7, required this.pickupName, required this.earning, required this.fixture});
+ factory FoodDriverOffer({required String id, required String shipmentId, required String generation, required String version, required String expiresAt, required int pickupLatitudeE7, required int pickupLongitudeE7, required String pickupName, required MobileMoney earning, required bool fixture}) => FoodDriverOffer.fromJson({"id": id, "shipmentId": shipmentId, "generation": generation, "version": version, "expiresAt": expiresAt, "pickupLatitudeE7": pickupLatitudeE7, "pickupLongitudeE7": pickupLongitudeE7, "pickupName": pickupName, "earning": earning.toJson(), "fixture": fixture});
  factory FoodDriverOffer.fromJson(Map<String,dynamic> json) {
-  if (json.length != 9 || !json.keys.every(["id","shipmentId","generation","version","expiresAt","pickupLatitudeE7","pickupLongitudeE7","earning","fixture"].contains)) throw const FormatException('Invalid FoodDriverOffer fields');
+  if (json.length != 10 || !json.keys.every(["id","shipmentId","generation","version","expiresAt","pickupLatitudeE7","pickupLongitudeE7","pickupName","earning","fixture"].contains)) throw const FormatException('Invalid FoodDriverOffer fields');
   final id=(() { final value=json["id"]; const path="FoodDriverOffer.id"; return _string(value, path, pattern: null, format: "uuid", min: 0, max: null); })();
   final shipmentId=(() { final value=json["shipmentId"]; const path="FoodDriverOffer.shipmentId"; return _string(value, path, pattern: null, format: "uuid", min: 0, max: null); })();
   final generation=(() { final value=json["generation"]; const path="FoodDriverOffer.generation"; return _string(value, path, pattern: "^[1-9][0-9]{0,18}\$", format: null, min: 0, max: null); })();
@@ -222,11 +223,26 @@ class FoodDriverOffer {
   final expiresAt=(() { final value=json["expiresAt"]; const path="FoodDriverOffer.expiresAt"; return _string(value, path, pattern: null, format: "date-time", min: 0, max: null); })();
   final pickupLatitudeE7=(() { final value=json["pickupLatitudeE7"]; const path="FoodDriverOffer.pickupLatitudeE7"; return _integer(value, path, min: -900000000, max: 900000000); })();
   final pickupLongitudeE7=(() { final value=json["pickupLongitudeE7"]; const path="FoodDriverOffer.pickupLongitudeE7"; return _integer(value, path, min: -1800000000, max: 1800000000); })();
+  final pickupName=(() { final value=json["pickupName"]; const path="FoodDriverOffer.pickupName"; return _string(value, path, pattern: null, format: null, min: 1, max: 200); })();
   final earning=(() { final value=json["earning"]; const path="FoodDriverOffer.earning"; return MobileMoney.fromJson(_object(value, path)); })();
   final fixture=(() { final value=json["fixture"]; const path="FoodDriverOffer.fixture"; return _boolean(value, path); })();
-  return FoodDriverOffer._(id: id, shipmentId: shipmentId, generation: generation, version: version, expiresAt: expiresAt, pickupLatitudeE7: pickupLatitudeE7, pickupLongitudeE7: pickupLongitudeE7, earning: earning, fixture: fixture);
+  return FoodDriverOffer._(id: id, shipmentId: shipmentId, generation: generation, version: version, expiresAt: expiresAt, pickupLatitudeE7: pickupLatitudeE7, pickupLongitudeE7: pickupLongitudeE7, pickupName: pickupName, earning: earning, fixture: fixture);
  }
- Map<String,dynamic> toJson() => {"id": id, "shipmentId": shipmentId, "generation": generation, "version": version, "expiresAt": expiresAt, "pickupLatitudeE7": pickupLatitudeE7, "pickupLongitudeE7": pickupLongitudeE7, "earning": earning.toJson(), "fixture": fixture};
+ Map<String,dynamic> toJson() => {"id": id, "shipmentId": shipmentId, "generation": generation, "version": version, "expiresAt": expiresAt, "pickupLatitudeE7": pickupLatitudeE7, "pickupLongitudeE7": pickupLongitudeE7, "pickupName": pickupName, "earning": earning.toJson(), "fixture": fixture};
+}
+
+class FoodDriverPickupItem {
+ final String name;
+ final int qty;
+ const FoodDriverPickupItem._({required this.name, required this.qty});
+ factory FoodDriverPickupItem({required String name, required int qty}) => FoodDriverPickupItem.fromJson({"name": name, "qty": qty});
+ factory FoodDriverPickupItem.fromJson(Map<String,dynamic> json) {
+  if (json.length != 2 || !json.keys.every(["name","qty"].contains)) throw const FormatException('Invalid FoodDriverPickupItem fields');
+  final name=(() { final value=json["name"]; const path="FoodDriverPickupItem.name"; return _string(value, path, pattern: null, format: null, min: 1, max: 200); })();
+  final qty=(() { final value=json["qty"]; const path="FoodDriverPickupItem.qty"; return _integer(value, path, min: 1, max: 1000); })();
+  return FoodDriverPickupItem._(name: name, qty: qty);
+ }
+ Map<String,dynamic> toJson() => {"name": name, "qty": qty};
 }
 
 class FoodDriverAssignment extends FoodDriverDuty {
@@ -239,6 +255,9 @@ class FoodDriverAssignment extends FoodDriverDuty {
  final String state;
  final int pickupLatitudeE7;
  final int pickupLongitudeE7;
+ final String pickupName;
+ final String pickupAddress;
+ final List<FoodDriverPickupItem> items;
  final String recipientName;
  final String phone;
  final String addressText;
@@ -250,10 +269,10 @@ class FoodDriverAssignment extends FoodDriverDuty {
  final List<FoodDriverProof> proofs;
  final String access;
  final String shipmentVersion;
- const FoodDriverAssignment._({required this.id, required this.shipmentId, required this.orderId, required this.merchantId, required this.generation, required this.leaseGeneration, required this.state, required this.pickupLatitudeE7, required this.pickupLongitudeE7, required this.recipientName, required this.phone, required this.addressText, required this.instructions, required this.latitudeE7, required this.longitudeE7, required this.earning, required this.fixture, required this.proofs, required this.access, required this.shipmentVersion});
- factory FoodDriverAssignment({required String id, required String shipmentId, required String orderId, required String merchantId, required String generation, required String leaseGeneration, required String state, required int pickupLatitudeE7, required int pickupLongitudeE7, required String recipientName, required String phone, required String addressText, required String instructions, required int latitudeE7, required int longitudeE7, required MobileMoney earning, required bool fixture, required List<FoodDriverProof> proofs, required String access, required String shipmentVersion}) => FoodDriverAssignment.fromJson({"id": id, "shipmentId": shipmentId, "orderId": orderId, "merchantId": merchantId, "generation": generation, "leaseGeneration": leaseGeneration, "state": state, "pickupLatitudeE7": pickupLatitudeE7, "pickupLongitudeE7": pickupLongitudeE7, "recipientName": recipientName, "phone": phone, "addressText": addressText, "instructions": instructions, "latitudeE7": latitudeE7, "longitudeE7": longitudeE7, "earning": earning.toJson(), "fixture": fixture, "proofs": proofs.map((value) => value.toJson()).toList(), "access": access, "shipmentVersion": shipmentVersion});
+ const FoodDriverAssignment._({required this.id, required this.shipmentId, required this.orderId, required this.merchantId, required this.generation, required this.leaseGeneration, required this.state, required this.pickupLatitudeE7, required this.pickupLongitudeE7, required this.pickupName, required this.pickupAddress, required this.items, required this.recipientName, required this.phone, required this.addressText, required this.instructions, required this.latitudeE7, required this.longitudeE7, required this.earning, required this.fixture, required this.proofs, required this.access, required this.shipmentVersion});
+ factory FoodDriverAssignment({required String id, required String shipmentId, required String orderId, required String merchantId, required String generation, required String leaseGeneration, required String state, required int pickupLatitudeE7, required int pickupLongitudeE7, required String pickupName, required String pickupAddress, required List<FoodDriverPickupItem> items, required String recipientName, required String phone, required String addressText, required String instructions, required int latitudeE7, required int longitudeE7, required MobileMoney earning, required bool fixture, required List<FoodDriverProof> proofs, required String access, required String shipmentVersion}) => FoodDriverAssignment.fromJson({"id": id, "shipmentId": shipmentId, "orderId": orderId, "merchantId": merchantId, "generation": generation, "leaseGeneration": leaseGeneration, "state": state, "pickupLatitudeE7": pickupLatitudeE7, "pickupLongitudeE7": pickupLongitudeE7, "pickupName": pickupName, "pickupAddress": pickupAddress, "items": items.map((value) => value.toJson()).toList(), "recipientName": recipientName, "phone": phone, "addressText": addressText, "instructions": instructions, "latitudeE7": latitudeE7, "longitudeE7": longitudeE7, "earning": earning.toJson(), "fixture": fixture, "proofs": proofs.map((value) => value.toJson()).toList(), "access": access, "shipmentVersion": shipmentVersion});
  factory FoodDriverAssignment.fromJson(Map<String,dynamic> json) {
-  if (json.length != 20 || !json.keys.every(["id","shipmentId","orderId","merchantId","generation","leaseGeneration","state","pickupLatitudeE7","pickupLongitudeE7","recipientName","phone","addressText","instructions","latitudeE7","longitudeE7","earning","fixture","proofs","access","shipmentVersion"].contains)) throw const FormatException('Invalid FoodDriverAssignment fields');
+  if (json.length != 23 || !json.keys.every(["id","shipmentId","orderId","merchantId","generation","leaseGeneration","state","pickupLatitudeE7","pickupLongitudeE7","pickupName","pickupAddress","items","recipientName","phone","addressText","instructions","latitudeE7","longitudeE7","earning","fixture","proofs","access","shipmentVersion"].contains)) throw const FormatException('Invalid FoodDriverAssignment fields');
   final id=(() { final value=json["id"]; const path="FoodDriverAssignment.id"; return _string(value, path, pattern: null, format: "uuid", min: 0, max: null); })();
   final shipmentId=(() { final value=json["shipmentId"]; const path="FoodDriverAssignment.shipmentId"; return _string(value, path, pattern: null, format: "uuid", min: 0, max: null); })();
   final orderId=(() { final value=json["orderId"]; const path="FoodDriverAssignment.orderId"; return _string(value, path, pattern: null, format: "uuid", min: 0, max: null); })();
@@ -263,6 +282,9 @@ class FoodDriverAssignment extends FoodDriverDuty {
   final state=(() { final value=json["state"]; const path="FoodDriverAssignment.state"; return _enum(_string(value, path, pattern: null, format: null, min: 0, max: null), ["ACCEPTED","AT_PICKUP","PICKED_UP","AT_DROPOFF","INCIDENT"], path); })();
   final pickupLatitudeE7=(() { final value=json["pickupLatitudeE7"]; const path="FoodDriverAssignment.pickupLatitudeE7"; return _integer(value, path, min: -900000000, max: 900000000); })();
   final pickupLongitudeE7=(() { final value=json["pickupLongitudeE7"]; const path="FoodDriverAssignment.pickupLongitudeE7"; return _integer(value, path, min: -1800000000, max: 1800000000); })();
+  final pickupName=(() { final value=json["pickupName"]; const path="FoodDriverAssignment.pickupName"; return _string(value, path, pattern: null, format: null, min: 1, max: 200); })();
+  final pickupAddress=(() { final value=json["pickupAddress"]; const path="FoodDriverAssignment.pickupAddress"; return _string(value, path, pattern: null, format: null, min: 0, max: 1000); })();
+  final items=(() { final value=json["items"]; const path="FoodDriverAssignment.items"; return List<FoodDriverPickupItem>.unmodifiable(_list(value, path, 0, 100).map((value) => FoodDriverPickupItem.fromJson(_object(value, path)))); })();
   final recipientName=(() { final value=json["recipientName"]; const path="FoodDriverAssignment.recipientName"; return _string(value, path, pattern: null, format: null, min: 1, max: 80); })();
   final phone=(() { final value=json["phone"]; const path="FoodDriverAssignment.phone"; return _string(value, path, pattern: null, format: null, min: 1, max: 32); })();
   final addressText=(() { final value=json["addressText"]; const path="FoodDriverAssignment.addressText"; return _string(value, path, pattern: null, format: null, min: 1, max: 1000); })();
@@ -274,10 +296,10 @@ class FoodDriverAssignment extends FoodDriverDuty {
   final proofs=(() { final value=json["proofs"]; const path="FoodDriverAssignment.proofs"; return List<FoodDriverProof>.unmodifiable(_list(value, path, 0, 2).map((value) => FoodDriverProof.fromJson(_object(value, path)))); })();
   final access=(() { final value=json["access"]; const path="FoodDriverAssignment.access"; return _enum(_string(value, path, pattern: null, format: null, min: 0, max: null), ["NORMAL"], path); })();
   final shipmentVersion=(() { final value=json["shipmentVersion"]; const path="FoodDriverAssignment.shipmentVersion"; return _string(value, path, pattern: "^[1-9][0-9]{0,18}\$", format: null, min: 0, max: null); })();
-  return FoodDriverAssignment._(id: id, shipmentId: shipmentId, orderId: orderId, merchantId: merchantId, generation: generation, leaseGeneration: leaseGeneration, state: state, pickupLatitudeE7: pickupLatitudeE7, pickupLongitudeE7: pickupLongitudeE7, recipientName: recipientName, phone: phone, addressText: addressText, instructions: instructions, latitudeE7: latitudeE7, longitudeE7: longitudeE7, earning: earning, fixture: fixture, proofs: proofs, access: access, shipmentVersion: shipmentVersion);
+  return FoodDriverAssignment._(id: id, shipmentId: shipmentId, orderId: orderId, merchantId: merchantId, generation: generation, leaseGeneration: leaseGeneration, state: state, pickupLatitudeE7: pickupLatitudeE7, pickupLongitudeE7: pickupLongitudeE7, pickupName: pickupName, pickupAddress: pickupAddress, items: items, recipientName: recipientName, phone: phone, addressText: addressText, instructions: instructions, latitudeE7: latitudeE7, longitudeE7: longitudeE7, earning: earning, fixture: fixture, proofs: proofs, access: access, shipmentVersion: shipmentVersion);
  }
  @override
- Map<String,dynamic> toJson() => {"id": id, "shipmentId": shipmentId, "orderId": orderId, "merchantId": merchantId, "generation": generation, "leaseGeneration": leaseGeneration, "state": state, "pickupLatitudeE7": pickupLatitudeE7, "pickupLongitudeE7": pickupLongitudeE7, "recipientName": recipientName, "phone": phone, "addressText": addressText, "instructions": instructions, "latitudeE7": latitudeE7, "longitudeE7": longitudeE7, "earning": earning.toJson(), "fixture": fixture, "proofs": proofs.map((value) => value.toJson()).toList(), "access": access, "shipmentVersion": shipmentVersion};
+ Map<String,dynamic> toJson() => {"id": id, "shipmentId": shipmentId, "orderId": orderId, "merchantId": merchantId, "generation": generation, "leaseGeneration": leaseGeneration, "state": state, "pickupLatitudeE7": pickupLatitudeE7, "pickupLongitudeE7": pickupLongitudeE7, "pickupName": pickupName, "pickupAddress": pickupAddress, "items": items.map((value) => value.toJson()).toList(), "recipientName": recipientName, "phone": phone, "addressText": addressText, "instructions": instructions, "latitudeE7": latitudeE7, "longitudeE7": longitudeE7, "earning": earning.toJson(), "fixture": fixture, "proofs": proofs.map((value) => value.toJson()).toList(), "access": access, "shipmentVersion": shipmentVersion};
 }
 
 class FoodDriverRestrictedAssignment extends FoodDriverDuty {
@@ -1961,10 +1983,12 @@ class MobileBranch {
  final bool pickupEnabled;
  final bool deliveryEnabled;
  final int version;
- const MobileBranch._({required this.id, required this.merchantId, required this.merchantName, required this.name, required this.nameEn, required this.addressLabel, required this.pickupEnabled, required this.deliveryEnabled, required this.version});
- factory MobileBranch({required String id, required String merchantId, required String merchantName, required String name, required String nameEn, required String addressLabel, required bool pickupEnabled, required bool deliveryEnabled, required int version}) => MobileBranch.fromJson({"id": id, "merchantId": merchantId, "merchantName": merchantName, "name": name, "nameEn": nameEn, "addressLabel": addressLabel, "pickupEnabled": pickupEnabled, "deliveryEnabled": deliveryEnabled, "version": version});
+ final bool? openNow;
+ final String? nextOpenAt;
+ const MobileBranch._({required this.id, required this.merchantId, required this.merchantName, required this.name, required this.nameEn, required this.addressLabel, required this.pickupEnabled, required this.deliveryEnabled, required this.version, required this.openNow, required this.nextOpenAt});
+ factory MobileBranch({required String id, required String merchantId, required String merchantName, required String name, required String nameEn, required String addressLabel, required bool pickupEnabled, required bool deliveryEnabled, required int version, required bool? openNow, required String? nextOpenAt}) => MobileBranch.fromJson({"id": id, "merchantId": merchantId, "merchantName": merchantName, "name": name, "nameEn": nameEn, "addressLabel": addressLabel, "pickupEnabled": pickupEnabled, "deliveryEnabled": deliveryEnabled, "version": version, "openNow": openNow, "nextOpenAt": nextOpenAt});
  factory MobileBranch.fromJson(Map<String,dynamic> json) {
-  if (json.length != 9 || !json.keys.every(["id","merchantId","merchantName","name","nameEn","addressLabel","pickupEnabled","deliveryEnabled","version"].contains)) throw const FormatException('Invalid MobileBranch fields');
+  if (json.length != 11 || !json.keys.every(["id","merchantId","merchantName","name","nameEn","addressLabel","pickupEnabled","deliveryEnabled","version","openNow","nextOpenAt"].contains)) throw const FormatException('Invalid MobileBranch fields');
   final id=(() { final value=json["id"]; const path="MobileBranch.id"; return _string(value, path, pattern: null, format: "uuid", min: 0, max: null); })();
   final merchantId=(() { final value=json["merchantId"]; const path="MobileBranch.merchantId"; return _string(value, path, pattern: null, format: "uuid", min: 0, max: null); })();
   final merchantName=(() { final value=json["merchantName"]; const path="MobileBranch.merchantName"; return _string(value, path, pattern: null, format: null, min: 0, max: 320); })();
@@ -1974,9 +1998,11 @@ class MobileBranch {
   final pickupEnabled=(() { final value=json["pickupEnabled"]; const path="MobileBranch.pickupEnabled"; return _boolean(value, path); })();
   final deliveryEnabled=(() { final value=json["deliveryEnabled"]; const path="MobileBranch.deliveryEnabled"; return _boolean(value, path); })();
   final version=(() { final value=json["version"]; const path="MobileBranch.version"; return _integer(value, path, min: 1, max: null); })();
-  return MobileBranch._(id: id, merchantId: merchantId, merchantName: merchantName, name: name, nameEn: nameEn, addressLabel: addressLabel, pickupEnabled: pickupEnabled, deliveryEnabled: deliveryEnabled, version: version);
+  final openNow=(() { final value=json["openNow"]; const path="MobileBranch.openNow"; return value == null ? null : (_boolean(value, path)); })();
+  final nextOpenAt=(() { final value=json["nextOpenAt"]; const path="MobileBranch.nextOpenAt"; return value == null ? null : (_string(value, path, pattern: null, format: "date-time", min: 0, max: null)); })();
+  return MobileBranch._(id: id, merchantId: merchantId, merchantName: merchantName, name: name, nameEn: nameEn, addressLabel: addressLabel, pickupEnabled: pickupEnabled, deliveryEnabled: deliveryEnabled, version: version, openNow: openNow, nextOpenAt: nextOpenAt);
  }
- Map<String,dynamic> toJson() => {"id": id, "merchantId": merchantId, "merchantName": merchantName, "name": name, "nameEn": nameEn, "addressLabel": addressLabel, "pickupEnabled": pickupEnabled, "deliveryEnabled": deliveryEnabled, "version": version};
+ Map<String,dynamic> toJson() => {"id": id, "merchantId": merchantId, "merchantName": merchantName, "name": name, "nameEn": nameEn, "addressLabel": addressLabel, "pickupEnabled": pickupEnabled, "deliveryEnabled": deliveryEnabled, "version": version, "openNow": openNow, "nextOpenAt": nextOpenAt};
 }
 
 class MobileBranches {
@@ -2203,6 +2229,30 @@ class MobileConfiguredFoodSnapshot {
  Map<String,dynamic> toJson() => {"lines": lines.map((value) => value.toJson()).toList(), "subtotal": subtotal.toJson(), "discount": discount.toJson(), "fees": fees.toJson(), "tax": tax.toJson(), "total": total.toJson()};
 }
 
+class MobileProductStory {
+ final String story;
+ final String storyEn;
+ final String ingredients;
+ final String ingredientsEn;
+ final String benefits;
+ final String benefitsEn;
+ final String videoUrl;
+ const MobileProductStory._({required this.story, required this.storyEn, required this.ingredients, required this.ingredientsEn, required this.benefits, required this.benefitsEn, required this.videoUrl});
+ factory MobileProductStory({required String story, required String storyEn, required String ingredients, required String ingredientsEn, required String benefits, required String benefitsEn, required String videoUrl}) => MobileProductStory.fromJson({"story": story, "storyEn": storyEn, "ingredients": ingredients, "ingredientsEn": ingredientsEn, "benefits": benefits, "benefitsEn": benefitsEn, "videoUrl": videoUrl});
+ factory MobileProductStory.fromJson(Map<String,dynamic> json) {
+  if (json.length != 7 || !json.keys.every(["story","storyEn","ingredients","ingredientsEn","benefits","benefitsEn","videoUrl"].contains)) throw const FormatException('Invalid MobileProductStory fields');
+  final story=(() { final value=json["story"]; const path="MobileProductStory.story"; return _string(value, path, pattern: null, format: null, min: 0, max: 600); })();
+  final storyEn=(() { final value=json["storyEn"]; const path="MobileProductStory.storyEn"; return _string(value, path, pattern: null, format: null, min: 0, max: 600); })();
+  final ingredients=(() { final value=json["ingredients"]; const path="MobileProductStory.ingredients"; return _string(value, path, pattern: null, format: null, min: 0, max: 300); })();
+  final ingredientsEn=(() { final value=json["ingredientsEn"]; const path="MobileProductStory.ingredientsEn"; return _string(value, path, pattern: null, format: null, min: 0, max: 300); })();
+  final benefits=(() { final value=json["benefits"]; const path="MobileProductStory.benefits"; return _string(value, path, pattern: null, format: null, min: 0, max: 300); })();
+  final benefitsEn=(() { final value=json["benefitsEn"]; const path="MobileProductStory.benefitsEn"; return _string(value, path, pattern: null, format: null, min: 0, max: 300); })();
+  final videoUrl=(() { final value=json["videoUrl"]; const path="MobileProductStory.videoUrl"; return _string(value, path, pattern: null, format: null, min: 0, max: 200); })();
+  return MobileProductStory._(story: story, storyEn: storyEn, ingredients: ingredients, ingredientsEn: ingredientsEn, benefits: benefits, benefitsEn: benefitsEn, videoUrl: videoUrl);
+ }
+ Map<String,dynamic> toJson() => {"story": story, "storyEn": storyEn, "ingredients": ingredients, "ingredientsEn": ingredientsEn, "benefits": benefits, "benefitsEn": benefitsEn, "videoUrl": videoUrl};
+}
+
 class MobileProduct {
  final String id;
  final String name;
@@ -2214,10 +2264,11 @@ class MobileProduct {
  final MobileMoney? unitPrice;
  final MobileMoney? basePrice;
  final MobileProductOptions options;
- const MobileProduct._({required this.id, required this.name, required this.nameEn, required this.category, required this.description, required this.imageUrl, required this.available, required this.unitPrice, required this.basePrice, required this.options});
- factory MobileProduct({required String id, required String name, required String nameEn, required String category, required String description, required String imageUrl, required int available, required MobileMoney? unitPrice, required MobileMoney? basePrice, required MobileProductOptions options}) => MobileProduct.fromJson({"id": id, "name": name, "nameEn": nameEn, "category": category, "description": description, "imageUrl": imageUrl, "available": available, "unitPrice": unitPrice?.toJson(), "basePrice": basePrice?.toJson(), "options": options.toJson()});
+ final MobileProductStory story;
+ const MobileProduct._({required this.id, required this.name, required this.nameEn, required this.category, required this.description, required this.imageUrl, required this.available, required this.unitPrice, required this.basePrice, required this.options, required this.story});
+ factory MobileProduct({required String id, required String name, required String nameEn, required String category, required String description, required String imageUrl, required int available, required MobileMoney? unitPrice, required MobileMoney? basePrice, required MobileProductOptions options, required MobileProductStory story}) => MobileProduct.fromJson({"id": id, "name": name, "nameEn": nameEn, "category": category, "description": description, "imageUrl": imageUrl, "available": available, "unitPrice": unitPrice?.toJson(), "basePrice": basePrice?.toJson(), "options": options.toJson(), "story": story.toJson()});
  factory MobileProduct.fromJson(Map<String,dynamic> json) {
-  if (json.length != 10 || !json.keys.every(["id","name","nameEn","category","description","imageUrl","available","unitPrice","basePrice","options"].contains)) throw const FormatException('Invalid MobileProduct fields');
+  if (json.length != 11 || !json.keys.every(["id","name","nameEn","category","description","imageUrl","available","unitPrice","basePrice","options","story"].contains)) throw const FormatException('Invalid MobileProduct fields');
   final id=(() { final value=json["id"]; const path="MobileProduct.id"; return _string(value, path, pattern: null, format: "uuid", min: 0, max: null); })();
   final name=(() { final value=json["name"]; const path="MobileProduct.name"; return _string(value, path, pattern: null, format: null, min: 0, max: 320); })();
   final nameEn=(() { final value=json["nameEn"]; const path="MobileProduct.nameEn"; return _string(value, path, pattern: null, format: null, min: 0, max: 320); })();
@@ -2228,9 +2279,10 @@ class MobileProduct {
   final unitPrice=(() { final value=json["unitPrice"]; const path="MobileProduct.unitPrice"; return value == null ? null : (MobileMoney.fromJson(_object(value, path))); })();
   final basePrice=(() { final value=json["basePrice"]; const path="MobileProduct.basePrice"; return value == null ? null : (MobileMoney.fromJson(_object(value, path))); })();
   final options=(() { final value=json["options"]; const path="MobileProduct.options"; return MobileProductOptions.fromJson(_object(value, path)); })();
-  return MobileProduct._(id: id, name: name, nameEn: nameEn, category: category, description: description, imageUrl: imageUrl, available: available, unitPrice: unitPrice, basePrice: basePrice, options: options);
+  final story=(() { final value=json["story"]; const path="MobileProduct.story"; return MobileProductStory.fromJson(_object(value, path)); })();
+  return MobileProduct._(id: id, name: name, nameEn: nameEn, category: category, description: description, imageUrl: imageUrl, available: available, unitPrice: unitPrice, basePrice: basePrice, options: options, story: story);
  }
- Map<String,dynamic> toJson() => {"id": id, "name": name, "nameEn": nameEn, "category": category, "description": description, "imageUrl": imageUrl, "available": available, "unitPrice": unitPrice?.toJson(), "basePrice": basePrice?.toJson(), "options": options.toJson()};
+ Map<String,dynamic> toJson() => {"id": id, "name": name, "nameEn": nameEn, "category": category, "description": description, "imageUrl": imageUrl, "available": available, "unitPrice": unitPrice?.toJson(), "basePrice": basePrice?.toJson(), "options": options.toJson(), "story": story.toJson()};
 }
 
 class MobileMenu {
@@ -2242,10 +2294,11 @@ class MobileMenu {
  final String pricingRevision;
  final List<MobileProduct> products;
  final String? nextCursor;
- const MobileMenu._({required this.branch, required this.asOf, required this.priceValidUntil, required this.menuVersion, required this.priceVersion, required this.pricingRevision, required this.products, required this.nextCursor});
- factory MobileMenu({required MobileBranch branch, required String asOf, required String priceValidUntil, required String menuVersion, required String? priceVersion, required String pricingRevision, required List<MobileProduct> products, required String? nextCursor}) => MobileMenu.fromJson({"branch": branch.toJson(), "asOf": asOf, "priceValidUntil": priceValidUntil, "menuVersion": menuVersion, "priceVersion": priceVersion, "pricingRevision": pricingRevision, "products": products.map((value) => value.toJson()).toList(), "nextCursor": nextCursor});
+ final String coverUrl;
+ const MobileMenu._({required this.branch, required this.asOf, required this.priceValidUntil, required this.menuVersion, required this.priceVersion, required this.pricingRevision, required this.products, required this.nextCursor, required this.coverUrl});
+ factory MobileMenu({required MobileBranch branch, required String asOf, required String priceValidUntil, required String menuVersion, required String? priceVersion, required String pricingRevision, required List<MobileProduct> products, required String? nextCursor, required String coverUrl}) => MobileMenu.fromJson({"branch": branch.toJson(), "asOf": asOf, "priceValidUntil": priceValidUntil, "menuVersion": menuVersion, "priceVersion": priceVersion, "pricingRevision": pricingRevision, "products": products.map((value) => value.toJson()).toList(), "nextCursor": nextCursor, "coverUrl": coverUrl});
  factory MobileMenu.fromJson(Map<String,dynamic> json) {
-  if (json.length != 8 || !json.keys.every(["branch","asOf","priceValidUntil","menuVersion","priceVersion","pricingRevision","products","nextCursor"].contains)) throw const FormatException('Invalid MobileMenu fields');
+  if (json.length != 9 || !json.keys.every(["branch","asOf","priceValidUntil","menuVersion","priceVersion","pricingRevision","products","nextCursor","coverUrl"].contains)) throw const FormatException('Invalid MobileMenu fields');
   final branch=(() { final value=json["branch"]; const path="MobileMenu.branch"; return MobileBranch.fromJson(_object(value, path)); })();
   final asOf=(() { final value=json["asOf"]; const path="MobileMenu.asOf"; return _string(value, path, pattern: null, format: "date-time", min: 0, max: null); })();
   final priceValidUntil=(() { final value=json["priceValidUntil"]; const path="MobileMenu.priceValidUntil"; return _string(value, path, pattern: null, format: "date-time", min: 0, max: null); })();
@@ -2254,9 +2307,10 @@ class MobileMenu {
   final pricingRevision=(() { final value=json["pricingRevision"]; const path="MobileMenu.pricingRevision"; return _string(value, path, pattern: "^(0|[1-9][0-9]*)\$", format: null, min: 0, max: 19); })();
   final products=(() { final value=json["products"]; const path="MobileMenu.products"; return List<MobileProduct>.unmodifiable(_list(value, path, 0, 30).map((value) => MobileProduct.fromJson(_object(value, path)))); })();
   final nextCursor=(() { final value=json["nextCursor"]; const path="MobileMenu.nextCursor"; return value == null ? null : (_string(value, path, pattern: null, format: "uuid", min: 0, max: null)); })();
-  return MobileMenu._(branch: branch, asOf: asOf, priceValidUntil: priceValidUntil, menuVersion: menuVersion, priceVersion: priceVersion, pricingRevision: pricingRevision, products: products, nextCursor: nextCursor);
+  final coverUrl=(() { final value=json["coverUrl"]; const path="MobileMenu.coverUrl"; return _string(value, path, pattern: null, format: null, min: 0, max: 2000); })();
+  return MobileMenu._(branch: branch, asOf: asOf, priceValidUntil: priceValidUntil, menuVersion: menuVersion, priceVersion: priceVersion, pricingRevision: pricingRevision, products: products, nextCursor: nextCursor, coverUrl: coverUrl);
  }
- Map<String,dynamic> toJson() => {"branch": branch.toJson(), "asOf": asOf, "priceValidUntil": priceValidUntil, "menuVersion": menuVersion, "priceVersion": priceVersion, "pricingRevision": pricingRevision, "products": products.map((value) => value.toJson()).toList(), "nextCursor": nextCursor};
+ Map<String,dynamic> toJson() => {"branch": branch.toJson(), "asOf": asOf, "priceValidUntil": priceValidUntil, "menuVersion": menuVersion, "priceVersion": priceVersion, "pricingRevision": pricingRevision, "products": products.map((value) => value.toJson()).toList(), "nextCursor": nextCursor, "coverUrl": coverUrl};
 }
 
 class MobileDeliverySelection {
@@ -5945,4 +5999,244 @@ class MobileRideLocation {
   return MobileRideLocation._(enabled: enabled, point: point, receivedAt: receivedAt, expiresAt: expiresAt);
  }
  Map<String,dynamic> toJson() => {"enabled": enabled, "point": point?.toJson(), "receivedAt": receivedAt, "expiresAt": expiresAt};
+}
+
+class MobileCouponApplyRequest {
+ final String code;
+ final String idempotencyKey;
+ const MobileCouponApplyRequest._({required this.code, required this.idempotencyKey});
+ factory MobileCouponApplyRequest({required String code, required String idempotencyKey}) => MobileCouponApplyRequest.fromJson({"code": code, "idempotencyKey": idempotencyKey});
+ factory MobileCouponApplyRequest.fromJson(Map<String,dynamic> json) {
+  if (json.length != 2 || !json.keys.every(["code","idempotencyKey"].contains)) throw const FormatException('Invalid MobileCouponApplyRequest fields');
+  final code=(() { final value=json["code"]; const path="MobileCouponApplyRequest.code"; return _string(value, path, pattern: "^[A-Za-z0-9][A-Za-z0-9_-]{2,31}\$", format: null, min: 3, max: 32); })();
+  final idempotencyKey=(() { final value=json["idempotencyKey"]; const path="MobileCouponApplyRequest.idempotencyKey"; return _string(value, path, pattern: null, format: "uuid", min: 0, max: null); })();
+  return MobileCouponApplyRequest._(code: code, idempotencyKey: idempotencyKey);
+ }
+ Map<String,dynamic> toJson() => {"code": code, "idempotencyKey": idempotencyKey};
+}
+
+class MobileCouponQuote {
+ final String couponCode;
+ final String sourceQuoteId;
+ final MobileFoodQuote quote;
+ const MobileCouponQuote._({required this.couponCode, required this.sourceQuoteId, required this.quote});
+ factory MobileCouponQuote({required String couponCode, required String sourceQuoteId, required MobileFoodQuote quote}) => MobileCouponQuote.fromJson({"couponCode": couponCode, "sourceQuoteId": sourceQuoteId, "quote": quote.toJson()});
+ factory MobileCouponQuote.fromJson(Map<String,dynamic> json) {
+  if (json.length != 3 || !json.keys.every(["couponCode","sourceQuoteId","quote"].contains)) throw const FormatException('Invalid MobileCouponQuote fields');
+  final couponCode=(() { final value=json["couponCode"]; const path="MobileCouponQuote.couponCode"; return _string(value, path, pattern: "^[A-Z0-9][A-Z0-9_-]{2,31}\$", format: null, min: 3, max: 32); })();
+  final sourceQuoteId=(() { final value=json["sourceQuoteId"]; const path="MobileCouponQuote.sourceQuoteId"; return _string(value, path, pattern: null, format: "uuid", min: 0, max: null); })();
+  final quote=(() { final value=json["quote"]; const path="MobileCouponQuote.quote"; return MobileFoodQuote.fromJson(_object(value, path)); })();
+  return MobileCouponQuote._(couponCode: couponCode, sourceQuoteId: sourceQuoteId, quote: quote);
+ }
+ Map<String,dynamic> toJson() => {"couponCode": couponCode, "sourceQuoteId": sourceQuoteId, "quote": quote.toJson()};
+}
+
+class MobileScheduleSlot {
+ final String id;
+ final String startsAt;
+ final String endsAt;
+ final String bookingClosesAt;
+ final String timezone;
+ const MobileScheduleSlot._({required this.id, required this.startsAt, required this.endsAt, required this.bookingClosesAt, required this.timezone});
+ factory MobileScheduleSlot({required String id, required String startsAt, required String endsAt, required String bookingClosesAt, required String timezone}) => MobileScheduleSlot.fromJson({"id": id, "startsAt": startsAt, "endsAt": endsAt, "bookingClosesAt": bookingClosesAt, "timezone": timezone});
+ factory MobileScheduleSlot.fromJson(Map<String,dynamic> json) {
+  if (json.length != 5 || !json.keys.every(["id","startsAt","endsAt","bookingClosesAt","timezone"].contains)) throw const FormatException('Invalid MobileScheduleSlot fields');
+  final id=(() { final value=json["id"]; const path="MobileScheduleSlot.id"; return _string(value, path, pattern: null, format: "uuid", min: 0, max: null); })();
+  final startsAt=(() { final value=json["startsAt"]; const path="MobileScheduleSlot.startsAt"; return _string(value, path, pattern: null, format: "date-time", min: 0, max: null); })();
+  final endsAt=(() { final value=json["endsAt"]; const path="MobileScheduleSlot.endsAt"; return _string(value, path, pattern: null, format: "date-time", min: 0, max: null); })();
+  final bookingClosesAt=(() { final value=json["bookingClosesAt"]; const path="MobileScheduleSlot.bookingClosesAt"; return _string(value, path, pattern: null, format: "date-time", min: 0, max: null); })();
+  final timezone=(() { final value=json["timezone"]; const path="MobileScheduleSlot.timezone"; return _string(value, path, pattern: null, format: null, min: 1, max: 64); })();
+  return MobileScheduleSlot._(id: id, startsAt: startsAt, endsAt: endsAt, bookingClosesAt: bookingClosesAt, timezone: timezone);
+ }
+ Map<String,dynamic> toJson() => {"id": id, "startsAt": startsAt, "endsAt": endsAt, "bookingClosesAt": bookingClosesAt, "timezone": timezone};
+}
+
+class MobileScheduleSlots {
+ final String branchId;
+ final String serving;
+ final List<MobileScheduleSlot> slots;
+ const MobileScheduleSlots._({required this.branchId, required this.serving, required this.slots});
+ factory MobileScheduleSlots({required String branchId, required String serving, required List<MobileScheduleSlot> slots}) => MobileScheduleSlots.fromJson({"branchId": branchId, "serving": serving, "slots": slots.map((value) => value.toJson()).toList()});
+ factory MobileScheduleSlots.fromJson(Map<String,dynamic> json) {
+  if (json.length != 3 || !json.keys.every(["branchId","serving","slots"].contains)) throw const FormatException('Invalid MobileScheduleSlots fields');
+  final branchId=(() { final value=json["branchId"]; const path="MobileScheduleSlots.branchId"; return _string(value, path, pattern: null, format: "uuid", min: 0, max: null); })();
+  final serving=(() { final value=json["serving"]; const path="MobileScheduleSlots.serving"; return _enum(_string(value, path, pattern: null, format: null, min: 0, max: null), ["pickup","delivery"], path); })();
+  final slots=(() { final value=json["slots"]; const path="MobileScheduleSlots.slots"; return List<MobileScheduleSlot>.unmodifiable(_list(value, path, 0, 48).map((value) => MobileScheduleSlot.fromJson(_object(value, path)))); })();
+  return MobileScheduleSlots._(branchId: branchId, serving: serving, slots: slots);
+ }
+ Map<String,dynamic> toJson() => {"branchId": branchId, "serving": serving, "slots": slots.map((value) => value.toJson()).toList()};
+}
+
+class MobileScheduleHoldRequest {
+ final String slotId;
+ final String idempotencyKey;
+ const MobileScheduleHoldRequest._({required this.slotId, required this.idempotencyKey});
+ factory MobileScheduleHoldRequest({required String slotId, required String idempotencyKey}) => MobileScheduleHoldRequest.fromJson({"slotId": slotId, "idempotencyKey": idempotencyKey});
+ factory MobileScheduleHoldRequest.fromJson(Map<String,dynamic> json) {
+  if (json.length != 2 || !json.keys.every(["slotId","idempotencyKey"].contains)) throw const FormatException('Invalid MobileScheduleHoldRequest fields');
+  final slotId=(() { final value=json["slotId"]; const path="MobileScheduleHoldRequest.slotId"; return _string(value, path, pattern: null, format: "uuid", min: 0, max: null); })();
+  final idempotencyKey=(() { final value=json["idempotencyKey"]; const path="MobileScheduleHoldRequest.idempotencyKey"; return _string(value, path, pattern: null, format: "uuid", min: 0, max: null); })();
+  return MobileScheduleHoldRequest._(slotId: slotId, idempotencyKey: idempotencyKey);
+ }
+ Map<String,dynamic> toJson() => {"slotId": slotId, "idempotencyKey": idempotencyKey};
+}
+
+class MobileScheduleHold {
+ final String id;
+ final String slotId;
+ final String quoteId;
+ final String state;
+ final String expiresAt;
+ final String startsAt;
+ final String endsAt;
+ final bool replayed;
+ const MobileScheduleHold._({required this.id, required this.slotId, required this.quoteId, required this.state, required this.expiresAt, required this.startsAt, required this.endsAt, required this.replayed});
+ factory MobileScheduleHold({required String id, required String slotId, required String quoteId, required String state, required String expiresAt, required String startsAt, required String endsAt, required bool replayed}) => MobileScheduleHold.fromJson({"id": id, "slotId": slotId, "quoteId": quoteId, "state": state, "expiresAt": expiresAt, "startsAt": startsAt, "endsAt": endsAt, "replayed": replayed});
+ factory MobileScheduleHold.fromJson(Map<String,dynamic> json) {
+  if (json.length != 8 || !json.keys.every(["id","slotId","quoteId","state","expiresAt","startsAt","endsAt","replayed"].contains)) throw const FormatException('Invalid MobileScheduleHold fields');
+  final id=(() { final value=json["id"]; const path="MobileScheduleHold.id"; return _string(value, path, pattern: null, format: "uuid", min: 0, max: null); })();
+  final slotId=(() { final value=json["slotId"]; const path="MobileScheduleHold.slotId"; return _string(value, path, pattern: null, format: "uuid", min: 0, max: null); })();
+  final quoteId=(() { final value=json["quoteId"]; const path="MobileScheduleHold.quoteId"; return _string(value, path, pattern: null, format: "uuid", min: 0, max: null); })();
+  final state=(() { final value=json["state"]; const path="MobileScheduleHold.state"; return _enum(_string(value, path, pattern: null, format: null, min: 0, max: null), ["HELD","RELEASED","EXPIRED"], path); })();
+  final expiresAt=(() { final value=json["expiresAt"]; const path="MobileScheduleHold.expiresAt"; return _string(value, path, pattern: null, format: "date-time", min: 0, max: null); })();
+  final startsAt=(() { final value=json["startsAt"]; const path="MobileScheduleHold.startsAt"; return _string(value, path, pattern: null, format: "date-time", min: 0, max: null); })();
+  final endsAt=(() { final value=json["endsAt"]; const path="MobileScheduleHold.endsAt"; return _string(value, path, pattern: null, format: "date-time", min: 0, max: null); })();
+  final replayed=(() { final value=json["replayed"]; const path="MobileScheduleHold.replayed"; return _boolean(value, path); })();
+  return MobileScheduleHold._(id: id, slotId: slotId, quoteId: quoteId, state: state, expiresAt: expiresAt, startsAt: startsAt, endsAt: endsAt, replayed: replayed);
+ }
+ Map<String,dynamic> toJson() => {"id": id, "slotId": slotId, "quoteId": quoteId, "state": state, "expiresAt": expiresAt, "startsAt": startsAt, "endsAt": endsAt, "replayed": replayed};
+}
+
+class MobileRewardOffer {
+ final String merchantId;
+ final String merchantName;
+ final String nameTh;
+ final String nameEn;
+ final String currency;
+ final int decimals;
+ final String discountMinor;
+ final String minimumSpendMinor;
+ final String id;
+ final int pointsCost;
+ final int validityDays;
+ final int balance;
+ final bool redeemable;
+ const MobileRewardOffer._({required this.merchantId, required this.merchantName, required this.nameTh, required this.nameEn, required this.currency, required this.decimals, required this.discountMinor, required this.minimumSpendMinor, required this.id, required this.pointsCost, required this.validityDays, required this.balance, required this.redeemable});
+ factory MobileRewardOffer({required String merchantId, required String merchantName, required String nameTh, required String nameEn, required String currency, required int decimals, required String discountMinor, required String minimumSpendMinor, required String id, required int pointsCost, required int validityDays, required int balance, required bool redeemable}) => MobileRewardOffer.fromJson({"merchantId": merchantId, "merchantName": merchantName, "nameTh": nameTh, "nameEn": nameEn, "currency": currency, "decimals": decimals, "discountMinor": discountMinor, "minimumSpendMinor": minimumSpendMinor, "id": id, "pointsCost": pointsCost, "validityDays": validityDays, "balance": balance, "redeemable": redeemable});
+ factory MobileRewardOffer.fromJson(Map<String,dynamic> json) {
+  if (json.length != 13 || !json.keys.every(["merchantId","merchantName","nameTh","nameEn","currency","decimals","discountMinor","minimumSpendMinor","id","pointsCost","validityDays","balance","redeemable"].contains)) throw const FormatException('Invalid MobileRewardOffer fields');
+  final merchantId=(() { final value=json["merchantId"]; const path="MobileRewardOffer.merchantId"; return _string(value, path, pattern: null, format: "uuid", min: 0, max: null); })();
+  final merchantName=(() { final value=json["merchantName"]; const path="MobileRewardOffer.merchantName"; return _string(value, path, pattern: null, format: null, min: 1, max: 200); })();
+  final nameTh=(() { final value=json["nameTh"]; const path="MobileRewardOffer.nameTh"; return _string(value, path, pattern: null, format: null, min: 1, max: 80); })();
+  final nameEn=(() { final value=json["nameEn"]; const path="MobileRewardOffer.nameEn"; return _string(value, path, pattern: null, format: null, min: 1, max: 80); })();
+  final currency=(() { final value=json["currency"]; const path="MobileRewardOffer.currency"; return _enum(_string(value, path, pattern: null, format: null, min: 0, max: null), ["THB","USD","USDG"], path); })();
+  final decimals=(() { final value=json["decimals"]; const path="MobileRewardOffer.decimals"; return _integer(value, path, min: 0, max: 6); })();
+  final discountMinor=(() { final value=json["discountMinor"]; const path="MobileRewardOffer.discountMinor"; return _string(value, path, pattern: "^[0-9]{1,18}\$", format: null, min: 0, max: null); })();
+  final minimumSpendMinor=(() { final value=json["minimumSpendMinor"]; const path="MobileRewardOffer.minimumSpendMinor"; return _string(value, path, pattern: "^[0-9]{1,18}\$", format: null, min: 0, max: null); })();
+  final id=(() { final value=json["id"]; const path="MobileRewardOffer.id"; return _string(value, path, pattern: null, format: "uuid", min: 0, max: null); })();
+  final pointsCost=(() { final value=json["pointsCost"]; const path="MobileRewardOffer.pointsCost"; return _integer(value, path, min: 1, max: 1000000); })();
+  final validityDays=(() { final value=json["validityDays"]; const path="MobileRewardOffer.validityDays"; return _integer(value, path, min: 1, max: 365); })();
+  final balance=(() { final value=json["balance"]; const path="MobileRewardOffer.balance"; return _integer(value, path, min: 0, max: null); })();
+  final redeemable=(() { final value=json["redeemable"]; const path="MobileRewardOffer.redeemable"; return _boolean(value, path); })();
+  return MobileRewardOffer._(merchantId: merchantId, merchantName: merchantName, nameTh: nameTh, nameEn: nameEn, currency: currency, decimals: decimals, discountMinor: discountMinor, minimumSpendMinor: minimumSpendMinor, id: id, pointsCost: pointsCost, validityDays: validityDays, balance: balance, redeemable: redeemable);
+ }
+ Map<String,dynamic> toJson() => {"merchantId": merchantId, "merchantName": merchantName, "nameTh": nameTh, "nameEn": nameEn, "currency": currency, "decimals": decimals, "discountMinor": discountMinor, "minimumSpendMinor": minimumSpendMinor, "id": id, "pointsCost": pointsCost, "validityDays": validityDays, "balance": balance, "redeemable": redeemable};
+}
+
+class MobileRewardCatalog {
+ final String generatedAt;
+ final List<MobileRewardOffer> rewards;
+ const MobileRewardCatalog._({required this.generatedAt, required this.rewards});
+ factory MobileRewardCatalog({required String generatedAt, required List<MobileRewardOffer> rewards}) => MobileRewardCatalog.fromJson({"generatedAt": generatedAt, "rewards": rewards.map((value) => value.toJson()).toList()});
+ factory MobileRewardCatalog.fromJson(Map<String,dynamic> json) {
+  if (json.length != 2 || !json.keys.every(["generatedAt","rewards"].contains)) throw const FormatException('Invalid MobileRewardCatalog fields');
+  final generatedAt=(() { final value=json["generatedAt"]; const path="MobileRewardCatalog.generatedAt"; return _string(value, path, pattern: null, format: "date-time", min: 0, max: null); })();
+  final rewards=(() { final value=json["rewards"]; const path="MobileRewardCatalog.rewards"; return List<MobileRewardOffer>.unmodifiable(_list(value, path, 0, 30).map((value) => MobileRewardOffer.fromJson(_object(value, path)))); })();
+  return MobileRewardCatalog._(generatedAt: generatedAt, rewards: rewards);
+ }
+ Map<String,dynamic> toJson() => {"generatedAt": generatedAt, "rewards": rewards.map((value) => value.toJson()).toList()};
+}
+
+class MobileRewardRedeemRequest {
+ final String rewardId;
+ final String idempotencyKey;
+ const MobileRewardRedeemRequest._({required this.rewardId, required this.idempotencyKey});
+ factory MobileRewardRedeemRequest({required String rewardId, required String idempotencyKey}) => MobileRewardRedeemRequest.fromJson({"rewardId": rewardId, "idempotencyKey": idempotencyKey});
+ factory MobileRewardRedeemRequest.fromJson(Map<String,dynamic> json) {
+  if (json.length != 2 || !json.keys.every(["rewardId","idempotencyKey"].contains)) throw const FormatException('Invalid MobileRewardRedeemRequest fields');
+  final rewardId=(() { final value=json["rewardId"]; const path="MobileRewardRedeemRequest.rewardId"; return _string(value, path, pattern: null, format: "uuid", min: 0, max: null); })();
+  final idempotencyKey=(() { final value=json["idempotencyKey"]; const path="MobileRewardRedeemRequest.idempotencyKey"; return _string(value, path, pattern: null, format: "uuid", min: 0, max: null); })();
+  return MobileRewardRedeemRequest._(rewardId: rewardId, idempotencyKey: idempotencyKey);
+ }
+ Map<String,dynamic> toJson() => {"rewardId": rewardId, "idempotencyKey": idempotencyKey};
+}
+
+class MobileVoucher {
+ final String merchantId;
+ final String merchantName;
+ final String nameTh;
+ final String nameEn;
+ final String currency;
+ final int decimals;
+ final String discountMinor;
+ final String minimumSpendMinor;
+ final String id;
+ final String rewardId;
+ final String code;
+ final String state;
+ final String expiresAt;
+ final String createdAt;
+ final int pointsSpent;
+ const MobileVoucher._({required this.merchantId, required this.merchantName, required this.nameTh, required this.nameEn, required this.currency, required this.decimals, required this.discountMinor, required this.minimumSpendMinor, required this.id, required this.rewardId, required this.code, required this.state, required this.expiresAt, required this.createdAt, required this.pointsSpent});
+ factory MobileVoucher({required String merchantId, required String merchantName, required String nameTh, required String nameEn, required String currency, required int decimals, required String discountMinor, required String minimumSpendMinor, required String id, required String rewardId, required String code, required String state, required String expiresAt, required String createdAt, required int pointsSpent}) => MobileVoucher.fromJson({"merchantId": merchantId, "merchantName": merchantName, "nameTh": nameTh, "nameEn": nameEn, "currency": currency, "decimals": decimals, "discountMinor": discountMinor, "minimumSpendMinor": minimumSpendMinor, "id": id, "rewardId": rewardId, "code": code, "state": state, "expiresAt": expiresAt, "createdAt": createdAt, "pointsSpent": pointsSpent});
+ factory MobileVoucher.fromJson(Map<String,dynamic> json) {
+  if (json.length != 15 || !json.keys.every(["merchantId","merchantName","nameTh","nameEn","currency","decimals","discountMinor","minimumSpendMinor","id","rewardId","code","state","expiresAt","createdAt","pointsSpent"].contains)) throw const FormatException('Invalid MobileVoucher fields');
+  final merchantId=(() { final value=json["merchantId"]; const path="MobileVoucher.merchantId"; return _string(value, path, pattern: null, format: "uuid", min: 0, max: null); })();
+  final merchantName=(() { final value=json["merchantName"]; const path="MobileVoucher.merchantName"; return _string(value, path, pattern: null, format: null, min: 1, max: 200); })();
+  final nameTh=(() { final value=json["nameTh"]; const path="MobileVoucher.nameTh"; return _string(value, path, pattern: null, format: null, min: 1, max: 80); })();
+  final nameEn=(() { final value=json["nameEn"]; const path="MobileVoucher.nameEn"; return _string(value, path, pattern: null, format: null, min: 1, max: 80); })();
+  final currency=(() { final value=json["currency"]; const path="MobileVoucher.currency"; return _enum(_string(value, path, pattern: null, format: null, min: 0, max: null), ["THB","USD","USDG"], path); })();
+  final decimals=(() { final value=json["decimals"]; const path="MobileVoucher.decimals"; return _integer(value, path, min: 0, max: 6); })();
+  final discountMinor=(() { final value=json["discountMinor"]; const path="MobileVoucher.discountMinor"; return _string(value, path, pattern: "^[0-9]{1,18}\$", format: null, min: 0, max: null); })();
+  final minimumSpendMinor=(() { final value=json["minimumSpendMinor"]; const path="MobileVoucher.minimumSpendMinor"; return _string(value, path, pattern: "^[0-9]{1,18}\$", format: null, min: 0, max: null); })();
+  final id=(() { final value=json["id"]; const path="MobileVoucher.id"; return _string(value, path, pattern: null, format: "uuid", min: 0, max: null); })();
+  final rewardId=(() { final value=json["rewardId"]; const path="MobileVoucher.rewardId"; return _string(value, path, pattern: null, format: "uuid", min: 0, max: null); })();
+  final code=(() { final value=json["code"]; const path="MobileVoucher.code"; return _string(value, path, pattern: "^[A-Z0-9][A-Z0-9_-]{2,31}\$", format: null, min: 0, max: null); })();
+  final state=(() { final value=json["state"]; const path="MobileVoucher.state"; return _enum(_string(value, path, pattern: null, format: null, min: 0, max: null), ["AVAILABLE","IN_USE","USED","EXPIRED"], path); })();
+  final expiresAt=(() { final value=json["expiresAt"]; const path="MobileVoucher.expiresAt"; return _string(value, path, pattern: null, format: "date-time", min: 0, max: null); })();
+  final createdAt=(() { final value=json["createdAt"]; const path="MobileVoucher.createdAt"; return _string(value, path, pattern: null, format: "date-time", min: 0, max: null); })();
+  final pointsSpent=(() { final value=json["pointsSpent"]; const path="MobileVoucher.pointsSpent"; return _integer(value, path, min: 1, max: null); })();
+  return MobileVoucher._(merchantId: merchantId, merchantName: merchantName, nameTh: nameTh, nameEn: nameEn, currency: currency, decimals: decimals, discountMinor: discountMinor, minimumSpendMinor: minimumSpendMinor, id: id, rewardId: rewardId, code: code, state: state, expiresAt: expiresAt, createdAt: createdAt, pointsSpent: pointsSpent);
+ }
+ Map<String,dynamic> toJson() => {"merchantId": merchantId, "merchantName": merchantName, "nameTh": nameTh, "nameEn": nameEn, "currency": currency, "decimals": decimals, "discountMinor": discountMinor, "minimumSpendMinor": minimumSpendMinor, "id": id, "rewardId": rewardId, "code": code, "state": state, "expiresAt": expiresAt, "createdAt": createdAt, "pointsSpent": pointsSpent};
+}
+
+class MobileVouchers {
+ final String generatedAt;
+ final List<MobileVoucher> vouchers;
+ const MobileVouchers._({required this.generatedAt, required this.vouchers});
+ factory MobileVouchers({required String generatedAt, required List<MobileVoucher> vouchers}) => MobileVouchers.fromJson({"generatedAt": generatedAt, "vouchers": vouchers.map((value) => value.toJson()).toList()});
+ factory MobileVouchers.fromJson(Map<String,dynamic> json) {
+  if (json.length != 2 || !json.keys.every(["generatedAt","vouchers"].contains)) throw const FormatException('Invalid MobileVouchers fields');
+  final generatedAt=(() { final value=json["generatedAt"]; const path="MobileVouchers.generatedAt"; return _string(value, path, pattern: null, format: "date-time", min: 0, max: null); })();
+  final vouchers=(() { final value=json["vouchers"]; const path="MobileVouchers.vouchers"; return List<MobileVoucher>.unmodifiable(_list(value, path, 0, 100).map((value) => MobileVoucher.fromJson(_object(value, path)))); })();
+  return MobileVouchers._(generatedAt: generatedAt, vouchers: vouchers);
+ }
+ Map<String,dynamic> toJson() => {"generatedAt": generatedAt, "vouchers": vouchers.map((value) => value.toJson()).toList()};
+}
+
+class MobileRewardRedemption {
+ final MobileVoucher voucher;
+ final int balance;
+ final bool replayed;
+ const MobileRewardRedemption._({required this.voucher, required this.balance, required this.replayed});
+ factory MobileRewardRedemption({required MobileVoucher voucher, required int balance, required bool replayed}) => MobileRewardRedemption.fromJson({"voucher": voucher.toJson(), "balance": balance, "replayed": replayed});
+ factory MobileRewardRedemption.fromJson(Map<String,dynamic> json) {
+  if (json.length != 3 || !json.keys.every(["voucher","balance","replayed"].contains)) throw const FormatException('Invalid MobileRewardRedemption fields');
+  final voucher=(() { final value=json["voucher"]; const path="MobileRewardRedemption.voucher"; return MobileVoucher.fromJson(_object(value, path)); })();
+  final balance=(() { final value=json["balance"]; const path="MobileRewardRedemption.balance"; return _integer(value, path, min: 0, max: null); })();
+  final replayed=(() { final value=json["replayed"]; const path="MobileRewardRedemption.replayed"; return _boolean(value, path); })();
+  return MobileRewardRedemption._(voucher: voucher, balance: balance, replayed: replayed);
+ }
+ Map<String,dynamic> toJson() => {"voucher": voucher.toJson(), "balance": balance, "replayed": replayed};
 }

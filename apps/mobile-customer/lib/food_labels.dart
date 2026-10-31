@@ -133,3 +133,36 @@ String merchantBranchLabel({
   }
   return thai ? 'สาขายังไม่มีชื่อ' : 'Unnamed branch';
 }
+
+/// Customer text for a server refusal while attaching a coupon or holding a slot.
+/// Only the server decides eligibility; these strings explain its typed reason.
+String checkoutRefusalMessage(Object error, bool thai) {
+  final reason = error is MobileApiException ? error.reason : null;
+  final code = error is MobileApiException ? error.code : 'NETWORK';
+  final labels = switch (reason) {
+    'COUPON_NOT_FOUND' => ('ไม่พบรหัสคูปองนี้ ตรวจตัวสะกดแล้วลองใหม่', 'Coupon code not found. Check it and try again.'),
+    'COUPON_INELIGIBLE' => ('คูปองนี้ใช้กับออเดอร์นี้ไม่ได้ (ประเภทการรับ/ส่ง สาขา หรือช่วงเวลาของคูปองไม่ตรง)', 'This coupon cannot be used for this order (serving type, branch or validity window does not match).'),
+    'COUPON_QUOTE_EXPIRED' => ('ราคาหมดอายุ (ราคาใช้ได้ 60 วินาที) กรุณาอัปเดตราคาแล้วใส่คูปองอีกครั้ง', 'This price has expired (prices last 60 seconds). Refresh the price and apply the coupon again.'),
+    'COUPON_MINIMUM_NOT_MET' => ('ยอดอาหารยังไม่ถึงขั้นต่ำของคูปองนี้', 'The food total is below this coupon\'s minimum spend.'),
+    'COUPON_NO_DISCOUNTABLE_FOOD' || 'COUPON_DISCOUNT_ROUNDS_TO_ZERO' => ('ออเดอร์นี้ไม่มีรายการที่ลดได้ด้วยคูปองนี้', 'No item in this order can be discounted by this coupon.'),
+    'COUPON_ACCOUNT_LIMIT' => ('คุณใช้สิทธิ์คูปองนี้ครบแล้ว', 'You have used all of your uses of this coupon.'),
+    'COUPON_GLOBAL_LIMIT' || 'COUPON_BUDGET_LIMIT' => ('คูปองนี้ถูกใช้ครบแล้ว', 'This coupon has been fully redeemed.'),
+    'COUPON_REWARD_VOUCHER_REQUIRED' => ('ต้องมีคูปองรางวัลที่ยังใช้ได้ของร้านนี้ แลกแต้มที่หน้ารางวัลก่อน หรือคูปองถูกใช้ไปแล้ว', 'This code needs an unused reward voucher from this shop. Redeem points on the Rewards page first, or your voucher is already in use.'),
+    'COUPON_ALREADY_APPLIED' => ('ราคานี้ใช้คูปองไปแล้ว กรุณาอัปเดตราคาก่อนเปลี่ยนคูปอง', 'A coupon is already on this price. Refresh the price to change it.'),
+    'COUPON_COLLECTION_REVIEW_REQUIRED' => ('ออเดอร์แบบนี้ยังใช้คูปองไม่ได้', 'Coupons cannot be used with this kind of order yet.'),
+    'COUPON_ZERO_ORDER_REQUIRES_COMPLETION' => ('คูปองนี้ทำให้ยอดเป็นศูนย์ ซึ่งยังไม่รองรับ', 'This coupon would make the order free, which is not supported yet.'),
+    'COUPON_PLATFORM_FUNDING_REQUIRED' => ('คูปองที่แพลตฟอร์มออกเงินให้ยังไม่เปิดใช้งาน', 'Platform-funded coupons are not enabled yet.'),
+    'SCHEDULE_CAPACITY_EXHAUSTED' => ('ช่วงเวลานี้เต็มแล้ว กรุณาเลือกช่วงอื่น', 'That time slot is full. Choose another.'),
+    'SCHEDULE_SLOT_UNAVAILABLE' || 'SCHEDULE_HOLD_UNAVAILABLE' => ('ช่วงเวลานี้ปิดรับแล้ว กรุณาเลือกช่วงอื่น', 'That time slot is no longer open. Choose another.'),
+    'SCHEDULE_QUOTE_ALREADY_HELD' || 'SCHEDULE_ALREADY_BOOKED' => ('ราคานี้จองช่วงเวลาไว้แล้ว กรุณาอัปเดตราคาก่อนเปลี่ยนช่วงเวลา', 'This price already holds a slot. Refresh the price to change it.'),
+    _ => null,
+  };
+  if (labels != null) return thai ? labels.$1 : labels.$2;
+  if (code == 'CONFIGURATION_REQUIRED') {
+    return thai ? 'ร้านนี้ยังไม่เปิดฟีเจอร์นี้' : 'This feature is not enabled for this merchant yet.';
+  }
+  if (code == 'RESOURCE_NOT_FOUND') {
+    return thai ? 'ไม่พบราคานี้ กรุณาอัปเดตราคา' : 'This price is no longer available. Refresh the price.';
+  }
+  return foodErrorMessage(error, thai);
+}

@@ -59,6 +59,18 @@ class _ProductOptionsSheetState extends State<ProductOptionsSheet> {
     super.dispose();
   }
 
+  /// Plain-language rule for a group, with how many are picked so far.
+  String _selectionRule(MobileOptionGroup g, int picked) {
+    final lo = g.minSelections, hi = g.maxSelections;
+    if (lo == hi) {
+      return t('เลือก $hi อย่าง · จำเป็น · เลือกแล้ว $picked', 'Choose $hi · required · $picked chosen');
+    }
+    if (lo == 0) {
+      return t('เลือกได้สูงสุด $hi อย่าง · ไม่บังคับ · เลือกแล้ว $picked', 'Choose up to $hi · optional · $picked chosen');
+    }
+    return t('เลือก $lo–$hi อย่าง · จำเป็น · เลือกแล้ว $picked', 'Choose $lo–$hi · required · $picked chosen');
+  }
+
   int count(MobileOptionGroup group) => group.choices.fold(
     0,
     (sum, c) => sum + (_selected[key(group.id, c.id)] ?? 0),
@@ -324,7 +336,7 @@ class _ProductOptionsSheetState extends State<ProductOptionsSheet> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(18, 8, 24, 12),
+                  padding: const EdgeInsets.fromLTRB(12, 8, 24, 12),
                   child: Row(
                     children: [
                       IconButton(
@@ -358,7 +370,15 @@ class _ProductOptionsSheetState extends State<ProductOptionsSheet> {
                       children: [
                         KeyedSubtree(
                           key: const ValueKey('product-detail-hero'),
-                          child: FoodImage(url: product.imageUrl, hero: true),
+                          child: FoodImage(
+                              url: product.imageUrl,
+                              hero: true,
+                              emoji: foodEmoji(
+                                name: product.name,
+                                nameEn: product.nameEn,
+                                category: product.category,
+                              ),
+                            ),
                         ),
                         Padding(
                           padding: const EdgeInsets.fromLTRB(24, 20, 24, 12),
@@ -490,7 +510,7 @@ class _ProductOptionsSheetState extends State<ProductOptionsSheet> {
                                       ?.copyWith(fontSize: 16),
                                 ),
                                 Text(
-                                  '${t('เลือกต่อชิ้น', 'Selections per item')}: ${count(g)} / ${g.minSelections}–${g.maxSelections}',
+                                  _selectionRule(g, count(g)),
                                   style: Theme.of(context).textTheme.bodySmall,
                                 ),
                                 const SizedBox(height: 12),
@@ -520,7 +540,7 @@ class _ProductOptionsSheetState extends State<ProductOptionsSheet> {
                                     ),
                                     hintMaxLines: 2,
                                     helperText: t(
-                                      'ไม่ใช่การรับรองว่าปลอดสารก่อภูมิแพ้ กรุณาตรวจสอบกับร้าน',
+                                      'ไม่ใช่การรับรองว่าปลอดสารก่อภูมิแพ้\nกรุณาตรวจสอบกับร้าน',
                                       'Not an allergen-free guarantee. Confirm with the merchant.',
                                     ),
                                     helperMaxLines: 8,
@@ -529,7 +549,9 @@ class _ProductOptionsSheetState extends State<ProductOptionsSheet> {
                               ],
                               const SizedBox(height: 20),
                               Wrap(
+                                alignment: WrapAlignment.center,
                                 crossAxisAlignment: WrapCrossAlignment.center,
+                                spacing: 12,
                                 children: [
                                   IconButton(
                                     tooltip: t(

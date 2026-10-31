@@ -158,9 +158,9 @@ class _OrderRefundsSheetState extends State<OrderRefundsSheet> {
         centerTitle: false,
         toolbarHeight: 72,
         titleSpacing: 0,
-        leadingWidth: 76,
+        leadingWidth: 84,
         leading: Padding(
-          padding: const EdgeInsets.fromLTRB(18, 14, 14, 14),
+          padding: const EdgeInsets.fromLTRB(24, 12, 12, 12),
           child: IconButton.filledTonal(
             style: IconButton.styleFrom(
               backgroundColor: colors.surface,

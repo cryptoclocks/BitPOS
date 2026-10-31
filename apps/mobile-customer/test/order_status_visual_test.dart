@@ -246,7 +246,9 @@ void main() {
       find.byKey(const ValueKey('customer-order-status-primary-action')),
     );
     await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('food-action-error')), findsOneWidget);
+    // A transient network failure is no longer a red error block: the shared
+    // banner says "reconnecting" and the page retries by itself.
+    expect(find.byKey(const ValueKey('food-action-error')), findsNothing);
     expect(find.text('กำลังตรวจสอบการชำระเงิน'), findsWidgets);
     expect(api.eventReads, greaterThanOrEqualTo(2));
   });

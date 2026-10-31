@@ -1,24 +1,41 @@
 import React, { useEffect, useState } from 'react';
 import { api, ApiError, errorMessage } from '../lib/api';
 import type { Product } from '../lib/menu';
+import { imageProblem, imageProblemText, imageStorageNote, uploadProductImage } from '../lib/product-image';
 
-interface Details { name: string; nameEn: string; category: string; description: string }
+interface Details { name: string; nameEn: string; category: string; description: string; imageUrl: string | null }
 // An unsaved draft survives leaving the page for this browser tab only. It is used again only
 // while the stored product still matches what the draft started from.
 const draftKey = (product?: Product) => `bitpos.catalog-draft.${product?.id ?? 'new'}`;
 const readDraft = (key: string, start: Details): Details | undefined => { try { const raw = JSON.parse(window.sessionStorage.getItem(key) ?? 'null') as { start: Details; draft: Details } | null; return raw && JSON.stringify(raw.start) === JSON.stringify(start) ? raw.draft : undefined; } catch { return undefined; } };
 const writeDraft = (key: string, value?: { start: Details; draft: Details }) => { try { if (value) window.sessionStorage.setItem(key, JSON.stringify(value)); else window.sessionStorage.removeItem(key); } catch { /* storage unavailable: the draft just is not kept */ } };
-const detailsOf = (p: Product): Details => ({ name: p.name, nameEn: p.nameEn, category: p.category, description: p.description });
+const detailsOf = (p: Product): Details => ({ name: p.name, nameEn: p.nameEn, category: p.category, description: p.description, imageUrl: p.imageUrl ?? null });
 
 // Descriptive product edits and category rename (owner/manager). Price, stock, offers and
 // options are edited elsewhere and are not touched. The stored values the form started from
 // are sent back, so an edit made elsewhere in the meantime is refused, not overwritten.
 export function ProductDetailsForm({ product, token, language, onSaved, onClose }: { product?: Product; token: string; language: 'th' | 'en'; onSaved: () => void; onClose: () => void }) {
   const text = (th: string, en: string) => language === 'th' ? th : en;
-  const [start] = useState<Details>(() => product ? detailsOf(product) : { name: '', nameEn: '', category: '', description: '' }); const key = draftKey(product); const [draft, setDraft] = useState<Details>(() => readDraft(key, start) ?? start); const restored = JSON.stringify(draft) !== JSON.stringify(start); const [busy, setBusy] = useState(false); const [message, setMessage] = useState(''); const [conflict, setConflict] = useState(false);
-  const dirty = JSON.stringify(draft) !== JSON.stringify(start), valid = draft.name.trim() !== '' && draft.nameEn.trim() !== '';
+  const [start] = useState<Details>(() => product ? detailsOf(product) : { name: '', nameEn: '', category: '', description: '', imageUrl: null }); const key = draftKey(product); const [draft, setDraft] = useState<Details>(() => readDraft(key, start) ?? start); const restored = JSON.stringify(draft) !== JSON.stringify(start); const [busy, setBusy] = useState(false); const [message, setMessage] = useState(''); const [conflict, setConflict] = useState(false); const [preview, setPreview] = useState<string | null>(null); const [uploading, setUploading] = useState(false); const [photoError, setPhotoError] = useState('');
+  const dirty = JSON.stringify(draft) !== JSON.stringify(start), valid = draft.name.trim() !== '' && draft.nameEn.trim() !== '' && !uploading;
   useEffect(() => { writeDraft(key, dirty ? { start, draft } : undefined); }, [key, start, draft, dirty]);
-  const set = (field: keyof Details) => (event: React.ChangeEvent<HTMLInputElement>) => setDraft({ ...draft, [field]: event.target.value });
+  const set = (field: Exclude<keyof Details, 'imageUrl'>) => (event: React.ChangeEvent<HTMLInputElement>) => setDraft({ ...draft, [field]: event.target.value });
+  useEffect(() => () => { if (preview) URL.revokeObjectURL(preview); }, [preview]);
+  async function pick(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0]; event.target.value = ''; setPhotoError('');
+    if (!file) return;
+    const problem = imageProblem(file);
+    if (problem) { setPhotoError(imageProblemText(problem, language)); return; }
+    setPreview(URL.createObjectURL(file)); setUploading(true);
+    try { const uploaded = await uploadProductImage(file, token); setDraft(current => ({ ...current, imageUrl: uploaded.path })); }
+    catch (error) {
+      setPreview(null);
+      const code = error instanceof Error ? error.message : 'failed';
+      setPhotoError(code === 'size' || code === 'type' ? imageProblemText(code, language) : code === 'role' ? text('เฉพาะเจ้าของหรือผู้จัดการที่อัปโหลดรูปได้', 'Only an owner or manager can upload photos.') : text('อัปโหลดรูปไม่สำเร็จ ลองอีกครั้ง', 'Photo upload failed. Try again.'));
+    }
+    setUploading(false);
+  }
+  const shownPhoto = preview ?? draft.imageUrl;
   async function save() {
     setBusy(true); setMessage('');
     try { if (product) await api(`/products/${encodeURIComponent(product.id)}`, { ...draft, expected: start }, token, 'PATCH'); else await api('/products', draft, token); writeDraft(key); onSaved(); onClose(); }
@@ -47,6 +64,17 @@ export function ProductDetailsForm({ product, token, language, onSaved, onClose 
     <label>{text('ชื่อ (อังกฤษ)', 'Name (English)')}<input value={draft.nameEn} maxLength={80} onChange={set('nameEn')} required /></label>
     <label>{text('หมวด', 'Category')}<input value={draft.category} maxLength={40} onChange={set('category')} /></label>
     <label>{text('คำอธิบาย', 'Description')}<input value={draft.description} maxLength={200} onChange={set('description')} /></label>
+    <fieldset className="catalog-photo" aria-label={text('รูปสินค้า', 'Product photo')}>
+      <legend>{text('รูปสินค้า', 'Product photo')}</legend>
+      {shownPhoto ? <img src={shownPhoto} alt={text('ตัวอย่างรูปสินค้า', 'Product photo preview')} width={120} height={120} style={{ objectFit: 'cover', borderRadius: 8 }} /> : <p className="catalog-sub">{text('ยังไม่มีรูป', 'No photo yet.')}</p>}
+      <div className="toolbar">
+        <label className="secondary">{draft.imageUrl ? text('เปลี่ยนรูป', 'Change photo') : text('เลือกรูป', 'Choose photo')}<input type="file" accept="image/jpeg,image/png,image/webp" disabled={uploading || busy} onChange={event => void pick(event)} /></label>
+        {draft.imageUrl && <button type="button" className="secondary" disabled={uploading || busy} onClick={() => { setPreview(null); setPhotoError(''); setDraft({ ...draft, imageUrl: null }); }}>{text('ลบรูป', 'Remove photo')}</button>}
+      </div>
+      {uploading && <p className="notice" role="status">{text('กำลังอัปโหลดรูป…', 'Uploading photo…')}</p>}
+      {photoError && <p className="error" role="alert">{photoError}</p>}
+      <p className="catalog-sub" data-testid="image-storage-note">{imageStorageNote(language)}</p>
+    </fieldset>
     {restored && !message && <p className="notice" role="status">{text('กู้ร่างที่ยังไม่บันทึกกลับมา', 'Restored your unsaved draft.')}</p>}
     {message && <p className={conflict ? 'error' : 'notice'} role="alert">{message}</p>}
     {product && <p><button type="button" className="secondary" disabled={busy} onClick={() => void archive()}>{text('เก็บสินค้าเข้าคลัง', 'Archive product')}</button></p>}

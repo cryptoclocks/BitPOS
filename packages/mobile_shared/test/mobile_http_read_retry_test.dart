@@ -64,14 +64,44 @@ void main() {
     expect(client.sends, 1);
   });
 
-  test('other GET transport failures are not retried', () async {
+  test('other GET transport failures are repeated with backoff, then surfaced', () async {
+    final client = _ScriptedClient((request, attempt) async {
+      throw http.ClientException('Connection refused', request.url);
+    });
+    final api = MobileApi(base: base, fixture: true, client: client)
+      ..readRetryUnit = Duration.zero;
+    addTearDown(api.close);
+
+    await expectLater(api.branches(), throwsA(isA<http.ClientException>()));
+    expect(client.sends, 3);
+    expect(api.connected.value, false);
+  });
+
+  test('connectivity returning bumps reconnects once and clears the flag', () async {
+    var fail = true;
+    final client = _ScriptedClient((request, attempt) async {
+      if (fail) throw http.ClientException('Connection refused', request.url);
+      return _jsonResponse({'branches': [], 'nextCursor': null});
+    });
+    final api = MobileApi(base: base, fixture: true, client: client)
+      ..readRetryUnit = Duration.zero;
+    addTearDown(api.close);
+
+    await expectLater(api.branches(), throwsA(isA<http.ClientException>()));
+    expect(api.connected.value, false);
+    fail = false;
+    await api.branches();
+    expect(api.connected.value, true);
+    expect(api.reconnects.value, 1);
+  });
+
+  test('a mutation is single-send and never repeated on transport failure', () async {
     final client = _ScriptedClient((request, attempt) async {
       throw http.ClientException('Connection refused', request.url);
     });
     final api = MobileApi(base: base, fixture: true, client: client);
     addTearDown(api.close);
-
-    await expectLater(api.branches(), throwsA(isA<http.ClientException>()));
+    await expectLater(api.requestOtp('+66812345678'), throwsA(isA<http.ClientException>()));
     expect(client.sends, 1);
   });
 
@@ -82,10 +112,12 @@ void main() {
         request.url,
       );
     });
-    final api = MobileApi(base: base, fixture: true, client: client);
+    final api = MobileApi(base: base, fixture: true, client: client)
+      ..readRetryUnit = Duration.zero;
     addTearDown(api.close);
 
+    // Each of the three read attempts makes one inner stale-socket repeat.
     await expectLater(api.branches(), throwsA(isA<http.ClientException>()));
-    expect(client.sends, 2);
+    expect(client.sends, 6);
   });
 }

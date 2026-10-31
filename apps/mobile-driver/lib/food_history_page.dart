@@ -4,6 +4,7 @@ import 'presentation/driver_history_card.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:mobile_shared/presentation/bitpos_layout.dart';
 import 'package:mobile_shared/bitpos_design_tokens.dart';
 import 'package:mobile_shared/mobile_api.dart';
 import 'package:mobile_shared/mobile_v1.generated.dart';
@@ -193,50 +194,13 @@ class _DriverFoodHistoryPageState extends State<DriverFoodHistoryPage>
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 980),
                 child: ListView(
-                  padding: const EdgeInsets.only(top: 28, bottom: 32),
+                  padding: const EdgeInsets.only(top: 12, bottom: 32),
                   children: [
                     Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
                       child: Row(
                         children: [
-                          Tooltip(
-                            message: t('กลับ', 'Back'),
-                            child: Semantics(
-                              button: true,
-                              label: t('กลับ', 'Back'),
-                              child: InkWell(
-                                onTap: () => Navigator.of(context).maybePop(),
-                                borderRadius: BorderRadius.circular(14),
-                                child: SizedBox.square(
-                                  dimension: 48,
-                                  child: Center(
-                                    child: Container(
-                                      width: 44,
-                                      height: 44,
-                                      decoration: BoxDecoration(
-                                        color: dark
-                                            ? colors.surfaceContainer
-                                            : Colors.white,
-                                        borderRadius: BorderRadius.circular(14),
-                                        border: Border.all(
-                                          color: dark
-                                              ? colors.outlineVariant
-                                              : BitPosDesignTokens.line,
-                                        ),
-                                      ),
-                                      child: Icon(
-                                        Icons.chevron_left,
-                                        size: 22,
-                                        color: dark
-                                            ? colors.primary
-                                            : BitPosDesignTokens.primary,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
+                          BitPosBackTile(tooltip: t('กลับ', 'Back')),
                           const SizedBox(width: 12),
                           Expanded(
                             child: Text(

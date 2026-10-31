@@ -53,6 +53,7 @@ class SurfaceFoodApi extends CartReviewApi {
     product['nameEn'] = 'Searchable food 1';
     return MobileMenu(
       branch: branch,
+      coverUrl: '',
       asOf: '2026-10-23T00:00:00Z',
       priceValidUntil: '2099-01-01T00:00:00Z',
       menuVersion: 'surface-ui',
@@ -309,7 +310,7 @@ void registerCustomerFoodSurfaceTests({bool native = false}) {
         final backSurface = find.byKey(
           const ValueKey('customer-food-back-surface'),
         );
-        expect(tester.getRect(backSurface), const Rect.fromLTWH(18, 52, 44, 44));
+        expect(tester.getRect(backSurface), const Rect.fromLTWH(24, 52, 44, 44));
         expect(
           tester
               .getRect(

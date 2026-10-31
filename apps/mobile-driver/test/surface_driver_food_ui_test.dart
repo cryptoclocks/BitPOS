@@ -355,6 +355,7 @@ FoodDriverWork surfaceWork(String screen, bool thai) {
                     .toIso8601String(),
                 pickupLatitudeE7: 137560000,
                 pickupLongitudeE7: 1005018000,
+                pickupName: 'Try Cafe',
                 earning: MobileMoney(
                   currency: 'USDG',
                   decimals: 6,
@@ -386,6 +387,11 @@ FoodDriverWork surfaceWork(String screen, bool thai) {
         'R12' => 'PICKED_UP',
         _ => 'AT_DROPOFF',
       },
+      'pickupName': 'Try Cafe fixture branch',
+      'pickupAddress': 'Fixture road (synthetic)',
+      'items': [
+        {'name': 'Iced latte', 'qty': 2},
+      ],
       'addressText': thai
           ? 'อาคารตัวอย่าง ประตูด้านหลัง ชั้นสอง'
           : 'Local fixture building, rear entrance, second floor',
@@ -977,22 +983,17 @@ void main() {
         await tester.tap(details);
         await tester.pumpAndSettle();
 
-        final merchant = find.text(
-          thai
-              ? 'ข้อมูลร้านและจุดรับยังไม่พร้อม'
-              : 'Merchant and pickup unavailable',
-        );
-        final checklist = find.text(
-          thai
-              ? 'รายการอาหารสำหรับตรวจสอบยังไม่พร้อม'
-              : 'Food checklist unavailable',
-        );
+        final merchant = find.text('Try Cafe fixture branch');
+        final checklist = find.byKey(const ValueKey('driver-job-items'));
         final recipient = find.text(
           thai ? 'รายละเอียดผู้รับ' : 'Recipient details',
         );
         expect(merchant, findsOneWidget);
         expect(checklist, findsOneWidget);
         expect(recipient, findsOneWidget);
+        expect(find.text('Fixture road (synthetic)'), findsOneWidget);
+        expect(find.text('Iced latte'), findsOneWidget);
+        expect(find.text('2 ×'), findsOneWidget);
         expect(
           find.text(thai ? 'พิกัดจุดรับ' : 'Pickup coordinates'),
           findsOneWidget,

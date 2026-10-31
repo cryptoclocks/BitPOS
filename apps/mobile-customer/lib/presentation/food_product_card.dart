@@ -3,6 +3,7 @@ import 'package:mobile_shared/mobile_v1.generated.dart';
 import 'package:mobile_shared/bitpos_theme.dart';
 
 import 'food_presentation.dart';
+import 'product_story_page.dart';
 
 /// U09 menu row. Catalogue prices are not configured or payable totals.
 class FoodProductCard extends StatelessWidget {
@@ -11,10 +12,13 @@ class FoodProductCard extends StatelessWidget {
     required this.product,
     required this.thai,
     this.onConfigure,
+    this.inCart = 0,
   });
   final MobileProduct product;
   final bool thai;
   final VoidCallback? onConfigure;
+  /// Quantity of this product already in the cart, shown where the customer just added it.
+  final int inCart;
   String t(String th, String en) => thai ? th : en;
 
   @override
@@ -45,6 +49,14 @@ class FoodProductCard extends StatelessWidget {
             t('สินค้าหมด', 'Sold out'),
             style: TextStyle(color: colors.error),
           ),
+        if (inCart > 0)
+          Text(
+            '${t('ในตะกร้า', 'In cart')} ×$inCart',
+            style: Theme.of(context).textTheme.labelMedium?.copyWith(
+              color: colors.primary,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
       ],
     );
     final amount = Text(
@@ -63,7 +75,8 @@ class FoodProductCard extends StatelessWidget {
       style: Theme.of(context).textTheme.bodySmall
           ?.copyWith(color: colors.primary),
     );
-    return Padding(
+    final hasStory = hasProductStory(product);
+    final card = Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: OutlinedButton(
         onPressed: onConfigure,
@@ -87,7 +100,14 @@ class FoodProductCard extends StatelessWidget {
             return Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                FoodImage(url: product.imageUrl),
+                FoodImage(
+                  url: product.imageUrl,
+                  emoji: foodEmoji(
+                    name: product.name,
+                    nameEn: product.nameEn,
+                    category: product.category,
+                  ),
+                ),
                 const SizedBox(width: 14),
                 Expanded(
                   child: Column(
@@ -96,7 +116,7 @@ class FoodProductCard extends StatelessWidget {
                     children: [
                       details,
                       if (stacked) ...[
-                        const SizedBox(height: 8),
+                        SizedBox(height: hasStory ? 20 : 8),
                         amount,
                         Align(alignment: Alignment.centerRight, child: action),
                       ],
@@ -112,7 +132,11 @@ class FoodProductCard extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       mainAxisSize: MainAxisSize.min,
-                      children: [amount, action],
+                      children: [
+                        if (hasStory) const SizedBox(height: 22),
+                        amount,
+                        action,
+                      ],
                     ),
                   ),
                 ],
@@ -121,6 +145,31 @@ class FoodProductCard extends StatelessWidget {
           },
         ),
       ),
+    );
+    if (!hasStory) return card;
+    return Stack(
+      children: [
+        card,
+        PositionedDirectional(
+          top: 4,
+          end: 4,
+          child: IconButton(
+            tooltip: t('ดูเรื่องราวของเมนู', 'View story'),
+            icon: const Icon(Icons.play_circle_outline),
+            color: colors.primary,
+            visualDensity: VisualDensity.compact,
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => ProductStoryPage(
+                  product: product,
+                  thai: thai,
+                  onConfigure: onConfigure,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

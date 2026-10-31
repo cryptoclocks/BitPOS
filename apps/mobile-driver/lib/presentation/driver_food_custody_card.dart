@@ -238,10 +238,9 @@ class DriverFoodCustodyCard extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   pickup
-                      ? _t(
-                          'ยังไม่มีชื่อร้านและที่อยู่จุดรับในข้อมูลงาน',
-                          'Merchant name and pickup address are not supplied.',
-                        )
+                      ? (assignment.pickupAddress.isEmpty
+                            ? assignment.pickupName
+                            : '${assignment.pickupName}\n${assignment.pickupAddress}')
                       : assignment.addressText,
                   style: theme.textTheme.bodySmall,
                 ),

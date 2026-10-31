@@ -2,7 +2,7 @@ const paths = {
  help:'M9 9a3 3 0 0 1 6 0c0 2-3 2-3 4M12 17h.01M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20',
  menu:'M4 5h16M4 12h16M4 19h16', cart:'M3 3h2l2 12h11l3-9H6M9 20h.01M17 20h.01',
  receipt:'M6 3h12v18l-3-2-3 2-3-2-3 2V3M9 7h6M9 11h6M9 15h3', check:'m5 12 4 4L19 6',
- plus:'M12 5v14M5 12h14', minus:'M5 12h14', close:'m6 6 12 12M18 6 6 18', trash:'M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7M14 10v7',
+ play:'M9 7v10l8-5-8-5Z', plus:'M12 5v14M5 12h14', minus:'M5 12h14', close:'m6 6 12 12M18 6 6 18', trash:'M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7M14 10v7',
  refresh:'M20 7v5h-5M4 17v-5h5M6 6a8 8 0 0 1 14 6M18 18a8 8 0 0 1-14-6',
  edit:'m15 4 5 5-11 11H4v-5L15 4ZM12 7l5 5', save:'M5 3h12l4 4v14H3V3h2ZM7 3v6h10V3M7 21v-8h10v8',
  login:'M14 3h7v18h-7M3 12h13m-4-4 4 4-4 4', logout:'M10 3H3v18h7M9 12h12m-4-4 4 4-4 4',

@@ -120,3 +120,20 @@
   .promotions-workspace[data-presentation=review] .promotion-review-heading>div{position:absolute;opacity:0;pointer-events:none}
   .promotions-workspace[data-presentation=review] .promotion-review-heading>button{position:absolute;top:-8px;left:0}
 }
+
+/* Campaign library spacing: even rhythm between toolbar, filters, count and table; rows centre their cells and share the header's inset. */
+.promotions-workspace[data-presentation=library] .promotion-library-toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:16px 24px;margin:0 0 20px!important}
+.promotions-workspace[data-presentation=library] .promotion-library-toolbar .promotion-search{flex:1 1 320px;min-width:0}
+.promotions-workspace[data-presentation=library] .promotion-create{flex:none;min-width:220px}
+.promotions-workspace[data-presentation=library] .promotion-library-tabs{margin-top:0!important;gap:10px;flex-wrap:wrap;flex:0 0 100%}
+.promotions-workspace[data-presentation=library] .promotion-create{margin-top:0!important}
+.promotions-workspace[data-presentation=library] .promotion-caption{margin:14px 0 14px;color:#7b7088;font-size:14px;line-height:1.5}
+.promotions-workspace[data-presentation=library] .promotion-library-columns{min-height:48px;padding:0 24px;border-radius:12px 12px 0 0}
+.promotions-workspace[data-presentation=library] .promotion-library-item{min-height:72px;padding:16px 24px;align-content:center;align-items:center;border-bottom:1px solid #eee8f4;column-gap:24px}
+.promotions-workspace[data-presentation=library] .promotion-library-columns{column-gap:24px}
+.promotions-workspace[data-presentation=library] .promotion-library-item small{display:block;color:#5d5170;line-height:1.55}
+.promotions-workspace[data-presentation=library] .promotion-library-item .promotion-library-status{font-weight:700}
+.promotions-workspace[data-presentation=library] .promotion-library-item time{color:#5d5170}
+
+/* The fixed top-right toolbar floats over scrolled content on wide screens; give it a surface so text never shows through. */
+@media(min-width:1100px){.shell:has(.promotions-workspace)>header .toolbar{padding:8px;border-radius:20px;background:rgba(247,244,251,.94);backdrop-filter:blur(6px);box-shadow:0 2px 12px rgba(41,24,63,.08)}}
