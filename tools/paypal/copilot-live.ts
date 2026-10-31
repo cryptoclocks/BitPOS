@@ -10,7 +10,7 @@ import {join} from 'node:path';
 const db=new URL(process.env.DATABASE_URL??'');
 if(db.hostname!=='127.0.0.1'||db.port!=='55466')throw Error('copilot-live only runs against the local PayPal fixture database (127.0.0.1:55466)');
 for(const line of readFileSync(join(homedir(),'.bitpos-paypal/gemini.env'),'utf8').split('\n')){const m=line.match(/^(BITPOS_AI_[A-Z_]+)=(.*)$/);if(m)process.env[m[1]]=m[2].trim();}
-const SHOP='33333333-3333-4333-8333-333333333333',OWNER='33333333-3333-4333-8333-0000000000a1';
+const SHOP='70707070-7070-4070-8070-707070707070',OWNER='70707070-7070-4070-8070-0000000000a1';
 const end=new Date(Date.now()+90*60_000);
 const hhmm=new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Bangkok',hour:'2-digit',minute:'2-digit',hour12:false}).format(end);
 const intent=process.argv[2]??`ขายครัวซองต์ที่เหลือ 8 ชิ้นก่อน ${hhmm} ลดไม่เกิน 10%`;

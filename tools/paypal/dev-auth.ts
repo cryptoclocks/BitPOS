@@ -13,7 +13,7 @@ import {join} from 'node:path';
 const admin=new URL(process.env.ADMIN_DATABASE_URL??'');const auth=new URL(process.env.AUTH_URL??'');
 if(admin.hostname!=='127.0.0.1'||admin.port!=='55466')throw Error('dev-auth only runs against the local PayPal fixture database (127.0.0.1:55466)');
 if(auth.hostname!=='127.0.0.1')throw Error('AUTH_URL must point at 127.0.0.1 for the preview');
-const SHOP='33333333-3333-4333-8333-333333333333',OWNER='33333333-3333-4333-8333-0000000000a1',EMAIL='owner@paypal-cafe.test';
+const SHOP='70707070-7070-4070-8070-707070707070',OWNER='70707070-7070-4070-8070-0000000000a1',EMAIL='owner@paypal-cafe.test';
 const file=join(homedir(),'.bitpos-paypal/demo-owner.env');
 if(!existsSync(file))writeFileSync(file,`BITPOS_DEMO_OWNER_EMAIL=${EMAIL}\nBITPOS_DEMO_OWNER_PASSWORD=${randomBytes(12).toString('base64url')}\n`,{mode:0o600});
 const password=readFileSync(file,'utf8').match(/^BITPOS_DEMO_OWNER_PASSWORD=(.+)$/m)![1].trim();

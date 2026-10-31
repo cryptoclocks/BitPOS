@@ -13,7 +13,7 @@ for(const [file,prefix] of [['paypal-sandbox.env','PAYPAL_'],['gemini.env','BITP
  const p=join(homedir(),'.bitpos-paypal',file);if(!existsSync(p))continue;
  for(const line of readFileSync(p,'utf8').split('\n')){const m=line.match(/^([A-Z_]+)=(.*)$/);if(m&&m[1].startsWith(prefix)&&m[2].trim())process.env[m[1]]=m[2].trim();}
 }
-const SHOP='33333333-3333-4333-8333-333333333333';
+const SHOP='70707070-7070-4070-8070-707070707070';
 const {tenant}=await import('../../apps/api/src/db');
 const {expireUnpaidOrders}=await import('../../apps/api/src/order-closure');
 const {tickPromotions,tickPromotionJobs}=await import('../../apps/worker/src/promotions');

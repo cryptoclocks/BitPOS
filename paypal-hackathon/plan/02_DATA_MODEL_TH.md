@@ -242,7 +242,7 @@ CREATE TABLE paypal_agent_steps(
 
 ## 9. Seed ร้านเดโม (`tools/paypal/seed-paypal-cafe.sql`)
 
-- merchant ใหม่ UUID คงที่ `33333333-3333-4333-8333-333333333333` **[ตรวจว่าไม่ชนกับ merchant ที่มี]**, ชื่อ `BitPOS PayPal Café`
+- merchant ใหม่ UUID คงที่ `70707070-7070-4070-8070-707070707070` (31 ต.ค.: `33333333-…` ชนกับ Muse Café ของ Meta บน DB จริง จึงเปลี่ยน), ชื่อ `BitPOS PayPal Café`
 - price version ใหม่ `USD` 2 ทศนิยม: Croissant 4.50, Latte 5.00, Americano 3.50, Matcha 5.50, Banana bread 4.00, Cold brew 4.50 (เป็น fixture ระบุชัด)
 - stock: Croissant 8, อื่นๆ 30
 - 2 โต๊ะ + 1 device (browser terminal) + 1 slot สำหรับ Mini

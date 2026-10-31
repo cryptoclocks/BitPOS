@@ -1,0 +1,51 @@
+# PayPal AI Hackathon work (2026-10-31..11-12). See paypal-hackathon/PROVENANCE.md.
+# The PayPal edition on the OCI host, as its own compose project beside bitpos-runtime and bitpos-meta.
+# It reuses the runtime image without building a new one: the image is pinned once under its own tag
+# (bitpos-paypal-base:pinned, same image id as bitpos-runtime:current at first deploy, so a later retag by another
+# stream cannot change it) and the PayPal source and the prebuilt web are mounted read-only; modules resolve from the
+# image's /app/node_modules. Everything listens on 127.0.0.1 only; the Cloudflare tunnel routes
+#   paypal-pos.<domain>  → 127.0.0.1:4361 (merchant POS + Café Copilot)
+#   paypal-pay.<domain>  → 127.0.0.1:4361 (customer pay / table pages), path ^/paypal/webhooks$ → 127.0.0.1:3103
+# Env: the existing private runtime env (database, auth) plus the private PayPal env, which wins on overlap
+# (PayPal Sandbox credentials, PUBLIC_URL, BITPOS_CUSTOMER_PUBLIC_URL). Both stay outside any repository.
+# Deploy with tools/paypal/deploy-oci.sh; never `down` other projects, never prune, never --remove-orphans.
+name: bitpos-paypal
+x-paypal: &paypal
+  image: bitpos-paypal-base:pinned
+  network_mode: host
+  restart: unless-stopped
+  user: "1001:1001"
+  logging:
+    driver: json-file
+    options: {max-size: "10m", max-file: "3"}
+services:
+  api:
+    <<: *paypal
+    working_dir: /app/paypal-src
+    command: ["node", "--import", "tsx", "tools/paypal/server.ts"]
+    env_file: &envs
+      - /home/ubuntu/bitpos-private/runtime.env
+      - /home/ubuntu/bitpos-private/paypal/paypal.env
+    environment: {BITPOS_PAYPAL_API_PORT: "3103"}
+    volumes: ["/home/ubuntu/bitpos-paypal/src:/app/paypal-src:ro"]
+    mem_limit: 512m
+  # PayPal lane only (webhook inbox, checkout reconcile, ending Copilot offers). Order expiry, promotion copy and
+  # screen delivery stay with the existing bitpos-runtime worker, which serves every shop in the same database.
+  worker:
+    <<: *paypal
+    working_dir: /app/paypal-src
+    command: ["node", "--import", "tsx", "tools/paypal/worker.ts"]
+    env_file: *envs
+    volumes: ["/home/ubuntu/bitpos-paypal/src:/app/paypal-src:ro"]
+    mem_limit: 384m
+  web:
+    <<: *paypal
+    # No env file: the web holds no secrets; it only proxies /api to the PayPal API on 3103.
+    working_dir: /app/paypal-web
+    command: ["node", "server/entry.mjs"]
+    environment:
+      HOST: 127.0.0.1
+      PORT: "4361"
+      BITPOS_WEB_API_ORIGIN: http://127.0.0.1:3103
+    volumes: ["/home/ubuntu/bitpos-paypal/web:/app/paypal-web:ro"]
+    mem_limit: 384m

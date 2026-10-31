@@ -3,15 +3,19 @@
 // functions the backend fixtures use. Sample menu and prices are fixtures, not a real café.
 //   pnpm exec tsx tools/paypal/seed-demo.ts shop             create the shop once (idempotent)
 //   pnpm exec tsx tools/paypal/seed-demo.ts order [qty...]   new counter bill → prints the /pay link
-// Refuses any database other than the local disposable fixture (127.0.0.1:55466).
+// Refuses any database other than the local disposable fixture (127.0.0.1:55466), except the hosted demo shop:
+//   BITPOS_PAYPAL_SEED_TARGET=oci node --import tsx tools/paypal/seed-demo.ts shop
+// run inside the bitpos-paypal api container on OCI (`shop` only; its own merchant id, no other shop is touched).
 import 'dotenv/config';
 import {randomUUID} from 'node:crypto';
-import {readFileSync} from 'node:fs';
+import {readFileSync,existsSync} from 'node:fs';
 import {homedir} from 'node:os';
 import {join} from 'node:path';
 
+const oci=process.env.BITPOS_PAYPAL_SEED_TARGET==='oci';
 const db=new URL(process.env.DATABASE_URL??'');const admin=new URL(process.env.ADMIN_DATABASE_URL??'');
-for(const u of [db,admin])if(u.hostname!=='127.0.0.1'||u.port!=='55466')throw Error('seed-demo only runs against the local PayPal fixture database (127.0.0.1:55466)');
+if(oci){if(process.argv[2]!=='shop'||!existsSync('/.dockerenv'))throw Error('OCI target: only `shop`, only inside the bitpos-paypal api container');}
+else for(const u of [db,admin])if(u.hostname!=='127.0.0.1'||u.port!=='55466')throw Error('seed-demo only runs against the local PayPal fixture database (127.0.0.1:55466)');
 const {pool,tenant}=await import('../../apps/api/src/db');
 const {registry}=await import('../../apps/api/src/registry');
 const {publishPrices}=await import('../../apps/api/src/catalog');
@@ -20,18 +24,18 @@ const {expireUnpaidOrders}=await import('../../apps/api/src/order-closure');
 const {MINT,TOKEN_PROGRAM}=await import('../../packages/domain/src/index');
 const pg=(await import('pg')).default;
 
-export const SHOP='33333333-3333-4333-8333-333333333333';
-const OWNER='33333333-3333-4333-8333-0000000000a1';
+export const SHOP='70707070-7070-4070-8070-707070707070';
+const OWNER='70707070-7070-4070-8070-0000000000a1';
 // Fixed ids keep links stable across re-seeds. Prices are USD cents.
 const MENU=[
- ['33333333-3333-4333-8333-000000000001','ครัวซองต์','Croissant','🥐',450,8],
- ['33333333-3333-4333-8333-000000000002','ลาเต้','Latte','🥛',500,30],
- ['33333333-3333-4333-8333-000000000003','อเมริกาโน่','Americano','☕',350,30],
- ['33333333-3333-4333-8333-000000000004','มัทฉะ','Matcha','🍵',550,30],
- ['33333333-3333-4333-8333-000000000005','บานาน่าเบรด','Banana bread','🍌',400,30],
- ['33333333-3333-4333-8333-000000000006','โคลด์บรูว์','Cold brew','🧊',450,30]
+ ['70707070-7070-4070-8070-000000000001','ครัวซองต์','Croissant','🥐',450,8],
+ ['70707070-7070-4070-8070-000000000002','ลาเต้','Latte','🥛',500,30],
+ ['70707070-7070-4070-8070-000000000003','อเมริกาโน่','Americano','☕',350,30],
+ ['70707070-7070-4070-8070-000000000004','มัทฉะ','Matcha','🍵',550,30],
+ ['70707070-7070-4070-8070-000000000005','บานาน่าเบรด','Banana bread','🍌',400,30],
+ ['70707070-7070-4070-8070-000000000006','โคลด์บรูว์','Cold brew','🧊',450,30]
 ] as const;
-const env=Object.fromEntries(readFileSync(process.env.PAYPAL_ENV_FILE??join(homedir(),'.bitpos-paypal/paypal-sandbox.env'),'utf8').split('\n').filter(l=>/^[A-Z_]+=/.test(l)).map(l=>[l.slice(0,l.indexOf('=')),l.slice(l.indexOf('=')+1).trim()]));
+const env:Record<string,string>=oci?{PAYPAL_MERCHANT_ID:process.env.PAYPAL_MERCHANT_ID??''}:Object.fromEntries(readFileSync(process.env.PAYPAL_ENV_FILE??join(homedir(),'.bitpos-paypal/paypal-sandbox.env'),'utf8').split('\n').filter(l=>/^[A-Z_]+=/.test(l)).map(l=>[l.slice(0,l.indexOf('=')),l.slice(l.indexOf('=')+1).trim()]));
 const payee=env.PAYPAL_MERCHANT_ID;if(!/^[A-Z0-9]{13}$/.test(payee??''))throw Error('PAYPAL_MERCHANT_ID (US sandbox business) missing in the private env file');
 const reg=(path:string,method:string,input?:unknown)=>tenant(SHOP,d=>registry(d,SHOP,OWNER,'owner',path,method,input));
 
