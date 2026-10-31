@@ -15,7 +15,7 @@ import '../../styles/paypal.css';
 
 type CheckoutStatus='none'|'creating'|'awaiting_approval'|'confirming'|'checking'|'paid'|'recovery'|'pending'|'declined'|'expired'|'failed'|'mismatch';
 interface CheckoutView {status:CheckoutStatus;paypalOrderId:string|null;captureId:string|null;amount:{currency:'USD';value:string}|null;issue:string|null}
-interface PayPalStatus {enabled:boolean;environment:'sandbox';clientId:string|null;amount:{currency:'USD';value:string}|null;checkout:CheckoutView}
+interface PayPalStatus {paypalShop:boolean;enabled:boolean;environment:'sandbox';clientId:string|null;amount:{currency:'USD';value:string}|null;checkout:CheckoutView}
 type Ui='idle'|'opening'|'cancelled'|'error'|'browser';
 
 export default function PayPalPayment({accessToken}:{accessToken:string}){
@@ -69,9 +69,9 @@ export default function PayPalPayment({accessToken}:{accessToken:string}){
   // eslint-disable-next-line react-hooks/exhaustive-deps
  },[status?.enabled,status?.clientId]);
 
- if(status===undefined)return <main className="customer-checkout"><div className="checkout-shell">{error?<div className="error" role="alert">{error} <button type="button" className="secondary" onClick={()=>{setError('');void refresh().catch(e=>setError(errorMessage(e)));}}>{text('ลองอีกครั้ง','Try again')}</button></div>:<div className="checkout-loading" role="status">{text('กำลังโหลดบิล…','Loading your bill…')}</div>}</div></main>;
- // Not a PayPal shop (or PayPal not configured on this server): the existing checkout, unchanged.
- if(status===null||!status.enabled)return <Payment accessToken={accessToken}/>;
+ if(!status)return <main className="customer-checkout"><div className="checkout-shell">{error?<div className="error" role="alert">{error} <button type="button" className="secondary" onClick={()=>{setError('');void refresh().catch(e=>setError(errorMessage(e)));}}>{text('ลองอีกครั้ง','Try again')}</button></div>:<div className="checkout-loading" role="status">{text('กำลังโหลดบิล…','Loading your bill…')}</div>}</div></main>;
+ // Not a PayPal shop: the existing checkout, unchanged. A PayPal shop never falls back to another method.
+ if(!status.paypalShop)return <Payment accessToken={accessToken}/>;
 
  const pay=()=>{
   if(!session.current){setUi('error');setError(text('PayPal ยังไม่พร้อม','PayPal is not ready yet'));return;}
@@ -82,7 +82,7 @@ export default function PayPalPayment({accessToken}:{accessToken:string}){
 
  const c=status.checkout.status;const paid=c==='paid'||order?.status==='PAID';
  const orderClosed=!paid&&order&&!['AWAITING_WALLET','AWAITING_PAYMENT'].includes(order.status);
- const canPay=!paid&&!orderClosed&&['none','awaiting_approval','declined','failed','expired'].includes(c)&&ui!=='browser'&&!busy;
+ const canPay=status.enabled&&!paid&&!orderClosed&&['none','awaiting_approval','declined','failed','expired'].includes(c)&&ui!=='browser'&&!busy;
  const state:{mark:string;title:string;body:string;tone:string}|null=
   paid?{mark:'✓',title:text('ชำระด้วย PayPal แล้ว','Paid with PayPal'),body:text('ร้านได้รับออร์เดอร์แล้ว','The café has your order.'),tone:'is-paid'}
   :c==='confirming'||busy?{mark:'↻',title:text('กำลังยืนยันการชำระเงินกับ PayPal…','Confirming your payment with PayPal…'),body:text('อย่าปิดหน้านี้และอย่าจ่ายซ้ำ','Keep this page open and do not pay again.'),tone:''}
@@ -92,7 +92,8 @@ export default function PayPalPayment({accessToken}:{accessToken:string}){
   :c==='mismatch'?{mark:'!',title:text('ข้อมูลจาก PayPal ไม่ตรงกับบิล','PayPal’s answer did not match this bill'),body:text('ยังไม่ถือว่าชำระแล้ว ห้ามจ่ายซ้ำ แจ้งพนักงาน','Not marked as paid. Do not pay again; please tell the staff.'),tone:'is-expired'}
   :orderClosed?{mark:'◷',title:text('บิลนี้ชำระไม่ได้แล้ว','This bill can no longer be paid'),body:text('ราคาหมดอายุหรือบิลถูกปิด กรุณาสั่งใหม่','The price expired or the bill was closed. Please order again.'),tone:'is-expired'}
   :null;
- const notice=ui==='cancelled'?text('ยกเลิกแล้ว กดจ่ายอีกครั้งได้','Payment cancelled. You can try again.')
+ const notice=!status.enabled&&!paid&&!state?text('ตอนนี้จ่ายบิลนี้ด้วย PayPal ไม่ได้ กรุณาแจ้งพนักงาน','PayPal cannot take this bill right now. Please tell the staff.')
+  :ui==='cancelled'?text('ยกเลิกแล้ว กดจ่ายอีกครั้งได้','Payment cancelled. You can try again.')
   :c==='declined'?text('PayPal ปฏิเสธวิธีชำระนี้ ลองบัตรหรือบัญชีอื่น','PayPal declined this method. Try another card or account.')
   :c==='expired'&&!orderClosed?text('ราคาหมดอายุ กรุณาตรวจรายการและสั่งใหม่','This price expired. Please review and order again.')
   :c==='failed'?text('เปิด PayPal ไม่สำเร็จ ลองอีกครั้ง','Could not open PayPal. Please try again.'):'';

@@ -10,7 +10,7 @@ import {liveOrder} from '../../../../packages/domain/src/index';
 import {assertOnlinePaymentAuthorization} from '../online-acceptance-policy';
 import type {OrderRow} from '../types';
 import {PayPalError,paypalConfig,type PayPalConfig} from './config';
-import {paypalClient,type PayPalClient,type PayPalOrder} from './client';
+import {paypalClient,invoiceId,type PayPalClient,type PayPalOrder} from './client';
 import {toCents,centsToValue} from './money';
 import {verifyOrder} from './verify';
 import {applyVerdict,type CheckoutRow,type VerifiedVia} from './settle';
@@ -71,7 +71,9 @@ export async function paypalStatus(token:string){
   const a=(await db.query<{total_minor:string;catalog_currency:string;catalog_decimals:number}>('SELECT total_minor::text,catalog_currency,catalog_decimals FROM order_authority WHERE merchant_id=$1 AND order_id=$2',[merchant,o!.id])).rows[0];
   const cents=a&&a.catalog_currency==='USD'?toCents(a.total_minor,a.catalog_decimals):null;
   const {k,cap}=await latest(db,merchant,o!.id);
-  return {enabled:enabled&&cents!==null,environment:'sandbox' as const,clientId:enabled?d!.config.clientId:null,amount:cents===null?null:{currency:'USD' as const,value:centsToValue(cents)},checkout:view(k,o!,cap)};
+  // paypalShop: the shop takes PayPal only, even when PayPal cannot take this bill right now (the page must not offer
+  // another payment method); enabled: PayPal is configured and this bill's total is exact in cents.
+  return {paypalShop:!!s?.enabled,enabled:enabled&&cents!==null,environment:'sandbox' as const,clientId:enabled?d!.config.clientId:null,amount:cents===null?null:{currency:'USD' as const,value:centsToValue(cents)},checkout:view(k,o!,cap)};
  });
 }
 
@@ -79,7 +81,7 @@ export async function paypalStatus(token:string){
 export async function createPayPalOrder(token:string):Promise<CheckoutView>{
  const d=paypalDeps()??refuse(503,'PAYPAL_UNAVAILABLE');const now=d.now??Date.now;const merchant=await merchantFor(token);
  const prepared=await tenant(merchant,async db=>{
-  const o=await lockOrder(db,token);await settings(db,merchant,d);
+  const o=await lockOrder(db,token);const s=await settings(db,merchant,d);
   const existing=(await db.query<CheckoutRow>('SELECT * FROM paypal_checkouts WHERE merchant_id=$1 AND order_id=$2 AND status=ANY($3) FOR UPDATE',[merchant,o.id,LIVE])).rows[0];
   if(existing&&existing.status!=='CREATING')return {done:view(existing,o)};
   if(existing)return {k:existing,o,items:await items(db,merchant,o.id)};
@@ -91,10 +93,10 @@ export async function createPayPalOrder(token:string):Promise<CheckoutView>{
   const a=(await db.query<{quote_id:string;total_minor:string;catalog_currency:string;catalog_decimals:number;serving_label_snapshot:string}>('SELECT quote_id,total_minor::text,catalog_currency,catalog_decimals,serving_label_snapshot FROM order_authority WHERE merchant_id=$1 AND order_id=$2',[merchant,o.id])).rows[0];
   if(!a||a.catalog_currency!=='USD')refuse(409,'PAYPAL_CURRENCY_UNSUPPORTED');
   const cents=toCents(a!.total_minor,a!.catalog_decimals)??refuse(409,'PAYPAL_AMOUNT_NOT_EXACT');
-  const s=await settings(db,merchant,d);if(cents>BigInt(s.max_order_cents))refuse(409,'PAYPAL_AMOUNT_TOO_LARGE');
+  if(cents>BigInt(s.max_order_cents))refuse(409,'PAYPAL_AMOUNT_TOO_LARGE');
   const id=randomUUID();
   const k=(await db.query<CheckoutRow>(`INSERT INTO paypal_checkouts(merchant_id,id,order_id,quote_id,order_version,amount_cents,payee_merchant_id,invoice_id,expires_at)
-   VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *`,[merchant,id,o.id,a!.quote_id,o.version,cents.toString(),d.config.merchantId,'BP'+id.replaceAll('-',''),o.quote_expires_at])).rows[0];
+   VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *`,[merchant,id,o.id,a!.quote_id,o.version,cents.toString(),d.config.merchantId,invoiceId(id),o.quote_expires_at])).rows[0];
   return {k,o,items:await items(db,merchant,o.id),label:a!.serving_label_snapshot};
  });
  if('done' in prepared)return prepared.done!;
@@ -145,7 +147,8 @@ export async function advanceCheckout(merchant:string,checkoutId:string,mode:'ca
    // Capture moves money: only while the bill can still be paid and the reservation is held.
    const payable=['AWAITING_WALLET','AWAITING_PAYMENT'].includes(o.status)&&!o.reservation_released&&new Date(k.expires_at).getTime()-now()>=MIN_CAPTURE_MS;
    if(!payable){const e=(await db.query<CheckoutRow>("UPDATE paypal_checkouts SET status='EXPIRED',last_issue='NOT_PAYABLE_AT_CAPTURE' WHERE merchant_id=$1 AND id=$2 RETURNING *",[merchant,k.id])).rows[0];return {k:e,o,act:'none' as const};}
-   const c=(await db.query<CheckoutRow>("UPDATE paypal_checkouts SET status='CAPTURING',capture_started_at=coalesce(capture_started_at,clock_timestamp()),attempts=attempts+1 WHERE merchant_id=$1 AND id=$2 RETURNING *",[merchant,k.id])).rows[0];
+   // next_check_at keeps the reconcile worker from sending a second, overlapping capture while this one is in flight.
+   const c=(await db.query<CheckoutRow>("UPDATE paypal_checkouts SET status='CAPTURING',capture_started_at=coalesce(capture_started_at,clock_timestamp()),attempts=attempts+1,next_check_at=clock_timestamp()+interval '30 seconds' WHERE merchant_id=$1 AND id=$2 RETURNING *",[merchant,k.id])).rows[0];
    return {k:c,o,act:'capture' as const};
   }
   return {k,o,act:k.status==='CAPTURING'||k.status==='UNKNOWN'?'capture' as const:'lookup' as const};
@@ -174,8 +177,10 @@ export async function advanceCheckout(merchant:string,checkoutId:string,mode:'ca
    const verdict=verifyOrder(expected,order);
    if(verdict.state==='NONE'){
     // PayPal has no capture: approval may be pending, or the buyer must approve again (declined instrument).
-    const next=order.status==='APPROVED'&&!issue?'APPROVED':'CREATED';
-    if(LIVE.includes(k.status))k=(await db.query<CheckoutRow>('UPDATE paypal_checkouts SET status=$3,last_issue=$4,last_debug_id=$5,next_check_at=NULL WHERE merchant_id=$1 AND id=$2 RETURNING *',[merchant,k.id,next,issue,order.debugId??debugId])).rows[0];
+    // An approved order whose capture was refused for another reason (e.g. a capture already in progress) may still
+    // be captured: keep it UNKNOWN, which blocks closing the bill, and look again shortly.
+    const next=order.status==='APPROVED'?(issue?'UNKNOWN':'APPROVED'):'CREATED';
+    if(LIVE.includes(k.status))k=(await db.query<CheckoutRow>(`UPDATE paypal_checkouts SET status=$3,last_issue=$4,last_debug_id=$5,next_check_at=CASE WHEN $3='UNKNOWN' THEN clock_timestamp()+interval '15 seconds' END WHERE merchant_id=$1 AND id=$2 RETURNING *`,[merchant,k.id,next,issue,order.debugId??debugId])).rows[0];
     return {k,order:o,captureId:null};
    }
    const r=await applyVerdict(db,k,verdict,source,order.debugId);

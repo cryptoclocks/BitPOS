@@ -13,21 +13,29 @@ export const LIMITS={maxDiscountPercent:20,maxUnitsPerCampaign:50,maxUnitsPerOrd
 /** Limits the owner wrote in the intent are a second ceiling on top of the shop's limits (the model may not exceed either). */
 export interface IntentCaps {discountPercent:number|null;units:number|null;endsAt:string|null}
 export function parseIntent(intent:string,now=new Date(),timezone='Asia/Bangkok'):IntentCaps{
- const pct=intent.match(/(?:ไม่เกิน|สูงสุด|max(?:imum)?|up to|at most|no more than)\s*(\d{1,2})\s*%/i)??intent.match(/(\d{1,2})\s*%\s*(?:max|สูงสุด)/i);
- const units=intent.match(/(\d{1,3})\s*(?:ชิ้น|อัน|แก้ว|pcs|pieces|units|items|left)/i)??intent.match(/(\d{1,3})\s+[A-Za-z-]+\s+(?:left|remaining)\b/i);
- const time=intent.match(/(?:ก่อน|ภายใน|before|by|until)\s*(\d{1,2})(?:[:.](\d{2}))?\s*(am|pm|น\.?)?/i);
+ // Time first ("ก่อน 16:00", "before 5pm", "by 4"); a number followed by % or another digit is never a time ("by 15%").
+ const times=[...intent.matchAll(/(?:ก่อน|ภายใน|before|until|by)\s*(\d{1,2})(?:[:.](\d{2}))?\s*(am|pm|น\.?)?(?![\d%])/gi)];
  let endsAt:string|null=null;
- if(time){
+ const local=new Intl.DateTimeFormat('en-CA',{timeZone:timezone,year:'numeric',month:'2-digit',day:'2-digit'}).format(now);
+ // Wall-clock time in the shop's timezone today (Asia/Bangkok has no DST: +07:00).
+ const at=(h:number,m:number)=>new Date(`${local}T${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:00+07:00`);
+ for(const time of times){
   let h=Number(time[1]);const m=Number(time[2]??0),ap=time[3]?.toLowerCase();
   if(ap==='pm'&&h<12)h+=12;if(ap==='am'&&h===12)h=0;
-  if(h<=23&&m<=59){
-   // Wall-clock time in the shop's timezone today (Asia/Bangkok has no DST: +07:00).
-   const local=new Intl.DateTimeFormat('en-CA',{timeZone:timezone,year:'numeric',month:'2-digit',day:'2-digit'}).format(now);
-   const at=new Date(`${local}T${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:00+07:00`);
-   if(at.getTime()>now.getTime())endsAt=at.toISOString();
-  }
+  if(h>23||m>59)continue;
+  let end=at(h,m);
+  // "before 5" said in the afternoon means 17:00, not 05:00 tomorrow.
+  if(end.getTime()<=now.getTime()&&!ap&&!time[2]&&h<12)end=at(h+12,m);
+  if(end.getTime()>now.getTime()){endsAt=end.toISOString();break;}
  }
- return {discountPercent:pct?Number(pct[1]):null,units:units?Number(units[1]):null,endsAt};
+ // Any percentage the owner wrote is a ceiling ("ลด 10%", "max 15% off", "by 15%"); with several, the highest one.
+ const pcts=[...intent.matchAll(/(\d{1,2})\s*%/g)].map(x=>Number(x[1]));
+ // Units: strip times and percentages so "before 10pm" or "15%" are never read as a quantity.
+ const rest=intent.replace(/(?:ก่อน|ภายใน|before|until|by)\s*\d{1,2}(?:[:.]\d{2})?\s*(?:am|pm|น\.?)?/gi,' ').replace(/\d{1,3}\s*%/g,' ');
+ const units=rest.match(/(\d{1,3})\s*(?:ชิ้น|อัน|แก้ว|ถ้วย|จาน|กล่อง|ขวด|pcs|pieces|units|items|cups|glasses|bottles|slices|left)/i)
+  ??rest.match(/(?:sell|push|move|clear|ขาย|ระบาย|เคลียร์)\s*(?:off\s+)?(?:the\s+|ที่เหลือ\s*)?(\d{1,3})\b/i)
+  ??rest.match(/(\d{1,3})\s+[A-Za-z-]+(?:\s+[A-Za-z-]+)?\s+(?:left|remaining|max)\b/i);
+ return {discountPercent:pcts.length?Math.max(...pcts):null,units:units?Number(units[1]):null,endsAt};
 }
 
 export const toolSchemas={
@@ -49,7 +57,13 @@ export const functionDeclarations=[
 ];
 
 export interface ToolContext {merchant:string;actor:string;role:string;runId:string;intent:string;language:'th'|'en';caps:IntentCaps;now:()=>Date;tenant:<T>(fn:(db:pg.PoolClient)=>Promise<T>)=>Promise<T>;}
-const money=(m:{currency:string;decimals:number;amountMinor:string})=>({currency:m.currency,value:(Number(m.amountMinor)/10**m.decimals).toFixed(m.decimals>2?2:m.decimals)});
+/** Exact decimal string from integer minor units (no floating point): 38250 @4 → "3.825", 450 @2 → "4.50". */
+function minorToValue(amountMinor:string,decimals:number){
+ const v=BigInt(amountMinor),neg=v<0n,a=neg?-v:v,unit=10n**BigInt(decimals);
+ let frac=decimals?(a%unit).toString().padStart(decimals,'0'):'';while(frac.length>2&&frac.endsWith('0'))frac=frac.slice(0,-1);
+ return `${neg?'-':''}${a/unit}${frac?'.'+frac:''}`;
+}
+const money=(m:{currency:string;decimals:number;amountMinor:string})=>({currency:m.currency,value:minorToValue(m.amountMinor,m.decimals)});
 
 export interface Validation {ok:boolean;violations:string[];computed?:{productName:string;basePrice:ReturnType<typeof money>;offerPrice:ReturnType<typeof money>;savings:ReturnType<typeof money>;available:number;endsAtLocal:string};
  normalized?:{productId:string;maxUnits:number;maxUnitsPerOrder:number;discountPercent:number;endsAt:string}}

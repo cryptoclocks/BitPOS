@@ -15,7 +15,7 @@ import {z} from 'zod';
 import {tenant} from '../db';
 import {routingLock,RequestError} from '../authority';
 import {promotionsRequest,promotionDevices} from '../promotions';
-import {runCopilot,AgentFailure,type AgentModel,geminiModel} from './agent';
+import {runCopilot,AgentFailure,type AgentModel} from './agent';
 import {parseIntent,saveCampaignDraft,validateCampaign,type ToolContext} from './agent-tools';
 
 const uuid=z.string().uuid();
@@ -61,8 +61,12 @@ async function approve(merchant:string,actor:string,role:string,id:string,input:
  if(!e.campaign)refuse(409,e.job.state==='CONFIGURATION_REQUIRED'?'AI_NOT_CONFIGURED':'DRAFT_NOT_READY');
  if(e.state!=='DRAFT')refuse(409,'ENVELOPE_STATE_INVALID');
  if(Date.parse(e.endsAt)<=Date.now()+5*60_000)refuse(409,'CAMPAIGN_ENDING');
+ // What customers are charged comes from the campaign; it must still be exactly the offer the envelope limits.
+ if(e.campaign!.discountPercent!==e.discountPercent||new Date(e.campaign!.expiresAt).getTime()!==new Date(e.endsAt).getTime())refuse(409,'CAMPAIGN_CHANGED');
  return tenant(merchant,async db=>{
   await routingLock(db,merchant);
+  // Checked again under the routing lock: two drafts for one product must not both become live.
+  if((await db.query("SELECT 1 FROM paypal_campaign_envelopes WHERE merchant_id=$1 AND product_id=$2 AND state='APPROVED' AND ends_at>clock_timestamp() AND id<>$3",[merchant,e.productId,id])).rowCount)refuse(409,'ACTIVE_CAMPAIGN_EXISTS');
   // Campaign approval (existing rules) and the envelope approval commit together.
   if(e.campaign!.state!=='APPROVED'||e.campaign!.approvedVersion!==campaignVersion)
    await promotionsRequest(db,merchant,actor,role,`/api/promotions/${e.campaign!.id}/approve`,'POST',{expectedVersion:campaignVersion,idempotencyKey:'copilot-approve-'+id+'-'+campaignVersion});
@@ -82,7 +86,7 @@ async function publish(merchant:string,actor:string,role:string,id:string,input:
   const devices=await promotionDevices(db,merchant);if(!devices.length)refuse(409,'NO_SCREENS');
   const targets=devices.map(x=>({deviceId:x.deviceId,assignmentGeneration:x.assignmentGeneration,authGeneration:x.authGeneration,screenGeneration:x.screenGeneration}));
   const c=(await db.query('SELECT version FROM promotion_campaigns WHERE merchant_id=$1 AND id=$2',[merchant,e.campaign!.id])).rows[0];
-  const result=await promotionsRequest(db,merchant,actor,role,`/api/promotions/${e.campaign!.id}/publish`,'POST',{expectedVersion:c.version,idempotencyKey:'copilot-publish-'+randomUUID(),confirmTargets:true,targets});
+  const result=await promotionsRequest(db,merchant,actor,role,`/api/promotions/${e.campaign!.id}/publish`,'POST',{expectedVersion:c.version,idempotencyKey:`copilot-publish-${id}-${c.version}`,confirmTargets:true,targets});
   return {published:true,result};
  });
 }
@@ -185,7 +189,7 @@ export async function paypalMerchantRequest(merchant:string,actor:string,role:st
  try{
   if(p==='/api/paypal/copilot/runs'&&method==='POST'){
    changeRole(role);const d=z.object({intent:z.string().min(3).max(600),language:z.enum(['th','en']).default('th')}).strict().parse(input);
-   const r=await runCopilot({merchant,actor,role,intent:d.intent,language:d.language},model??geminiModel());
+   const r=await runCopilot({merchant,actor,role,intent:d.intent,language:d.language},model);
    return {...r,trace:await runView(merchant,r.runId),envelope:r.envelopeId?await envelopeView(merchant,r.envelopeId):null};
   }
   if(p==='/api/paypal/copilot/rules'&&method==='POST')return rules(merchant,actor,role,input);
@@ -207,7 +211,7 @@ export async function paypalMerchantRequest(merchant:string,actor:string,role:st
   if(p==='/api/paypal/ledger'&&method==='GET')return ledger(merchant);
   if(p==='/api/paypal/copilot/intent-preview'&&method==='POST'){const d=z.object({intent:z.string().min(1).max(600)}).strict().parse(input);return parseIntent(d.intent);}
  }catch(e){
-  if(e instanceof AgentFailure)throw new RequestError(e.code==='ROLE_REQUIRED'?403:e.code==='DAILY_LIMIT'?429:e.code==='INVALID_INTENT'?422:503,e.code as never,e.code);
+  if(e instanceof AgentFailure)throw new RequestError(e.code==='ROLE_REQUIRED'?403:e.code==='DAILY_LIMIT'||e.code==='AI_FREE_LIMIT'?429:e.code==='INVALID_INTENT'?422:503,e.code as never,e.code);
   throw e;
  }
  return refuse(404,'RESOURCE_NOT_FOUND');

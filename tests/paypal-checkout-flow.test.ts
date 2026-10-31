@@ -93,3 +93,21 @@ test('I-12: Solana and PayPal never both start; create refuses while a Solana at
  }finally{await new Promise(r=>server.close(r));}
  void pp;
 });
+
+test('I-13: a capture refused for another reason (overlapping capture) on an approved order stays UNKNOWN, not re-approvable',integration,async()=>{
+ const {f,pp,checkout,bill,state}=await setup();const b=await bill(1);const c=await checkout.createPayPalOrder(b.access_token);pp.approve(c.paypalOrderId!);
+ pp.fail.capture=new PayPalError('REJECTED','PREVIOUS_REQUEST_IN_PROGRESS','dbg',422);
+ const v=await checkout.capturePayPalOrder(b.access_token,c.paypalOrderId!);
+ assert.equal(v.status,'checking','not shown as payable again while a capture may still land');
+ const row=(await f.tenant(f.merchant,db=>db.query("SELECT status,next_check_at>clock_timestamp() AS later,bitpos.unpaid_order_safe($1,$2) AS closable FROM paypal_checkouts WHERE order_id=$2",[f.merchant,b.id]))).rows[0];
+ assert.deepEqual(row,{status:'UNKNOWN',later:true,closable:false},'the bill cannot be closed and the worker waits before looking again');
+ assert.equal((await checkout.capturePayPalOrder(b.access_token,c.paypalOrderId!)).status,'paid');
+ assert.equal((await state(b.id)).settlements,1);
+});
+
+test('I-14: a PayPal shop stays a PayPal shop when the server has no PayPal configuration (no fallback to another method)',integration,async()=>{
+ const {checkout,bill}=await setup();const b=await bill(1);
+ checkout.setPayPalDeps(null);
+ try{const st=await checkout.paypalStatus(b.access_token);assert.equal(st.paypalShop,true);assert.equal(st.enabled,false);assert.equal(st.clientId,null);}
+ finally{checkout.setPayPalDeps(undefined);}
+});

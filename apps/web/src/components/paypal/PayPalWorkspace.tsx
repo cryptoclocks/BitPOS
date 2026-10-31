@@ -2,7 +2,7 @@
 // Merchant "PayPal" tab: Café Copilot (owner intent → AI tool steps → draft → owner approval → screen → results with
 // evidence) and the PayPal Sandbox ledger. The AI only drafts; approval, screen choice and money stay with people/PayPal.
 import React, {useCallback, useEffect, useState} from 'react';
-import {api, errorMessage} from '../../lib/api';
+import {api, ApiError, errorMessage} from '../../lib/api';
 import type {Session} from '../../lib/table';
 import '../../styles/paypal.css';
 
@@ -42,8 +42,9 @@ function Copilot({session,t,language}:{session:Session;t:(th:string,en:string)=>
  const [outcome,setOutcome]=useState<Outcome|null>(null);const [evidence,setEvidence]=useState<{orderId:string;data:Evidence}|null>(null);
  const [showTrace,setShowTrace]=useState(false);const [form,setForm]=useState(false);const [recent,setRecent]=useState<Recent[]>([]);
  const call=useCallback(<T,>(path:string,body?:unknown)=>api<T>(path,body,session.token),[session.token]);
+ // Results are a separate read: if they fail, the action that just succeeded is not reported as failed.
  const loadEnvelope=useCallback(async(id:string)=>{const e=await call<Envelope>(`/paypal/copilot/envelopes/${id}`);setEnvelope(e);
-  if(e.state!=='DRAFT')setOutcome(await call<Outcome>(`/paypal/envelopes/${id}/outcome`));return e;},[call]);
+  if(e.state!=='DRAFT')setOutcome(await call<Outcome>(`/paypal/envelopes/${id}/outcome`).catch(()=>null));return e;},[call]);
  const loadRecent=useCallback(()=>call<{envelopes:Recent[]}>('/paypal/copilot/envelopes').then(r=>setRecent(r.envelopes)).catch(()=>{/* list is optional */}),[call]);
  useEffect(()=>{void loadRecent();},[loadRecent,envelope?.id,envelope?.state]);
  useEffect(()=>{void call<{screens:Screen[]}>('/paypal/screens').then(r=>setScreens(r.screens)).catch(()=>{/* shown when needed */});},[call]);
@@ -55,16 +56,16 @@ function Copilot({session,t,language}:{session:Session;t:(th:string,en:string)=>
  const start=async()=>{setBusy(true);setError('');setRun(null);setEnvelope(null);setOutcome(null);
   try{const r=await call<{runId:string;state:string;envelopeId:string|null;question:string|null;failure:string|null;trace:{run:Run;steps:Step[]};envelope:Envelope|null}>('/paypal/copilot/runs',{intent,language});
    setRun(r.trace);if(r.envelope)setEnvelope(r.envelope);if(r.state==='FAILED')setError(failureText(r.failure,t));}
-  catch(e){setError(errorMessage(e));}finally{setBusy(false);}};
+  catch(e){setError(ownerError(e,t));}finally{setBusy(false);}};
  const approve=async()=>{if(!envelope?.campaign)return;setBusy(true);setError('');
   try{await call(`/paypal/copilot/envelopes/${envelope.id}/approve`,{campaignVersion:envelope.campaign.version});await loadEnvelope(envelope.id);setConfirming(false);}
-  catch(e){setError(errorMessage(e));}finally{setBusy(false);}};
+  catch(e){setError(ownerError(e,t));}finally{setBusy(false);}};
  const publish=async()=>{if(!envelope)return;setBusy(true);setError('');
   try{await call(`/paypal/copilot/envelopes/${envelope.id}/publish`,{confirmAllScreens:true});await loadEnvelope(envelope.id);}
-  catch(e){setError(errorMessage(e));}finally{setBusy(false);}};
- const stop=async()=>{if(!envelope)return;setBusy(true);try{await call(`/paypal/copilot/envelopes/${envelope.id}/stop`,{});await loadEnvelope(envelope.id);}catch(e){setError(errorMessage(e));}finally{setBusy(false);}};
- const open=async(id:string)=>{setError('');setRun(null);setOutcome(null);setConfirming(false);try{await loadEnvelope(id);}catch(e){setError(errorMessage(e));}};
- const openEvidence=async(orderId:string)=>{try{setEvidence({orderId,data:await call<Evidence>(`/paypal/orders/${orderId}/evidence`)});}catch(e){setError(errorMessage(e));}};
+  catch(e){setError(ownerError(e,t));}finally{setBusy(false);}};
+ const stop=async()=>{if(!envelope)return;setBusy(true);setError('');try{await call(`/paypal/copilot/envelopes/${envelope.id}/stop`,{});await loadEnvelope(envelope.id);}catch(e){setError(ownerError(e,t));}finally{setBusy(false);}};
+ const open=async(id:string)=>{setError('');setRun(null);setOutcome(null);setConfirming(false);try{await loadEnvelope(id);}catch(e){setError(ownerError(e,t));}};
+ const openEvidence=async(orderId:string)=>{try{setEvidence({orderId,data:await call<Evidence>(`/paypal/orders/${orderId}/evidence`)});}catch(e){setError(ownerError(e,t));}};
 
  const examples=[t('ขายครัวซองต์ที่เหลือ 8 ชิ้นก่อน 16:00 ลดไม่เกิน 10%','Sell the 8 croissants left before 4pm, at most 10% off'),t('ดันโคลด์บรูว์ช่วงบ่าย 20 แก้ว ลดไม่เกิน 15% ก่อน 17:00','Push 20 cold brews this afternoon, max 15% off, before 5pm')];
  const c=envelope?.campaign;
@@ -135,7 +136,7 @@ function RulesForm({call,t,language,onDone,onError}:{call:<T,>(p:string,b?:unkno
  const [d,setD]=useState({productId:'',maxUnits:8,discountPercent:10,endsAt:''});
  useEffect(()=>{void call<any>('/menu').then((m:any)=>setProducts((m?.products??[]).map((p:any)=>({productId:p.id,nameTh:p.name,nameEn:p.nameEn,available:p.available})))).catch(()=>{/* manual id */});},[call]);
  const submit=async()=>{try{const r=await call<{runId:string;envelopeId:string|null;violations:string[]}>('/paypal/copilot/rules',{...d,endsAt:new Date(d.endsAt).toISOString(),language});
-  if(!r.envelopeId){onError(r.violations.join(', '));return;}onDone(r.envelopeId,await call(`/paypal/copilot/runs/${r.runId}`));}catch(e){onError(errorMessage(e));}};
+  if(!r.envelopeId){onError(r.violations.join(', '));return;}onDone(r.envelopeId,await call(`/paypal/copilot/runs/${r.runId}`));}catch(e){onError(ownerError(e,t));}};
  return <div className="pp-card"><h2>{t('แบบฟอร์ม (ไม่ใช้ AI)','Form (no AI)')}</h2>
   <label>{t('สินค้า','Product')}<select value={d.productId} onChange={e=>setD({...d,productId:e.target.value})}><option value="">—</option>{products.map(p=><option key={p.productId} value={p.productId}>{language==='th'?p.nameTh:p.nameEn} ({p.available})</option>)}</select></label>
   <label>{t('จำนวนสูงสุด','Max units')}<input type="number" min={1} max={50} value={d.maxUnits} onChange={e=>setD({...d,maxUnits:Number(e.target.value)})}/></label>
@@ -146,7 +147,7 @@ function RulesForm({call,t,language,onDone,onError}:{call:<T,>(p:string,b?:unkno
 
 function Ledger({session,t}:{session:Session;t:(th:string,en:string)=>string}){
  const [rows,setRows]=useState<LedgerRow[]|null>(null);const [error,setError]=useState('');
- useEffect(()=>{let live=true;const load=()=>api<{rows:LedgerRow[]}>('/paypal/ledger',undefined,session.token).then(r=>{if(live)setRows(r.rows);}).catch(e=>{if(live)setError(errorMessage(e));});
+ useEffect(()=>{let live=true;const load=()=>api<{rows:LedgerRow[]}>('/paypal/ledger',undefined,session.token).then(r=>{if(live)setRows(r.rows);}).catch(e=>{if(live)setError(ownerError(e,t));});
   void load();const timer=setInterval(()=>void load(),10000);return ()=>{live=false;clearInterval(timer);};},[session.token]);
  const settled=(rows??[]).filter(r=>r.settlement==='SETTLED');
  const sum=(k:'gross'|'fee'|'net')=>settled.reduce((a,r)=>a+Math.round(Number(r[k]??0)*100),0)/100;
@@ -173,6 +174,15 @@ function stepText(s:Step,t:(th:string,en:string)=>string){
 }
 function stateText(state:string,t:(th:string,en:string)=>string){
  return state==='DRAFT'?t('ร่าง','Draft'):state==='APPROVED'?t('อนุมัติแล้ว','Approved'):state==='ENDED'?t('จบแล้ว','Ended'):state==='REVOKED'?t('ยกเลิก','Revoked'):state;
+}
+/** Owner-facing errors: the shared errorMessage() wording is about a customer's saved order, which is wrong here. */
+function ownerError(e:unknown,t:(th:string,en:string)=>string){
+ if(e instanceof ApiError){
+  if(e.status===429)return t('ใช้ AI ครบโควตาวันนี้แล้ว ใช้แบบฟอร์มแทนได้','Today’s AI allowance is used up. Use the form instead.');
+  if(e.status>=500)return t('เซิร์ฟเวอร์ขัดข้อง ลองใหม่อีกครั้ง','The server had a problem. Please try again.');
+  if(e.status===409&&e.code)return t('ทำไม่ได้ตอนนี้','Not possible right now')+` (${e.code})`;
+ }
+ return errorMessage(e);
 }
 function failureText(code:string|null,t:(th:string,en:string)=>string){
  return code==='CONFIGURATION_REQUIRED'?t('ยังไม่ได้ตั้งค่า AI ของร้าน ใช้แบบฟอร์มแทนได้','AI is not configured for this shop. Use the form instead.')

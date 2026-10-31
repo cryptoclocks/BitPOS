@@ -2,9 +2,10 @@
 // Café Copilot agent loop: Gemini function calling over the read/validate/draft tools in agent-tools.ts.
 // At most 6 model calls; every call and tool result is written to the trace; no database transaction is held while the
 // model is thinking. The model never sees credentials or customer data and has no tool that publishes or moves money.
-import {randomUUID} from 'node:crypto';
+import {randomUUID,createHash} from 'node:crypto';
 import {tenant} from '../db';
 import {coffeeConfiguration} from '../coffee-provider';
+import {reserveAiFree} from '../ai-free-policy';
 import {functionDeclarations,parseIntent,runTool,type ToolContext} from './agent-tools';
 
 export interface ModelPart {text?:string;functionCall?:{name:string;args?:Record<string,unknown>};functionResponse?:{name:string;response:unknown};[k:string]:unknown}
@@ -49,16 +50,23 @@ function systemPrompt(language:'th'|'en'){
 
 export interface RunResult {runId:string;state:'DRAFTED'|'NEEDS_INPUT'|'FAILED';envelopeId:string|null;jobId:string|null;question:string|null;failure:string|null}
 
-export async function runCopilot(input:{merchant:string;actor:string;role:string;intent:string;language:'th'|'en'},model:AgentModel=geminiModel(),now:()=>Date=()=>new Date()):Promise<RunResult>{
+/** `model` is injected by tests; without it the run uses Gemini and takes one admission from the shared Gemini free-tier budget. */
+export async function runCopilot(input:{merchant:string;actor:string;role:string;intent:string;language:'th'|'en'},injected?:AgentModel,now:()=>Date=()=>new Date()):Promise<RunResult>{
+ const model=injected??geminiModel();
  if(!['owner','manager'].includes(input.role))throw new AgentFailure('ROLE_REQUIRED');
  const intent=input.intent.trim();if(intent.length<3||intent.length>600)throw new AgentFailure('INVALID_INTENT');
  const runId=randomUUID();
- const today=await tenant(input.merchant,async db=>{
+ const admitted=await tenant(input.merchant,async db=>{
+  // Serialize admissions per shop so parallel clicks cannot all read the same count and pass the daily cap.
+  await db.query("SELECT pg_advisory_xact_lock(hashtext('paypal_agent_runs:'||$1))",[input.merchant]);
   const n=(await db.query("SELECT count(*)::int AS n FROM paypal_agent_runs WHERE merchant_id=$1 AND kind='model' AND started_at>clock_timestamp()-interval '1 day'",[input.merchant])).rows[0].n as number;
-  if(n<MAX_RUNS_PER_DAY)await db.query("INSERT INTO paypal_agent_runs(merchant_id,id,actor,intent,language,kind) VALUES($1,$2,$3,$4,$5,'model')",[input.merchant,runId,input.actor,intent,input.language]);
-  return n;
+  if(n>=MAX_RUNS_PER_DAY)return 'DAILY_LIMIT';
+  // Same Gemini free-tier budget as the promotion generator and the table Copilot (migration 029): one admission per run.
+  if(!injected&&!await reserveAiFree(db,input.merchant,runId,'copilot',null,createHash('sha256').update(intent).digest('hex')))return 'AI_FREE_LIMIT';
+  await db.query("INSERT INTO paypal_agent_runs(merchant_id,id,actor,intent,language,kind) VALUES($1,$2,$3,$4,$5,'model')",[input.merchant,runId,input.actor,intent,input.language]);
+  return null;
  });
- if(today>=MAX_RUNS_PER_DAY)throw new AgentFailure('DAILY_LIMIT');
+ if(admitted)throw new AgentFailure(admitted);
  const ctx:ToolContext={merchant:input.merchant,actor:input.actor,role:input.role,runId,intent,language:input.language,caps:parseIntent(intent,now()),now,tenant:fn=>tenant(input.merchant,fn)};
  let seq=0;const step=(kind:string,fields:{tool?:string;args?:unknown;result?:unknown;violations?:string[];requestId?:string|null;latency?:number})=>tenant(input.merchant,db=>db.query(
   'INSERT INTO paypal_agent_steps(merchant_id,run_id,seq,kind,tool,args,result,violations,provider_request_id,latency_ms) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)',

@@ -19,6 +19,11 @@ test('U-INT: owner limits are read from Thai and English intents',()=>{
  assert.deepEqual(parseIntent('Sell the 8 croissants left before 4pm, at most 15% off',now),{discountPercent:15,units:8,endsAt:'2026-11-06T09:00:00.000Z'});
  assert.equal(parseIntent('before 9am',now).endsAt,null,'a time already past today is not a limit');
  assert.deepEqual(parseIntent('make a nice offer',now),{discountPercent:null,units:null,endsAt:null});
+ // Phrasings found in review: quantity before the product name, a bare "ลด N%", and "by N%" that is not a time.
+ assert.deepEqual(parseIntent('Sell 12 cold brews before 10pm, max 15% off',now),{discountPercent:15,units:12,endsAt:'2026-11-06T15:00:00.000Z'});
+ assert.deepEqual(parseIntent('Cut latte price by 15% before 5pm, 10 cups max',now),{discountPercent:15,units:10,endsAt:'2026-11-06T10:00:00.000Z'});
+ assert.deepEqual(parseIntent('ลดครัวซองต์ 10% ขาย 8 ชิ้น ก่อน 16:00',now),{discountPercent:10,units:8,endsAt:'2026-11-06T09:00:00.000Z'});
+ assert.equal(parseIntent('sell lattes before 5',now).endsAt,'2026-11-06T10:00:00.000Z','"before 5" at noon means 17:00');
 });
 
 /** Scripted model: follows a plan, reading tool answers from the conversation like a real model would. */
@@ -86,6 +91,9 @@ test('U-AG + D-CMP + I-15: Copilot drafts within limits; owner approves and publ
   assert.equal(run.envelope.state,'DRAFT');assert.equal(run.envelope.campaign,null,'copy is written by the existing generator after the run');
   await assert.rejects(s.req(`/api/paypal/copilot/envelopes/${run.envelopeId}/approve`,'POST',{campaignVersion:1}),/DRAFT_NOT_READY/);
   await s.writeCopy();
+  // A second draft for the same product (from the form) while neither is approved: only one may go live.
+  const twin=await s.req('/api/paypal/copilot/rules','POST',{productId:s.f.product,maxUnits:1,discountPercent:5,endsAt,language:'th'});
+  assert.equal(twin.state,'DRAFTED',JSON.stringify(twin));await s.writeCopy();
   const draft=await s.req(`/api/paypal/copilot/envelopes/${run.envelopeId}`);
   assert.equal(draft.campaign.state,'DRAFT');assert.equal(draft.campaign.discountPercent,10);assert.deepEqual(draft.campaign.offerPrice,{currency:'USD',decimals:2,amountMinor:'243'});
   await assert.rejects(s.req(`/api/paypal/copilot/envelopes/${run.envelopeId}/approve`,'POST',{campaignVersion:draft.campaign.version},'staff'),/ROLE_REQUIRED/);
@@ -93,6 +101,8 @@ test('U-AG + D-CMP + I-15: Copilot drafts within limits; owner approves and publ
   await freeScreen();
   const approved=await s.req(`/api/paypal/copilot/envelopes/${run.envelopeId}/approve`,'POST',{campaignVersion:draft.campaign.version});
   assert.equal(approved.envelope.state,'APPROVED');assert.equal(approved.envelope.campaign.state,'APPROVED');
+  const twinDraft=await s.req(`/api/paypal/copilot/envelopes/${twin.envelopeId}`);
+  await assert.rejects(s.req(`/api/paypal/copilot/envelopes/${twin.envelopeId}/approve`,'POST',{campaignVersion:twinDraft.campaign.version}),/ACTIVE_CAMPAIGN_EXISTS/);
   const empty=await s.req(`/api/paypal/envelopes/${run.envelopeId}/outcome`,'GET');// before any sale (browser run found a 500 here)
   assert.deepEqual([empty.totals.gross,empty.totals.fee,empty.totals.net,empty.totals.refunded],['0.00','0.00','0.00','0.00']);
   assert.ok((await s.req('/api/paypal/copilot/envelopes','GET')).envelopes.some((e:any)=>e.id===run.envelopeId&&e.state==='APPROVED'));
