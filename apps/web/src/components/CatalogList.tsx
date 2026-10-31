@@ -5,6 +5,7 @@ import { catalogStatus, categorySummary, filterCatalog } from '../lib/catalog-vi
 import StockManager from './StockManager';
 import SuppliersManager from './SuppliersManager';
 import { CategoryRename, ProductDetailsForm } from './CatalogEditor';
+import { ProductStoryForm } from './ProductStoryForm';
 import '../styles/catalog-list.css';
 
 // P06/P24 presentation over the menu the server already returned. Product and
@@ -22,6 +23,7 @@ export default function CatalogList({ products, language, canEdit, menuReady, on
     {editor}
     {stockToken && creating && <ProductDetailsForm key="new" token={stockToken} language={language} onSaved={() => onChanged?.()} onClose={() => setCreating(false)} />}
     {stockToken && detailsProduct && <ProductDetailsForm key={detailsProduct.id} product={detailsProduct} token={stockToken} language={language} onSaved={() => onChanged?.()} onClose={() => setDetailsId('')} />}
+    {stockToken && detailsProduct && <ProductStoryForm key={`story-${detailsProduct.id}`} productId={detailsProduct.id} token={stockToken} language={language} />}
     <div className="catalog-views" role="group" aria-label={text('มุมมอง', 'View')}><button type="button" aria-pressed={view === 'catalog'} onClick={() => setView('catalog')}>{text('สินค้า', 'Catalog')}</button><button type="button" aria-pressed={view === 'stock'} onClick={() => setView('stock')}>{text('สต็อก', 'Stock')}</button>{stockToken && <button type="button" aria-pressed={view === 'suppliers'} onClick={() => setView('suppliers')}>{text('ซัพพลายเออร์', 'Suppliers')}</button>}</div>
     {view === 'suppliers' && stockToken ? <section className="catalog-stock"><SuppliersManager token={stockToken} language={language} /></section> : view === 'stock' && stockToken ? <section className="catalog-stock"><StockManager products={products} token={stockToken} language={language} /></section> : view === 'stock' ? <section className="catalog-stock" aria-label={text('สต็อกปัจจุบัน', 'Current stock')}>
       <p className="catalog-sub">{text('จำนวนพร้อมขายตามที่เซิร์ฟเวอร์รายงานในเมนู ไม่ใช่บัญชีสต็อก', 'Available quantity as the server reports it in the menu. This is not a stock ledger.')}</p>

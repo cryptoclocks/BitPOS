@@ -2229,6 +2229,30 @@ class MobileConfiguredFoodSnapshot {
  Map<String,dynamic> toJson() => {"lines": lines.map((value) => value.toJson()).toList(), "subtotal": subtotal.toJson(), "discount": discount.toJson(), "fees": fees.toJson(), "tax": tax.toJson(), "total": total.toJson()};
 }
 
+class MobileProductStory {
+ final String story;
+ final String storyEn;
+ final String ingredients;
+ final String ingredientsEn;
+ final String benefits;
+ final String benefitsEn;
+ final String videoUrl;
+ const MobileProductStory._({required this.story, required this.storyEn, required this.ingredients, required this.ingredientsEn, required this.benefits, required this.benefitsEn, required this.videoUrl});
+ factory MobileProductStory({required String story, required String storyEn, required String ingredients, required String ingredientsEn, required String benefits, required String benefitsEn, required String videoUrl}) => MobileProductStory.fromJson({"story": story, "storyEn": storyEn, "ingredients": ingredients, "ingredientsEn": ingredientsEn, "benefits": benefits, "benefitsEn": benefitsEn, "videoUrl": videoUrl});
+ factory MobileProductStory.fromJson(Map<String,dynamic> json) {
+  if (json.length != 7 || !json.keys.every(["story","storyEn","ingredients","ingredientsEn","benefits","benefitsEn","videoUrl"].contains)) throw const FormatException('Invalid MobileProductStory fields');
+  final story=(() { final value=json["story"]; const path="MobileProductStory.story"; return _string(value, path, pattern: null, format: null, min: 0, max: 600); })();
+  final storyEn=(() { final value=json["storyEn"]; const path="MobileProductStory.storyEn"; return _string(value, path, pattern: null, format: null, min: 0, max: 600); })();
+  final ingredients=(() { final value=json["ingredients"]; const path="MobileProductStory.ingredients"; return _string(value, path, pattern: null, format: null, min: 0, max: 300); })();
+  final ingredientsEn=(() { final value=json["ingredientsEn"]; const path="MobileProductStory.ingredientsEn"; return _string(value, path, pattern: null, format: null, min: 0, max: 300); })();
+  final benefits=(() { final value=json["benefits"]; const path="MobileProductStory.benefits"; return _string(value, path, pattern: null, format: null, min: 0, max: 300); })();
+  final benefitsEn=(() { final value=json["benefitsEn"]; const path="MobileProductStory.benefitsEn"; return _string(value, path, pattern: null, format: null, min: 0, max: 300); })();
+  final videoUrl=(() { final value=json["videoUrl"]; const path="MobileProductStory.videoUrl"; return _string(value, path, pattern: null, format: null, min: 0, max: 200); })();
+  return MobileProductStory._(story: story, storyEn: storyEn, ingredients: ingredients, ingredientsEn: ingredientsEn, benefits: benefits, benefitsEn: benefitsEn, videoUrl: videoUrl);
+ }
+ Map<String,dynamic> toJson() => {"story": story, "storyEn": storyEn, "ingredients": ingredients, "ingredientsEn": ingredientsEn, "benefits": benefits, "benefitsEn": benefitsEn, "videoUrl": videoUrl};
+}
+
 class MobileProduct {
  final String id;
  final String name;
@@ -2240,10 +2264,11 @@ class MobileProduct {
  final MobileMoney? unitPrice;
  final MobileMoney? basePrice;
  final MobileProductOptions options;
- const MobileProduct._({required this.id, required this.name, required this.nameEn, required this.category, required this.description, required this.imageUrl, required this.available, required this.unitPrice, required this.basePrice, required this.options});
- factory MobileProduct({required String id, required String name, required String nameEn, required String category, required String description, required String imageUrl, required int available, required MobileMoney? unitPrice, required MobileMoney? basePrice, required MobileProductOptions options}) => MobileProduct.fromJson({"id": id, "name": name, "nameEn": nameEn, "category": category, "description": description, "imageUrl": imageUrl, "available": available, "unitPrice": unitPrice?.toJson(), "basePrice": basePrice?.toJson(), "options": options.toJson()});
+ final MobileProductStory story;
+ const MobileProduct._({required this.id, required this.name, required this.nameEn, required this.category, required this.description, required this.imageUrl, required this.available, required this.unitPrice, required this.basePrice, required this.options, required this.story});
+ factory MobileProduct({required String id, required String name, required String nameEn, required String category, required String description, required String imageUrl, required int available, required MobileMoney? unitPrice, required MobileMoney? basePrice, required MobileProductOptions options, required MobileProductStory story}) => MobileProduct.fromJson({"id": id, "name": name, "nameEn": nameEn, "category": category, "description": description, "imageUrl": imageUrl, "available": available, "unitPrice": unitPrice?.toJson(), "basePrice": basePrice?.toJson(), "options": options.toJson(), "story": story.toJson()});
  factory MobileProduct.fromJson(Map<String,dynamic> json) {
-  if (json.length != 10 || !json.keys.every(["id","name","nameEn","category","description","imageUrl","available","unitPrice","basePrice","options"].contains)) throw const FormatException('Invalid MobileProduct fields');
+  if (json.length != 11 || !json.keys.every(["id","name","nameEn","category","description","imageUrl","available","unitPrice","basePrice","options","story"].contains)) throw const FormatException('Invalid MobileProduct fields');
   final id=(() { final value=json["id"]; const path="MobileProduct.id"; return _string(value, path, pattern: null, format: "uuid", min: 0, max: null); })();
   final name=(() { final value=json["name"]; const path="MobileProduct.name"; return _string(value, path, pattern: null, format: null, min: 0, max: 320); })();
   final nameEn=(() { final value=json["nameEn"]; const path="MobileProduct.nameEn"; return _string(value, path, pattern: null, format: null, min: 0, max: 320); })();
@@ -2254,9 +2279,10 @@ class MobileProduct {
   final unitPrice=(() { final value=json["unitPrice"]; const path="MobileProduct.unitPrice"; return value == null ? null : (MobileMoney.fromJson(_object(value, path))); })();
   final basePrice=(() { final value=json["basePrice"]; const path="MobileProduct.basePrice"; return value == null ? null : (MobileMoney.fromJson(_object(value, path))); })();
   final options=(() { final value=json["options"]; const path="MobileProduct.options"; return MobileProductOptions.fromJson(_object(value, path)); })();
-  return MobileProduct._(id: id, name: name, nameEn: nameEn, category: category, description: description, imageUrl: imageUrl, available: available, unitPrice: unitPrice, basePrice: basePrice, options: options);
+  final story=(() { final value=json["story"]; const path="MobileProduct.story"; return MobileProductStory.fromJson(_object(value, path)); })();
+  return MobileProduct._(id: id, name: name, nameEn: nameEn, category: category, description: description, imageUrl: imageUrl, available: available, unitPrice: unitPrice, basePrice: basePrice, options: options, story: story);
  }
- Map<String,dynamic> toJson() => {"id": id, "name": name, "nameEn": nameEn, "category": category, "description": description, "imageUrl": imageUrl, "available": available, "unitPrice": unitPrice?.toJson(), "basePrice": basePrice?.toJson(), "options": options.toJson()};
+ Map<String,dynamic> toJson() => {"id": id, "name": name, "nameEn": nameEn, "category": category, "description": description, "imageUrl": imageUrl, "available": available, "unitPrice": unitPrice?.toJson(), "basePrice": basePrice?.toJson(), "options": options.toJson(), "story": story.toJson()};
 }
 
 class MobileMenu {

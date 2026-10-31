@@ -36,6 +36,7 @@ import {productOptions,publishProductOptions} from './online-options';
 import {promotionsRequest} from './promotions';
 import {servePromotionMedia} from './promotion-assets';
 import {serveProductImage,uploadProductImage,readRaw,maxProductImageBytes} from './product-images';
+import {readProductStory,writeProductStory} from './product-story';
 import {currentScreen} from './device-commands';
 import {avatar,hash,challengeMessage,liveOrder} from '../../../packages/domain/src/index';
 import {build,validateSigned,assertPaymentMessage} from './payments';
@@ -289,6 +290,9 @@ export async function handle(req:http.IncomingMessage){
  if(recovery&&method==='POST'){requireRole(session.current_role);z.object({resolution:z.literal('acknowledged')}).strict().parse(input);const o=(await db.query('SELECT * FROM orders WHERE id=$1 FOR UPDATE',[uuid.parse(recovery[1])])).rows[0];if(!o)fail('RESOURCE_NOT_FOUND',404);if(o.status!=='RECOVERY')fail('RECOVERY_REQUIRED');if((await db.query("SELECT 1 FROM payment_attempts WHERE order_id=$1 AND status IN ('BUILDING','READY','SUBMITTING','SUBMITTED','CONFIRMED')",[o.id])).rowCount)fail('PAYMENT_PENDING');await db.query('UPDATE orders SET recovery_resolved_at=coalesce(recovery_resolved_at,clock_timestamp()) WHERE id=$1',[o.id]);await audit(db,merchant,session.user_id,'order.recovery.acknowledged',o.id);return {ok:true};}
  const productArchive=path.match(/^\/api\/products\/([^/]+)\/(archive|unarchive)$/);
  if(productArchive&&method==='POST')return (productArchive[2]==='archive'?archiveProduct:unarchiveProduct)(db,merchant,session.user_id,session.current_role,productArchive[1]);
+ const productStory=path.match(/^\/api\/products\/([^/]+)\/story$/);
+ if(productStory&&method==='GET')return readProductStory(db,merchant,session.current_role,productStory[1]);
+ if(productStory&&method==='PUT')return writeProductStory(db,merchant,session.user_id,session.current_role,productStory[1],input);
  const productEdit=path.match(/^\/api\/products\/([^/]+)$/);
  if(productEdit&&method==='PATCH')return editProduct(db,merchant,session.user_id,session.current_role,productEdit[1],input);
  if(path==='/api/products'&&method==='POST')return createProduct(db,merchant,session.user_id,session.current_role,input);

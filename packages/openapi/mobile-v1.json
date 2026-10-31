@@ -10129,7 +10129,8 @@
           "available",
           "unitPrice",
           "basePrice",
-          "options"
+          "options",
+          "story"
         ],
         "properties": {
           "id": {
@@ -10182,6 +10183,9 @@
           },
           "options": {
             "$ref": "#/components/schemas/MobileProductOptions"
+          },
+          "story": {
+            "$ref": "#/components/schemas/MobileProductStory"
           }
         }
       },
@@ -18323,6 +18327,49 @@
           },
           "replayed": {
             "type": "boolean"
+          }
+        }
+      },
+      "MobileProductStory": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "story",
+          "storyEn",
+          "ingredients",
+          "ingredientsEn",
+          "benefits",
+          "benefitsEn",
+          "videoUrl"
+        ],
+        "properties": {
+          "story": {
+            "type": "string",
+            "maxLength": 600
+          },
+          "storyEn": {
+            "type": "string",
+            "maxLength": 600
+          },
+          "ingredients": {
+            "type": "string",
+            "maxLength": 300
+          },
+          "ingredientsEn": {
+            "type": "string",
+            "maxLength": 300
+          },
+          "benefits": {
+            "type": "string",
+            "maxLength": 300
+          },
+          "benefitsEn": {
+            "type": "string",
+            "maxLength": 300
+          },
+          "videoUrl": {
+            "type": "string",
+            "maxLength": 200
           }
         }
       }

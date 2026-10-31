@@ -273,6 +273,7 @@ MobileProduct product(int available) => MobileProduct.fromJson({
   'category': '',
   'description': '',
   'imageUrl': '',
+  'story': {'story': '', 'storyEn': '', 'ingredients': '', 'ingredientsEn': '', 'benefits': '', 'benefitsEn': '', 'videoUrl': ''},
   'available': available,
   'unitPrice': null,
   'basePrice': null,

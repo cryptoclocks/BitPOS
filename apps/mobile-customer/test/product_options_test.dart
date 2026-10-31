@@ -75,6 +75,7 @@ MobileProduct product() => MobileProduct(
   category: '',
   description: '',
   imageUrl: '',
+  story: MobileProductStory(story: '', storyEn: '', ingredients: '', ingredientsEn: '', benefits: '', benefitsEn: '', videoUrl: ''),
   available: 3,
   unitPrice: MobileMoney(currency: 'USD', decimals: 2, amountMinor: '270'),
   basePrice: MobileMoney(currency: 'USD', decimals: 2, amountMinor: '270'),

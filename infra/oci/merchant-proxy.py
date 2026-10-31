@@ -12,7 +12,7 @@ class Handler(BaseHTTPRequestHandler):
     def do_DELETE(self): self.forward()
     def forward(self):
         path = self.path.split('?')[0]
-        if '..' in path or not (path == '/' or path.startswith(('/api/', '/_astro/', '/images/'))):
+        if '..' in path or not (path == '/' or path.startswith(('/api/', '/_astro/', '/images/', '/videos/'))):
             self.send_error(404); return
         size = int(self.headers.get('Content-Length', '0'))
         if size > 1000000: self.send_error(413); return

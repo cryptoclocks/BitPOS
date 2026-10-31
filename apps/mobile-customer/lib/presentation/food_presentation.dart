@@ -111,6 +111,16 @@ class FoodHeader extends StatelessWidget {
   );
 }
 
+/// Menu media (photos, loop videos) come from the API as site paths such as /images/menu/x.jpg; they live on the same
+/// origin as the mobile API, so resolve a path against it. Absolute http(s) URLs pass through unchanged.
+String resolveMediaUrl(String url) {
+  if (!url.startsWith('/')) return url;
+  const base = String.fromEnvironment('BITPOS_MOBILE_API');
+  final origin = Uri.tryParse(base);
+  if (origin == null || !origin.hasAuthority) return url;
+  return origin.replace(path: url, query: null).toString();
+}
+
 /// Real product imagery only. A missing image is an explicit neutral fallback.
 class FoodImage extends StatelessWidget {
   const FoodImage({
@@ -142,7 +152,7 @@ class FoodImage extends StatelessWidget {
               ),
       ),
     );
-    final uri = Uri.tryParse(url);
+    final uri = Uri.tryParse(resolveMediaUrl(url));
     final canLoad =
         uri != null && (uri.scheme == 'https' || uri.scheme == 'http');
     return ExcludeSemantics(
@@ -153,7 +163,7 @@ class FoodImage extends StatelessWidget {
           height: hero ? 238 : size,
           child: canLoad
               ? Image.network(
-                  url,
+                  uri.toString(),
                   fit: BoxFit.cover,
                   errorBuilder: (_, error, stack) => unavailable(),
                 )

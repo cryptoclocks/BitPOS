@@ -858,6 +858,16 @@ export const MobileConfiguredFoodSnapshotSchema=z.object({
  total:MobileMoneySchema,
 }).strict();
 export type MobileConfiguredFoodSnapshot=z.infer<typeof MobileConfiguredFoodSnapshotSchema>;
+export const MobileProductStorySchema=z.object({
+ story:z.string().max(600),
+ storyEn:z.string().max(600),
+ ingredients:z.string().max(300),
+ ingredientsEn:z.string().max(300),
+ benefits:z.string().max(300),
+ benefitsEn:z.string().max(300),
+ videoUrl:z.string().max(200),
+}).strict();
+export type MobileProductStory=z.infer<typeof MobileProductStorySchema>;
 export const MobileProductSchema=z.object({
  id:z.string().uuid(),
  name:z.string().max(320),
@@ -869,6 +879,7 @@ export const MobileProductSchema=z.object({
  unitPrice:MobileMoneySchema.nullable(),
  basePrice:MobileMoneySchema.nullable(),
  options:MobileProductOptionsSchema,
+ story:MobileProductStorySchema,
 }).strict();
 export type MobileProduct=z.infer<typeof MobileProductSchema>;
 export const MobileMenuSchema=z.object({

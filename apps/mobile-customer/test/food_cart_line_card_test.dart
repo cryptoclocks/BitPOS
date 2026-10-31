@@ -108,6 +108,7 @@ void main() {
             category: base.category,
             description: base.description,
             imageUrl: '',
+            story: MobileProductStory(story: '', storyEn: '', ingredients: '', ingredientsEn: '', benefits: '', benefitsEn: '', videoUrl: ''),
             available: base.available,
             unitPrice: base.unitPrice,
             basePrice: base.basePrice,

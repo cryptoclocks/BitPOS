@@ -14,6 +14,7 @@ import type {QuoteRow,OrderRow} from './types';
 import {closeTerminatedOnlineOrder} from './order-closure';
 import {configuredQuote} from './configured-food';
 import {productOptionsAt} from './online-options';
+import {storiesFor} from './product-story';
 import {MobileFoodRefundsSchema} from '../../../packages/contracts/src/mobile-v1.generated';
 import {MobileDeliveryQuoteRequestSchema} from '../../../packages/contracts/src/mobile-v1.generated';
 import {MobileCustomerDeliveryPolicySchema} from '../../../packages/contracts/src/mobile-v1.generated';
@@ -161,10 +162,11 @@ export async function mobileFoodRequest(url:URL,method:string,input:unknown,bear
    const found=after===null?-1:m.products.findIndex(p=>p.id===after);if(after!==null&&found<0)fail('INVALID_REQUEST',422);
    const start=found+1,candidates=m.products.slice(start,start+30),pointers=new Map(heads.map(h=>[h.product_id,h.active_version_id]));
    const options=await productOptionsAt(db,b.merchant_id,candidates.map(p=>({productId:p.id,version:pointers.get(p.id)??null})));
+   const stories=await storiesFor(db,b.merchant_id,candidates.map(p=>p.id));
    const metadata={branch:b.profile,asOf:m.asOf,priceValidUntil:m.priceValidUntil,menuVersion,priceVersion:m.priceVersion,pricingRevision:m.pricingRevision};
    const products:MobileProduct[]=[];let bytes=Buffer.byteLength(JSON.stringify({...metadata,products:[],nextCursor:'00000000-0000-4000-8000-000000000000'}));
    for(const p of candidates){
-    const value=MobileProductSchema.parse({id:p.id,name:p.name,nameEn:p.nameEn,category:p.category??'',description:p.description??'',imageUrl:p.imageUrl??'',available:Math.max(0,p.available),unitPrice:p.unitPrice,basePrice:p.basePrice,options:options.get(p.id)!});
+    const value=MobileProductSchema.parse({id:p.id,name:p.name,nameEn:p.nameEn,category:p.category??'',description:p.description??'',imageUrl:p.imageUrl??'',available:Math.max(0,p.available),unitPrice:p.unitPrice,basePrice:p.basePrice,options:options.get(p.id)!,story:stories.get(p.id)!});
     const size=Buffer.byteLength(JSON.stringify(value))+(products.length?1:0);if(bytes+size>900*1024)break;
     bytes+=size;products.push(value);
    }
