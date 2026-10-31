@@ -18,6 +18,7 @@ import {promotionsRequest,promotionDevices} from '../promotions';
 import {runCopilot,AgentFailure,type AgentModel} from './agent';
 import {parseIntent,saveCampaignDraft,validateCampaign,type ToolContext} from './agent-tools';
 import {minorToValue} from './money';
+import {paypalDeps} from './checkout';
 
 const uuid=z.string().uuid();
 // PayPal-specific codes are not in the shared ConsumerError union; the HTTP layer only needs status + code.
@@ -217,6 +218,13 @@ export async function paypalMerchantRequest(merchant:string,actor:string,role:st
   if((m=p.match(/^\/api\/paypal\/envelopes\/([0-9a-f-]{36})\/outcome$/))&&method==='GET')return envelopeOutcome(merchant,uuid.parse(m[1]));
   if((m=p.match(/^\/api\/paypal\/orders\/([0-9a-f-]{36})\/evidence$/))&&method==='GET')return orderEvidence(merchant,uuid.parse(m[1]));
   if(p==='/api/paypal/ledger'&&method==='GET')return ledger(merchant);
+  // Where this shop's PayPal payments go (read-only; the payee is set by the operator, not from the browser).
+  if(p==='/api/paypal/account'&&method==='GET')return tenant(merchant,async db=>{
+   const s=(await db.query('SELECT enabled,payee_merchant_id,updated_at FROM paypal_merchant_settings WHERE merchant_id=$1',[merchant])).rows[0];
+   const d=paypalDeps();
+   return {paypalShop:!!s?.enabled,environment:'PayPal Sandbox',payee:s?'…'+String(s.payee_merchant_id).slice(-4):null,
+    ready:!!(s?.enabled&&d&&d.config.merchantId===s.payee_merchant_id),webhook:!!d?.config.webhookId,updatedAt:s?.updated_at??null};
+  });
   if(p==='/api/paypal/copilot/intent-preview'&&method==='POST'){const d=z.object({intent:z.string().min(1).max(600)}).strict().parse(input);return parseIntent(d.intent);}
  }catch(e){
   if(e instanceof AgentFailure)throw new RequestError(e.code==='ROLE_REQUIRED'?403:e.code==='DAILY_LIMIT'||e.code==='AI_FREE_LIMIT'?429:e.code==='INVALID_INTENT'?422:503,e.code as never,e.code);

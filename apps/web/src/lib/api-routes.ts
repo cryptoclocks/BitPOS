@@ -92,7 +92,7 @@ export const apiRoutes: [RegExp, readonly string[]][] = [
   [/^orders\/[0-9a-f-]{36}\/delivery$/, ['GET']],
   [/^orders\/[0-9a-f-]{36}\/delivery\/pickup-proof$/, ['POST']],
   // PayPal AI Hackathon work: merchant PayPal ledger and Café Copilot (see paypal-hackathon/PROVENANCE.md).
-  [/^paypal\/(screens|ledger)$/, ['GET']],
+  [/^paypal\/(screens|ledger|account)$/, ['GET']],
   [/^paypal\/copilot\/runs$/, ['GET', 'POST']],
   [/^paypal\/copilot\/rules$/, ['POST']],
   [/^paypal\/copilot\/runs\/[0-9a-f-]{36}$/, ['GET']],

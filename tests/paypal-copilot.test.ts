@@ -115,6 +115,8 @@ test('U-AG + D-CMP + I-15: Copilot drafts within limits; owner approves and publ
   const empty=await s.req(`/api/paypal/envelopes/${run.envelopeId}/outcome`,'GET');// before any sale (browser run found a 500 here)
   assert.deepEqual([empty.totals.gross,empty.totals.fee,empty.totals.net,empty.totals.refunded],['0.00','0.00','0.00','0.00']);
   assert.ok((await s.req('/api/paypal/copilot/envelopes','GET')).envelopes.some((e:any)=>e.id===run.envelopeId&&e.state==='APPROVED'));
+  const acct=await s.req('/api/paypal/account','GET');// Settings → where payments go (masked, read-only)
+  assert.deepEqual([acct.paypalShop,acct.payee,acct.ready],[true,'…2GZ4',true]);
   await assert.rejects(s.req(`/api/paypal/copilot/envelopes/${run.envelopeId}/publish`,'POST',{deviceIds:[s.f.b.id]}),/Unrecognized|invalid/i,'a subset of screens is not accepted for a daily offer');
   await s.req(`/api/paypal/copilot/envelopes/${run.envelopeId}/publish`,'POST',{confirmAllScreens:true});
   const targetCount=async()=>Number((await s.f.tenant(s.f.merchant,db=>db.query('SELECT count(*) FROM promotion_playlist_targets t JOIN paypal_campaign_envelopes e ON e.merchant_id=t.merchant_id AND e.campaign_id=t.campaign_id WHERE e.id=$1',[run.envelopeId]))).rows[0].count);
