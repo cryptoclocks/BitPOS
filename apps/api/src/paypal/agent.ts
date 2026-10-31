@@ -27,9 +27,13 @@ export function geminiModel(fetchImpl:typeof fetch=fetch):AgentModel{
   if(!r.ok){await r.body?.cancel();throw new AgentFailure(r.status===429?'PROVIDER_RATE_LIMITED':'PROVIDER_REJECTED');}
   const text=await r.text();if(text.length>64*1024)throw new AgentFailure('PROVIDER_RESPONSE_TOO_LARGE');
   let body:any;try{body=JSON.parse(text);}catch{throw new AgentFailure('PROVIDER_RESPONSE_INVALID');}
-  const content=body?.candidates?.[0]?.content;
-  if(!content||!Array.isArray(content.parts))throw new AgentFailure('PROVIDER_RESPONSE_INVALID');
-  return {content:{role:'model',parts:content.parts},requestId:typeof body.responseId==='string'?body.responseId:null,model:c.model,provider:'https://generativelanguage.googleapis.com'};
+  const candidate=body?.candidates?.[0];
+  if(!candidate)throw new AgentFailure('PROVIDER_RESPONSE_INVALID');
+  // Gemini 2.5 can answer a tool result with an empty turn ({role:'model'} and no parts, finishReason STOP):
+  // that is "nothing said", not a broken response; the loop nudges the model to continue.
+  const parts=candidate.content?.parts;
+  if(parts!==undefined&&!Array.isArray(parts))throw new AgentFailure('PROVIDER_RESPONSE_INVALID');
+  return {content:{role:'model',parts:parts??[]},requestId:typeof body.responseId==='string'?body.responseId:null,model:c.model,provider:'https://generativelanguage.googleapis.com'};
  };
 }
 
@@ -85,10 +89,13 @@ export async function runCopilot(input:{merchant:string;actor:string;role:string
    provider=r.provider;modelName=r.model;
    const calls=r.content.parts.filter(p=>p.functionCall);const text=r.content.parts.map(p=>p.text??'').join('').trim();
    await step('model_call',{result:{functionCalls:calls.map(p=>p.functionCall!.name),text:text.slice(0,300)||undefined},requestId:r.requestId,latency:Date.now()-t0});
-   contents.push(r.content);
+   // An empty model turn is not sent back (the API rejects content without parts).
+   if(r.content.parts.length)contents.push(r.content);
    if(!calls.length){
     if(text){await finish('NEEDS_INPUT',{question:text,provider,model:modelName});return {runId,state:'NEEDS_INPUT',envelopeId:null,jobId:null,question:text.slice(0,400),failure:null};}
-    contents.push({role:'user',parts:[{text:'Call save_campaign_draft with a validated offer, or ask the owner one short question.'}]});continue;
+    // Turns must alternate: after an empty model turn the nudge joins the last user turn instead of a second one.
+    const nudge={text:'Continue: call the next tool (validate_campaign, then save_campaign_draft with a validated offer), or ask the owner one short question.'};
+    const last=contents[contents.length-1];if(last?.role==='user')last.parts.push(nudge);else contents.push({role:'user',parts:[nudge]});continue;
    }
    const responses:ModelPart[]=[];
    for(const p of calls){

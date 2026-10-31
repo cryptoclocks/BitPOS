@@ -164,3 +164,17 @@ test('U-AG: injection, unknown tools, step limit and questions never produce an 
   const run=await s.req(`/api/paypal/copilot/runs/${form.runId}`);assert.equal(run.run.kind,'rules_baseline','the form fallback is labelled, never presented as AI');
  }finally{await s.close();}
 });
+
+test('U-AG: an empty Gemini turn after a tool result (seen with gemini-2.5-flash-lite on OCI) does not fail the run',integration,async()=>{
+ const s=await setup();
+ try{
+  const inner=scriptedModel(fullPlan(new Date(Date.now()+2*3600_000).toISOString())).model;let n=0;const roles:string[][]=[];
+  const model:AgentModel=async req=>{roles.push(req.contents.map(c=>c.role));
+   if(n++===1)return {content:{role:'model',parts:[]},requestId:'empty-turn',model:'scripted-fixture',provider:'fixture'};
+   return inner(req);};
+  s.copilot.setCopilotModel(model);
+  const run=await s.req('/api/paypal/copilot/runs','POST',{intent:'ขายกาแฟที่เหลือไม่เกิน 2 ชิ้น ลดไม่เกิน 10%',language:'th'});
+  assert.equal(run.state,'DRAFTED',JSON.stringify(run.failure));
+  for(const r of roles)for(let i=1;i<r.length;i++)assert.notEqual(r[i],r[i-1],'turns alternate: '+r.join(','));
+ }finally{s.copilot.setCopilotModel(undefined);await s.close();}
+});
