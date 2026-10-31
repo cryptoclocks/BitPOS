@@ -8,6 +8,8 @@ import type {MetaDb} from './identity';
 
 export interface ShopLook {merchantId:string;name:string;tagline:string;accent:string;accentDark:string;accentTint:string;coverUrl:string|null;logoUrl:string|null;revision:number}
 export const DEFAULT_ACCENT='#0866FF';
+/** The shop home's cover until the owner uploads one. */
+export const DEFAULT_COVER='/meta/images/menu/iced-latte.jpg';
 /** Ready-made colours (all keep white text readable); any other colour must pass the same contrast check. */
 export const PRESETS:[string,string,string][]=[['#0866FF','ฟ้า Meta','Meta blue'],['#6D28D9','ม่วง','Purple'],['#15803D','เขียว','Green'],['#C2410C','ส้มอิฐ','Terracotta'],
  ['#BE185D','ชมพูเข้ม','Raspberry'],['#7C4A2D','กาแฟ','Coffee'],['#1F2937','ดำถ่าน','Charcoal']];

@@ -15,6 +15,7 @@ const PAGES = [
  ['connector', '/meta/staff/connector', 'Muse Connector', 'Muse Connector', 'link'],
  ['ledger', '/meta/staff/ledger', 'หลักฐาน AI', 'AI evidence', 'check'],
  ['payouts', '/meta/staff/payouts', 'ยอดโอน Stripe', 'Stripe payouts', 'card'],
+ ['look', '/meta/staff/settings/look', 'หน้าตาร้าน', 'Shop look', 'edit'],
  ['settings', '/meta/staff/settings', 'อุปกรณ์และ Messenger', 'Devices & Messenger', 'settings'],
 ] as const;
 
@@ -25,10 +26,10 @@ export default function MetaHub({ session, language, only }: { session: { token:
  useEffect(() => { let on = true; setReady('wait'); void metaApi('/sso', session.token, {}).then(() => on && setReady('ok')).catch(() => on && setReady('error')); return () => { on = false; }; }, [session.token]);
  const boss = session.role !== 'staff';
  // Promotions has its own POS tab (Muse Spark offers); the Muse tab lists the rest.
- const shown = only ? PAGES.filter(p => p[0] === only) : PAGES.filter(p => p[0] !== 'offers' && (boss || !['ledger', 'payouts', 'assistant'].includes(p[0])));
+ const shown = only ? PAGES.filter(p => p[0] === only) : PAGES.filter(p => p[0] !== 'offers' && (boss || !['ledger', 'payouts', 'assistant', 'look'].includes(p[0])));
  const current = shown.find(p => p[0] === page) ?? shown[0];
  return <section className="panel meta-hub">
-  {!only && <div className="meta-hub-head"><div><span className="floor-eyebrow">MUSE · META</span><h2>{only === 'offers' ? text('โปรโมชัน', 'Promotions') : text('ฟีเจอร์ของ Meta', 'Meta features')}</h2><p>{only === 'offers' ? text('Muse Spark ร่างโปร · เจ้าของอนุมัติ หรือตั้ง Allow All · ราคาคิดโดยเซิร์ฟเวอร์', 'Muse Spark drafts · the owner approves or sets Allow All · the server prices') : text('จองโต๊ะ · ลูกค้า Messenger · Muse Connector · หลักฐาน AI · ยอดโอน Stripe · อุปกรณ์', 'Table bookings · Messenger customers · Muse Connector · AI evidence · Stripe payouts · devices')}</p></div></div>}
+  {!only && <div className="meta-hub-head"><div><span className="floor-eyebrow">MUSE · META</span><h2>{only === 'offers' ? text('โปรโมชัน', 'Promotions') : text('ฟีเจอร์ของ Meta', 'Meta features')}</h2><p>{only === 'offers' ? text('Muse Spark ร่างโปร · เจ้าของอนุมัติ หรือตั้ง Allow All · ราคาคิดโดยเซิร์ฟเวอร์', 'Muse Spark drafts · the owner approves or sets Allow All · the server prices') : text('จองโต๊ะ · ลูกค้า Messenger · Muse Connector · หลักฐาน AI · ยอดโอน Stripe · หน้าตาร้าน · อุปกรณ์', 'Table bookings · Messenger customers · Muse Connector · AI evidence · Stripe payouts · shop look · devices')}</p></div></div>}
   {!only && <div className="meta-hub-tabs" role="tablist">{shown.map(([id, , th, en, icon]) => <button key={id} role="tab" aria-selected={current[0] === id} className={current[0] === id ? '' : 'secondary'} onClick={() => setPage(id)}><MerchantIcon name={icon} />{text(th, en)}</button>)}</div>}
   {ready === 'wait' && <p className="notice" role="status">{text('กำลังเชื่อมต่อ…', 'Connecting…')}</p>}
   {ready === 'error' && <p className="notice" role="alert">{text('เปิดหน้า Meta ไม่ได้ กรุณาเข้าสู่ระบบใหม่', 'Could not open the Meta pages. Please sign in again.')}</p>}

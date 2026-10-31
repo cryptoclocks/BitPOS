@@ -10,7 +10,7 @@ import type {MetaRouteDeps} from './routes';
 import {formatTapAmount,inKitchen,listTapOrders,pickupCode,preordered,type StaffDeps,type StaffOrder,type StaffView} from './staff';
 import {samCount} from './vision';
 import {askOwnerAssistant} from './owner-assistant';
-import {LookError,PRESETS,saveLook,shopLook} from './look';
+import {DEFAULT_COVER,LookError,PRESETS,saveLook,shopLook} from './look';
 import {BookingSettingsError,bookingSettings,floorPlan,saveBookingSettings,screenTags,staffReservations,type FloorTable} from './reservations';
 import {screenKey} from './screen';
 import {listMenu} from './agent-orders';
@@ -355,10 +355,11 @@ ${boss?`<button class="inline">${L('บันทึก','Save')}</button>`:`<p c
   const dis=boss?'':' disabled';
   const swatch=PRESETS.map(([c,th,en])=>`<label class="sw"><input type="radio" name="accent" value="${c}"${c===v.accent?' checked':''}${dis}><i style="background:${c}"></i>${L(th,en)}</label>`).join('');
   const saved=url.searchParams.get('saved')==='1'&&!error?`<div class="card">${pill(L('บันทึกแล้ว','Saved'),'gr')} ${L('หน้าร้านของลูกค้าใช้ค่าใหม่ภายใน 20 วินาที','Customer pages use it within 20 seconds')}</div>`:'';
-  const preview=`<div class="lookpv" style="--a:${v.accent}"><div class="lpcover"${v.coverUrl?` style="background-image:url('${esc(v.coverUrl)}')"`:''}><span>${esc(v.tagline)}</span></div>
+  const preview=`<div class="lookpv" style="--a:${v.accent}"><div class="lpcover" style="background-image:url('${esc(v.coverUrl??DEFAULT_COVER)}')"><span>${esc(v.tagline)}</span></div>
 <div class="lpbar">${v.logoUrl?`<img src="${esc(v.logoUrl)}" alt="">`:''}<b>${esc(v.name)}</b></div><div class="lpbtn">${L('ดูเมนู','Menu')}</div></div>`;
   const script=`(()=>{const fit=(file,max,type,q)=>new Promise((ok,no)=>{const im=new Image();im.onload=()=>{const k=Math.min(1,max/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);c.getContext('2d').drawImage(im,0,0,c.width,c.height);ok(c.toDataURL(type,q));URL.revokeObjectURL(im.src);};im.onerror=no;im.src=URL.createObjectURL(file);});
-for(const [k,max,type] of [['cover',1600,'image/jpeg'],['logo',256,'image/png']]){const inp=document.getElementById(k+'_file'),out=document.getElementById(k);if(!inp)continue;inp.onchange=async()=>{const f=inp.files[0];if(!f)return;out.value=await fit(f,max,type,0.85);const pv=document.getElementById(k+'_pv');if(pv)pv.src=out.value;};}
+for(const [k,max,type] of [['cover',1600,'image/jpeg'],['logo',256,'image/png']]){const inp=document.getElementById(k+'_file'),out=document.getElementById(k);if(!inp)continue;inp.onchange=async()=>{const f=inp.files[0];if(!f)return;out.value=await fit(f,max,type,0.85);const pv=document.getElementById(k+'_pv');if(pv)pv.src=out.value;if(k==='cover')document.querySelector('.lpcover').style.backgroundImage='url('+out.value+')';};}
+const tg=document.querySelector('input[name=tagline]');if(tg)tg.oninput=()=>{document.querySelector('.lpcover span').textContent=tg.value;};
 const cu=document.getElementById('accent_custom'),cb=document.getElementById('custom');if(cu)cu.oninput=()=>{cb.checked=true;document.querySelector('.lookpv').style.setProperty('--a',cu.value);};
 for(const r of document.querySelectorAll('input[name=accent]'))r.onchange=()=>{cb.checked=false;document.querySelector('.lookpv').style.setProperty('--a',r.value);};})();`;
   const css=`<style>.sw{display:inline-flex;align-items:center;gap:6px;margin:0 14px 10px 0;font-size:14px}.sw i{width:26px;height:26px;border-radius:13px;display:inline-block}.sw input{width:auto;margin:0}

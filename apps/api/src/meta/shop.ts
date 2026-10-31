@@ -10,7 +10,7 @@ import type {MetaRouteDeps} from './routes';
 import {isTourist,menuNames,TOURIST,TOURIST_UI,type TouristLang} from './translate';
 import {liveBanners} from './banners';
 import {listCombos} from './combos';
-import {currentLook} from './look';
+import {DEFAULT_COVER,currentLook} from './look';
 import {bangkokToday,bookingDay} from './reservations';
 
 const CART='bitpos_meta_cart',TABLE='bitpos_meta_table',LANG='bitpos_meta_lang',MAX_FORM=4096;
@@ -74,7 +74,7 @@ export async function serveShop(req:http.IncomingMessage,res:http.ServerResponse
     const mins=(t:string)=>Number(t.slice(0,2))*60+Number(t.slice(3));
     return {text:d.windows.map(w=>`${w.opens}–${w.closes}`).join(', '),open:d.windows.some(w=>now>=mins(w.opens)&&now<mins(w.closes))};});
    const hoursPill=hours.text?pill(`${hours.open?'เปิดอยู่':'ปิดอยู่'} · ${hours.text}`,hours.open?'gr':'mu'):pill('วันนี้ปิด · Closed today','mu');
-   const cover=`<div class="cover"><img class="hero" src="${esc(look?.coverUrl??'/meta/images/menu/iced-latte.jpg')}" alt="">${look?.tagline?`<div class="tag">${esc(look.tagline)}</div>`:''}</div>`;
+   const cover=`<div class="cover"><img class="hero" src="${esc(look?.coverUrl??DEFAULT_COVER)}" alt="">${look?.tagline?`<div class="tag">${esc(look.tagline)}</div>`:''}</div>`;
    const body=`${cover}<div class="card"><h1>${esc(shopName)}${tableLabel?` · ${esc(tableLabel)}`:''}</h1><p class="mu">สั่งจากมือถือ จ่ายด้วย Stripe · Order from your phone, pay with Stripe</p>${hoursPill}${pill('ไม่ต้องสมัคร','mu')}</div>
 ${row({icon:'📶',title:'แตะมือถือที่เครื่องเพื่อรับโปร',sub:'ไม่บังคับ · ยินยอมใน Messenger ก่อน · Optional',href:'/help#tap'})}${cartBar()}`;
    send(res,200,customerHtml({title:shopName,nav:[['ดูเมนู / Menu','/menu'],['ช่วยเหลือ / Help','/help']]},body),tableCookie?{'Set-Cookie':setCookie(deps,TABLE,tableCookie,6*3600)}:{});return true;
