@@ -4,6 +4,70 @@
 
 Built by Natthapong Suwanjit. Merchant tablets create itemized bills; customers scan an order or table QR, order on their own phone and authorize a merchant-sponsored stablecoin transaction on Solana devnet. Finalized on-chain verification updates the bill, inventory and the assigned ESP32 display through a durable outbox.
 
+
+## October 31, 2026 — actual app progress
+
+**Demo / Solana devnet. Not production. No real money.**
+
+Actual Android AVD and POS captures inside illustrative device frames. These do not establish physical-phone acceptance. Rider fees are ledger obligations, not on-chain payouts.
+
+### The whole café. One connected demo.
+
+Explore BitPOS: customer ordering, merchant POS and rider workflows, with our current demo progress shown through real app captures. Demo / Solana devnet. Not production. No real money. #BitPOS #devnet
+
+![Demo capture: The whole café. One connected demo.](docs/communications/20261031/published/post-01.png)
+
+### From order to delivered.
+
+BitPOS completed a delivery demo on OCI: ordering, USDG payment, merchant acceptance and code-based handoff. Shown: existing Delivered history in the rider app. Demo / Solana devnet. Not production. No real money. #BitPOS #devnet
+
+![Demo capture: From order to delivered.](docs/communications/20261031/published/post-02.png)
+
+### A little emoji. A clearer menu.
+
+Coffee, iced drinks and matcha: category emoji now appear in the running customer app. A closer look at the menu, captured directly from Android AVD. Demo / Solana devnet. Not production. No real money. #BitPOS #devnet
+
+![Demo capture: A little emoji. A clearer menu.](docs/communications/20261031/published/post-03.png)
+
+### The details. Before the order.
+
+Customers can review product details, add a note and see an estimated total. The server confirms final prices and promotions before ordering. Demo / Solana devnet. Not production. No real money. #BitPOS #devnet
+
+![Demo capture: The details. Before the order.](docs/communications/20261031/published/post-04.png)
+
+### Every order. A clearer place.
+
+The updated POS order center brings channel colors, status badges and readable totals into one view. Captured here: received, preparing, ready and collected lanes. Demo / Solana devnet. Not production. No real money. #BitPOS #devnet
+
+![Demo capture: Every order. A clearer place.](docs/communications/20261031/published/post-05.png)
+
+### Paid. Unaccepted. Clearly flagged.
+
+Paid does not mean accepted. The POS flags “Not accepted · refund due” so an unresolved order stays visible. This is not an automatic refund receipt. Demo / Solana devnet. Not production. No real money. #BitPOS #devnet
+
+![Demo capture: Paid. Unaccepted. Clearly flagged.](docs/communications/20261031/published/post-06.png)
+
+### The status. In the customer’s hands.
+
+Customer activity shows distinct order states, including Ready, Expired and Collected. Collected is not relabelled as delivered to the customer. Demo / Solana devnet. Not production. No real money. #BitPOS #devnet
+
+![Demo capture: The status. In the customer’s hands.](docs/communications/20261031/published/post-07.png)
+
+### Recorded. Not paid out.
+
+Rider fees are recorded as ledger obligations. The app explicitly says these are not withdrawable or transferred funds. On-chain rider payouts remain pending. Demo / Solana devnet. Not production. No real money. #BitPOS #devnet
+
+![Demo capture: Recorded. Not paid out.](docs/communications/20261031/published/post-08.png)
+
+### Built honestly. Still in progress.
+
+The rider app shows “Map unavailable.” Maps, physical-phone testing, automatic refunds and on-chain rider payouts are still pending. We show the current limits. Demo / Solana devnet. Not production. No real money. #BitPOS #devnet
+
+![Demo capture: Built honestly. Still in progress.](docs/communications/20261031/published/post-09.png)
+
+Maps, physical-phone testing, automatic refunds and on-chain rider payouts remain pending. The website hero includes existing product visualization; delivered history is an existing state, not a new payment test.
+
+
 ## Tried in a cafe
 
 ### Watch: order and pay from the table
