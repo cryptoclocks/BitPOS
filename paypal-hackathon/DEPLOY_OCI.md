@@ -81,10 +81,10 @@ export OCI_HOST=ubuntu@<host> OCI_SSH_KEY=<path to key>
    ssh -i "$OCI_SSH_KEY" "$OCI_HOST" 'docker compose -p bitpos-paypal -f ~/bitpos-paypal/compose.yaml exec -e BITPOS_PAYPAL_SEED_TARGET=oci api node --import tsx tools/paypal/seed-demo.ts shop'
    ```
 
-7. **Demo owner for judges.** The random password goes only to `~/bitpos-private/paypal/demo-owner.json` (mode 600) on the host. The owner copies it into the Devpost testing instructions; it is never written into the repository.
+7. **Demo accounts for judges (owner, manager, staff).** Random passwords go only to `~/bitpos-private/paypal/demo-login-paypal.json` (mode 600) on the host. The POS quick sign-in buttons read that file; judges never type a password. Set `BITPOS_DEMO_PUBLIC_ORIGIN=https://paypal-pos.cashlessthailand.com` in `paypal.env` to turn the buttons on.
 
    ```bash
-   ssh -i "$OCI_SSH_KEY" "$OCI_HOST" 'bash -s' < tools/paypal/create-demo-owner.sh
+   ssh -i "$OCI_SSH_KEY" "$OCI_HOST" 'bash -s' < tools/paypal/create-demo-staff.sh
    ```
 
 8. **Cloudflare tunnel.** Nothing to change. The existing tunnel already sends `paypal-pos.cashlessthailand.com` and `paypal-pay.cashlessthailand.com` to `127.0.0.1:3103` (checked 31 Oct). That port is the PayPal front (`tools/paypal/front.ts`), which routes by path:

@@ -73,12 +73,16 @@ if [ -f "$ENVF" ]; then
     grep -Eq "^$k=.+" "$ENVF" && ok "paypal.env has $k" || bad "paypal.env missing $k"; done
   grep -Eq '^PAYPAL_ENVIRONMENT=sandbox$' "$ENVF" && ok "PayPal Sandbox only" || bad "PAYPAL_ENVIRONMENT must be sandbox"
   grep -Eq '^PAYPAL_WEBHOOK_ID=.+' "$ENVF" && ok "webhook id set" || echo "note: PAYPAL_WEBHOOK_ID not set yet (register the webhook after the first deploy)"
+  grep -Eq '^BITPOS_DEMO_PUBLIC_ORIGIN=https://paypal-pos\.cashlessthailand\.com$' "$ENVF" && ok "quick sign-in opted in for paypal-pos" || echo "note: quick sign-in off (BITPOS_DEMO_PUBLIC_ORIGIN not set to the paypal-pos origin)"
   if grep -Eq '^BITPOS_AI_(PROVIDER_URL|MODEL)=' "$ENVF"; then
     for k in BITPOS_AI_PROVIDER_URL BITPOS_AI_MODEL; do
       a=$(grep -E "^$k=" "$ENVF" | cut -d= -f2-); b=$(grep -E "^$k=" ~/bitpos-private/runtime.env | cut -d= -f2-)
       [ "$a" = "$b" ] && ok "$k matches runtime.env" || bad "$k differs from runtime.env (the runtime worker would block Copilot draft jobs)"; done
   fi
 else bad "missing $ENVF"; fi
+DL=~/bitpos-private/paypal/demo-login-paypal.json
+# compose bind-mounts this file; if it were missing, docker would create a directory in its place.
+[ -f "$DL" ] && [ "$(stat -c %a "$DL")" = 600 ] && ok "demo-login-paypal.json present (mode 600)" || bad "missing $DL (run tools/paypal/create-demo-staff.sh on the host)"
 m=$(grep -E '^BITPOS_AI_MODEL=' ~/bitpos-private/runtime.env | cut -d= -f2-); echo "info: runtime AI model: ${m:-not configured} (Café Copilot and its copy use this configuration)"
 for c in bitpos-runtime-api-1 bitpos-runtime-worker-1 bitpos-runtime-web-1 bitpos-meta-meta-1 bitpos-staging-db-1; do
   s=$(docker inspect -f '{{.State.Status}}' "$c" 2>/dev/null || echo missing); echo "info: $c $s"; done

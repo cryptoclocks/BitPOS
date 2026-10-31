@@ -12,6 +12,11 @@ test('public shortcut access requires its exact opted-in devnet origin',async()=
   delete process.env.BITPOS_DEMO_PUBLIC_ORIGIN;assert.equal(demoAccessEnabled(),false);
   process.env.BITPOS_DEMO_PUBLIC_ORIGIN=config.PUBLIC_URL;assert.equal(demoAccessEnabled(),true);
   config.PUBLIC_URL='https://attacker.invalid';assert.equal(demoAccessEnabled(),false);
+  // PayPal edition: its own opted-in origin; opting in one origin never enables the other.
+  config.PUBLIC_URL='https://paypal-pos.cashlessthailand.com';process.env.NODE_ENV='development';assert.equal(demoAccessEnabled(),false);
+  process.env.BITPOS_DEMO_PUBLIC_ORIGIN=config.PUBLIC_URL;assert.equal(demoAccessEnabled(),true);
+  config.PUBLIC_URL='https://pos.cashlessthailand.com';assert.equal(demoAccessEnabled(),false);
+  process.env.BITPOS_DEMO_PUBLIC_ORIGIN=config.PUBLIC_URL;
   config.PUBLIC_URL='https://pos.cashlessthailand.com';process.env.NODE_ENV='production';assert.equal(demoAccessEnabled(),false);
  } finally {
   config.PUBLIC_URL=before.url;config.BITPOS_DEMO_QUICK_SIGNIN=before.flag;

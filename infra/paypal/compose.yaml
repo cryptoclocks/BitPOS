@@ -34,8 +34,12 @@ services:
     env_file: &envs
       - /home/ubuntu/bitpos-private/runtime.env
       - /home/ubuntu/bitpos-private/paypal/paypal.env
-    environment: {BITPOS_PAYPAL_API_PORT: "3104"}
-    volumes: ["/home/ubuntu/bitpos-paypal/src:/app/paypal-src:ro"]
+    environment: {BITPOS_PAYPAL_API_PORT: "3104", BITPOS_DEMO_LOGIN_FILE: /run/paypal/demo-login.json}
+    volumes:
+      - /home/ubuntu/bitpos-paypal/src:/app/paypal-src:ro
+      # Demo accounts of the PayPal demo shop (owner, manager, staff) for the POS quick sign-in (private, mode 600;
+      # created by tools/paypal/create-demo-staff.sh). Quick sign-in also needs BITPOS_DEMO_PUBLIC_ORIGIN in paypal.env.
+      - /home/ubuntu/bitpos-private/paypal/demo-login-paypal.json:/run/paypal/demo-login.json:ro
     mem_limit: 512m
   # PayPal lane only (webhook inbox, checkout reconcile, ending Copilot offers). Order expiry, promotion copy and
   # screen delivery stay with the existing bitpos-runtime worker, which serves every shop in the same database.
