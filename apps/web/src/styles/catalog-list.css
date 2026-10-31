@@ -53,3 +53,44 @@
   .catalog-table td:first-child,.catalog-table th:first-child{min-width:130px}
 }
 .catalog-list>section>h2{margin:24px 0 10px}
+
+/* Catalog as photo cards (PayPal AI Hackathon work 2026-10-31, see paypal-hackathon/PROVENANCE.md): readable on a phone
+   without sideways scrolling, a photo per product like the sales menu, price and stock at a glance, actions always visible. */
+.catalog-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:0}
+.catalog-summary>div{background:var(--bp-white);border:1px solid var(--bp-line);border-radius:16px;padding:12px 14px}
+.catalog-summary dt{color:var(--bp-muted);font-size:12px;font-weight:600}
+.catalog-summary dd{margin:2px 0 0;font-size:22px;font-weight:800;color:var(--bp-ink)}
+.catalog-products{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:16px}
+.catalog-card{display:flex;flex-direction:column;background:var(--bp-white);border:1px solid var(--bp-line);border-radius:20px;overflow:hidden;transition:box-shadow .15s,transform .15s}
+.catalog-card:hover{box-shadow:0 10px 28px rgba(76,29,115,.10);transform:translateY(-1px)}
+.catalog-card[data-status=sold_out] .catalog-card-photo img{filter:grayscale(.85);opacity:.7}
+.catalog-card-photo{position:relative;aspect-ratio:16/10;background:#f3ecfa;display:grid;place-items:center}
+.catalog-card-photo img{width:100%;height:100%;object-fit:cover;display:block}
+.catalog-card-photo>span{font-size:40px;font-weight:800;color:#c9b3e3}
+.catalog-card-flag{position:absolute;top:10px;left:10px;background:#f6a33a;color:#3b2200;font-size:12px;font-weight:800;padding:4px 10px;border-radius:999px}
+.catalog-card-body{display:flex;flex-direction:column;gap:6px;padding:14px 16px 16px;flex:1}
+.catalog-card-head{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.catalog-card-category{font-size:12px;font-weight:700;color:var(--bp-primary);background:#efe6f8;border-radius:999px;padding:3px 10px}
+.catalog-card-category.is-empty{color:var(--bp-muted);background:#f3f1f6}
+.catalog-card-status{font-size:12px;font-weight:700;color:#1d7a4a;white-space:nowrap}
+.catalog-card-status[data-status=low]{color:#a14a00}
+.catalog-card-status[data-status=sold_out],.catalog-card-status[data-status=price_missing]{color:var(--bp-red)}
+.catalog-card h3{margin:2px 0 0;font-size:17px;line-height:1.25;color:var(--bp-ink)}
+.catalog-card-alt{margin:0;font-size:13px;color:var(--bp-muted)}
+.catalog-card-desc{margin:0;font-size:13px;line-height:1.45;color:var(--bp-muted);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.catalog-card-foot{margin-top:auto;padding-top:10px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.catalog-card-price{display:flex;align-items:baseline;gap:8px}
+.catalog-card-price strong{font-size:18px;color:var(--bp-primary)}
+.catalog-card-price strong.is-missing{font-size:14px;color:var(--bp-red)}
+.catalog-card-price s{font-size:13px;color:var(--bp-muted)}
+.catalog-card-actions{display:flex;gap:8px}
+.catalog-card-actions button{min-height:40px;padding:0 14px;font-size:14px}
+@media(max-width:700px){
+  .catalog-summary{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .catalog-products{grid-template-columns:1fr}
+  .catalog-card{flex-direction:row}
+  .catalog-card-photo{aspect-ratio:auto;width:112px;flex:0 0 112px}
+  .catalog-card-body{padding:12px 14px}
+  .catalog-card-foot{flex-direction:column;align-items:stretch}
+  .catalog-card-actions button{flex:1}
+}
