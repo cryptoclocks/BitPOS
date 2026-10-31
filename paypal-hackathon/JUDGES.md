@@ -10,12 +10,13 @@
 | | |
 |---|---|
 | Merchant POS | `https://paypal-pos.cashlessthailand.com` (hosted since 31 Oct 2026) |
-| Owner sign-in | in the Devpost **Testing instructions** (kept out of this public repository) |
+| Sign-in | **Quick sign-in** buttons on the login page: **Owner**, **Manager**, **Staff** (no password needed) |
 | Customer table link | in the Devpost **Testing instructions** (opens the table menu of "Table 2") |
 | PayPal buyer | your own PayPal **Sandbox** personal account, or the sandbox buyer given in the testing instructions |
 
 1. **Owner: ask Copilot.**
-   - Sign in, open **PayPal · Copilot**.
+   - Press **Owner** under quick sign-in, then open **PayPal · Copilot**.
+   - Try **Staff** too: staff can see the tab, but drafting and approving are refused ("Owner or manager only"; the server enforces it).
    - Type, for example, *"Sell 12 cold brews before 10pm, max 15% off"*, then press **Draft with Copilot**.
    - You see each tool step: shop limits → stock → recent sales → validation → draft.
    - If the model proposes something outside the limits, the server rejects it, and you can watch the model correct itself. **Details (trace)** shows every model call and tool result.
