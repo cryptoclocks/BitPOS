@@ -26,6 +26,7 @@ export function fakePayPal(){
    const id='PP'+uid();orders.set(id,{input,status:'PAYER_ACTION_REQUIRED',captureId:null,value:input.amountCents,payee:input.payeeMerchantId});byRequest.set(input.requestId,id);return shape(id);},
   async captureOrder(id){calls.push('capture');const o=orders.get(id)!;
    if(fail.capture&&fail.capture!=='after'){const e=fail.capture;fail.capture=undefined;throw e;}
+   if(o.status==='VOIDED')throw new PayPalError('REJECTED','ORDER_EXPIRED','dbg',422);
    if(o.status!=='APPROVED'&&o.status!=='COMPLETED')throw new PayPalError('REJECTED','ORDER_NOT_APPROVED','dbg',422);
    if(!o.captureId){o.captureId='CP'+uid();o.status='COMPLETED';}
    if(fail.capture==='after'){fail.capture=undefined;throw new PayPalError('OUTCOME_UNKNOWN');}
@@ -33,7 +34,7 @@ export function fakePayPal(){
   async getOrder(id){calls.push('get');if(fail.get){const e=fail.get;fail.get=undefined;throw e;}return shape(id);},
   async getCapture(){throw new Error('unused');}
  };
- return {client,calls,fail,approve:(id:string)=>{orders.get(id)!.status='APPROVED';},tamper:(id:string,f:(o:{value:bigint;payee:string})=>void)=>f(orders.get(id)!)};
+ return {client,calls,fail,approve:(id:string)=>{orders.get(id)!.status='APPROVED';},setStatus:(id:string,status:string)=>{orders.get(id)!.status=status;},tamper:(id:string,f:(o:{value:bigint;payee:string})=>void)=>f(orders.get(id)!)};
 }
 
 export async function setupPayPalShop(){

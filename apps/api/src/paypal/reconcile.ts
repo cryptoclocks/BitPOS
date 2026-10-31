@@ -13,6 +13,9 @@ import {createPayPalOrder,advanceCheckout,type PayPalDeps} from './checkout';
 import {processWebhookInbox} from './webhook';
 
 const BATCH=20;
+/** An outcome still unknown this long after the capture started is shown to staff and the customer as needing review.
+ *  The checkout stays UNKNOWN (money may have moved), so the bill stays protected and the worker keeps asking PayPal. */
+export const REVIEW_AFTER_MINUTES=30;
 /** Backoff after a pass that changed nothing: 15 s, 30 s … capped at 10 minutes (PENDING at 5 minutes). */
 const backoff=(attempts:number,pending:boolean)=>pending?300:Math.min(600,15*2**Math.min(attempts,6));
 
@@ -31,6 +34,8 @@ export async function reconcilePayPalMerchant(merchant:string,d:PayPalDeps){
    }
    if(k.status==='CREATING'){await createPayPalOrder(k.access_token);}
    else await advanceCheckout(merchant,k.id,k.status==='PENDING'?'lookup':'capture',d,'order_lookup');
+   await tenant(merchant,db=>db.query(`UPDATE paypal_checkouts SET last_issue='NEEDS_REVIEW' WHERE merchant_id=$1 AND id=$2 AND status='UNKNOWN'
+    AND coalesce(capture_started_at,created_at)<=clock_timestamp()-($3||' minutes')::interval`,[merchant,k.id,String(REVIEW_AFTER_MINUTES)]));
    // Still waiting (outcome unknown, PENDING review, …): schedule the next look with backoff.
    await tenant(merchant,db=>db.query(`UPDATE paypal_checkouts SET next_check_at=clock_timestamp()+($3||' seconds')::interval
     WHERE merchant_id=$1 AND id=$2 AND status IN ('CREATING','APPROVED','CAPTURING','PENDING','UNKNOWN')`,[merchant,k.id,String(backoff(k.attempts,k.status==='PENDING'))]));

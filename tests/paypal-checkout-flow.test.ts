@@ -127,3 +127,28 @@ test('I-15: a permanent capture refusal is not left UNKNOWN; a failed lookup nev
  await s2.checkout.advanceCheckout(s2.f.merchant,k.id,'lookup',s2.checkout.paypalDeps()!);
  assert.deepEqual({status:(await row2(b.id)).status,closable:(await row2(b.id)).closable},{status:'PENDING',closable:false},'a lookup error proves nothing about money that may still move');
 });
+
+test('I-16: a VOIDED PayPal order ends its checkout so the bill gets a fresh PayPal order',integration,async()=>{
+ const {pp,checkout,bill,state}=await setup();const b=await bill(1);
+ const c=await checkout.createPayPalOrder(b.access_token);pp.setStatus(c.paypalOrderId!,'VOIDED');
+ const v=await checkout.capturePayPalOrder(b.access_token,c.paypalOrderId!);
+ assert.deepEqual({status:v.status,issue:v.issue},{status:'expired',issue:'PAYPAL_ORDER_VOIDED'});
+ const fresh=await checkout.createPayPalOrder(b.access_token);
+ assert.notEqual(fresh.paypalOrderId,c.paypalOrderId,'a new PayPal order, not the voided one');assert.equal(fresh.status,'awaiting_approval');
+ pp.approve(fresh.paypalOrderId!);assert.equal((await checkout.capturePayPalOrder(b.access_token,fresh.paypalOrderId!)).status,'paid');
+ assert.equal((await state(b.id)).settlements,1);
+});
+
+test('I-17: an outcome unknown for too long is shown as needing review but stays protected, and still settles later',integration,async()=>{
+ const {f,pp,checkout,bill,state}=await setup();const {reconcilePayPalMerchant}=await import('../apps/api/src/paypal/reconcile');
+ const b=await bill(1);const c=await checkout.createPayPalOrder(b.access_token);pp.approve(c.paypalOrderId!);
+ const refuse=()=>{pp.fail.capture=new PayPalError('AUTH_FAILED',undefined,'dbg',401);pp.fail.get=new PayPalError('AUTH_FAILED',undefined,'dbg',401);};
+ refuse();assert.equal((await checkout.capturePayPalOrder(b.access_token,c.paypalOrderId!)).status,'checking');
+ await f.tenant(f.merchant,db=>db.query("UPDATE paypal_checkouts SET capture_started_at=clock_timestamp()-interval '31 minutes',next_check_at=NULL WHERE order_id=$1",[b.id]));
+ refuse();await reconcilePayPalMerchant(f.merchant,checkout.paypalDeps()!);
+ const st=await checkout.paypalStatus(b.access_token);assert.equal(st.checkout.status,'review');
+ assert.equal((await f.tenant(f.merchant,db=>db.query('SELECT bitpos.unpaid_order_safe($1,$2) AS ok',[f.merchant,b.id]))).rows[0].ok,false,'money may have moved: the bill stays protected');
+ await f.tenant(f.merchant,db=>db.query("UPDATE paypal_checkouts SET next_check_at=NULL WHERE order_id=$1",[b.id]));
+ await reconcilePayPalMerchant(f.merchant,checkout.paypalDeps()!);
+ assert.deepEqual((await state(b.id)).checkouts,['CAPTURED']);assert.equal((await state(b.id)).order,'PAID');
+});

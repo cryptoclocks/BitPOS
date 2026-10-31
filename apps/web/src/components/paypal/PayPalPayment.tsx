@@ -13,7 +13,7 @@ import '../../styles/app.css';
 import '../../styles/customer-checkout.css';
 import '../../styles/paypal.css';
 
-type CheckoutStatus='none'|'creating'|'awaiting_approval'|'confirming'|'checking'|'paid'|'recovery'|'pending'|'declined'|'expired'|'failed'|'mismatch';
+type CheckoutStatus='none'|'creating'|'awaiting_approval'|'confirming'|'checking'|'paid'|'recovery'|'pending'|'declined'|'expired'|'failed'|'mismatch'|'review';
 interface CheckoutView {status:CheckoutStatus;paypalOrderId:string|null;captureId:string|null;amount:{currency:'USD';value:string}|null;issue:string|null}
 interface PayPalStatus {paypalShop:boolean;enabled:boolean;environment:'sandbox';clientId:string|null;amount:{currency:'USD';value:string}|null;checkout:CheckoutView}
 type Ui='idle'|'opening'|'cancelled'|'error'|'browser';
@@ -89,12 +89,14 @@ export default function PayPalPayment({accessToken}:{accessToken:string}){
   :c==='checking'?{mark:'↻',title:text('ยังไม่ทราบผลจาก PayPal กำลังตรวจอีกครั้ง','Still checking with PayPal'),body:text('ห้ามจ่ายซ้ำ ระบบจะอัปเดตเอง','Please don’t pay again. This page updates by itself.'),tone:''}
   :c==='pending'?{mark:'◷',title:text('PayPal กำลังตรวจสอบการชำระเงิน','PayPal is reviewing this payment'),body:text('ร้านจะเห็นออร์เดอร์เมื่อ PayPal ยืนยันแล้ว','The café will see it once PayPal confirms.'),tone:''}
   :c==='recovery'?{mark:'!',title:text('ได้รับเงินแล้ว แต่ต้องให้ร้านตรวจ','Payment received — the café will review it'),body:text('ห้ามจ่ายซ้ำ แจ้งพนักงาน','Do not pay again. Please tell the staff.'),tone:'is-expired'}
+  :c==='review'?{mark:'!',title:text('ยังยืนยันผลกับ PayPal ไม่ได้','We could not confirm this payment with PayPal yet'),body:text('ห้ามจ่ายซ้ำ พนักงานจะตรวจให้','Please don’t pay again. The staff will check it.'),tone:'is-expired'}
   :c==='mismatch'?{mark:'!',title:text('ข้อมูลจาก PayPal ไม่ตรงกับบิล','PayPal’s answer did not match this bill'),body:text('ยังไม่ถือว่าชำระแล้ว ห้ามจ่ายซ้ำ แจ้งพนักงาน','Not marked as paid. Do not pay again; please tell the staff.'),tone:'is-expired'}
   :orderClosed?{mark:'◷',title:text('บิลนี้ชำระไม่ได้แล้ว','This bill can no longer be paid'),body:text('ราคาหมดอายุหรือบิลถูกปิด กรุณาสั่งใหม่','The price expired or the bill was closed. Please order again.'),tone:'is-expired'}
   :null;
  const notice=!status.enabled&&!paid&&!state?text('ตอนนี้จ่ายบิลนี้ด้วย PayPal ไม่ได้ กรุณาแจ้งพนักงาน','PayPal cannot take this bill right now. Please tell the staff.')
   :ui==='cancelled'?text('ยกเลิกแล้ว กดจ่ายอีกครั้งได้','Payment cancelled. You can try again.')
   :c==='declined'?text('PayPal ปฏิเสธวิธีชำระนี้ ลองบัตรหรือบัญชีอื่น','PayPal declined this method. Try another card or account.')
+  :c==='expired'&&status.checkout.issue==='PAYPAL_ORDER_VOIDED'&&!orderClosed?text('PayPal ยกเลิกรายการก่อนหน้าแล้ว กดจ่ายอีกครั้งได้','PayPal cancelled the previous attempt. You can pay again.')
   :c==='expired'&&!orderClosed?text('ราคาหมดอายุ กรุณาตรวจรายการและสั่งใหม่','This price expired. Please review and order again.')
   :c==='failed'?text('เปิด PayPal ไม่สำเร็จ ลองอีกครั้ง','Could not open PayPal. Please try again.'):'';
  const amount=status.amount?`USD ${status.amount.value}`:'';

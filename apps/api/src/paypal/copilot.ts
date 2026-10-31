@@ -86,9 +86,11 @@ async function publish(merchant:string,actor:string,role:string,id:string,input:
   await routingLock(db,merchant);
   const devices=await promotionDevices(db,merchant);if(!devices.length)refuse(409,'NO_SCREENS');
   // Publishing bumps the campaign version, so a request key cannot dedupe a retry. Instead: if every current screen
-  // already has a live target for this campaign (same assignment), a repeat publish changes nothing.
-  const live=(await db.query<{device:string;generation:string}>(`SELECT target_device_id AS device,assignment_generation::text AS generation FROM promotion_playlist_targets
-   WHERE merchant_id=$1 AND campaign_id=$2 AND state NOT IN ('REVOKED','EXPIRED','TARGET_CHANGED')`,[merchant,e.campaign!.id])).rows;
+  // already has a live target for the campaign's approved version (same assignment), a repeat publish changes nothing.
+  // Targets of an older approved version do not count: the daily price only follows the approved version.
+  const live=(await db.query<{device:string;generation:string}>(`SELECT t.target_device_id AS device,t.assignment_generation::text AS generation FROM promotion_playlist_targets t
+   JOIN promotion_campaigns c ON c.merchant_id=t.merchant_id AND c.id=t.campaign_id AND t.campaign_version=c.approved_version
+   WHERE t.merchant_id=$1 AND t.campaign_id=$2 AND t.state NOT IN ('REVOKED','EXPIRED','TARGET_CHANGED')`,[merchant,e.campaign!.id])).rows;
   if(devices.every(x=>live.some(t=>t.device===x.deviceId&&t.generation===x.assignmentGeneration)))return {published:true,alreadyPublished:true};
   const targets=devices.map(x=>({deviceId:x.deviceId,assignmentGeneration:x.assignmentGeneration,authGeneration:x.authGeneration,screenGeneration:x.screenGeneration}));
   const c=(await db.query('SELECT version FROM promotion_campaigns WHERE merchant_id=$1 AND id=$2',[merchant,e.campaign!.id])).rows[0];

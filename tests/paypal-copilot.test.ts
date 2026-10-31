@@ -29,6 +29,10 @@ test('U-INT: owner limits are read from Thai and English intents',()=>{
  assert.equal(parseIntent('100% arabica, sell 8 before 5pm',now).discountPercent,null);
  assert.equal(parseIntent('lower the price by 15 % before 6pm',now).endsAt,'2026-11-06T11:00:00.000Z');
  assert.equal(parseIntent('ก่อน 16:30 8 ชิ้น ลดไม่เกิน 10%',now).endsAt,'2026-11-06T09:30:00.000Z');
+ // Third review: Thai words, full-width sign and decimals.
+ assert.deepEqual(parseIntent('ลดไม่เกิน 10 เปอร์เซ็นต์ ขาย 8 ชิ้น ก่อน 16:00',now),{discountPercent:10,units:8,endsAt:'2026-11-06T09:00:00.000Z'});
+ assert.equal(parseIntent('croissant 10％ off before 4pm',now).discountPercent,10);
+ assert.deepEqual(parseIntent('max 12.5% off, sell 6 by 12.5%',now),{discountPercent:12,units:6,endsAt:null});
 });
 
 /** Scripted model: follows a plan, reading tool answers from the conversation like a real model would. */

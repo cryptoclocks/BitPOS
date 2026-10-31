@@ -13,9 +13,15 @@ export const LIMITS={maxDiscountPercent:20,maxUnitsPerCampaign:50,maxUnitsPerOrd
 
 /** Limits the owner wrote in the intent are a second ceiling on top of the shop's limits (the model may not exceed either). */
 export interface IntentCaps {discountPercent:number|null;units:number|null;endsAt:string|null}
+// "%", the full-width "％" (Thai/CJK keyboards) and the written words count as a percent sign.
+const PCT='(?:%|％|เปอร์เซ็นต์|เปอร์เซนต์|percent|pct)';
+// A percentage value: 1–2 digits, optionally with a decimal ("12.5"); never part of a longer number ("100%").
+const PCT_VALUE=`(?<![\\d.])(\\d{1,2}(?:\\.\\d+)?)\\s*${PCT}`;
+const TIME_WORD='(?:ก่อน|ภายใน|before|until|by)';
+
 export function parseIntent(intent:string,now=new Date(),timezone='Asia/Bangkok'):IntentCaps{
- // Time first ("ก่อน 16:00", "before 5pm", "by 4"); a number followed by % (even "by 15 %") is never a time.
- const times=[...intent.matchAll(/(?:ก่อน|ภายใน|before|until|by)\s*(\d{1,2})(?:[:.](\d{2}))?\s*(am|pm|น\.?)?(?!\d)(?!\s*%)/gi)];
+ // Time first ("ก่อน 16:00", "before 5pm", "by 4"); a number that is a percentage ("by 15 %", "by 12.5%") is never a time.
+ const times=[...intent.matchAll(new RegExp(`${TIME_WORD}\\s*(\\d{1,2})(?:[:.](\\d{2}))?\\s*(am|pm|น\\.?)?(?!\\d)(?!(?:\\.\\d+)?\\s*${PCT})`,'gi'))];
  let endsAt:string|null=null;
  const local=new Intl.DateTimeFormat('en-CA',{timeZone:timezone,year:'numeric',month:'2-digit',day:'2-digit'}).format(now);
  // Wall-clock time in the shop's timezone today (Asia/Bangkok has no DST: +07:00).
@@ -30,16 +36,16 @@ export function parseIntent(intent:string,now=new Date(),timezone='Asia/Bangkok'
   if(end.getTime()>now.getTime()){endsAt=end.toISOString();break;}
  }
  // Percentages next to a discount word are the owner's ceiling ("ลด 10%", "max 15%", "15% off", "by 15%"); with several,
- // the highest. Otherwise any other 1–2 digit percentage counts, the lowest one (stricter); "100%" is never read as 0.
- const anchored=[...intent.matchAll(/(?:ลด(?:ราคา)?|ไม่เกิน|สูงสุด|max(?:imum)?|up to|at most|no more than|discount(?:ed)?|by)\s*(\d{1,2})\s*%|(?<![\d.])(\d{1,2})\s*%\s*(?:off|discount|ส่วนลด|max|สูงสุด)/gi)].map(x=>Number(x[1]??x[2]));
- const loose=[...intent.matchAll(/(?<![\d.])(\d{1,2})\s*%/g)].map(x=>Number(x[1]));
- const pcts=anchored.length?[Math.max(...anchored)]:loose.length?[Math.min(...loose)]:[];
+ // the highest. Otherwise any other percentage counts, the lowest one (stricter). Decimals round down ("12.5%" → 12).
+ const anchored=[...intent.matchAll(new RegExp(`(?:ลด(?:ราคา)?|ไม่เกิน|สูงสุด|max(?:imum)?|up to|at most|no more than|discount(?:ed)?|by)\\s*${PCT_VALUE}|${PCT_VALUE}\\s*(?:off|discount|ส่วนลด|max|สูงสุด)`,'gi'))].map(x=>Number(x[1]??x[2]));
+ const loose=[...intent.matchAll(new RegExp(PCT_VALUE,'gi'))].map(x=>Number(x[1]));
+ const cap=anchored.length?Math.max(...anchored):loose.length?Math.min(...loose):null;
  // Units: strip times and percentages so "before 10pm" or "15%" are never read as a quantity.
- const rest=intent.replace(/(?:ก่อน|ภายใน|before|until|by)\s*\d{1,2}(?:[:.]\d{2})?\s*(?:am|pm|น\.?)?/gi,' ').replace(/\d{1,3}\s*%/g,' ');
+ const rest=intent.replace(new RegExp(`${TIME_WORD}\\s*\\d{1,2}(?:[:.]\\d{2})?\\s*(?:am|pm|น\\.?)?`,'gi'),' ').replace(new RegExp(`\\d{1,3}(?:\\.\\d+)?\\s*${PCT}`,'gi'),' ');
  const units=rest.match(/(\d{1,3})\s*(?:ชิ้น|อัน|แก้ว|ถ้วย|จาน|กล่อง|ขวด|pcs|pieces|units|items|cups|glasses|bottles|slices|left)/i)
   ??rest.match(/(?:sell|push|move|clear|ขาย|ระบาย|เคลียร์)\s*(?:off\s+)?(?:the\s+|ที่เหลือ\s*)?(\d{1,3})\b/i)
   ??rest.match(/(\d{1,3})\s+[A-Za-z-]+(?:\s+[A-Za-z-]+)?\s+(?:left|remaining|max)\b/i);
- return {discountPercent:pcts.length?Math.max(...pcts):null,units:units?Number(units[1]):null,endsAt};
+ return {discountPercent:cap===null?null:Math.floor(cap),units:units?Number(units[1]):null,endsAt};
 }
 
 export const toolSchemas={

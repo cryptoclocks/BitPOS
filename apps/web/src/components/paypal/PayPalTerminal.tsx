@@ -24,7 +24,7 @@ export default function PayPalTerminal({accessToken}:{accessToken:string}){
  if(!status)return <main className="payment"><p role="status">Loading…</p>{error&&<p className="error" role="alert">{error}</p>}</main>;
  if(!status.paypalShop)return <Payment accessToken={accessToken} terminal/>;
  const c=status.checkout.status,paid=c==='paid'||order?.status==='PAID';
- const label=paid?'Paid with PayPal · ชำระแล้ว':c==='confirming'||c==='checking'?'Confirming with PayPal… · กำลังยืนยัน':c==='pending'?'PayPal is reviewing · PayPal กำลังตรวจ':c==='recovery'||c==='mismatch'?'Staff will check this payment · พนักงานจะตรวจ'
+ const label=paid?'Paid with PayPal · ชำระแล้ว':c==='confirming'||c==='checking'?'Confirming with PayPal… · กำลังยืนยัน':c==='pending'?'PayPal is reviewing · PayPal กำลังตรวจ':c==='recovery'||c==='mismatch'||c==='review'?'Staff will check this payment · พนักงานจะตรวจ'
   :order&&!['AWAITING_WALLET','AWAITING_PAYMENT'].includes(order.status)?'This bill is closed · บิลนี้ปิดแล้ว':'Scan to pay with PayPal · สแกนเพื่อจ่ายด้วย PayPal';
  return <main className={`payment pp-terminal ${paid?'is-paid':''}`}>
   <header><a className="brand" href="/">◈ BitPOS</a><span className="badge">PayPal Sandbox · USD</span></header>
