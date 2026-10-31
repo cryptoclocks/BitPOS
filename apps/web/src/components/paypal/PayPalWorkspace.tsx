@@ -13,6 +13,7 @@ interface Money {currency:string;decimals:number;amountMinor:string}
 interface Envelope {id:string;state:string;endedReason:string|null;version:number;approvedBy:string|null;maxUnits:number;maxUnitsPerOrder:number;discountPercent:number;endsAt:string;
  job:{id:string;state:string;blocker:string|null};campaign:null|{id:string;version:number;state:string;headline:string;copy:string;rationale:string;productName:string|null;productNameTh:string|null;basePrice:Money|null;offerPrice:Money|null};
  units:{reserved:number;consumed:number;released:number;remaining:number};targets:{id:string;state:string;label:string;renderedAt:string|null}[]}
+interface Recent {id:string;state:string;maxUnits:number;discountPercent:number;endsAt:string;createdAt:string;productName:string|null;productNameTh:string|null}
 interface Screen {deviceId:string;label:string;tableLabel:string|null;online:boolean;busy:boolean;capable:boolean}
 interface Outcome {totals:{unitsPaid:number;unitsReserved:number;unitsRemaining:number;maxUnits:number;ordersPaid:number;collected:number;recovery:number;gross:string|null;fee:string|null;net:string|null;refunded:string|null;refunds:number};
  orders:{orderId:string;units:number;unitState:string;status:string;createdAt:string;serving:string|null;captureId:string|null;settlement:string|null;gross:string|null}[]}
@@ -39,10 +40,12 @@ function Copilot({session,t,language}:{session:Session;t:(th:string,en:string)=>
  const [run,setRun]=useState<{run:Run;steps:Step[]}|null>(null);const [envelope,setEnvelope]=useState<Envelope|null>(null);
  const [screens,setScreens]=useState<Screen[]>([]);const [confirming,setConfirming]=useState(false);
  const [outcome,setOutcome]=useState<Outcome|null>(null);const [evidence,setEvidence]=useState<{orderId:string;data:Evidence}|null>(null);
- const [showTrace,setShowTrace]=useState(false);const [form,setForm]=useState(false);
+ const [showTrace,setShowTrace]=useState(false);const [form,setForm]=useState(false);const [recent,setRecent]=useState<Recent[]>([]);
  const call=useCallback(<T,>(path:string,body?:unknown)=>api<T>(path,body,session.token),[session.token]);
  const loadEnvelope=useCallback(async(id:string)=>{const e=await call<Envelope>(`/paypal/copilot/envelopes/${id}`);setEnvelope(e);
   if(e.state!=='DRAFT')setOutcome(await call<Outcome>(`/paypal/envelopes/${id}/outcome`));return e;},[call]);
+ const loadRecent=useCallback(()=>call<{envelopes:Recent[]}>('/paypal/copilot/envelopes').then(r=>setRecent(r.envelopes)).catch(()=>{/* list is optional */}),[call]);
+ useEffect(()=>{void loadRecent();},[loadRecent,envelope?.id,envelope?.state]);
  useEffect(()=>{void call<{screens:Screen[]}>('/paypal/screens').then(r=>setScreens(r.screens)).catch(()=>{/* shown when needed */});},[call]);
  // The draft's copy and image come from the existing generator; poll until the campaign exists, then follow results.
  useEffect(()=>{if(!envelope)return;const id=envelope.id;const done=envelope.campaign&&envelope.state!=='APPROVED';
@@ -60,6 +63,7 @@ function Copilot({session,t,language}:{session:Session;t:(th:string,en:string)=>
   try{await call(`/paypal/copilot/envelopes/${envelope.id}/publish`,{confirmAllScreens:true});await loadEnvelope(envelope.id);}
   catch(e){setError(errorMessage(e));}finally{setBusy(false);}};
  const stop=async()=>{if(!envelope)return;setBusy(true);try{await call(`/paypal/copilot/envelopes/${envelope.id}/stop`,{});await loadEnvelope(envelope.id);}catch(e){setError(errorMessage(e));}finally{setBusy(false);}};
+ const open=async(id:string)=>{setError('');setRun(null);setOutcome(null);setConfirming(false);try{await loadEnvelope(id);}catch(e){setError(errorMessage(e));}};
  const openEvidence=async(orderId:string)=>{try{setEvidence({orderId,data:await call<Evidence>(`/paypal/orders/${orderId}/evidence`)});}catch(e){setError(errorMessage(e));}};
 
  const examples=[t('ขายครัวซองต์ที่เหลือ 8 ชิ้นก่อน 16:00 ลดไม่เกิน 10%','Sell the 8 croissants left before 4pm, at most 10% off'),t('ดันโคลด์บรูว์ช่วงบ่าย 20 แก้ว ลดไม่เกิน 15% ก่อน 17:00','Push 20 cold brews this afternoon, max 15% off, before 5pm')];
@@ -74,6 +78,9 @@ function Copilot({session,t,language}:{session:Session;t:(th:string,en:string)=>
     <button type="button" className="secondary" onClick={()=>setForm(v=>!v)}>{t('ใช้แบบฟอร์มแทน (ไม่ใช้ AI)','Use the form instead (no AI)')}</button></div>
    <p className="pp-caption">{t('AI อ่านสต็อกและยอดขาย ตรวจขอบเขต แล้วบันทึกเป็นร่างเท่านั้น ไม่เผยแพร่ ไม่เลือกจอ ไม่เก็บเงินเอง','AI reads stock and sales, checks the limits and saves a draft only. It never publishes, picks screens or takes money.')}</p>
   </div>
+  {recent.length>0&&<div className="pp-card"><h2>{t('แคมเปญล่าสุด','Recent campaigns')}</h2>
+   <ul className="pp-recent">{recent.map(r=><li key={r.id} aria-current={envelope?.id===r.id?'true':undefined}><button type="button" className="secondary" onClick={()=>void open(r.id)}>
+    {(language==='th'?r.productNameTh:r.productName)??'—'} · −{r.discountPercent}% · {r.maxUnits} {t('ชิ้น','units')} · {t('จบ','ends')} {time(r.endsAt)} · <strong>{stateText(r.state,t)}</strong></button></li>)}</ul></div>}
   {form&&<RulesForm call={call} t={t} language={language} onDone={(id,r)=>{setRun(r);void loadEnvelope(id);setForm(false);}} onError={setError}/>}
   {error&&<div className="error" role="alert">{error}</div>}
   {run&&<div className="pp-card"><h2>{t('ขั้นตอนของ AI','What Copilot did')}</h2>
@@ -163,6 +170,9 @@ function stepText(s:Step,t:(th:string,en:string)=>string){
  if(s.tool==='validate_campaign')return r.ok?t(`ผ่าน: ${r.computed?.offerPrice?.value} ${r.computed?.offerPrice?.currency}`,`valid: ${r.computed?.offerPrice?.currency} ${r.computed?.offerPrice?.value}`):t(`ไม่ผ่าน: ${(s.violations??[]).join(', ')}`,`not valid: ${(s.violations??[]).join(', ')}`);
  if(s.tool==='save_campaign_draft')return r.saved?t('บันทึกเป็นร่างแล้ว','saved as a draft'):t('บันทึกไม่ได้','not saved');
  return '';
+}
+function stateText(state:string,t:(th:string,en:string)=>string){
+ return state==='DRAFT'?t('ร่าง','Draft'):state==='APPROVED'?t('อนุมัติแล้ว','Approved'):state==='ENDED'?t('จบแล้ว','Ended'):state==='REVOKED'?t('ยกเลิก','Revoked'):state;
 }
 function failureText(code:string|null,t:(th:string,en:string)=>string){
  return code==='CONFIGURATION_REQUIRED'?t('ยังไม่ได้ตั้งค่า AI ของร้าน ใช้แบบฟอร์มแทนได้','AI is not configured for this shop. Use the form instead.')

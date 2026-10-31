@@ -17,7 +17,6 @@ import {routingLock,RequestError} from '../authority';
 import {promotionsRequest,promotionDevices} from '../promotions';
 import {runCopilot,AgentFailure,type AgentModel,geminiModel} from './agent';
 import {parseIntent,saveCampaignDraft,validateCampaign,type ToolContext} from './agent-tools';
-import {centsToValue} from './money';
 
 const uuid=z.string().uuid();
 // PayPal-specific codes are not in the shared ConsumerError union; the HTTP layer only needs status + code.
@@ -26,7 +25,8 @@ const changeRole=(role:string)=>{if(!['owner','manager'].includes(role))refuse(4
 let model:AgentModel|undefined;
 /** Tests inject a scripted model; production uses Gemini through the existing BITPOS_AI_* configuration. */
 export function setCopilotModel(m:AgentModel|undefined){model=m;}
-const usd=(cents:string|number|bigint|null)=>cents===null?null:centsToValue(BigInt(cents));
+// Report formatting, not a PayPal request amount: zero (no sales yet, zero fee) must format instead of throwing.
+const usd=(cents:string|number|bigint|null)=>{if(cents===null)return null;const c=BigInt(cents),a=c<0n?-c:c;return `${c<0n?'-':''}${a/100n}.${(a%100n).toString().padStart(2,'0')}`;};
 
 async function runView(merchant:string,id:string){
  return tenant(merchant,async db=>{
@@ -128,10 +128,7 @@ export async function envelopeOutcome(merchant:string,id:string){
    LEFT JOIN paypal_settlements s ON s.merchant_id=o.merchant_id AND s.order_id=o.id
    LEFT JOIN paypal_captures c ON c.merchant_id=s.merchant_id AND c.capture_id=s.capture_id
    LEFT JOIN LATERAL (SELECT status FROM order_fulfillment f WHERE f.merchant_id=o.merchant_id AND f.order_id=o.id LIMIT 1) f ON true
-   WHERE u.merchant_id=$1 AND u.envelope_id=$2 ORDER BY o.created_at`,[merchant,id]).catch(async()=>db.query(`SELECT u.order_id AS "orderId",u.units,u.state AS "unitState",o.status,o.created_at AS "createdAt",o.paid_at AS "paidAt",NULL AS serving,
-   s.capture_id AS "captureId",s.state AS "settlement",c.gross_cents::text AS gross,c.fee_cents::text AS fee,c.net_cents::text AS net,NULL AS fulfillment
-   FROM paypal_campaign_units u JOIN orders o ON o.merchant_id=u.merchant_id AND o.id=u.order_id LEFT JOIN paypal_settlements s ON s.merchant_id=o.merchant_id AND s.order_id=o.id LEFT JOIN paypal_captures c ON c.merchant_id=s.merchant_id AND c.capture_id=s.capture_id
-   WHERE u.merchant_id=$1 AND u.envelope_id=$2 ORDER BY o.created_at`,[merchant,id]))).rows;
+   WHERE u.merchant_id=$1 AND u.envelope_id=$2 ORDER BY o.created_at`,[merchant,id])).rows;
   const refunds=(await db.query(`SELECT coalesce(sum(p.amount_cents),0)::text AS cents,count(*)::int AS n FROM paypal_payment_events p JOIN paypal_settlements s ON s.merchant_id=p.merchant_id AND s.capture_id=p.capture_id
    JOIN paypal_campaign_units u ON u.merchant_id=s.merchant_id AND u.order_id=s.order_id WHERE u.merchant_id=$1 AND u.envelope_id=$2 AND p.kind IN ('REFUNDED','PARTIALLY_REFUNDED','REVERSED')`,[merchant,id])).rows[0];
   const settled=orders.filter(o=>o.settlement==='SETTLED');
@@ -193,6 +190,9 @@ export async function paypalMerchantRequest(merchant:string,actor:string,role:st
   }
   if(p==='/api/paypal/copilot/rules'&&method==='POST')return rules(merchant,actor,role,input);
   if(p==='/api/paypal/copilot/runs'&&method==='GET')return tenant(merchant,async db=>({runs:(await db.query('SELECT id,intent,kind,state,model,envelope_id AS "envelopeId",started_at AS "startedAt" FROM paypal_agent_runs WHERE merchant_id=$1 ORDER BY started_at DESC LIMIT 10',[merchant])).rows}));
+  // Recent campaigns, so a draft or a live offer can be reopened (and stopped) after a reload.
+  if(p==='/api/paypal/copilot/envelopes'&&method==='GET')return tenant(merchant,async db=>({envelopes:(await db.query(`SELECT e.id,e.state,e.max_units AS "maxUnits",e.discount_percent AS "discountPercent",e.ends_at AS "endsAt",e.created_at AS "createdAt",p.name AS "productNameTh",p.name_en AS "productName"
+   FROM paypal_campaign_envelopes e LEFT JOIN products p ON p.merchant_id=e.merchant_id AND p.id=e.product_id WHERE e.merchant_id=$1 ORDER BY e.created_at DESC LIMIT 10`,[merchant])).rows}));
   if((m=p.match(/^\/api\/paypal\/copilot\/runs\/([0-9a-f-]{36})$/))&&method==='GET')return runView(merchant,uuid.parse(m[1]));
   if((m=p.match(/^\/api\/paypal\/copilot\/envelopes\/([0-9a-f-]{36})(?:\/(approve|publish|stop))?$/))){
    const id=uuid.parse(m[1]);

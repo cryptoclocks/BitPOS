@@ -96,6 +96,7 @@ export const apiRoutes: [RegExp, readonly string[]][] = [
   [/^paypal\/copilot\/runs$/, ['GET', 'POST']],
   [/^paypal\/copilot\/rules$/, ['POST']],
   [/^paypal\/copilot\/runs\/[0-9a-f-]{36}$/, ['GET']],
+  [/^paypal\/copilot\/envelopes$/, ['GET']],
   [/^paypal\/copilot\/envelopes\/[0-9a-f-]{36}$/, ['GET']],
   [/^paypal\/copilot\/envelopes\/[0-9a-f-]{36}\/(approve|publish|stop)$/, ['POST']],
   [/^paypal\/envelopes\/[0-9a-f-]{36}\/outcome$/, ['GET']],

@@ -93,6 +93,9 @@ test('U-AG + D-CMP + I-15: Copilot drafts within limits; owner approves and publ
   await freeScreen();
   const approved=await s.req(`/api/paypal/copilot/envelopes/${run.envelopeId}/approve`,'POST',{campaignVersion:draft.campaign.version});
   assert.equal(approved.envelope.state,'APPROVED');assert.equal(approved.envelope.campaign.state,'APPROVED');
+  const empty=await s.req(`/api/paypal/envelopes/${run.envelopeId}/outcome`,'GET');// before any sale (browser run found a 500 here)
+  assert.deepEqual([empty.totals.gross,empty.totals.fee,empty.totals.net,empty.totals.refunded],['0.00','0.00','0.00','0.00']);
+  assert.ok((await s.req('/api/paypal/copilot/envelopes','GET')).envelopes.some((e:any)=>e.id===run.envelopeId&&e.state==='APPROVED'));
   await assert.rejects(s.req(`/api/paypal/copilot/envelopes/${run.envelopeId}/publish`,'POST',{deviceIds:[s.f.b.id]}),/Unrecognized|invalid/i,'a subset of screens is not accepted for a daily offer');
   await s.req(`/api/paypal/copilot/envelopes/${run.envelopeId}/publish`,'POST',{confirmAllScreens:true});
   const first=await s.tableOrder();

@@ -31,6 +31,7 @@ Conventions: every new file starts with `PayPal AI Hackathon work (2026-10-31..1
 | 2026-10-31 | `supabase/migrations/404_paypal_campaign.sql`, `405_paypal_agent_trace.sql`, `apps/api/src/paypal/{agent,agent-tools,copilot}.ts`, `apps/web/src/components/paypal/PayPalWorkspace.tsx`, `tests/paypal-copilot.test.ts` | Phase 5–6: Café Copilot — Gemini function-calling agent with 5 read/validate/draft tools (no publish/charge/refund tool), intent limits parsed by the server, drafts through the existing promotion pipeline, owner approval + publish, envelope unit cap enforced by a database trigger on the daily-promotion order freeze, units following the order's money state, sold-out/time ending, rules-form fallback labelled as non-AI, campaign outcome and per-order evidence trace, merchant PayPal ledger; 3 tests (scripted model, real pipeline) |
 | 2026-10-31 | `apps/web/src/components/paypal/PayPalTerminal.tsx` | Phase 7: browser terminal for PayPal shops (USD total, pay QR, server-verified status); Mini firmware unchanged (PayPal on the Mini is P1) |
 | 2026-10-31 | `tools/paypal/{copilot-live,dev-worker}.ts`, `paypal-hackathon/evidence/ai-calls.md` | First real Café Copilot run with Gemini (`gemini-3.5-flash-lite`): drafted within the owner limits in 4.2 s; preview worker for promotion copy, delivery and PayPal reconcile (local fixture only) |
+| 2026-10-31 | `tools/paypal/dev-auth.ts`, `paypal-hackathon/evidence/browser-e2e.md`, recent-campaigns list (`copilot.ts` GET `/api/paypal/copilot/envelopes`, `PayPalWorkspace.tsx`, `api-routes.ts`), zero-amount report fix | Full browser run on the local preview: owner sign-in stub (fixture only), Copilot draft → approve → publish → table order → PayPal Sandbox popup → settled; bugs found in the run fixed with regression assertions |
 
 ### Pre-existing files touched
 | Date | File | Change |
@@ -45,7 +46,8 @@ Conventions: every new file starts with `PayPal AI Hackathon work (2026-10-31..1
 | 2026-10-31 | `apps/web/src/lib/api-routes.ts` | allow-list the PayPal pay routes and the merchant PayPal/Copilot routes in the web proxy |
 | 2026-10-31 | `apps/api/src/index.ts` (second line) | `/api/paypal/*` merchant routes dispatched after session check, outside the shared transaction |
 | 2026-10-31 | `apps/api/src/authority.ts` | map the four Copilot campaign-limit database errors to HTTP 409 codes |
-| 2026-10-31 | `apps/web/src/components/Pos.tsx` | new "PayPal · Copilot" workspace tab (type, navigation entry, button, render) |
+| 2026-10-31 | `apps/web/src/components/Pos.tsx` | new "PayPal · Copilot" workspace tab (type, navigation entry, button, render); footer label "Solana Devnet" → "PayPal Sandbox" |
+| 2026-10-31 | `apps/web/src/components/TableMenu.tsx` | header badge "Devnet" → "PayPal Sandbox"; review hint "choose an accepted test asset · network fee covered" → "pay with PayPal Sandbox on the next page" (the USDC delegation hint is untouched) |
 | 2026-10-31 | `apps/web/src/pages/terminal/[accessToken].astro` | renders `PayPalTerminal`, which falls back to the unchanged terminal display for shops without PayPal |
 | 2026-10-31 | `paypal_due_merchants()` (redefined in migration 404) | also wakes the worker for Copilot offers that ended |
 
