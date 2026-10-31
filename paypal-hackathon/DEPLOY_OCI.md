@@ -1,7 +1,7 @@
 <!-- PayPal AI Hackathon work (2026-10-31..11-12). See paypal-hackathon/PROVENANCE.md. -->
 # Deploy the PayPal edition to OCI (runbook)
 
-Status: the owner approved deploying on **31 Oct 2026**, before the Meta deadline, on the shared host. Every step that touches OCI, Cloudflare or the PayPal dashboard still needs the owner's go-ahead at the time, and only project `bitpos-paypal` and migrations `400`–`405` may change.
+Status: **deployed 31 Oct 2026** with the owner's approval, before the Meta deadline, on the shared host (`evidence/oci-deploy-2026-10-31.md`). Webhook registration and the BitPOS Mini are still open. Every step that touches OCI, Cloudflare or the PayPal dashboard still needs the owner's go-ahead at the time, and only project `bitpos-paypal` and migrations `400`–`405` may change.
 
 ## What gets deployed
 

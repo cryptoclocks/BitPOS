@@ -9,7 +9,7 @@
 
 | | |
 |---|---|
-| Merchant POS | `https://paypal-pos.cashlessthailand.com` *(hosted from 5 Nov 2026; until then use §4 to run it locally)* |
+| Merchant POS | `https://paypal-pos.cashlessthailand.com` (hosted since 31 Oct 2026) |
 | Owner sign-in | in the Devpost **Testing instructions** (kept out of this public repository) |
 | Customer table link | in the Devpost **Testing instructions** (opens the table menu of "Table 2") |
 | PayPal buyer | your own PayPal **Sandbox** personal account, or the sandbox buyer given in the testing instructions |
@@ -70,7 +70,8 @@
   - an outcome unknown for 30+ minutes, shown as "needs review" while still protected
 
 **AI agent (Gemini function calling)**
-- Five tools only: `read_catalog_stock`, `read_recent_sales`, `read_merchant_limits`, `validate_campaign`, `save_campaign_draft`. None can publish, choose screens, charge or refund (`apps/api/src/paypal/agent-tools.ts`).
+- Six tools only: `read_catalog_stock`, `read_recent_sales`, `read_merchant_limits`, `validate_campaign`, `save_campaign_draft`, `ask_owner`. None can publish, choose screens, charge or refund (`apps/api/src/paypal/agent-tools.ts`).
+- Function calling runs in mode ANY: the model must call a tool every turn and asks questions only through `ask_owner`. This keeps small models such as `gemini-2.5-flash-lite` on the plan.
 - Limits the owner typed are parsed by the server, in Thai and English: units, percent and end time, e.g. "ลดไม่เกิน 10%", "15% off", "before 5pm". They act as a second ceiling on top of the shop limits (max 20%, 50 units, 4 per order, 24 h).
 - Every price comes from the existing promotion price function.
 - At most 6 model calls per run. Every call and tool result is stored as a trace, and runs are capped per day.
@@ -80,7 +81,7 @@
 
 ## 3. Proof
 
-- **Tests: 41 PayPal tests** (`tests/paypal-*.test.ts`). Unit tests cover the client, verification and webhook signatures. Integration tests run on a disposable PostgreSQL:
+- **Tests: 43 PayPal tests** (`tests/paypal-*.test.ts`). Unit tests cover the client, verification and webhook signatures. Integration tests run on a disposable PostgreSQL:
   - checkout and capture replays
   - unknown outcomes
   - a cross-bill PayPal order
