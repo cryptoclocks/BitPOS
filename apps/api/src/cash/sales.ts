@@ -92,7 +92,7 @@ export async function createCashSale(db:pg.PoolClient,merchant:string,actor:stri
  checkDiscountRight(role,d.discount,t.subtotal,s);
  const seq=(await db.query<{v:string}>(`INSERT INTO cash_receipt_counters(merchant_id,series,last_value) VALUES($1,'main',1) ON CONFLICT(merchant_id,series) DO UPDATE SET last_value=cash_receipt_counters.last_value+1 RETURNING last_value::text v`,[merchant])).rows[0].v;
  const receiptNo=`${s.receiptPrefix}${seq.padStart(6,'0')}`;
- const seller={name:s.sellerName,taxId:s.sellerTaxId,branch:s.sellerBranch,address:s.sellerAddress};
+ const seller={name:s.sellerName,nameEn:s.sellerNameEn,taxId:s.sellerTaxId,branch:s.sellerBranch,address:s.sellerAddress,addressEn:s.sellerAddressEn};
  const row=(await db.query<SaleRow>(`INSERT INTO cash_sales(merchant_id,seq,receipt_no,currency_code,decimals,subtotal_minor,discount_minor,total_minor,net_minor,vat_minor,vat_mode,vat_bps,tender_minor,change_minor,cashier,cashier_role,seller,idempotency_key,request_hash)
   VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19) RETURNING ${COLS}`,
   [merchant,seq,receiptNo,s.currency,s.decimals,String(t.subtotal),String(t.discount),String(t.total),String(t.net),String(t.vat),s.vatMode,s.vatBps,String(t.tender),String(t.change),actor,role,JSON.stringify(seller),d.idempotencyKey,hash])).rows[0];

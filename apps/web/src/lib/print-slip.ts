@@ -5,10 +5,15 @@ import { optionsText, type CashSale } from './cash-view';
 // Slips are plain HTML documents printed from a hidden frame, so the app's own screen styles never leak into the print and
 // nothing leaves the device. Every value is escaped; money comes from the server's integer minor units through formatMoney.
 export const escapeHtml = (value: string) => value.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
-type Lang = 'th' | 'en';
-const t = (language: Lang, th: string, en: string) => language === 'th' ? th : en;
+/** 'both' prints every label and name as "ไทย / English" for a bill that tourists and locals can both read. */
+export type DocLang = 'th' | 'en' | 'both';
+type Lang = DocLang;
+const t = (language: Lang, th: string, en: string) => language === 'th' ? th : language === 'en' ? en : th === en ? th : `${th} / ${en}`;
+/** A product or shop name in the chosen language, falling back to the Thai one when there is no English text. */
+const nm = (language: Lang, th: string, en?: string | null) => language === 'th' || !en ? th : language === 'en' ? en : en === th ? th : `${th} / ${en}`;
+const locale = (language: Lang) => language === 'th' ? 'th-TH' : 'en-GB';
 const shortId = (order: Pick<OrderView, 'id'>) => order.id.slice(0, 8).toUpperCase();
-const lineName = (line: OrderView['pricing']['lines'][number], language: Lang) => language === 'en' && line.nameEn ? line.nameEn : line.name;
+const lineName = (line: OrderView['pricing']['lines'][number], language: Lang) => nm(language, line.name, line.nameEn);
 const base = (width: string, body: string, title: string) => `<!doctype html><html><head><meta charset="utf-8"><title>${escapeHtml(title)}</title><style>
 @page{size:${width} auto;margin:2mm}*{box-sizing:border-box}body{margin:0;width:${width};font:12px/1.35 "Sarabun","Noto Sans Thai",system-ui,sans-serif;color:#000}
 h1{font-size:15px;margin:0 0 2px;text-align:center}.c{text-align:center}.r{text-align:right}hr{border:0;border-top:1px dashed #000;margin:5px 0}
@@ -39,7 +44,7 @@ export function stickerDocs(order: OrderView, language: Lang): string {
 export interface ShiftSlip { periodStart: string; periodEnd: string; closedBy: string; note: string; countedCash: { minor: string; currency: string; decimals: number } | null; groups: { currency: string; decimals: number; orders: number; totalMinor: string }[] }
 /** Z-report of a closed round exactly as the server froze it; totals are never added across currencies. */
 export function zReportDoc(slip: ShiftSlip, language: Lang, shop = 'BitPOS'): string {
-  const when = (iso: string) => new Date(iso).toLocaleString(language === 'th' ? 'th-TH' : 'en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  const when = (iso: string) => new Date(iso).toLocaleString(locale(language), { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
   const money = (minor: string, currency: string, decimals: number) => formatMoney({ currency, decimals, amountMinor: minor } as never);
   const groups = new Map<string, { currency: string; decimals: number; orders: number; total: bigint }>();
   for (const g of slip.groups) { const k = `${g.currency}/${g.decimals}`, e = groups.get(k) ?? { currency: g.currency, decimals: g.decimals, orders: 0, total: 0n }; e.orders += g.orders; e.total += BigInt(g.totalMinor); groups.set(k, e); }
@@ -55,9 +60,10 @@ export const isTaxInvoice = (sale: Pick<CashSale, 'vatMode' | 'seller'>) => sale
 /** Cash register slip. Tax-inclusive sales with a complete seller profile print as an abbreviated tax invoice, everything else as a plain receipt. A voided sale is stamped. */
 export function cashReceiptDoc(sale: CashSale, language: Lang): string {
   const money = (minor: string) => escapeHtml(formatMoney({ currency: sale.currency.code, decimals: sale.currency.decimals, amountMinor: minor } as never));
-  const invoice = isTaxInvoice(sale), when = new Date(sale.createdAt).toLocaleString(language === 'th' ? 'th-TH' : 'en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-  const rows = sale.lines.map(l => { const opts = optionsText(l.sweetness, l.addons, language); return `<div class="row"><span>${l.qty}${l.unit ? ' ' + escapeHtml(l.unit) : '×'} ${escapeHtml(language === 'en' && l.nameEn ? l.nameEn : l.name)}${opts ? `<br><small>${escapeHtml(opts)}</small>` : ''}<br><small>@ ${money(l.unitMinor)}</small></span><span>${money(l.lineTotalMinor)}</span></div>`; }).join('');
-  const seller = sale.seller.name ? `<h1>${escapeHtml(sale.seller.name)}</h1>${sale.seller.address ? `<p class="c">${escapeHtml(sale.seller.address)}</p>` : ''}${invoice ? `<p class="c">${escapeHtml(t(language, 'เลขประจำตัวผู้เสียภาษี', 'Tax ID'))} ${escapeHtml(sale.seller.taxId ?? '')} · ${escapeHtml(t(language, 'สาขา', 'Branch'))} ${escapeHtml(sale.seller.branch ?? '00000')}</p>` : ''}` : '<h1>BitPOS</h1>';
+  const invoice = isTaxInvoice(sale), when = new Date(sale.createdAt).toLocaleString(locale(language), { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  const rows = sale.lines.map(l => { const opts = optionsText(l.sweetness, l.addons, language); return `<div class="row"><span>${l.qty}${l.unit ? ' ' + escapeHtml(l.unit) : '×'} ${escapeHtml(nm(language, l.name, l.nameEn))}${opts ? `<br><small>${escapeHtml(opts)}</small>` : ''}<br><small>@ ${money(l.unitMinor)}</small></span><span>${money(l.lineTotalMinor)}</span></div>`; }).join('');
+  const sellerName = nm(language, sale.seller.name ?? '', sale.seller.nameEn), sellerAddress = nm(language, sale.seller.address ?? '', sale.seller.addressEn);
+  const seller = sellerName ? `<h1>${escapeHtml(sellerName)}</h1>${sellerAddress ? `<p class="c">${escapeHtml(sellerAddress)}</p>` : ''}${invoice ? `<p class="c">${escapeHtml(t(language, 'เลขประจำตัวผู้เสียภาษี', 'Tax ID'))} ${escapeHtml(sale.seller.taxId ?? '')} · ${escapeHtml(t(language, 'สาขา', 'Branch'))} ${escapeHtml(sale.seller.branch ?? '00000')}</p>` : ''}` : '<h1>BitPOS</h1>';
   const discount = BigInt(sale.discountMinor) > 0n ? `<div class="row"><span>${escapeHtml(t(language, 'ยอดก่อนลด', 'Subtotal'))}</span><span>${money(sale.subtotalMinor)}</span></div><div class="row"><span>${escapeHtml(t(language, 'ส่วนลด', 'Discount'))}</span><span>-${money(sale.discountMinor)}</span></div>` : '';
   const vat = invoice ? `<div class="row"><span>${escapeHtml(t(language, 'มูลค่าก่อนภาษี', 'Amount before VAT'))}</span><span>${money(sale.netMinor)}</span></div><div class="row"><span>VAT ${(sale.vatBps / 100).toString()}%</span><span>${money(sale.vatMinor)}</span></div><p class="c"><small>${escapeHtml(t(language, 'ราคารวมภาษีมูลค่าเพิ่มแล้ว', 'Prices include VAT'))}</small></p>` : '';
   const voided = sale.status === 'VOIDED' ? `<p class="c big">*** ${escapeHtml(t(language, 'ยกเลิกแล้ว', 'VOID'))} ***</p>` : '';

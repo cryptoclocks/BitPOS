@@ -5,6 +5,9 @@ import { toMinor } from '../lib/shift-view';
 import { cashReceiptDoc, printDocument } from '../lib/print-slip';
 import { lineKey, minorToInput, moneyOf, optionsText, parseDiscount, quickTenders, type Addon, type CartLine, type CashQuote, type CashSale, type Drawer, type HeldBill } from '../lib/cash-view';
 import { play } from '../lib/sfx';
+import ReceiptLangPicker from './ReceiptLangPicker';
+import { readReceiptLang } from '../lib/receipt-lang';
+import type { DocLang } from '../lib/print-slip';
 import type { Product } from '../lib/menu';
 import CashSettingsPanel, { type CashSettings, type PriceInfo } from './CashSettingsPanel';
 import '../styles/cash-register.css';
@@ -227,26 +230,29 @@ function OptionSheet({ product, info, addons, currency, language, available, onC
 
 function SuccessSheet({ sale, language, onNew }: { sale: CashSale; language: 'th' | 'en'; onNew: () => void }) {
   const text = (th: string, en: string) => language === 'th' ? th : en;
+  const [bill, setBill] = useState<DocLang>(() => readReceiptLang(language));
   return <div className="cash-done" role="status" aria-live="polite">
     <svg className="cash-check" viewBox="0 0 52 52" aria-hidden="true"><circle cx="26" cy="26" r="24" /><path d="M14 27l8 8 16-17" /></svg>
     <p className="cash-done-title">{text('ขายสำเร็จ', 'Sale complete')} · {sale.receiptNo}</p>
     <p className="cash-done-change">{text('เงินทอน', 'Change')} <b>{moneyOf(sale.changeMinor, sale.currency)}</b></p>
-    <div className="toolbar"><button type="button" onClick={() => void printDocument(cashReceiptDoc(sale, language))}>{text('พิมพ์ใบเสร็จ', 'Print receipt')}</button><button type="button" className="secondary" onClick={onNew}>{text('ขายรายการใหม่', 'New sale')}</button></div>
+    <ReceiptLangPicker value={bill} onChange={setBill} language={language} />
+    <div className="toolbar"><button type="button" onClick={() => void printDocument(cashReceiptDoc(sale, bill))}>{text('พิมพ์ใบเสร็จ', 'Print receipt')}</button><button type="button" className="secondary" onClick={onNew}>{text('ขายรายการใหม่', 'New sale')}</button></div>
   </div>;
 }
 
 function RecentSales({ token, role, language, refreshKey, onChanged }: { token: string; role: string; language: 'th' | 'en'; refreshKey: string; onChanged?: () => void }) {
   const text = (th: string, en: string) => language === 'th' ? th : en;
-  const [sales, setSales] = useState<CashSale[]>([]); const [error, setError] = useState(''); const [voiding, setVoiding] = useState(''); const [reason, setReason] = useState(''); const [restock, setRestock] = useState(false); const [busy, setBusy] = useState(false);
+  const [bill, setBill] = useState<DocLang>(() => readReceiptLang(language)); const [sales, setSales] = useState<CashSale[]>([]); const [error, setError] = useState(''); const [voiding, setVoiding] = useState(''); const [reason, setReason] = useState(''); const [restock, setRestock] = useState(false); const [busy, setBusy] = useState(false);
   const load = useCallback(() => api<{ sales: CashSale[] }>('/cash/sales', undefined, token).then(r => { setSales(r.sales); setError(''); }).catch(e => setError(errorMessage(e))), [token]);
   useEffect(() => { void load(); }, [load, refreshKey]);
-  async function reprint(id: string) { try { const r = await api<{ sale: CashSale }>(`/cash/sales/${encodeURIComponent(id)}`, undefined, token); await printDocument(cashReceiptDoc(r.sale, language)); } catch (e) { setError(errorMessage(e)); } }
+  async function reprint(id: string) { try { const r = await api<{ sale: CashSale }>(`/cash/sales/${encodeURIComponent(id)}`, undefined, token); await printDocument(cashReceiptDoc(r.sale, bill)); } catch (e) { setError(errorMessage(e)); } }
   async function doVoid(id: string) {
     setBusy(true);
     try { await api(`/cash/sales/${encodeURIComponent(id)}/void`, { reason, restock }, token); setVoiding(''); setReason(''); setRestock(false); onChanged?.(); await load(); } catch (e) { setError(errorMessage(e)); }
     setBusy(false);
   }
   return <section className="cash-sales" aria-label={text('รายการขายล่าสุด', 'Recent sales')}>
+    <ReceiptLangPicker value={bill} onChange={setBill} language={language} />
     {error && <p className="notice" role="alert">{error}</p>}
     {!sales.length && !error && <p className="notice" role="status">{text('ยังไม่มีรายการขายเงินสด', 'No cash sales yet')}</p>}
     <ul>{sales.map(s => <li key={s.id} className={s.status === 'VOIDED' ? 'voided' : ''}>

@@ -8,7 +8,7 @@ export interface CashSale {
   subtotalMinor: string; discountMinor: string; totalMinor: string; netMinor: string; vatMinor: string; vatMode: 'none' | 'inclusive'; vatBps: number;
   tenderMinor: string; changeMinor: string; cashier: string; createdAt: string;
   void: { at: string; by: string; reason: string; restocked: boolean } | null;
-  seller: { name?: string; taxId?: string; branch?: string; address?: string };
+  seller: { name?: string; nameEn?: string; taxId?: string; branch?: string; address?: string; addressEn?: string };
   lines: SaleLine[];
 }
 export interface Addon { id: string; label: string; labelEn: string; priceMinor: string }
@@ -19,10 +19,10 @@ export interface Drawer { periodStart: string; currency: string; decimals: numbe
 /** One cart line is a product with one set of options; the same drink with other options is another line. */
 export const lineKey = (l: { productId: string; sweetness?: number; addonIds?: string[] }) => `${l.productId}|${l.sweetness ?? ''}|${[...new Set(l.addonIds ?? [])].sort().join(',')}`;
 /** Short text for the options of a line, e.g. "หวาน 50% · วิปครีม". */
-export function optionsText(sweetness: number | null | undefined, addons: { label: string; labelEn: string }[], language: 'th' | 'en'): string {
+export function optionsText(sweetness: number | null | undefined, addons: { label: string; labelEn: string }[], language: 'th' | 'en' | 'both'): string {
   const parts: string[] = [];
-  if (sweetness !== null && sweetness !== undefined) parts.push(language === 'th' ? `หวาน ${sweetness}%` : `Sweet ${sweetness}%`);
-  for (const a of addons) parts.push(language === 'en' && a.labelEn ? a.labelEn : a.label);
+  if (sweetness !== null && sweetness !== undefined) parts.push(language === 'th' ? `หวาน ${sweetness}%` : language === 'en' ? `Sweet ${sweetness}%` : `หวาน ${sweetness}% / Sweet ${sweetness}%`);
+  for (const a of addons) parts.push(language === 'th' || !a.labelEn ? a.label : language === 'en' ? a.labelEn : a.labelEn === a.label ? a.label : `${a.label} / ${a.labelEn}`);
   return parts.join(' · ');
 }
 export interface CashQuote { currency: { code: string; decimals: number }; vatMode: 'none' | 'inclusive'; vatBps: number; subtotalMinor: string; discountMinor: string; totalMinor: string; netMinor: string; vatMinor: string; lines: { productId: string; qty: number; unitMinor: string; sweetness: number | null; addons: Addon[] }[] }

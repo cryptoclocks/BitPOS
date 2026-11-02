@@ -199,6 +199,15 @@ test('the sales report lists cash as its own source per day and hour, and leaves
  await assert.rejects(salesReport(db,M,'staff',new URL(`http://x/api/reports/sales?from=${today}&to=${today}`)),/ROLE_REQUIRED/);
 }));
 
+test('the English shop name and address are saved and frozen on each receipt',integration,()=>withDb(async db=>{
+ await saveSettings(db,M,'o','owner',settings({sellerName:'ร้านทดสอบ',sellerNameEn:'Test Cafe',sellerAddress:'1 ถนน',sellerAddressEn:'1 Test Rd'}));
+ assert.deepEqual([(await getSettings(db,M,'staff')).settings.sellerNameEn,(await getSettings(db,M,'staff')).settings.sellerAddressEn],['Test Cafe','1 Test Rd']);
+ const s=(await createCashSale(db,M,'c','staff',sale())).sale;
+ assert.deepEqual([s.seller.name,s.seller.nameEn,s.seller.addressEn],['ร้านทดสอบ','Test Cafe','1 Test Rd']);
+ await saveSettings(db,M,'o','owner',settings({sellerNameEn:'Renamed'}));
+ assert.equal((await getCashSale(db,M,'staff',s.id)).sale.seller.nameEn,'Test Cafe');
+}));
+
 // Real concurrency: two connections commit for real (cleaned up afterwards); the row locks and the unique keys are what is tested.
 test('two cashiers selling the last unit at once: exactly one succeeds and numbers stay gapless',integration,async()=>{
  const m=randomUUID(),p=randomUUID(),admin=new pg.Client({connectionString:url});await admin.connect();

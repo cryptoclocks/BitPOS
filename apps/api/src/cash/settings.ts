@@ -3,15 +3,15 @@ import {z} from 'zod';
 import {fail,requireRole} from '../authority';
 import {audit} from '../db';
 
-export interface CashSettings{enabled:boolean;currency:string;decimals:number;vatMode:'none'|'inclusive';vatBps:number;sellerName:string;sellerTaxId:string;sellerBranch:string;sellerAddress:string;receiptPrefix:string;staffMaxDiscountBps:number}
-export const DEFAULTS:CashSettings={enabled:false,currency:'THB',decimals:2,vatMode:'none',vatBps:700,sellerName:'',sellerTaxId:'',sellerBranch:'00000',sellerAddress:'',receiptPrefix:'R',staffMaxDiscountBps:0};
+export interface CashSettings{enabled:boolean;currency:string;decimals:number;vatMode:'none'|'inclusive';vatBps:number;sellerName:string;sellerNameEn:string;sellerTaxId:string;sellerBranch:string;sellerAddress:string;sellerAddressEn:string;receiptPrefix:string;staffMaxDiscountBps:number}
+export const DEFAULTS:CashSettings={enabled:false,currency:'THB',decimals:2,vatMode:'none',vatBps:700,sellerName:'',sellerNameEn:'',sellerTaxId:'',sellerBranch:'00000',sellerAddress:'',sellerAddressEn:'',receiptPrefix:'R',staffMaxDiscountBps:0};
 const save=z.object({enabled:z.boolean(),currency:z.string().regex(/^[A-Z]{3}$/),decimals:z.number().int().min(0).max(4),vatMode:z.enum(['none','inclusive']),vatBps:z.number().int().min(0).max(3000),
- sellerName:z.string().trim().max(120),sellerTaxId:z.string().regex(/^([0-9]{13})?$/),sellerBranch:z.string().regex(/^[0-9]{5}$/),sellerAddress:z.string().trim().max(300),
+ sellerName:z.string().trim().max(120),sellerNameEn:z.string().trim().max(120).default(''),sellerTaxId:z.string().regex(/^([0-9]{13})?$/),sellerBranch:z.string().regex(/^[0-9]{5}$/),sellerAddress:z.string().trim().max(300),sellerAddressEn:z.string().trim().max(300).default(''),
  receiptPrefix:z.string().regex(/^[A-Z0-9]{0,6}$/),staffMaxDiscountBps:z.number().int().min(0).max(9999)}).strict();
 const prices=z.object({set:z.array(z.object({productId:z.string().uuid(),priceMinor:z.string().regex(/^[1-9][0-9]{0,11}$/),unit:z.string().trim().max(20).optional(),sweetnessEnabled:z.boolean().optional()}).strict()).max(200).default([]),clear:z.array(z.string().uuid()).max(200).default([])}).strict()
  .refine(v=>new Set([...v.set.map(s=>s.productId),...v.clear]).size===v.set.length+v.clear.length);
-type Row={enabled:boolean;currency:string;decimals:number;vat_mode:'none'|'inclusive';vat_bps:number;seller_name:string;seller_tax_id:string;seller_branch:string;seller_address:string;receipt_prefix:string;staff_max_discount_bps:number};
-const view=(r:Row):CashSettings=>({enabled:r.enabled,currency:r.currency,decimals:r.decimals,vatMode:r.vat_mode,vatBps:r.vat_bps,sellerName:r.seller_name,sellerTaxId:r.seller_tax_id,sellerBranch:r.seller_branch,sellerAddress:r.seller_address,receiptPrefix:r.receipt_prefix,staffMaxDiscountBps:r.staff_max_discount_bps});
+type Row={enabled:boolean;currency:string;decimals:number;vat_mode:'none'|'inclusive';vat_bps:number;seller_name:string;seller_name_en:string;seller_tax_id:string;seller_branch:string;seller_address:string;seller_address_en:string;receipt_prefix:string;staff_max_discount_bps:number};
+const view=(r:Row):CashSettings=>({enabled:r.enabled,currency:r.currency,decimals:r.decimals,vatMode:r.vat_mode,vatBps:r.vat_bps,sellerName:r.seller_name,sellerNameEn:r.seller_name_en,sellerTaxId:r.seller_tax_id,sellerBranch:r.seller_branch,sellerAddress:r.seller_address,sellerAddressEn:r.seller_address_en,receiptPrefix:r.receipt_prefix,staffMaxDiscountBps:r.staff_max_discount_bps});
 const staffUp=(role:string)=>{if(!['owner','manager','staff'].includes(role))fail('ROLE_REQUIRED',403);};
 
 export async function loadSettings(db:pg.PoolClient,merchant:string,lock=false):Promise<CashSettings>{
@@ -26,10 +26,10 @@ export async function saveSettings(db:pg.PoolClient,merchant:string,actor:string
  if(d.vatMode==='inclusive'&&(!d.sellerName||d.sellerTaxId.length!==13))fail('INVALID_REQUEST',422);
  const cur=await loadSettings(db,merchant,true);
  if((d.currency!==cur.currency||d.decimals!==cur.decimals)&&((await db.query('SELECT 1 FROM cash_prices WHERE merchant_id=$1 LIMIT 1',[merchant])).rowCount||(await db.query('SELECT 1 FROM cash_sales WHERE merchant_id=$1 LIMIT 1',[merchant])).rowCount))fail('INVALID_REQUEST',409);
- await db.query(`INSERT INTO cash_settings(merchant_id,enabled,currency,decimals,vat_mode,vat_bps,seller_name,seller_tax_id,seller_branch,seller_address,receipt_prefix,staff_max_discount_bps,updated_by)
-  VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) ON CONFLICT(merchant_id) DO UPDATE SET enabled=excluded.enabled,currency=excluded.currency,decimals=excluded.decimals,vat_mode=excluded.vat_mode,vat_bps=excluded.vat_bps,
-  seller_name=excluded.seller_name,seller_tax_id=excluded.seller_tax_id,seller_branch=excluded.seller_branch,seller_address=excluded.seller_address,receipt_prefix=excluded.receipt_prefix,staff_max_discount_bps=excluded.staff_max_discount_bps,updated_by=excluded.updated_by,updated_at=clock_timestamp()`,
-  [merchant,d.enabled,d.currency,d.decimals,d.vatMode,d.vatBps,d.sellerName,d.sellerTaxId,d.sellerBranch,d.sellerAddress,d.receiptPrefix,d.staffMaxDiscountBps,actor]);
+ await db.query(`INSERT INTO cash_settings(merchant_id,enabled,currency,decimals,vat_mode,vat_bps,seller_name,seller_tax_id,seller_branch,seller_address,receipt_prefix,staff_max_discount_bps,updated_by,seller_name_en,seller_address_en)
+  VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15) ON CONFLICT(merchant_id) DO UPDATE SET enabled=excluded.enabled,currency=excluded.currency,decimals=excluded.decimals,vat_mode=excluded.vat_mode,vat_bps=excluded.vat_bps,
+  seller_name=excluded.seller_name,seller_name_en=excluded.seller_name_en,seller_address_en=excluded.seller_address_en,seller_tax_id=excluded.seller_tax_id,seller_branch=excluded.seller_branch,seller_address=excluded.seller_address,receipt_prefix=excluded.receipt_prefix,staff_max_discount_bps=excluded.staff_max_discount_bps,updated_by=excluded.updated_by,updated_at=clock_timestamp()`,
+  [merchant,d.enabled,d.currency,d.decimals,d.vatMode,d.vatBps,d.sellerName,d.sellerTaxId,d.sellerBranch,d.sellerAddress,d.receiptPrefix,d.staffMaxDiscountBps,actor,d.sellerNameEn,d.sellerAddressEn]);
  await audit(db,merchant,actor,'cash.settings',d.enabled?'enabled':'disabled');
  return {settings:d};
 }

@@ -4,7 +4,7 @@ import { toMinor } from '../lib/shift-view';
 import { minorToInput, type Addon } from '../lib/cash-view';
 import type { Product } from '../lib/menu';
 
-export interface CashSettings { enabled: boolean; currency: string; decimals: number; vatMode: 'none' | 'inclusive'; vatBps: number; sellerName: string; sellerTaxId: string; sellerBranch: string; sellerAddress: string; receiptPrefix: string; staffMaxDiscountBps: number }
+export interface CashSettings { enabled: boolean; currency: string; decimals: number; vatMode: 'none' | 'inclusive'; vatBps: number; sellerName: string; sellerNameEn: string; sellerTaxId: string; sellerBranch: string; sellerAddress: string; sellerAddressEn: string; receiptPrefix: string; staffMaxDiscountBps: number }
 export interface PriceInfo { priceMinor: string; unit: string; sweetnessEnabled: boolean }
 interface Barcode { barcode: string; productId: string }
 interface PriceDraft { price?: string; unit?: string; sweet?: boolean }
@@ -69,7 +69,9 @@ export default function CashSettingsPanel({ token, role, language, products, set
       <fieldset disabled={!owner || busy} className="cash-form">
         <label className="cash-check-row"><input type="checkbox" checked={form.enabled} onChange={e => set('enabled', e.target.checked)} />{text('เปิดใช้เครื่องคิดเงินสด', 'Turn the cash register on')}</label>
         <label>{text('ชื่อร้าน/ผู้ขาย', 'Seller name')}<input value={form.sellerName} maxLength={120} onChange={e => set('sellerName', e.target.value)} /></label>
+        <label>{text('ชื่อร้านภาษาอังกฤษ (ใช้บนบิลภาษาอังกฤษ)', 'Shop name in English (used on English bills)')}<input value={form.sellerNameEn} maxLength={120} onChange={e => set('sellerNameEn', e.target.value)} /></label>
         <label>{text('ที่อยู่', 'Address')}<input value={form.sellerAddress} maxLength={300} onChange={e => set('sellerAddress', e.target.value)} /></label>
+        <label>{text('ที่อยู่ภาษาอังกฤษ', 'Address in English')}<input value={form.sellerAddressEn} maxLength={300} onChange={e => set('sellerAddressEn', e.target.value)} /></label>
         <label>{text('เลขประจำตัวผู้เสียภาษี (13 หลัก)', 'Tax ID (13 digits)')}<input inputMode="numeric" value={form.sellerTaxId} maxLength={13} onChange={e => set('sellerTaxId', e.target.value.replace(/\D/g, ''))} /></label>
         <label>{text('รหัสสาขา (5 หลัก)', 'Branch code (5 digits)')}<input inputMode="numeric" value={form.sellerBranch} maxLength={5} onChange={e => set('sellerBranch', e.target.value.replace(/\D/g, ''))} /></label>
         <label>{text('ภาษีมูลค่าเพิ่ม', 'VAT')}<select value={form.vatMode} onChange={e => set('vatMode', e.target.value as 'none' | 'inclusive')}><option value="none">{text('ไม่คิด (ออกใบเสร็จธรรมดา)', 'Not charged (plain receipt)')}</option><option value="inclusive">{text('รวมอยู่ในราคาแล้ว (ใบกำกับภาษีอย่างย่อ)', 'Included in prices (abbreviated tax invoice)')}</option></select></label>

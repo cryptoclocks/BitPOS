@@ -4,7 +4,9 @@ import { requestId } from '../lib/request-id';
 import { formatMoney } from '../lib/money';
 import { perDenomination, toMinor } from '../lib/shift-view';
 import '../styles/cash-register.css';
-import { printDocument, zReportDoc } from '../lib/print-slip';
+import { printDocument, zReportDoc, type DocLang } from '../lib/print-slip';
+import { readReceiptLang } from '../lib/receipt-lang';
+import ReceiptLangPicker from './ReceiptLangPicker';
 
 interface Group { currency: string; decimals: number; sourceKind: string; orders: number; totalMinor: string }
 interface DrawerFigure { currency: string; decimals: number; openingFloatMinor: string; cashSalesMinor: string; expectedMinor: string }
@@ -18,7 +20,7 @@ interface ShiftState { open: { periodStart: string; asOf: string; snapshot: Snap
 export default function ShiftClose({ token, language }: { token: string; language: 'th' | 'en' }) {
   const text = (th: string, en: string) => language === 'th' ? th : en;
   const [state, setState] = useState<ShiftState>(); const [message, setMessage] = useState(''); const [busy, setBusy] = useState(false);
-  const [cash, setCash] = useState(''); const [currency, setCurrency] = useState(''); const [note, setNote] = useState(''); const [confirming, setConfirming] = useState(false);
+  const [bill, setBill] = useState<DocLang>(() => readReceiptLang(language)); const [cash, setCash] = useState(''); const [currency, setCurrency] = useState(''); const [note, setNote] = useState(''); const [confirming, setConfirming] = useState(false);
   const [keyRef] = useState({ current: requestId() });
   async function load() {
     try { const next = await api<ShiftState>('/shifts', undefined, token); setState(next); setMessage(''); }
@@ -67,8 +69,9 @@ export default function ShiftClose({ token, language }: { token: string; languag
       </aside>
     </div>
     <h2>{text('รอบที่ปิดแล้ว', 'Closed rounds')}</h2>
+    <ReceiptLangPicker value={bill} onChange={setBill} language={language} />
     {state.closes.length ? <table className="catalog-table"><thead><tr><th>{text('รอบ', 'Round')}</th><th>{text('ยอดชำระแล้ว', 'Paid sales')}</th><th>{text('เงินสดที่นับได้', 'Counted cash')}</th><th>{text('หมายเหตุ', 'Note')}</th><th><span className="sr-only">{text('พิมพ์', 'Print')}</span></th></tr></thead>
-      <tbody>{state.closes.map(c => <tr key={c.id}><td>{when(c.periodStart)} – {when(c.periodEnd)}</td><td>{perDenomination(c.snapshot.groups).map(t => `${money(t.totalMinor, t.currency, t.decimals)} (${t.orders})`).join(' · ') || '—'}</td><td>{c.countedCash ? money(c.countedCash.minor, c.countedCash.currency, c.countedCash.decimals) : '—'}{c.snapshot.drawer && <small className="shift-expected"> {text('ควรมี', 'expected')} {money(c.snapshot.drawer.expectedMinor, c.snapshot.drawer.currency, c.snapshot.drawer.decimals)}{c.countedCash && c.countedCash.currency === c.snapshot.drawer.currency && c.countedCash.decimals === c.snapshot.drawer.decimals ? ` · ${BigInt(c.countedCash.minor) - BigInt(c.snapshot.drawer.expectedMinor) === 0n ? text('ตรง', 'match') : text('ส่วนต่าง', 'diff') + ' ' + money(BigInt(c.countedCash.minor) - BigInt(c.snapshot.drawer.expectedMinor), c.countedCash.currency, c.countedCash.decimals)}` : ''}</small>}</td><td>{c.note || '—'}</td><td><button type="button" className="secondary" onClick={() => void printDocument(zReportDoc({ periodStart: c.periodStart, periodEnd: c.periodEnd, closedBy: c.closedBy, note: c.note, countedCash: c.countedCash, groups: c.snapshot.groups }, language))}>{text('พิมพ์ Z-Report', 'Print Z-Report')}</button></td></tr>)}</tbody></table>
+      <tbody>{state.closes.map(c => <tr key={c.id}><td>{when(c.periodStart)} – {when(c.periodEnd)}</td><td>{perDenomination(c.snapshot.groups).map(t => `${money(t.totalMinor, t.currency, t.decimals)} (${t.orders})`).join(' · ') || '—'}</td><td>{c.countedCash ? money(c.countedCash.minor, c.countedCash.currency, c.countedCash.decimals) : '—'}{c.snapshot.drawer && <small className="shift-expected"> {text('ควรมี', 'expected')} {money(c.snapshot.drawer.expectedMinor, c.snapshot.drawer.currency, c.snapshot.drawer.decimals)}{c.countedCash && c.countedCash.currency === c.snapshot.drawer.currency && c.countedCash.decimals === c.snapshot.drawer.decimals ? ` · ${BigInt(c.countedCash.minor) - BigInt(c.snapshot.drawer.expectedMinor) === 0n ? text('ตรง', 'match') : text('ส่วนต่าง', 'diff') + ' ' + money(BigInt(c.countedCash.minor) - BigInt(c.snapshot.drawer.expectedMinor), c.countedCash.currency, c.countedCash.decimals)}` : ''}</small>}</td><td>{c.note || '—'}</td><td><button type="button" className="secondary" onClick={() => void printDocument(zReportDoc({ periodStart: c.periodStart, periodEnd: c.periodEnd, closedBy: c.closedBy, note: c.note, countedCash: c.countedCash, groups: c.snapshot.groups }, bill))}>{text('พิมพ์ Z-Report', 'Print Z-Report')}</button></td></tr>)}</tbody></table>
       : <p className="notice">{text('ยังไม่เคยปิดรอบ', 'No round has been closed yet.')}</p>}
   </section>;
 }

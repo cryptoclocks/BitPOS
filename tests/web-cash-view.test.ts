@@ -51,3 +51,15 @@ test('options text, line identity and the receipt show sweetness, add-ons and un
  assert.ok(th.includes('2 แก้ว')&&th.includes('หวาน 50% · วิปครีม'));
  assert.ok(cashReceiptDoc(sale(),'en').includes('Sweet 50% · Whip'));
 });
+
+test('English and bilingual bills: names, labels, options and the shop name follow the chosen language',()=>{
+ const s=sale({seller:{name:'ร้านตัวอย่าง',nameEn:'Sample Cafe',taxId:'0105500000001',branch:'00000',address:'1 ถนนตัวอย่าง',addressEn:'1 Sample Rd'}});
+ const en=cashReceiptDoc(s,'en');
+ for(const x of ['Sample Cafe','1 Sample Rd','Abbreviated tax invoice','Latte','Sweet 50% · Whip','Cash received','Change','Thank you'])assert.ok(en.includes(x),x);
+ assert.ok(!/[\u0e00-\u0e7f]/.test(en.replace(/<title>.*<\/title>/,'').replace('แก้ว','')),'no Thai left on an English bill except the unit the owner typed');
+ const both=cashReceiptDoc(s,'both');
+ for(const x of ['ร้านตัวอย่าง / Sample Cafe','ใบกำกับภาษีอย่างย่อ / Abbreviated tax invoice','ลาเต้','Latte','รับเงินสด / Cash received','เงินทอน / Change','ขอบคุณที่อุดหนุน / Thank you','หวาน 50% / Sweet 50%'])assert.ok(both.includes(x)||both.includes(x.replace(' / ',' / ')),x);
+ // an English bill never invents English text: a shop with no English name falls back to the Thai one
+ assert.ok(cashReceiptDoc(sale(),'en').includes('ร้านทดสอบ'));
+ assert.ok(optionsText(null,[{label:'ไข่มุก',labelEn:''}],'en')==='ไข่มุก');
+});
