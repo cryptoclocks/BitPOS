@@ -44,7 +44,9 @@ import {listChannelOrders,syncGrabOrders,grabOrderCommand} from './channels/grab
 import {listItemMap,saveItemMap} from './channels/item-map';
 import {settleChannelOrder} from './channels/settlement';
 import {addBarcode,listBarcodes,lookupBarcode,removeBarcode} from './cash/barcodes';
-import {getPrices,getSettings,putPrices,saveSettings} from './cash/settings';
+import {getAddons,getPrices,getSettings,putAddons,putPrices,saveSettings} from './cash/settings';
+import {getDrawer,openDrawer} from './cash/drawer';
+import {discardHeld,holdBill,listHeld,recallHeld} from './cash/held';
 import {createCashSale,getCashSale,listCashSales,quoteCashSale,voidCashSale} from './cash/sales';
 import {channelConnectionsRequest,setActiveEnvironment,testChannelConnection} from './channel-connections';
 import {currentScreen} from './device-commands';
@@ -318,6 +320,14 @@ export async function handle(req:http.IncomingMessage){
  if(path==='/api/cash/settings'&&method==='PUT')return saveSettings(db,merchant,session.user_id,session.current_role,input);
  if(path==='/api/cash/prices'&&method==='GET')return getPrices(db,merchant,session.current_role);
  if(path==='/api/cash/prices'&&method==='PUT')return putPrices(db,merchant,session.user_id,session.current_role,input);
+ if(path==='/api/cash/addons'&&method==='GET')return getAddons(db,merchant,session.current_role);
+ if(path==='/api/cash/addons'&&method==='PUT')return putAddons(db,merchant,session.user_id,session.current_role,input);
+ if(path==='/api/cash/drawer'&&method==='GET')return getDrawer(db,merchant,session.current_role);
+ if(path==='/api/cash/drawer'&&method==='PUT')return openDrawer(db,merchant,session.user_id,session.current_role,input);
+ if(path==='/api/cash/held'&&method==='GET')return listHeld(db,merchant,session.current_role);
+ if(path==='/api/cash/held'&&method==='POST')return holdBill(db,merchant,session.user_id,session.current_role,input);
+ const cashHeld=path.match(/^\/api\/cash\/held\/([^/]+)\/(recall|discard)$/);
+ if(cashHeld&&method==='POST')return (cashHeld[2]==='recall'?recallHeld:discardHeld)(db,merchant,session.user_id,session.current_role,cashHeld[1]);
  if(path==='/api/cash/quote'&&method==='POST')return quoteCashSale(db,merchant,session.current_role,input);
  if(path==='/api/cash/sales'&&method==='POST')return createCashSale(db,merchant,session.user_id,session.current_role,input);
  if(path==='/api/cash/sales'&&method==='GET')return listCashSales(db,merchant,session.current_role);

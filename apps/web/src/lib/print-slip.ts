@@ -1,6 +1,6 @@
 import type { OrderView } from '../../../../packages/contracts/src/index';
 import { formatMoney, lineTotal } from './money';
-import type { CashSale } from './cash-view';
+import { optionsText, type CashSale } from './cash-view';
 
 // Slips are plain HTML documents printed from a hidden frame, so the app's own screen styles never leak into the print and
 // nothing leaves the device. Every value is escaped; money comes from the server's integer minor units through formatMoney.
@@ -56,7 +56,7 @@ export const isTaxInvoice = (sale: Pick<CashSale, 'vatMode' | 'seller'>) => sale
 export function cashReceiptDoc(sale: CashSale, language: Lang): string {
   const money = (minor: string) => escapeHtml(formatMoney({ currency: sale.currency.code, decimals: sale.currency.decimals, amountMinor: minor } as never));
   const invoice = isTaxInvoice(sale), when = new Date(sale.createdAt).toLocaleString(language === 'th' ? 'th-TH' : 'en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-  const rows = sale.lines.map(l => `<div class="row"><span>${l.qty}× ${escapeHtml(language === 'en' && l.nameEn ? l.nameEn : l.name)}<br><small>@ ${money(l.unitMinor)}</small></span><span>${money(l.lineTotalMinor)}</span></div>`).join('');
+  const rows = sale.lines.map(l => { const opts = optionsText(l.sweetness, l.addons, language); return `<div class="row"><span>${l.qty}${l.unit ? ' ' + escapeHtml(l.unit) : '×'} ${escapeHtml(language === 'en' && l.nameEn ? l.nameEn : l.name)}${opts ? `<br><small>${escapeHtml(opts)}</small>` : ''}<br><small>@ ${money(l.unitMinor)}</small></span><span>${money(l.lineTotalMinor)}</span></div>`; }).join('');
   const seller = sale.seller.name ? `<h1>${escapeHtml(sale.seller.name)}</h1>${sale.seller.address ? `<p class="c">${escapeHtml(sale.seller.address)}</p>` : ''}${invoice ? `<p class="c">${escapeHtml(t(language, 'เลขประจำตัวผู้เสียภาษี', 'Tax ID'))} ${escapeHtml(sale.seller.taxId ?? '')} · ${escapeHtml(t(language, 'สาขา', 'Branch'))} ${escapeHtml(sale.seller.branch ?? '00000')}</p>` : ''}` : '<h1>BitPOS</h1>';
   const discount = BigInt(sale.discountMinor) > 0n ? `<div class="row"><span>${escapeHtml(t(language, 'ยอดก่อนลด', 'Subtotal'))}</span><span>${money(sale.subtotalMinor)}</span></div><div class="row"><span>${escapeHtml(t(language, 'ส่วนลด', 'Discount'))}</span><span>-${money(sale.discountMinor)}</span></div>` : '';
   const vat = invoice ? `<div class="row"><span>${escapeHtml(t(language, 'มูลค่าก่อนภาษี', 'Amount before VAT'))}</span><span>${money(sale.netMinor)}</span></div><div class="row"><span>VAT ${(sale.vatBps / 100).toString()}%</span><span>${money(sale.vatMinor)}</span></div><p class="c"><small>${escapeHtml(t(language, 'ราคารวมภาษีมูลค่าเพิ่มแล้ว', 'Prices include VAT'))}</small></p>` : '';

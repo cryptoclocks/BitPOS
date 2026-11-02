@@ -8,7 +8,7 @@ export const DEFAULTS:CashSettings={enabled:false,currency:'THB',decimals:2,vatM
 const save=z.object({enabled:z.boolean(),currency:z.string().regex(/^[A-Z]{3}$/),decimals:z.number().int().min(0).max(4),vatMode:z.enum(['none','inclusive']),vatBps:z.number().int().min(0).max(3000),
  sellerName:z.string().trim().max(120),sellerTaxId:z.string().regex(/^([0-9]{13})?$/),sellerBranch:z.string().regex(/^[0-9]{5}$/),sellerAddress:z.string().trim().max(300),
  receiptPrefix:z.string().regex(/^[A-Z0-9]{0,6}$/),staffMaxDiscountBps:z.number().int().min(0).max(9999)}).strict();
-const prices=z.object({set:z.array(z.object({productId:z.string().uuid(),priceMinor:z.string().regex(/^[1-9][0-9]{0,11}$/)}).strict()).max(200).default([]),clear:z.array(z.string().uuid()).max(200).default([])}).strict()
+const prices=z.object({set:z.array(z.object({productId:z.string().uuid(),priceMinor:z.string().regex(/^[1-9][0-9]{0,11}$/),unit:z.string().trim().max(20).optional(),sweetnessEnabled:z.boolean().optional()}).strict()).max(200).default([]),clear:z.array(z.string().uuid()).max(200).default([])}).strict()
  .refine(v=>new Set([...v.set.map(s=>s.productId),...v.clear]).size===v.set.length+v.clear.length);
 type Row={enabled:boolean;currency:string;decimals:number;vat_mode:'none'|'inclusive';vat_bps:number;seller_name:string;seller_tax_id:string;seller_branch:string;seller_address:string;receipt_prefix:string;staff_max_discount_bps:number};
 const view=(r:Row):CashSettings=>({enabled:r.enabled,currency:r.currency,decimals:r.decimals,vatMode:r.vat_mode,vatBps:r.vat_bps,sellerName:r.seller_name,sellerTaxId:r.seller_tax_id,sellerBranch:r.seller_branch,sellerAddress:r.seller_address,receiptPrefix:r.receipt_prefix,staffMaxDiscountBps:r.staff_max_discount_bps});
@@ -35,9 +35,9 @@ export async function saveSettings(db:pg.PoolClient,merchant:string,actor:string
 }
 export async function getPrices(db:pg.PoolClient,merchant:string,role:string){
  staffUp(role);
- const rows=(await db.query<{product_id:string;price_minor:string}>('SELECT product_id,price_minor::text FROM cash_prices WHERE merchant_id=$1 ORDER BY product_id',[merchant])).rows;
+ const rows=(await db.query<{product_id:string;price_minor:string;unit:string;sweetness_enabled:boolean}>('SELECT product_id,price_minor::text,unit,sweetness_enabled FROM cash_prices WHERE merchant_id=$1 ORDER BY product_id',[merchant])).rows;
  const s=await loadSettings(db,merchant);
- return {currency:s.currency,decimals:s.decimals,prices:rows.map(r=>({productId:r.product_id,priceMinor:r.price_minor}))};
+ return {currency:s.currency,decimals:s.decimals,prices:rows.map(r=>({productId:r.product_id,priceMinor:r.price_minor,unit:r.unit,sweetnessEnabled:r.sweetness_enabled}))};
 }
 export async function putPrices(db:pg.PoolClient,merchant:string,actor:string,role:string,input:unknown){
  requireRole(role);
@@ -45,8 +45,33 @@ export async function putPrices(db:pg.PoolClient,merchant:string,actor:string,ro
  const setIds=p.data.set.map(s=>s.productId);
  if(setIds.length&&(await db.query('SELECT count(*)::int n FROM products WHERE merchant_id=$1 AND id=ANY($2::uuid[]) AND archived_at IS NULL',[merchant,setIds])).rows[0].n!==setIds.length)fail('RESOURCE_NOT_FOUND',404);
  for(const s of [...p.data.set].sort((a,b)=>a.productId.localeCompare(b.productId)))
-  await db.query(`INSERT INTO cash_prices(merchant_id,product_id,price_minor,updated_by) VALUES($1,$2,$3,$4) ON CONFLICT(merchant_id,product_id) DO UPDATE SET price_minor=excluded.price_minor,updated_by=excluded.updated_by,updated_at=clock_timestamp()`,[merchant,s.productId,s.priceMinor,actor]);
+  await db.query(`INSERT INTO cash_prices(merchant_id,product_id,price_minor,updated_by,unit,sweetness_enabled) VALUES($1,$2,$3,$4,COALESCE($5,''),COALESCE($6,false))
+   ON CONFLICT(merchant_id,product_id) DO UPDATE SET price_minor=excluded.price_minor,updated_by=excluded.updated_by,updated_at=clock_timestamp(),unit=COALESCE($5,cash_prices.unit),sweetness_enabled=COALESCE($6,cash_prices.sweetness_enabled)`,[merchant,s.productId,s.priceMinor,actor,s.unit??null,s.sweetnessEnabled??null]);
  if(p.data.clear.length)await db.query('DELETE FROM cash_prices WHERE merchant_id=$1 AND product_id=ANY($2::uuid[])',[merchant,p.data.clear]);
  await audit(db,merchant,actor,'cash.prices',`set:${p.data.set.length},clear:${p.data.clear.length}`);
  return {set:p.data.set.length,cleared:p.data.clear.length};
+}
+
+const addonBody=z.object({productId:z.string().uuid(),addons:z.array(z.object({id:z.string().uuid().optional(),label:z.string().trim().min(1).max(40),labelEn:z.string().trim().max(40).default(''),priceMinor:z.string().regex(/^(0|[1-9][0-9]{0,11})$/)}).strict()).max(20)}).strict()
+ .refine(v=>new Set(v.addons.filter(a=>a.id).map(a=>a.id)).size===v.addons.filter(a=>a.id).length);
+export async function getAddons(db:pg.PoolClient,merchant:string,role:string){
+ staffUp(role);
+ const rows=(await db.query<{product_id:string;id:string;label:string;label_en:string;price_minor:string}>('SELECT product_id,id,label,label_en,price_minor::text FROM cash_addons WHERE merchant_id=$1 ORDER BY product_id,sort,label',[merchant])).rows;
+ return {addons:rows.map(r=>({productId:r.product_id,id:r.id,label:r.label,labelEn:r.label_en,priceMinor:r.price_minor}))};
+}
+/** Owner/manager. Replaces one product's add-on list: listed ids are kept (and renamed/re-priced), unlisted ones are removed. Sold receipts keep their own copy. */
+export async function putAddons(db:pg.PoolClient,merchant:string,actor:string,role:string,input:unknown){
+ requireRole(role);
+ const p=addonBody.safeParse(input);if(!p.success)fail('INVALID_REQUEST',422);
+ if(!(await db.query('SELECT 1 FROM products WHERE merchant_id=$1 AND id=$2 AND archived_at IS NULL FOR UPDATE',[merchant,p.data.productId])).rowCount)fail('RESOURCE_NOT_FOUND',404);
+ const existing=new Set((await db.query<{id:string}>('SELECT id FROM cash_addons WHERE merchant_id=$1 AND product_id=$2',[merchant,p.data.productId])).rows.map(r=>r.id));
+ const keep:string[]=[];
+ for(const [i,a] of p.data.addons.entries()){
+  if(a.id&&!existing.has(a.id))fail('RESOURCE_NOT_FOUND',404);
+  if(a.id){await db.query('UPDATE cash_addons SET label=$4,label_en=$5,price_minor=$6,sort=$7 WHERE merchant_id=$1 AND product_id=$2 AND id=$3',[merchant,p.data.productId,a.id,a.label,a.labelEn,a.priceMinor,i]);keep.push(a.id);}
+  else keep.push((await db.query<{id:string}>('INSERT INTO cash_addons(merchant_id,product_id,label,label_en,price_minor,sort) VALUES($1,$2,$3,$4,$5,$6) RETURNING id',[merchant,p.data.productId,a.label,a.labelEn,a.priceMinor,i])).rows[0].id);
+ }
+ await db.query('DELETE FROM cash_addons WHERE merchant_id=$1 AND product_id=$2 AND NOT(id=ANY($3::uuid[]))',[merchant,p.data.productId,keep]);
+ await audit(db,merchant,actor,'cash.addons',p.data.productId);
+ return {productId:p.data.productId,ids:keep};
 }

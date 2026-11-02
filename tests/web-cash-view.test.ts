@@ -1,11 +1,11 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {minorToInput,parseDiscount,quickTenders} from '../apps/web/src/lib/cash-view';
+import {lineKey,minorToInput,optionsText,parseDiscount,quickTenders} from '../apps/web/src/lib/cash-view';
 import {cashReceiptDoc,isTaxInvoice} from '../apps/web/src/lib/print-slip';
 import type {CashSale} from '../apps/web/src/lib/cash-view';
 
 const sale=(over:Partial<CashSale>={}):CashSale=>({id:'i',seq:'7',receiptNo:'T000007',status:'PAID',currency:{code:'THB',decimals:2},subtotalMinor:'18500',discountMinor:'1850',totalMinor:'16650',netMinor:'15561',vatMinor:'1089',vatMode:'inclusive',vatBps:700,tenderMinor:'20000',changeMinor:'3350',cashier:'c',createdAt:'2026-11-02T03:00:00Z',void:null,
- seller:{name:'ร้านทดสอบ',taxId:'0105500000001',branch:'00000',address:'1 ถนนทดสอบ'},lines:[{lineNo:1,productId:'p',name:'ลาเต้ <b>',nameEn:'Latte',qty:2,unitMinor:'6500',lineTotalMinor:'13000'},{lineNo:2,productId:'q',name:'ชา',nameEn:'Tea',qty:1,unitMinor:'5500',lineTotalMinor:'5500'}],...over});
+ seller:{name:'ร้านทดสอบ',taxId:'0105500000001',branch:'00000',address:'1 ถนนทดสอบ'},lines:[{lineNo:1,productId:'p',name:'ลาเต้ <b>',nameEn:'Latte',qty:2,unit:'แก้ว',baseMinor:'6500',sweetness:50,addons:[{id:'a',label:'วิปครีม',labelEn:'Whip',priceMinor:'0'}],unitMinor:'6500',lineTotalMinor:'13000'},{lineNo:2,productId:'q',name:'ชา',nameEn:'Tea',qty:1,unit:'',baseMinor:'5500',sweetness:null,addons:[],unitMinor:'5500',lineTotalMinor:'5500'}],...over});
 
 test('quick tender buttons: exact first, then round amounts that cover the total',()=>{
  assert.deepEqual(quickTenders(16650n,2),[16650n,20000n,50000n,100000n]);
@@ -39,4 +39,15 @@ test('without tax data it is a plain receipt; a voided sale is stamped; English 
  assert.ok(cashReceiptDoc(sale({status:'VOIDED',void:{at:'x',by:'m',reason:'r',restocked:false}}),'en').includes('VOID'));
  assert.ok(cashReceiptDoc(sale(),'en').includes('Abbreviated tax invoice')&&cashReceiptDoc(sale(),'en').includes('Latte'));
  assert.ok(!cashReceiptDoc(sale({discountMinor:'0',subtotalMinor:'16650'}),'th').includes('ส่วนลด'));
+});
+test('options text, line identity and the receipt show sweetness, add-ons and units',()=>{
+ assert.equal(optionsText(50,[{label:'วิปครีม',labelEn:'Whip'}],'th'),'หวาน 50% · วิปครีม');
+ assert.equal(optionsText(0,[{label:'วิปครีม',labelEn:'Whip'}],'en'),'Sweet 0% · Whip');
+ assert.equal(optionsText(null,[],'th'),'');
+ assert.equal(lineKey({productId:'p',sweetness:50,addonIds:['b','a']}),lineKey({productId:'p',sweetness:50,addonIds:['a','b','a']}));
+ assert.notEqual(lineKey({productId:'p',sweetness:50}),lineKey({productId:'p',sweetness:0}));
+ assert.notEqual(lineKey({productId:'p'}),lineKey({productId:'p',sweetness:0}));
+ const th=cashReceiptDoc(sale(),'th');
+ assert.ok(th.includes('2 แก้ว')&&th.includes('หวาน 50% · วิปครีม'));
+ assert.ok(cashReceiptDoc(sale(),'en').includes('Sweet 50% · Whip'));
 });

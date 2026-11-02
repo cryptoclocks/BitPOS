@@ -5,13 +5,14 @@ import {audit} from './db';
 import {defaultTimeZone} from './opening-hours';
 
 export interface ShiftGroup{currency:string;decimals:number;sourceKind:string;orders:number;totalMinor:string}
-export interface ShiftSnapshot{timeZone:string;groups:ShiftGroup[];excludedOrders:number;basis:'gross_paid_before_refunds_and_fees'}
+export interface ShiftDrawer{currency:string;decimals:number;openingFloatMinor:string;cashSalesMinor:string;expectedMinor:string}
+export interface ShiftSnapshot{timeZone:string;groups:ShiftGroup[];excludedOrders:number;basis:'gross_paid_before_refunds_and_fees';drawer?:ShiftDrawer|null}
 export interface ShiftClose{id:string;periodStart:string;periodEnd:string;closedBy:string;countedCash:{minor:string;currency:string;decimals:number}|null;note:string;snapshot:ShiftSnapshot;createdAt:string}
 const close=z.object({idempotencyKey:z.string().min(1).max(128),note:z.string().trim().max(200).default(''),
  countedCash:z.object({minor:z.string().regex(/^(0|[1-9][0-9]{0,17})$/),currency:z.string().trim().min(3).max(10),decimals:z.number().int().min(0).max(18)}).strict().nullable().default(null)}).strict();
 type Row={id:string;period_start:Date;period_end:Date;closed_by:string;counted_cash_minor:string|null;cash_currency:string|null;cash_decimals:number|null;note:string;snapshot:ShiftSnapshot;created_at:Date};
 const view=(r:Row):ShiftClose=>({id:r.id,periodStart:r.period_start.toISOString(),periodEnd:r.period_end.toISOString(),closedBy:r.closed_by,countedCash:r.counted_cash_minor===null?null:{minor:String(r.counted_cash_minor),currency:r.cash_currency!,decimals:r.cash_decimals!},note:r.note,snapshot:r.snapshot,createdAt:r.created_at.toISOString()});
-async function periodStart(db:pg.PoolClient,merchant:string,timeZone:string){
+export async function periodStart(db:pg.PoolClient,merchant:string,timeZone:string){
  const last=(await db.query<{period_end:Date}>('SELECT period_end FROM shift_closes WHERE merchant_id=$1 ORDER BY period_end DESC LIMIT 1',[merchant])).rows[0];
  if(last)return last.period_end;
  return (await db.query<{start:Date}>("SELECT (date_trunc('day',clock_timestamp() AT TIME ZONE $1) AT TIME ZONE $1) AS start",[timeZone])).rows[0].start;
@@ -26,7 +27,10 @@ async function totals(db:pg.PoolClient,merchant:string,from:Date,to:Date,timeZon
  const cash=(await db.query<{currency:string;decimals:number;orders:number;total_minor:string}>(
   `SELECT currency_code AS currency,decimals,count(*)::int AS orders,sum(total_minor)::text AS total_minor FROM cash_sales WHERE merchant_id=$1 AND status='PAID' AND created_at>=$2 AND created_at<$3 GROUP BY 1,2 ORDER BY 1,2`,[merchant,from,to])).rows;
  const groups=[...rows.map(r=>({currency:r.currency,decimals:r.decimals,sourceKind:r.source_kind,orders:r.orders,totalMinor:r.total_minor})),...cash.map(r=>({currency:r.currency,decimals:r.decimals,sourceKind:'cash_counter',orders:r.orders,totalMinor:r.total_minor}))];
- return {timeZone,groups,excludedOrders:excluded,basis:'gross_paid_before_refunds_and_fees'};
+ // The cash drawer: what the shop said it started with plus the cash sales of the round. Only when an opening float was recorded for this round.
+ const opening=(await db.query<{float_minor:string;currency:string;decimals:number}>('SELECT float_minor::text,currency,decimals FROM cash_drawer_openings WHERE merchant_id=$1 AND period_start=$2',[merchant,from])).rows[0];
+ const drawer:ShiftDrawer|null=opening?(()=>{const sales=groups.find(g=>g.sourceKind==='cash_counter'&&g.currency===opening.currency&&g.decimals===opening.decimals)?.totalMinor??'0';return {currency:opening.currency,decimals:opening.decimals,openingFloatMinor:opening.float_minor,cashSalesMinor:sales,expectedMinor:(BigInt(opening.float_minor)+BigInt(sales)).toString()};})():null;
+ return {timeZone,groups,excludedOrders:excluded,basis:'gross_paid_before_refunds_and_fees',drawer};
 }
 /** Owner/manager only. The open period runs from the previous close (or the start of the shop's day) to now; closing freezes the
  * server-computed paid totals in one immutable row. Counted cash is only what the person declared; money is never summed across currencies. */

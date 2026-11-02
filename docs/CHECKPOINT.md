@@ -3780,3 +3780,8 @@ Validation: `tests/backend-table-paid-reorder.test.ts` plus table/durability/pay
 
 ### 2026-11-02 · รายงานขายหลักรวมเงินสด
 - `reports.ts` + ป้าย `cash_counter` ใน `PosReports.tsx`; test เพิ่ม 1 ใน cash-register-db (16 ข้อ) + backend-reports/web-pos-reports ผ่าน; CSV export ยังไม่รวมเงินสด
+
+### 2026-11-02 · ปิดช่องว่าง domepos ที่เหลือ (migration 184)
+- ความหวาน/ท็อปปิ้ง/หน่วยนับ, เปิดกะ+เงินทอนตั้งต้น (ปิดรอบแสดงส่วนต่าง), ขายด่วน 1 คลิก, พักบิล, CSV เงินสด; รายละเอียดใน `docs/CASH_REGISTER_DESIGN_TH.md` หัวข้อ 17
+- ทดสอบเพิ่ม: extras-db 9, http 1 (เซิร์ฟเวอร์จริง), web-cash-routes 2, web-cash-view +1; ตรวจ UI ในเบราว์เซอร์ + reduced-motion
+- ยังไม่ทำ: component test ของหน้าจอ (ไม่มีไลบรารีทดสอบ React ในโปรเจกต์), apply 179–184 กับ DB จริง, ดูแท็บในหน้า Pos จริงหลังล็อกอิน, อุปกรณ์ภายนอก (เครื่องพิมพ์/เสียง)

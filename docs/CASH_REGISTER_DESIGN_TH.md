@@ -120,3 +120,9 @@ A) migration 183 + บาร์โค้ด API/UI · B) ราคาเงิ�
 
 ## 16. อัปเดต: รายงานขายหลักรวมเงินสดแล้ว
 `apps/api/src/reports.ts` เพิ่มแหล่ง `cash_counter` ต่อวันและต่อชั่วโมง (เขตเวลาร้าน, เฉพาะ PAID) แยกสกุลเงินเสมอ; หน้ารายงานแสดงป้าย "เงินสด"; เมื่อมีทั้ง USD/USDG และ THB หน้าสรุปรวมจะไม่รวมข้ามสกุล (พฤติกรรมเดิมของ `salesSummary`) ยังเห็นตารางรายวันแยกครบ. ไฟล์ส่งออก CSV (`report-exports.ts`) ยังไม่รวมเงินสด.
+
+## 17. ส่วนเพิ่ม (migration 184)
+- **ตัวเลือกรายแก้ว:** `cash_prices.sweetness_enabled/unit`, `cash_addons` (ชื่อ ไทย/อังกฤษ ราคาบวก ≥0 สูงสุด 20 ต่อเมนู); ตะกร้าเป็น "เมนู + ตัวเลือก" (`lineKey`) เมนูเดียวหลายบรรทัดได้ แต่สต็อกนับรวมกองเดียว และ ledger เก็บ before/after ต่อเนื่องต่อบรรทัด; `cash_sale_lines` เก็บ unit/base/sweetness/addons ณ ตอนขาย
+- **ลิ้นชัก:** `cash_drawer_openings` (insert-only, PK = วันเริ่มรอบ); snapshot ปิดรอบมี `drawer{opening,cashSales,expected}` เฉพาะรอบที่บันทึกเงินตั้งต้น
+- **พักบิล:** `cash_held_bills` (recall = DELETE…RETURNING กัน 2 เครื่องดึงซ้ำ)
+- **ทดสอบ:** cash-register-extras-db 9 (รวมรันเป็น `bitpos_app`), cash-register-http (ผ่านเซิร์ฟเวอร์ HTTP จริง: session/สิทธิ์/routes/รายงาน/ส่งออก/ปิดรอบ), web-cash-routes (proxy), web-cash-view 6; UI ตรวจจริงในเบราว์เซอร์ (แผ่นตัวเลือก, พัก/เรียกกลับ, ขายด่วน, ลิ้นชัก) และ reduced-motion (animation 11→0, transition 0)

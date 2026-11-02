@@ -3,10 +3,12 @@ import { api, errorMessage } from '../lib/api';
 import { requestId } from '../lib/request-id';
 import { formatMoney } from '../lib/money';
 import { perDenomination, toMinor } from '../lib/shift-view';
+import '../styles/cash-register.css';
 import { printDocument, zReportDoc } from '../lib/print-slip';
 
 interface Group { currency: string; decimals: number; sourceKind: string; orders: number; totalMinor: string }
-interface Snapshot { timeZone: string; groups: Group[]; excludedOrders: number }
+interface DrawerFigure { currency: string; decimals: number; openingFloatMinor: string; cashSalesMinor: string; expectedMinor: string }
+interface Snapshot { timeZone: string; groups: Group[]; excludedOrders: number; drawer?: DrawerFigure | null }
 interface Close { id: string; periodStart: string; periodEnd: string; closedBy: string; countedCash: { minor: string; currency: string; decimals: number } | null; note: string; snapshot: Snapshot; createdAt: string }
 interface ShiftState { open: { periodStart: string; asOf: string; snapshot: Snapshot }; closes: Close[] }
 
@@ -56,13 +58,17 @@ export default function ShiftClose({ token, language }: { token: string; languag
         <h2>{text('พรีวิวและรายละเอียด', 'Preview and details')}</h2>
         <div className="shift-status"><small>{text('สถานะ', 'Status')}</small><strong>{totals.length ? text('พร้อมปิดรอบ', 'Ready to close') : text('ยังไม่มียอดในรอบนี้', 'No sales in this round yet')}</strong><span>{text('ตรวจข้อมูลก่อนบันทึก', 'Check the figures before closing')}</span></div>
         {totals.map(t => <p key={`${t.currency}/${t.decimals}`} className="shift-total"><span>{text(`${t.orders} ออเดอร์ที่ชำระแล้ว`, `${t.orders} paid orders`)}</span><b>{money(t.totalMinor, t.currency, t.decimals)}</b></p>)}
+        {state.open.snapshot.drawer && (() => { const d = state.open.snapshot.drawer!, counted = minor !== null && code === d.currency && decimals === d.decimals ? BigInt(minor) - BigInt(d.expectedMinor) : null;
+          return <div className="shift-drawer" role="status"><b>{text('ลิ้นชักเงินสด', 'Cash drawer')}</b>
+            <span>{text('เงินทอนตั้งต้น', 'Starting float')}: {money(d.openingFloatMinor, d.currency, d.decimals)}</span><span>{text('ขายเงินสด', 'Cash sales')}: {money(d.cashSalesMinor, d.currency, d.decimals)}</span><span>{text('ควรมีในลิ้นชัก', 'Should be in the drawer')}: <b>{money(d.expectedMinor, d.currency, d.decimals)}</b></span>
+            {counted !== null && <span className={counted === 0n ? 'ok' : 'off'}>{counted === 0n ? text('นับได้ตรงพอดี', 'Counted exactly') : counted > 0n ? text(`เกิน ${money(counted, d.currency, d.decimals)}`, `Over by ${money(counted, d.currency, d.decimals)}`) : text(`ขาด ${money(-counted, d.currency, d.decimals)}`, `Short by ${money(-counted, d.currency, d.decimals)}`)}</span>}</div>; })()}
         {state.open.snapshot.excludedOrders > 0 && <p className="notice" role="status">{text(`ไม่รวม ${state.open.snapshot.excludedOrders} ออเดอร์เดิมที่ไม่มีข้อมูลราคา`, `${state.open.snapshot.excludedOrders} older paid orders without price data are not included.`)}</p>}
         <p className="reports-sub">{text('ยอดชำระแล้วจากเซิร์ฟเวอร์ ก่อนหักคืนเงินและค่าธรรมเนียม ไม่รวมข้ามสกุลเงิน เงินสดที่นับได้เป็นตัวเลขที่ผู้ปิดรอบระบุ ระบบไม่ได้ตรวจสอบ การปิดรอบบันทึกรายการและเวลา เพื่อให้ตรวจสอบย้อนหลังได้', 'Paid totals from the server, before refunds and fees, never added across currencies. Counted cash is the figure the person declared; the system does not verify it. Closing records who and when, so it can be reviewed later.')}</p>
       </aside>
     </div>
     <h2>{text('รอบที่ปิดแล้ว', 'Closed rounds')}</h2>
     {state.closes.length ? <table className="catalog-table"><thead><tr><th>{text('รอบ', 'Round')}</th><th>{text('ยอดชำระแล้ว', 'Paid sales')}</th><th>{text('เงินสดที่นับได้', 'Counted cash')}</th><th>{text('หมายเหตุ', 'Note')}</th><th><span className="sr-only">{text('พิมพ์', 'Print')}</span></th></tr></thead>
-      <tbody>{state.closes.map(c => <tr key={c.id}><td>{when(c.periodStart)} – {when(c.periodEnd)}</td><td>{perDenomination(c.snapshot.groups).map(t => `${money(t.totalMinor, t.currency, t.decimals)} (${t.orders})`).join(' · ') || '—'}</td><td>{c.countedCash ? money(c.countedCash.minor, c.countedCash.currency, c.countedCash.decimals) : '—'}</td><td>{c.note || '—'}</td><td><button type="button" className="secondary" onClick={() => void printDocument(zReportDoc({ periodStart: c.periodStart, periodEnd: c.periodEnd, closedBy: c.closedBy, note: c.note, countedCash: c.countedCash, groups: c.snapshot.groups }, language))}>{text('พิมพ์ Z-Report', 'Print Z-Report')}</button></td></tr>)}</tbody></table>
+      <tbody>{state.closes.map(c => <tr key={c.id}><td>{when(c.periodStart)} – {when(c.periodEnd)}</td><td>{perDenomination(c.snapshot.groups).map(t => `${money(t.totalMinor, t.currency, t.decimals)} (${t.orders})`).join(' · ') || '—'}</td><td>{c.countedCash ? money(c.countedCash.minor, c.countedCash.currency, c.countedCash.decimals) : '—'}{c.snapshot.drawer && <small className="shift-expected"> {text('ควรมี', 'expected')} {money(c.snapshot.drawer.expectedMinor, c.snapshot.drawer.currency, c.snapshot.drawer.decimals)}{c.countedCash && c.countedCash.currency === c.snapshot.drawer.currency && c.countedCash.decimals === c.snapshot.drawer.decimals ? ` · ${BigInt(c.countedCash.minor) - BigInt(c.snapshot.drawer.expectedMinor) === 0n ? text('ตรง', 'match') : text('ส่วนต่าง', 'diff') + ' ' + money(BigInt(c.countedCash.minor) - BigInt(c.snapshot.drawer.expectedMinor), c.countedCash.currency, c.countedCash.decimals)}` : ''}</small>}</td><td>{c.note || '—'}</td><td><button type="button" className="secondary" onClick={() => void printDocument(zReportDoc({ periodStart: c.periodStart, periodEnd: c.periodEnd, closedBy: c.closedBy, note: c.note, countedCash: c.countedCash, groups: c.snapshot.groups }, language))}>{text('พิมพ์ Z-Report', 'Print Z-Report')}</button></td></tr>)}</tbody></table>
       : <p className="notice">{text('ยังไม่เคยปิดรอบ', 'No round has been closed yet.')}</p>}
   </section>;
 }

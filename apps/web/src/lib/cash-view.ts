@@ -9,9 +9,23 @@ export interface CashSale {
   tenderMinor: string; changeMinor: string; cashier: string; createdAt: string;
   void: { at: string; by: string; reason: string; restocked: boolean } | null;
   seller: { name?: string; taxId?: string; branch?: string; address?: string };
-  lines: { lineNo: number; productId: string; name: string; nameEn: string; qty: number; unitMinor: string; lineTotalMinor: string }[];
+  lines: SaleLine[];
 }
-export interface CashQuote { currency: { code: string; decimals: number }; vatMode: 'none' | 'inclusive'; vatBps: number; subtotalMinor: string; discountMinor: string; totalMinor: string; netMinor: string; vatMinor: string; lines: { productId: string; qty: number; unitMinor: string }[] }
+export interface Addon { id: string; label: string; labelEn: string; priceMinor: string }
+export interface SaleLine { lineNo: number; productId: string; name: string; nameEn: string; qty: number; unit: string; baseMinor: string | null; unitMinor: string; lineTotalMinor: string; sweetness: number | null; addons: Addon[] }
+export interface CartLine { productId: string; qty: number; sweetness?: 0 | 25 | 50 | 75 | 100; addonIds?: string[] }
+export interface HeldBill { id: string; label: string; items: CartLine[]; discount: DiscountInput; createdBy: string; createdAt: string }
+export interface Drawer { periodStart: string; currency: string; decimals: number; opening: { floatMinor: string; openedBy: string; at: string } | null; orders: number; cashSalesMinor: string; expectedMinor: string | null }
+/** One cart line is a product with one set of options; the same drink with other options is another line. */
+export const lineKey = (l: { productId: string; sweetness?: number; addonIds?: string[] }) => `${l.productId}|${l.sweetness ?? ''}|${[...new Set(l.addonIds ?? [])].sort().join(',')}`;
+/** Short text for the options of a line, e.g. "หวาน 50% · วิปครีม". */
+export function optionsText(sweetness: number | null | undefined, addons: { label: string; labelEn: string }[], language: 'th' | 'en'): string {
+  const parts: string[] = [];
+  if (sweetness !== null && sweetness !== undefined) parts.push(language === 'th' ? `หวาน ${sweetness}%` : `Sweet ${sweetness}%`);
+  for (const a of addons) parts.push(language === 'en' && a.labelEn ? a.labelEn : a.label);
+  return parts.join(' · ');
+}
+export interface CashQuote { currency: { code: string; decimals: number }; vatMode: 'none' | 'inclusive'; vatBps: number; subtotalMinor: string; discountMinor: string; totalMinor: string; netMinor: string; vatMinor: string; lines: { productId: string; qty: number; unitMinor: string; sweetness: number | null; addons: Addon[] }[] }
 export type DiscountInput = { kind: 'percent'; bps: number } | { kind: 'amount'; minor: string } | null;
 
 /** "Exact" first, then up to three round amounts a customer would plausibly hand over: the total rounded up to the next 50 and 100, then the larger notes. Minor units. */

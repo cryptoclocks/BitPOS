@@ -1,18 +1,21 @@
 import React, { useEffect, useState } from 'react';
 import { api, errorMessage } from '../lib/api';
 import { toMinor } from '../lib/shift-view';
-import { minorToInput } from '../lib/cash-view';
+import { minorToInput, type Addon } from '../lib/cash-view';
 import type { Product } from '../lib/menu';
 
 export interface CashSettings { enabled: boolean; currency: string; decimals: number; vatMode: 'none' | 'inclusive'; vatBps: number; sellerName: string; sellerTaxId: string; sellerBranch: string; sellerAddress: string; receiptPrefix: string; staffMaxDiscountBps: number }
+export interface PriceInfo { priceMinor: string; unit: string; sweetnessEnabled: boolean }
 interface Barcode { barcode: string; productId: string }
+interface PriceDraft { price?: string; unit?: string; sweet?: boolean }
+interface AddonRow { id?: string; label: string; labelEn: string; price: string }
 
 // Owner/manager setup for the cash register: shop profile and tax (owner only), the cash price list, and product barcodes.
-export default function CashSettingsPanel({ token, role, language, products, settings, prices, onSaved }: { token: string; role: string; language: 'th' | 'en'; products: Product[]; settings: CashSettings; prices: Map<string, string>; onSaved: () => void }) {
+export default function CashSettingsPanel({ token, role, language, products, settings, prices, addons, onSaved }: { token: string; role: string; language: 'th' | 'en'; products: Product[]; settings: CashSettings; prices: Map<string, PriceInfo>; addons: Map<string, Addon[]>; onSaved: () => void }) {
   const text = (th: string, en: string) => language === 'th' ? th : en;
   const owner = role === 'owner';
   const [form, setForm] = useState(settings); const [vatPct, setVatPct] = useState(String(settings.vatBps / 100)); const [staffPct, setStaffPct] = useState(String(settings.staffMaxDiscountBps / 100));
-  const [draft, setDraft] = useState<Record<string, string>>({}); const [barcodes, setBarcodes] = useState<Barcode[]>([]); const [newCode, setNewCode] = useState<Record<string, string>>({});
+  const [draft, setDraft] = useState<Record<string, PriceDraft>>({}); const [editing, setEditing] = useState<string | null>(null); const [rows, setRows] = useState<AddonRow[]>([]); const [barcodes, setBarcodes] = useState<Barcode[]>([]); const [newCode, setNewCode] = useState<Record<string, string>>({});
   const [note, setNote] = useState(''); const [error, setError] = useState(''); const [busy, setBusy] = useState(false);
   const decimals = settings.decimals, name = (p: Product) => language === 'en' && p.nameEn ? p.nameEn : p.name;
   const loadCodes = () => api<{ barcodes: Barcode[] }>('/barcodes', undefined, token).then(r => setBarcodes(r.barcodes)).catch(e => setError(errorMessage(e)));
@@ -31,18 +34,30 @@ export default function CashSettingsPanel({ token, role, language, products, set
     void run(text('บันทึกการตั้งค่าแล้ว', 'Settings saved'), () => api('/cash/settings', { ...form, vatBps: vat, staffMaxDiscountBps: staff }, token, 'PUT'));
   };
   const savePrices = () => {
-    const set: { productId: string; priceMinor: string }[] = [], clear: string[] = [];
-    for (const [id, v] of Object.entries(draft)) {
-      if (v.trim() === '') { if (prices.has(id)) clear.push(id); continue; }
-      const m = toMinor(v, decimals); if (m === null || BigInt(m) <= 0n) { setError(text(`ราคาไม่ถูกต้อง: ${v}`, `Invalid price: ${v}`)); return; }
-      if (prices.get(id) !== m) set.push({ productId: id, priceMinor: m });
+    const set: { productId: string; priceMinor: string; unit?: string; sweetnessEnabled?: boolean }[] = [], clear: string[] = [];
+    for (const [id, d] of Object.entries(draft)) {
+      const cur = prices.get(id), priceText = d.price ?? (cur ? minorToInput(cur.priceMinor, decimals) : '');
+      if (priceText.trim() === '') { if (cur) clear.push(id); continue; }
+      const m = toMinor(priceText, decimals); if (m === null || BigInt(m) <= 0n) { setError(text(`ราคาไม่ถูกต้อง: ${priceText}`, `Invalid price: ${priceText}`)); return; }
+      const unit = d.unit?.trim(), changed = cur?.priceMinor !== m || (unit !== undefined && unit !== cur?.unit) || (d.sweet !== undefined && d.sweet !== cur?.sweetnessEnabled);
+      if (changed) set.push({ productId: id, priceMinor: m, ...(unit !== undefined ? { unit } : {}), ...(d.sweet !== undefined ? { sweetnessEnabled: d.sweet } : {}) });
     }
-    if (!set.length && !clear.length) { setNote(text('ไม่มีราคาที่เปลี่ยน', 'No price changed')); return; }
+    if (!set.length && !clear.length) { setNote(text('ไม่มีรายการที่เปลี่ยน', 'Nothing changed')); return; }
     // The server takes at most 200 changes per request, so a large first-time price list is sent in slices.
     void run(text('บันทึกราคาแล้ว', 'Prices saved'), async () => {
       for (let i = 0; i < Math.max(set.length, clear.length); i += 200) await api('/cash/prices', { set: set.slice(i, i + 200), clear: clear.slice(i, i + 200) }, token, 'PUT');
       setDraft({});
     });
+  };
+  const startAddons = (id: string) => { setEditing(editing === id ? null : id); setRows((addons.get(id) ?? []).map(a => ({ id: a.id, label: a.label, labelEn: a.labelEn, price: minorToInput(a.priceMinor, decimals) }))); };
+  const saveAddons = (productId: string) => {
+    const out: { id?: string; label: string; labelEn: string; priceMinor: string }[] = [];
+    for (const r of rows) {
+      if (!r.label.trim()) continue;
+      const m = toMinor(r.price.trim() === '' ? '0' : r.price, decimals); if (m === null) { setError(text(`ราคาไม่ถูกต้อง: ${r.price}`, `Invalid price: ${r.price}`)); return; }
+      out.push({ ...(r.id ? { id: r.id } : {}), label: r.label.trim(), labelEn: r.labelEn.trim(), priceMinor: m });
+    }
+    void run(text('บันทึกตัวเลือกเสริมแล้ว', 'Extras saved'), async () => { await api('/cash/addons', { productId, addons: out }, token, 'PUT'); setEditing(null); });
   };
   const addCode = (productId: string) => void run(text('เพิ่มบาร์โค้ดแล้ว', 'Barcode added'), async () => { await api('/barcodes', { productId, barcode: (newCode[productId] ?? '').trim() }, token, 'PUT'); setNewCode(c => ({ ...c, [productId]: '' })); await loadCodes(); });
   const removeCode = (barcode: string) => void run(text('ลบบาร์โค้ดแล้ว', 'Barcode removed'), async () => { await api('/barcodes/delete', { barcode }, token); await loadCodes(); });
@@ -67,8 +82,21 @@ export default function CashSettingsPanel({ token, role, language, products, set
     </details>
     <details className="cash-setup-block"><summary>{text(`ราคาเงินสด (${settings.currency})`, `Cash prices (${settings.currency})`)}</summary>
       <p className="catalog-sub">{text('ราคาที่ร้านรับเป็นเงินสด ตั้งแยกจากราคา USD/USDG ไม่มีการแปลงอัตราแลกเปลี่ยน เว้นว่างเพื่อไม่ขายสินค้านั้นด้วยเงินสด', 'The price the shop takes in cash. Kept separate from the USD/USDG prices; nothing is converted. Leave blank to not sell that item for cash.')}</p>
-      <table className="catalog-table"><thead><tr><th>{text('สินค้า', 'Product')}</th><th>{text('ราคา', 'Price')}</th></tr></thead>
-        <tbody>{products.map(p => <tr key={p.id}><td>{name(p)}</td><td><input aria-label={text(`ราคาเงินสด ${name(p)}`, `Cash price of ${name(p)}`)} inputMode="decimal" value={draft[p.id] ?? (prices.has(p.id) ? minorToInput(prices.get(p.id)!, decimals) : '')} onChange={e => setDraft(d => ({ ...d, [p.id]: e.target.value }))} /></td></tr>)}</tbody></table>
+      <table className="catalog-table cash-price-table"><thead><tr><th>{text('สินค้า', 'Product')}</th><th>{text('ราคา', 'Price')}</th><th>{text('หน่วย', 'Unit')}</th><th>{text('ความหวาน', 'Sweetness')}</th><th>{text('เสริม', 'Extras')}</th></tr></thead>
+        <tbody>{products.flatMap(p => { const cur = prices.get(p.id), d = draft[p.id] ?? {}; const rowsFor = [<tr key={p.id}>
+          <td>{name(p)}</td>
+          <td><input aria-label={text(`ราคาเงินสด ${name(p)}`, `Cash price of ${name(p)}`)} inputMode="decimal" value={d.price ?? (cur ? minorToInput(cur.priceMinor, decimals) : '')} onChange={e => setDraft(x => ({ ...x, [p.id]: { ...x[p.id], price: e.target.value } }))} /></td>
+          <td><input aria-label={text(`หน่วยของ ${name(p)}`, `Unit of ${name(p)}`)} maxLength={20} placeholder={text('แก้ว', 'cup')} value={d.unit ?? cur?.unit ?? ''} onChange={e => setDraft(x => ({ ...x, [p.id]: { ...x[p.id], unit: e.target.value } }))} /></td>
+          <td><input type="checkbox" aria-label={text(`เลือกความหวานได้ ${name(p)}`, `Sweetness choice for ${name(p)}`)} checked={d.sweet ?? cur?.sweetnessEnabled ?? false} onChange={e => setDraft(x => ({ ...x, [p.id]: { ...x[p.id], sweet: e.target.checked } }))} /></td>
+          <td><button type="button" className="secondary" aria-expanded={editing === p.id} onClick={() => startAddons(p.id)}>{(addons.get(p.id)?.length ?? 0) || '+'}</button></td></tr>];
+          if (editing === p.id) rowsFor.push(<tr key={`${p.id}-x`} className="cash-addon-row"><td colSpan={5}>
+            <p className="catalog-sub">{text('ท็อปปิ้ง/ตัวเลือกเสริมของเมนูนี้ (ราคาบวกเพิ่มจากราคาเมนู ใส่ 0 ได้) ใบเสร็จเก่าไม่เปลี่ยนเมื่อแก้ไขทีหลัง', 'Toppings/extras for this item (added to its price; 0 is fine). Old receipts do not change when you edit later.')}</p>
+            {rows.map((r, i) => <div key={i} className="cash-addon-edit"><input aria-label={text('ชื่อตัวเลือก', 'Extra name')} placeholder={text('ชื่อ เช่น วิปครีม', 'Name e.g. Whipped cream')} maxLength={40} value={r.label} onChange={e => setRows(rs => rs.map((x, j) => j === i ? { ...x, label: e.target.value } : x))} />
+              <input aria-label={text('ชื่ออังกฤษ', 'English name')} placeholder="English" maxLength={40} value={r.labelEn} onChange={e => setRows(rs => rs.map((x, j) => j === i ? { ...x, labelEn: e.target.value } : x))} />
+              <input aria-label={text('ราคาเพิ่ม', 'Extra price')} inputMode="decimal" placeholder="0.00" value={r.price} onChange={e => setRows(rs => rs.map((x, j) => j === i ? { ...x, price: e.target.value } : x))} />
+              <button type="button" className="secondary" aria-label={text('ลบ', 'Remove')} onClick={() => setRows(rs => rs.filter((_, j) => j !== i))}>×</button></div>)}
+            <div className="toolbar"><button type="button" className="secondary" disabled={rows.length >= 20} onClick={() => setRows(rs => [...rs, { label: '', labelEn: '', price: '' }])}>{text('+ เพิ่มตัวเลือก', '+ Add an extra')}</button><button type="button" disabled={busy} onClick={() => saveAddons(p.id)}>{text('บันทึกตัวเลือกเสริม', 'Save extras')}</button></div></td></tr>);
+          return rowsFor; })}</tbody></table>
       <div className="toolbar"><button type="button" disabled={busy} onClick={savePrices}>{text('บันทึกราคา', 'Save prices')}</button></div>
     </details>
     <details className="cash-setup-block"><summary>{text('บาร์โค้ดสินค้า', 'Product barcodes')}</summary>

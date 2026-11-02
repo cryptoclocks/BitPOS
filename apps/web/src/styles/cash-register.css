@@ -55,4 +55,22 @@
 @media(max-width:900px){.cash-grid{grid-template-columns:1fr}.cash-bill{position:static}}
 @media(max-width:600px){.cash-cards{grid-template-columns:repeat(auto-fill,minmax(120px,1fr))}.cash-head-actions button{flex:1 1 100%}}
 @media(prefers-reduced-motion:reduce){.cash-register,.cash-register *,.cash-register *::before,.cash-register *::after{animation:none!important;transition:none!important}.cash-check circle,.cash-check path{stroke-dashoffset:0}}
+.cash-drawer{margin:10px 0;padding:8px 12px;border-radius:12px;background:var(--cash-soft);border:1px solid var(--cash-line);animation:cash-rise .3s ease-out both}
+.cash-drawer.open{display:flex;flex-wrap:wrap;align-items:center;gap:8px;background:#fff6e0;border-color:#f0d58a}.cash-drawer.open span{flex:1 1 220px}.cash-drawer.open input{width:140px;font-variant-numeric:tabular-nums}
+.cash-held{list-style:none;margin:10px 0 0;padding:0;display:flex;flex-wrap:wrap;gap:8px}.cash-held li{display:flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;background:#fff;border:1px solid var(--cash-accent);animation:cash-badge .3s ease-out both}.cash-held small{opacity:.7}.cash-held button{padding:2px 10px;border-radius:999px}
+.cash-hold{display:flex;gap:6px;margin-top:8px}.cash-hold input{flex:1;min-width:0}
+.cash-quick-sale{width:100%;margin-top:8px;padding:12px;font-size:17px;font-weight:800;border-radius:14px;background:linear-gradient(135deg,#2e9e57,#1f7a41);color:#fff;border:0;cursor:pointer;transition:transform .16s cubic-bezier(.2,.7,.2,1),box-shadow .2s}
+.cash-quick-sale:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 8px 20px rgba(31,122,65,.32)}.cash-quick-sale:active:not(:disabled){transform:scale(.97)}.cash-quick-sale:disabled{opacity:.5}
+.cash-line-name em{font-style:normal;font-size:13px;color:var(--cash-accent)}
+.cash-card-opt{color:#8a6bd0}.cash-card-price small{opacity:.7}
+.cash-sheet-back{position:fixed;inset:0;background:rgba(43,20,88,.45);backdrop-filter:blur(4px);display:grid;place-items:center;padding:16px;z-index:60;animation:cash-fade .2s ease-out both}
+.cash-sheet{width:min(440px,100%);max-height:90vh;overflow:auto;display:grid;gap:12px;padding:18px;border-radius:22px;background:#fff;box-shadow:0 24px 60px rgba(43,20,88,.35);animation:cash-sheet-in .32s cubic-bezier(.2,.9,.3,1.15) both}
+.cash-sheet h2{margin:0}.cash-sheet fieldset{border:1px solid var(--cash-line);border-radius:14px;padding:10px}.cash-sheet legend{font-weight:700;padding:0 6px}
+.cash-chips-row{display:flex;flex-wrap:wrap;gap:8px}.cash-opt{padding:8px 14px;border-radius:999px;border:1px solid var(--cash-line);background:#fff;color:inherit;cursor:pointer;transition:transform .15s cubic-bezier(.2,.7,.2,1),background .2s,color .2s,border-color .2s}
+.cash-opt:active{transform:scale(.94)}.cash-opt.on{background:var(--cash-accent);border-color:var(--cash-accent);color:#fff;animation:cash-badge .26s ease-out}.cash-opt small{opacity:.85}
+.cash-sheet-foot{display:flex;align-items:center;gap:12px}.cash-sheet-foot .cash-pay{margin:0;flex:1}
+.cash-price-table input[type=text],.cash-price-table input:not([type]){width:100%;min-width:70px}.cash-addon-row td{background:var(--cash-soft)}.cash-addon-edit{display:grid;grid-template-columns:1.2fr 1fr .7fr auto;gap:6px;margin:6px 0}
+.shift-drawer{display:grid;gap:2px;margin:8px 0;padding:8px 10px;border-radius:10px;background:#f6f1ff}.shift-drawer .ok{color:#1f6b2c;font-weight:700}.shift-drawer .off{color:#b3261e;font-weight:700}.shift-expected{opacity:.75}
+@keyframes cash-fade{from{opacity:0}to{opacity:1}}
+@keyframes cash-sheet-in{from{opacity:0;transform:translateY(24px) scale(.96)}to{opacity:1;transform:none}}
 .cash-register .sr-only{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}

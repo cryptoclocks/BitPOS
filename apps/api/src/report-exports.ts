@@ -6,9 +6,9 @@ import {defaultTimeZone} from './opening-hours';
 import {maxReportDays} from './reports';
 
 const day=z.string().regex(/^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/).refine(v=>!Number.isNaN(Date.parse(v+'T00:00:00Z'))&&new Date(v+'T00:00:00Z').toISOString().slice(0,10)===v);
-const query=z.object({kind:z.enum(['sales','net','stock']),from:day,to:day,cursor:z.string().uuid().optional()}).strict();
+const query=z.object({kind:z.enum(['sales','net','stock','cash']),from:day,to:day,cursor:z.string().uuid().optional()}).strict();
 export const exportPageSize=500;
-export interface ReportExportPage{kind:'sales'|'net'|'stock';from:string;to:string;timeZone:string;filename:string;csv:string;rows:number;nextCursor:string|null}
+export interface ReportExportPage{kind:'sales'|'net'|'stock'|'cash';from:string;to:string;timeZone:string;filename:string;csv:string;rows:number;nextCursor:string|null}
 /** Text cells: neutralise spreadsheet formulas (= + - @ tab CR) and quote when needed. Only ever used for free text, never for money. */
 export function csvText(value:string):string{
  const safe=/^[=+\-@\t\r]/.test(value)?`'${value}`:value;
@@ -41,6 +41,15 @@ export async function reportExport(db:pg.PoolClient,merchant:string,actor:string
     AND($5::uuid IS NULL OR (o.paid_at,o.id)>(SELECT paid_at,id FROM orders WHERE merchant_id=$1 AND id=$5)) ORDER BY o.paid_at,o.id LIMIT ${limit}`,base)).rows;
   ids=rows.map(r=>r.id);
   out=rows.slice(0,pageSize).map(r=>[csvText(r.id),csvText(iso(r.paid_at)),csvText(r.local_day),csvText(r.source_kind),csvText(r.currency),csvInt(r.decimals),csvInt(r.total_minor)]);
+ }else if(kind==='cash'){
+  header=['sale_id','receipt_no','created_at_utc','local_day','status','currency','decimals','subtotal_minor','discount_minor','vat_minor','total_minor','tender_minor','change_minor'];
+  if(cursor&&!(await db.query('SELECT 1 FROM cash_sales WHERE merchant_id=$1 AND id=$2',[merchant,cursor])).rowCount)fail('INVALID_REQUEST',422);
+  const rows=(await db.query<{id:string;receipt_no:string;created_at:Date;local_day:string;status:string;currency:string;decimals:number;subtotal:string;discount:string;vat:string;total:string;tender:string;change:string}>(
+   `SELECT id,receipt_no,created_at,to_char((created_at AT TIME ZONE $4)::date,'YYYY-MM-DD') AS local_day,status,currency_code AS currency,decimals,subtotal_minor::text AS subtotal,discount_minor::text AS discount,vat_minor::text AS vat,total_minor::text AS total,tender_minor::text AS tender,change_minor::text AS change
+    FROM cash_sales WHERE merchant_id=$1 AND created_at>=($2::date::timestamp AT TIME ZONE $4) AND created_at<(($3::date+1)::timestamp AT TIME ZONE $4)
+    AND($5::uuid IS NULL OR (created_at,id)>(SELECT created_at,id FROM cash_sales WHERE merchant_id=$1 AND id=$5)) ORDER BY created_at,id LIMIT ${limit}`,base)).rows;
+  ids=rows.map(r=>r.id);
+  out=rows.slice(0,pageSize).map(r=>[csvText(r.id),csvText(r.receipt_no),csvText(iso(r.created_at)),csvText(r.local_day),csvText(r.status),csvText(r.currency),csvInt(r.decimals),csvInt(r.subtotal),csvInt(r.discount),csvInt(r.vat),csvInt(r.total),csvInt(r.tender),csvInt(r.change)]);
  }else if(kind==='net'){
   header=['order_id','currency','decimals','gross_minor','refunded_minor','net_minor'];
   const rows=(await db.query<{order_id:string;currency:string;decimals:number;gross:string;refunded:string;net:string}>(
