@@ -7,6 +7,7 @@ import {nextFulfillment,type FulfillmentAction} from '../lib/fulfillment';
 import {formatMoney} from '../lib/money';
 import MerchantIcon from './MerchantIcon';
 import OrderBill from './OrderBill';
+import PrintActions from './PrintActions';
 import FoodHandoff from './FoodHandoff';
 import '../styles/incoming.css';
 import '../styles/order-center-fidelity.css';
@@ -169,7 +170,7 @@ export default function IncomingOrders({session,orders,kitchenOnly=false,initial
    <label className="target-confirmation"><input type="checkbox" checked={confirmed} disabled={!selectedTarget||busy||!!pending||!!registryError} onChange={e=>setConfirmed(e.target.checked)}/><span>{text('ยืนยันว่าจอที่เลือกเป็นเป้าหมายที่ถูกต้องสำหรับออเดอร์นี้','I confirm the selected screen is the correct target for this order.')}</span></label>
    <button disabled={busy||!!pending||!!registryError||!selectedTarget||!confirmed} onClick={()=>{if(selectedTarget&&confirmed){setConfirmed(false);resend(selectedTarget);}}}><MerchantIcon name="refresh"/>{text('ยืนยันและส่งการเรียกรับอีกครั้ง','Confirm & resend pickup notice')}</button>
   </details>}
-  </>}</section></OrderBill>{pending&&<div className="notice fulfillment-pending" role="status"><p>{text('คำขอเดิมยังไม่ทราบผล ลองซ้ำด้วยคำขอเดิมเท่านั้น','Previous action unresolved. Retry the exact request only.')} #{pending.orderId.slice(0,8)}</p><button disabled={busy} onClick={retryAction}>{text('ลองคำขอเดิมอีกครั้ง','Retry exact action')}</button></div>}
+  </>}</section></OrderBill><PrintActions order={detail} language={language}/>{pending&&<div className="notice fulfillment-pending" role="status"><p>{text('คำขอเดิมยังไม่ทราบผล ลองซ้ำด้วยคำขอเดิมเท่านั้น','Previous action unresolved. Retry the exact request only.')} #{pending.orderId.slice(0,8)}</p><button disabled={busy} onClick={retryAction}>{text('ลองคำขอเดิมอีกครั้ง','Retry exact action')}</button></div>}
   {error&&<div className="error" role="status"><p>{errorDenied?text('ไม่มีสิทธิ์ดำเนินการ ใช้บัญชีร้านค้าที่ได้รับอนุญาต','Permission denied. Use an authorized merchant account.'):text('ดำเนินการไม่สำเร็จ รีเฟรชสถานะ หรือใช้ปุ่มลองคำขอเดิมหากยังไม่ทราบผล','Action failed. Refresh the status, or retry the exact action if its outcome is unresolved.')}</p><details><summary>{text('รายละเอียด','Details')}</summary>{error}</details></div>}
   {detailRefresh==='failed'&&<div className="error order-detail-refresh-error" role="status"><p>{text('รีเฟรชรายละเอียดออเดอร์ไม่สำเร็จ ออเดอร์ยังเปิดอยู่ ลองอีกครั้งได้','Could not refresh order details. This order remains open; try again.')}</p></div>}
   {detailRefresh==='denied'&&<div className="error order-detail-refresh-error" role="status"><p>{text('ไม่มีสิทธิ์ดูรายละเอียดออเดอร์นี้ ใช้บัญชีร้านค้าที่ได้รับอนุญาต','Permission denied. Use an authorized merchant account.')}</p></div>}

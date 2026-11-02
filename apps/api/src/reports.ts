@@ -32,7 +32,17 @@ export async function salesReport(db:pg.PoolClient,merchant:string,role:string,u
  // Refund tables are closed to the application role; this read-only definer function returns the finalized totals.
  const refunds=((await db.query<{value:RefundGroup[]}>('SELECT bitpos.sales_report162_refunds($1,$2::date,$3::date,$4) value',[merchant,from,to,timeZone])).rows[0]?.value??[]);
  const excluded=(await db.query<{n:number}>(`SELECT count(*)::int AS n FROM orders o WHERE ${window} AND NOT EXISTS(SELECT 1 FROM order_authority a WHERE a.merchant_id=o.merchant_id AND a.order_id=o.id)`,[merchant,from,to,timeZone])).rows[0].n;
- const days:SalesReport['days']=[];
- for(const r of rows){let entry=days[days.length-1];if(!entry||entry.day!==r.day){entry={day:r.day,groups:[]};days.push(entry);}entry.groups.push({currency:r.currency,decimals:r.decimals,sourceKind:r.source_kind,orders:r.orders,totalMinor:r.total_minor});}
+ // Cash taken at the register joins the same report as its own source (never merged with on-chain totals); voided sales are left out.
+ const cashWindow=`merchant_id=$1 AND status='PAID' AND created_at>=($2::date::timestamp AT TIME ZONE $4) AND created_at<(($3::date+1)::timestamp AT TIME ZONE $4)`;
+ const cashDays=(await db.query<{day:string;currency:string;decimals:number;orders:number;total_minor:string}>(
+  `SELECT to_char((created_at AT TIME ZONE $4)::date,'YYYY-MM-DD') AS day,currency_code AS currency,decimals,count(*)::int AS orders,sum(total_minor)::text AS total_minor FROM cash_sales WHERE ${cashWindow} GROUP BY 1,2,3`,[merchant,from,to,timeZone])).rows;
+ const cashHours=(await db.query<{hour:number;currency:string;decimals:number;orders:number;total_minor:string}>(
+  `SELECT extract(hour FROM (created_at AT TIME ZONE $4))::int AS hour,currency_code AS currency,decimals,count(*)::int AS orders,sum(total_minor)::text AS total_minor FROM cash_sales WHERE ${cashWindow} GROUP BY 1,2,3`,[merchant,from,to,timeZone])).rows;
+ for(const c of cashHours){const h=hours.find(x=>x.hour===c.hour&&x.currency===c.currency&&x.decimals===c.decimals);if(h){h.orders+=c.orders;h.totalMinor=(BigInt(h.totalMinor)+BigInt(c.total_minor)).toString();}else hours.push({hour:c.hour,currency:c.currency,decimals:c.decimals,orders:c.orders,totalMinor:c.total_minor});}
+ hours.sort((a,b)=>a.hour-b.hour||a.currency.localeCompare(b.currency)||a.decimals-b.decimals);
+ const byDay=new Map<string,SalesGroup[]>();
+ for(const r of rows)byDay.set(r.day,[...(byDay.get(r.day)??[]),{currency:r.currency,decimals:r.decimals,sourceKind:r.source_kind,orders:r.orders,totalMinor:r.total_minor}]);
+ for(const c of cashDays)byDay.set(c.day,[...(byDay.get(c.day)??[]),{currency:c.currency,decimals:c.decimals,sourceKind:'cash_counter',orders:c.orders,totalMinor:c.total_minor}]);
+ const days:SalesReport['days']=[...byDay.entries()].sort((a,b)=>b[0].localeCompare(a[0])).map(([day,groups])=>({day,groups:groups.sort((a,b)=>a.currency.localeCompare(b.currency)||a.decimals-b.decimals||a.sourceKind.localeCompare(b.sourceKind))}));
  return {from,to,timeZone,days,hours,refunds,excludedOrders:excluded,basis:'gross_paid_before_refunds_and_fees',netBasis:'gross_paid_minus_finalized_refunds_before_fees'};
 }

@@ -54,13 +54,13 @@ class Handler(BaseHTTPRequestHandler):
   if path in ('','/') and self.command=='GET':
    self.send_response(302);self.send_header('Location','/table/6LSn6twjmnvfGpDwTWm98p8S8o4CQqlZ8CwlK_nk1CY');self.send_header('Cache-Control','no-store');self.send_header('Content-Length','0');self.end_headers();return
   table_route=bool(re.fullmatch(r'/(?:api/)?table/[A-Za-z0-9_-]{43}(?:/visit(?:/[A-Za-z0-9_-]{43}(?:/(?:quotes|orders|release|dismiss))?)?)?',path))
-  allowed=(table_route or re.fullmatch(r'/pay/[A-Za-z0-9_-]+/?',path) or re.fullmatch(r'/api/pay/[A-Za-z0-9_-]+(?:/(?:challenge|bind|attempt|submit|dismiss|events|assets|asset))?',path) or path.startswith(('/_astro/','/images/','/videos/')))
+  allowed=(table_route or re.fullmatch(r'/pay/[A-Za-z0-9_-]+/?',path) or re.fullmatch(r'/api/pay/[A-Za-z0-9_-]+(?:/(?:challenge|bind|attempt|submit|dismiss|events|assets|asset))?',path) or path.startswith(('/_astro/','/images/','/videos/')) or path=='/loyalty' or re.fullmatch(r'/loyalty/[a-z0-9-]+\.(?:png|json)',path) or path in ('/api/loyalty/bind','/api/loyalty/bind/challenge'))
   if not allowed or '..' in path: self.send_error(404);return
-  if self.command=='POST' and not path.startswith(('/api/pay/','/api/table/')): self.send_error(405);return
+  if self.command=='POST' and not path.startswith(('/api/pay/','/api/table/','/api/loyalty/')): self.send_error(405);return
   size=int(self.headers.get('Content-Length','0'))
   if size>1000000:self.send_error(413);return
   data=self.rfile.read(size) if self.command=='POST' else None
-  target='http://127.0.0.1:3001'+self.path if path.startswith(('/api/pay/','/api/table/')) else 'http://127.0.0.1:4321'+self.path
+  target='http://127.0.0.1:3001'+self.path if path.startswith(('/api/pay/','/api/table/','/api/loyalty/')) else 'http://127.0.0.1:4321'+self.path
   req=urllib.request.Request(target,data=data,method=self.command,headers={'Content-Type':self.headers.get('Content-Type','application/json')})
   try: res=urllib.request.urlopen(req,timeout=35)
   except urllib.error.HTTPError as e:res=e

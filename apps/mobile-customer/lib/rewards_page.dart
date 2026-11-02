@@ -8,6 +8,8 @@ import 'package:mobile_shared/mobile_v1.generated.dart';
 import 'package:mobile_shared/owned_route.dart';
 import 'package:mobile_shared/presentation/bitpos_info.dart';
 
+import 'loyalty_section.dart';
+
 /// Derived loyalty points and demo-grade reward vouchers. The server recomputes points from
 /// paid online orders on every read (one point per whole currency unit, refunded orders
 /// excluded, minus redemptions). A shop may offer 1-3 rewards; redeeming one debits points and
@@ -369,6 +371,7 @@ class _RewardsPageState extends State<RewardsPage> {
             ],
           ),
           const SizedBox(height: 16),
+          LoyaltySection(api: widget.api, thai: widget.thai, onAuthenticationRequired: widget.onAuthenticationRequired),
           if (loading) const LinearProgressIndicator(),
           if (error != null) ...[
             Semantics(liveRegion: true, child: Text(error!)),

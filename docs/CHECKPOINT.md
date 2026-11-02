@@ -3700,3 +3700,83 @@ Validation: `tests/backend-table-paid-reorder.test.ts` plus table/durability/pay
 - Shop cover photo (2026-10-31, migration 178 `marketplace_branches.cover_url`): `coverUrl` added to `MobileMenu` (OpenAPI/TS/Dart regenerated, tests updated); the branch page hero shows it, with the storefront icon as fallback. Demo cover `apps/web/public/images/cover/bitpos-purple-cafe.jpg` is a cropped Unsplash cafe photo with a purple gradient (credit in `docs/CAFE_PHOTO_CREDITS.md`), not AI-generated and not the demo cafe itself. Thai story page verified on the AVD (title, story, ingredients, benefits and button in Thai). OCI api+web recreated (rollback `bitpos-runtime:rollback-20261031-cover`). Known gap: menu card descriptions are the English catalogue text in Thai mode (single `description` field). Cover is not yet editable from POS.
 - Table QR page (`/table/<entry>`) updated (2026-10-31): `GET /api/table/<entry>` now also returns `stories` (per product) and `coverUrl`; the page shows the shop cover above the heading, a play chip on photos that have a story, and the product dialog plays the loop video (muted, autoplay, poster = photo) with the Thai/English story, ingredients and benefits. Deployed to OCI (rollback `bitpos-runtime:rollback-20261031-table`) and checked in the browser at 375 px.
 
+
+## 2026-10-31 — Order channels (GrabFood / LINE MAN) ชุด 1a–1b
+- เพิ่ม contract กลาง `packages/contracts/src/order-channels.ts` + `tests/order-channels.test.ts` (5 tests PASS, tsc ไม่มี error ใหม่) และแผน/checklist `docs/ORDER_CHANNELS_PLAN_TH.md`
+- ยังไม่มีสิทธิ์ API หรือ credentials ของ Grab/LINE MAN: capability ทุกตัว false, ไม่มี HTTP implementation, ไม่ถือว่าเชื่อมจริง
+- ตัดสินใจใช้ตาราง `channel_*` แยกจาก `orders` (orders ผูก Solana quote)
+- ถัดไป: ชุด 1c migration + RLS แล้วชุด 2 UI ยังไม่ได้ commit/push
+- เพิ่มช่องกรอกคีย์ GrabFood/LINE MAN ให้ owner (ตั้งค่า → ช่องทางเดลิเวอรี): เก็บเข้ารหัส ไม่แสดงกลับ สถานะ 'บันทึกแล้ว ยังไม่ตรวจกับผู้ให้บริการ' ไม่เปิด capability ใด; migration 179 ยังไม่ apply; tests 10 PASS, web build PASS; ยังไม่ได้ดูภาพ UI
+- GrabFood client จากเอกสาร SDK ทางการ (token/list/accept/ready/cancel/store status) + สวิตช์ sandbox↔production (ค่าเริ่มต้น sandbox) + ปุ่มทดสอบการเชื่อมต่อ; tests 19 PASS (fake fetch), build PASS. ยังไม่ได้ยิง Grab จริง, ยังไม่มีตาราง channel_orders/poller/แสดงในศูนย์ออร์เดอร์, LINE MAN ไม่มีเอกสาร
+- รับออเดอร์ GrabFood: ตาราง channel_orders/lines/events (migration 179, apply บน Postgres ชั่วคราวผ่าน), ingest/sync/คำสั่งรับ-ปฏิเสธ-พร้อมรับ, แท็บ GrabFood/LINE MAN ในศูนย์ออเดอร์ (ตรวจภาพ 375px); tests 28 PASS (fake Grab). ยังไม่: worker poll, ตัดสต็อก, ส่งครัว, ซิงก์เมนู, หลักฐาน sandbox จริง, apply บน DB ใช้งาน, commit
+
+## 2026-10-31 — NFT loyalty ขั้น 1 (กติกาและข้อมูล ไม่แตะเชน)
+- migration `180_loyalty_badges.sql`: `loyalty180_tiers` (1–3 ระดับตามแต้มสะสมตลอดชีพ, เกณฑ์ต้องเพิ่มตามช่อง, ระดับที่เคยออกตราแล้วล็อกเกณฑ์), `loyalty180_wallet_bindings` (1 กระเป๋า:1 บัญชี), `loyalty180_consents` (ต่อร้าน ถอนได้), `loyalty180_mints` (บันทึกถาวรสำหรับ worker ขั้น 2) + ฟังก์ชัน `mobile_loyalty_progress/bind_wallet/consent`
+- `apps/api/src/loyalty.ts`: `GET/PUT /api/settings/loyalty` (owner/manager), challenge ผูกกระเป๋าแบบ stateless (HMAC, หมดอายุ 10 นาที, ข้อความระบุว่าไม่อนุมัติการจ่าย), ตรวจลายเซ็น ed25519 เข้มงวดก่อนเข้า SQL
+- ทดสอบ: `tests/backend-loyalty.test.ts` 5 ผ่านบน Postgres ชั่วคราวที่ apply ครบ 001–180 (ข้าม 029 history assertion แบบเดียวกับ fixture); `tsc` ไม่มี error ใหม่; ไม่ตั้ง env แล้วเทสต์ข้ามโดยไม่โหลด config
+- ยังไม่ทำ: เส้นทางมือถือ + OpenAPI/Dart, UI POS, mint บนเชน (ขั้น 2), ไม่ได้ apply กับ DB ใช้งาน, ไม่ได้ commit; เลข 180 อาจชนกับ session Meta
+
+## 2026-10-31 — NFT loyalty ขั้น 2–4 ("Regulars" badges บน Solana devnet)
+- ชุดเชน: Token-2022 mint ต่อระดับ (NonTransferable + PermanentDelegate + MetadataPointer/TokenMetadata) `apps/api/src/loyalty-chain.ts`; admin `tools/devnet/loyalty-create-mints.ts`; worker lane `apps/worker/src/loyalty.ts` (enqueue → claim → อ่านเชนก่อนส่ง → finish, revoke เมื่อคืนเงิน/ถอนความยินยอม, กู้คืนหลัง worker ตาย) เปิดเฉพาะเมื่อตั้ง `BITPOS_LOYALTY_KEY_DIR` (คีย์ role reward-issuer + fee-sponsor เก็บนอก repo)
+- ทดสอบจริงบน devnet: `tools/devnet/loyalty-smoke.ts` (สร้าง mint → ออกตรา → ออกซ้ำไม่ส่ง → โอนถูกปฏิเสธ → burn) และ `BITPOS_LOYALTY_DEVNET=1` e2e ผ่าน worker+Postgres; ตรวจ genesis hash devnet ก่อนส่งทุกครั้ง; ไม่มีคีย์ใน repo; evidence `docs/evidence/loyalty-devnet-20261031.json` (ที่อยู่/signature สาธารณะเท่านั้น)
+- API/Contracts: `GET/PUT /api/settings/loyalty` (+สถิติซื้อซ้ำ), `GET /api/loyalty/verify` (อ่านเชน), mobile `GET /account/loyalty`, `POST /account/loyalty/consent`, `POST /account/loyalty/bind-code`, public `POST /api/loyalty/bind/challenge` + `/api/loyalty/bind` (รหัสครั้งเดียว 10 นาที, ลายเซ็น ed25519 เข้มงวด, ผิด 5 ครั้งล็อกรหัส); OpenAPI + TS/Dart regenerate; แก้ fixture `mobile-wire.json` ที่ค้างจากงาน story/cover
+- UI: Flutter `loyalty_section.dart`, เว็บ `/loyalty` (`LoyaltyBind.tsx`), POS `LoyaltySettings.tsx` — motion ทั้งหมดเคารพ prefers-reduced-motion
+- ทดสอบ: backend-loyalty 9 + backend-loyalty-worker 6 (+1 devnet) บน Postgres ชั่วคราวที่ apply ครบ 001–180; Flutter customer 352 ผ่าน, mobile_shared ผ่าน; tsc ไม่มี error ใหม่; web build ผ่าน
+- **ยังไม่ทำ/ข้อจำกัด:** จอ BitPOS Mini (เฟิร์มแวร์), Phantom จริง, Flutter บน AVD/มือถือจริง, deploy OCI (migration 179–180 ยังไม่ apply; proxy ลูกค้าต้อง allowlist `/loyalty` และ `/api/loyalty/*`), วิดีโอสาธิต, เลข migration 179/180 อาจชนกับ session Meta, งานนี้เกิดหลังปิดส่ง 12 ต.ค. ห้ามอ้างเป็นงานในช่วงแข่ง, ยังไม่ commit
+
+## 2026-11-01 — Regulars: การ์ดสะสม + UX + FigCraft
+- ตราเป็นการ์ดสะสม 3 ระดับ (SVG+PNG+metadata) แทนเหรียญเรียบ; แอป Flutter แสดงการ์ดเอียง 3D และเปิดเต็มใบ; แก้ UX จากภาพ emulator จริง (collapse รายละเอียด, ข้อความเตือนครั้งเดียว, ขั้นตอนเลขลำดับ, ปุ่มเต็มกว้าง)
+- FigCraft: master ใหม่ edited-20261101 (เพิ่ม U47/U48/W23/W24/P42 + การ์ด), screen-map 221, generator `gen_regulars.py`/`gen_regulars_cards.py`, สเปก motion `handoff/REGULARS_20261101.md`
+- พบและแก้: metadata URI ของ mint ชี้ไฟล์ที่ไม่มี → สร้างไฟล์ + allowlist proxy ลูกค้า (ยังไม่ deploy ภาพจึงยังไม่ขึ้นในกระเป๋า)
+- ทดสอบ: Flutter loyalty 8 + rewards ผ่าน, loyalty-card-art 3 ผ่าน, tsc/build ผ่าน; ยังไม่ commit
+
+## 2026-11-01 — GrabFood: จับคู่เมนู (item map)
+- migration 181 `channel_item_map` (RLS ต่อร้าน, FK products) + `GRANT UPDATE(mapped_product_id)` บน `channel_order_lines` เท่านั้น (ประวัติบรรทัดอื่นยังแก้ไม่ได้); `apps/api/src/channels/item-map.ts`: `GET/PUT /api/channels/item-map` (PUT = owner/manager), ingest ใช้ `resolveMappedProduct` (แถวที่เจ้าของเลือก หรือรหัสแพลตฟอร์มตรงกับ product id ของร้านนี้เท่านั้น ไม่จับคู่ตามชื่อ)
+- เลือกสินค้า → เติมบรรทัดที่ยังไม่จับคู่ทุกออเดอร์; ยกเลิก → คืนเฉพาะออเดอร์ที่ยังไม่จบ ออเดอร์ที่จบแล้วคงประวัติ; รายการออเดอร์แสดงชื่อสินค้าที่จับคู่แล้ว
+- UI `ChannelItemMap.tsx` ในแท็บ GrabFood (พนักงานดูได้ แก้ไม่ได้); ตรวจภาพจริง TH/EN มือถือ/เดสก์ท็อปด้วย fixture ชั่วคราว (ลบแล้ว ไม่ใช่หลักฐานจาก Grab)
+- ทดสอบ: tests/channel-item-map 5 + channel-orders-db 9 บน Postgres 17 ที่ apply 001–181, รวมกับ credentials/client/contract 33 ผ่าน; tsc ไม่มี error ใหม่
+- ยังไม่ทำ: สต็อก/ครัวจากออเดอร์ช่องทาง (ใช้ mapping นี้เป็นฐาน), มุมมอง "ทั้งหมด", sync เมนู, หลักฐาน sandbox จริง (ไม่มี credentials), LINE MAN; migration 179–181 ยังไม่ apply ที่ไหนนอกเครื่องทดสอบ; ยังไม่ commit
+- แท็บ "ทั้งหมด" ในศูนย์ออเดอร์ (`AllOrders.tsx`): รวม BitPOS + GrabFood ตามเวลา อ่านอย่างเดียว ไม่รวมยอดข้ามสกุลเงิน; motion เคารพ reduced-motion; tsc/build ผ่าน; ยังไม่ commit
+
+### 2026-11-02 · ชุด 4: สต็อกและ settlement ของออเดอร์ช่องทาง
+- migration 182 (`CHANNEL_SALE` ใน ledger เดิม + `channel_stock_effects` append-only, RLS), `channels/stock.ts` (ตัดครั้งเดียวต่อบรรทัด ผ่าน ledger, ของไม่พอตัดเท่าที่มี, ไม่ต่ำกว่า reserved, ไม่คืนอัตโนมัติ), `channels/settlement.ts` + route `POST /api/channels/orders/:id/settlement` (owner/manager), `listChannelOrders` ส่ง `stock` ต่อบรรทัดและ `receivable` แยกสกุลเงิน
+- UI ใน `ChannelOrders.tsx`: ป้ายตัดสต็อกแล้ว/ตัดได้บางส่วน, ป้ายสถานะ settlement พร้อมปุ่ม (เฉพาะ owner/manager), กล่องยอดค้างรับ; motion เดียวกับแผงจับคู่
+- ทดสอบ: tests/channel-stock-settlement 10 ผ่าน; ชุด channel ทั้งหมด + order-channels 36 ผ่านบน Postgres 17 (apply ถึง 182); web-api-routes 2 ผ่าน; tsc ไม่มี error ใหม่; ตรวจภาพจริงด้วย fixture
+- reduced-motion ของแผงเว็บ: ทดสอบในเบราว์เซอร์โดยบังคับ media rule ให้ใช้ → องค์ประกอบที่เคลื่อนไหว 4 → 0 (ไม่ใช่การจำลองค่าระบบของผู้ใช้จริง)
+- ยังไม่ทำ: จอครัว, ซิงก์เมนู (ไม่มี endpoint ทางการ), sandbox จริง (ไม่มี credentials), apply migration 179–182 กับ DB จริง/deploy, commit
+
+### 2026-11-02 · คิวครัวสำหรับออเดอร์ GrabFood
+- API: คำสั่ง `preparing` (ภายในร้านเท่านั้น ไม่มีการเรียก Grab ไม่มีผลลัพธ์ที่ไม่ทราบ) จาก accepted เท่านั้น + event `local` + audit; test เพิ่ม 1 ข้อใน channel-orders-db (รวม 10)
+- UI: ส่วน "คิวครัว" ใน `ChannelOrders.tsx` (การ์ดต่อออเดอร์ เรียงเก่าก่อน, ปุ่มเริ่มทำ/ทำเสร็จ·พร้อมรับ), แถบสถานะพัลส์เมื่อกำลังทำ, การ์ดเข้าแบบ stagger
+- reduced-motion: ตรวจในเบราว์เซอร์ (บังคับ media rule) **พบบั๊กจริง** แถบพัลส์ (::before) ยังขยับเพราะ `*` ไม่ครอบ pseudo-element → แก้เพิ่ม `*::before,*::after` แล้ว นับ animation รวม pseudo 8 → 0
+- ไม่รวมกับกระดานครัว BitPOS (เหตุผลใน ORDER_CHANNELS_PLAN_TH.md)
+
+- ชุด 6 (ส่วนไม่ต้องใช้ credentials): เพิ่ม test poll พร้อมกัน 2 การเชื่อมต่อจริง ตัดสต็อกครั้งเดียว (channel-stock-settlement รวม 11); sandbox จริงยังรอคีย์จากเจ้าของร้าน
+
+### 2026-11-02 · พิมพ์/เรียกคิว (แรงบันดาลใจจาก domepos, เขียนเอง) + ภาพโซเชียล
+- อ่าน `jaturapornchai/domepos` เฉพาะรายการฟีเจอร์ใน README: **ไม่มีไฟล์ license** จึงไม่คัดลอกโค้ด/ภาพ/ข้อความ (บันทึกใน SOURCE_PROVENANCE.md) ฟีเจอร์ที่ BitPOS ยังไม่มี: พิมพ์ใบเสร็จย่อ 80 มม., สติกเกอร์แก้ว, Z-Report, เรียกคิวด้วยเสียงไทย → เขียนใหม่เอง
+- `lib/print-slip.ts` (escape HTML ทุกค่า, เงินจาก integer minor units, Z-Report ไม่รวมข้ามสกุล, พิมพ์ผ่าน iframe ในเครื่อง), `lib/voice-call.ts` (Web Speech ของเบราว์เซอร์ รายงานตรงๆ ถ้าไม่มีเสียงไทย), `components/PrintActions.tsx` ในรายละเอียดออเดอร์ (ปุ่มเรียกคิวเฉพาะสถานะ READY), ปุ่มพิมพ์ Z-Report ใน ShiftClose; tests/web-print-slip 5 ผ่าน
+- ภาพโซเชียล 4 ไฟล์ใน `docs/social/` (ไทย/อังกฤษ, ข้อมูลตัวอย่างทั้งหมด) + prompt ChatGPT `docs/social/CHATGPT_SOCIAL_PROMPT_TH.md` (บังคับป้ายข้อมูลตัวอย่าง ห้ามอ้างเชื่อม Grab จริง ต้องรอ "อนุมัติ" ก่อนโพสต์)
+- ยังไม่ได้ทดสอบพิมพ์กับเครื่องพิมพ์ความร้อนจริง และเสียงไทยขึ้นกับเสียงที่ติดตั้งในเครื่อง
+
+### 2026-11-02 · เทียบ domepos ครบทุกฟีเจอร์ + เสียงเอฟเฟกต์
+- ทำตารางเทียบทุกฟีเจอร์ใน `docs/DOMEPOS_FEATURE_GAP_TH.md`: ส่วนใหญ่ BitPOS มีอยู่แล้ว; ที่ขาดและทำแล้ว = พิมพ์ใบเสร็จ/สติกเกอร์/Z-Report, เรียกคิวเสียงไทย, เสียงเอฟเฟกต์ (เขียนเอง ไม่คัดลอก)
+- ที่ **ยังไม่ทำและรอคุณตัดสินใจ**: บาร์โค้ด (แตะ schema+สัญญา API/มือถือ), รับเงินสด/ทอน, ส่วนลดท้ายบิล, ใบกำกับภาษีอย่างย่อ/VAT (แตะกฎการชำระเงิน/ราคา/กฎหมาย)
+- เสียง: `lib/sfx.ts` + `SoundToggle.tsx` + effect ใน `Pos.tsx` (เพิ่ม/ลบแก้ว, ออเดอร์จ่ายแล้วใหม่; ครั้งแรกหลังโหลดไม่ดัง); tests/web-sfx 4 ผ่าน; ยังไม่ได้ดูภาพปุ่มในหน้า Pos จริง (ต้องล็อกอิน) และยังไม่ได้ฟังเสียงบนเครื่องจริง
+
+### 2026-11-02 · เครื่องคิดเงินสด + บาร์โค้ด + ส่วนลด + ใบกำกับภาษีอย่างย่อ (ออกแบบแล้ว implement ครบ)
+- เอกสารออกแบบ SA: `docs/CASH_REGISTER_DESIGN_TH.md` (ข้อค้นพบที่บังคับการออกแบบ: `orders` เป็น PAID ได้เฉพาะหลังตรวจบนเชน, แคตตาล็อกเป็น USD/USDG ไม่มี THB → ทำโมดูลแยก ราคาเงินสดแยกชุด ไม่แปลงอัตรา)
+- migration 183 (apply เฉพาะ scratch DB): `product_barcodes`, `cash_settings`, `cash_prices`, `cash_receipt_counters` (เลขไม่ข้าม), `cash_sales`/`cash_sale_lines` (immutable ยกเว้น PAID→VOIDED), ledger kind `CASH_SALE`/`CASH_VOID_RETURN`, RLS ทุกตาราง
+- API: `apps/api/src/cash/{pricing,settings,barcodes,sales}.ts` + 13 routes + allowlist ของเว็บ; ยอดปิดรอบมีกลุ่ม `cash_counter` แยกสกุลเงิน (void ไม่นับ)
+- เว็บ: แท็บ "ขายเงินสด" (`CashRegister.tsx`, `CashSettingsPanel.tsx`, `cash-register.css`), `cash-view.ts`, `cashReceiptDoc` ใน print-slip; สแกนบาร์โค้ดตรงเป๊ะ; motion: การ์ดเข้า/เด้ง, ตัวเลขเด้ง, แถบแสงปุ่มชำระ, เช็กถูกวาดเส้น; reduced-motion ตรวจในเบราว์เซอร์ (บังคับ media rule รวม pseudo-element) 0 animation
+- ทดสอบ: cash-pricing 4, cash-register-db 14 (รวมขายพร้อมกัน 2 การเชื่อมต่อจริงของชิ้นสุดท้าย → สำเร็จ 1), web-cash-view 5; ภาพจริง TH/EN ด้วยข้อมูลจำลอง; ภาพโซเชียลเพิ่ม 4 ไฟล์ใน `docs/social/`
+- **ยังไม่ทำ/ยังไม่ตรวจ:** apply 183 กับ DB จริงและ deploy · ดูแท็บใหม่ในหน้า Pos จริงหลังล็อกอิน · ใบกำกับภาษีรอนักบัญชียืนยัน · เครื่องพิมพ์ความร้อนจริง · เสียงจริง · รายงานขายหลัก (`PosReports`) ยังไม่รวมยอดเงินสด (รวมอยู่ในยอดปิดรอบ) · PromptPay/บัตร/โอน ไม่ทำ
+
+### 2026-11-02 · ทบทวนแผนเครื่องคิดเงินสดรอบสอง (SA review)
+- พบและแก้ช่องโหว่จริง 1: บาร์โค้ดใช้ `FOR UPDATE` ที่ role แอปไม่มีสิทธิ์ → เปลี่ยนเป็น `ON CONFLICT DO NOTHING`; เพิ่มเทสต์รันเป็น `bitpos_app` ทั้งเงินสดและ Grab (รวมเงินสด 15 + channel-stock 12)
+- ตัดข้อสงสัยที่ไม่จริง: net ไม่เป็นศูนย์ (พิสูจน์ครบช่วง), เลข migration ไม่ชน (Meta 300–328, PayPal 400–405)
+- UI บันทึกราคาแบ่งชุดละ 200; ชุดทดสอบทั้งโปรเจกต์: 5 ไฟล์ที่ล้มเกิดจากไม่ตั้ง env เท่านั้น
+- รายละเอียด + preflight ก่อนขึ้นระบบจริง: `docs/CASH_REGISTER_DESIGN_TH.md` หัวข้อ 14–15
+
+### 2026-11-02 · รายงานขายหลักรวมเงินสด
+- `reports.ts` + ป้าย `cash_counter` ใน `PosReports.tsx`; test เพิ่ม 1 ใน cash-register-db (16 ข้อ) + backend-reports/web-pos-reports ผ่าน; CSV export ยังไม่รวมเงินสด

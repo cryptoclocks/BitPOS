@@ -1,0 +1,38 @@
+{
+ "name": "BitPOS Regulars · Gold",
+ "symbol": "REG2",
+ "description": "A membership badge from a BitPOS shop for being a regular. It cannot be transferred, has no monetary value, and the shop can take it back after a refund. Solana devnet (test network) only.",
+ "image": "https://pay.cashlessthailand.com/loyalty/card-2.png",
+ "external_url": "https://pay.cashlessthailand.com/loyalty",
+ "attributes": [
+  {
+   "trait_type": "Level",
+   "value": "Gold"
+  },
+  {
+   "trait_type": "Rank",
+   "value": 2
+  },
+  {
+   "trait_type": "Network",
+   "value": "Solana devnet"
+  },
+  {
+   "trait_type": "Transferable",
+   "value": "No"
+  },
+  {
+   "trait_type": "Monetary value",
+   "value": "None"
+  }
+ ],
+ "properties": {
+  "category": "image",
+  "files": [
+   {
+    "uri": "https://pay.cashlessthailand.com/loyalty/card-2.png",
+    "type": "image/png"
+   }
+  ]
+ }
+}

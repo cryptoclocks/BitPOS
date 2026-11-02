@@ -12,8 +12,8 @@ const movement=z.object({
  expectedStock:z.number().int().min(0),idempotencyKey:z.string().min(1).max(128)
 }).strict().refine(v=>v.kind!=='RECEIVE'||v.delta>0);
 export interface StockRow{productId:string;stock:number;reserved:number;available:number;reorderLevel:number|null}
-export interface StockMovement{id:string;productId:string;kind:'RECEIVE'|'ADJUST';delta:number;stockBefore:number;stockAfter:number;reason:string;reference:string;actor:string;createdAt:string}
-const view=(r:{id:string;product_id:string;kind:'RECEIVE'|'ADJUST';delta:number;stock_before:number;stock_after:number;reason:string;reference:string;actor:string;created_at:Date}):StockMovement=>({id:r.id,productId:r.product_id,kind:r.kind,delta:r.delta,stockBefore:r.stock_before,stockAfter:r.stock_after,reason:r.reason,reference:r.reference,actor:r.actor,createdAt:r.created_at.toISOString()});
+export interface StockMovement{id:string;productId:string;kind:'RECEIVE'|'ADJUST'|'CHANNEL_SALE';delta:number;stockBefore:number;stockAfter:number;reason:string;reference:string;actor:string;createdAt:string}
+const view=(r:{id:string;product_id:string;kind:'RECEIVE'|'ADJUST'|'CHANNEL_SALE';delta:number;stock_before:number;stock_after:number;reason:string;reference:string;actor:string;created_at:Date}):StockMovement=>({id:r.id,productId:r.product_id,kind:r.kind,delta:r.delta,stockBefore:r.stock_before,stockAfter:r.stock_after,reason:r.reason,reference:r.reference,actor:r.actor,createdAt:r.created_at.toISOString()});
 /** Owner/manager only. Quantity changes are optimistic (expectedStock), idempotent, never below reserved stock, and ledgered. */
 export async function inventoryRequest(db:pg.PoolClient,merchant:string,actor:string,role:string,url:URL,method:string,input:unknown){
  requireRole(role);

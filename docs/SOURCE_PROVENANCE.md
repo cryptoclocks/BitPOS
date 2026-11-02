@@ -24,3 +24,7 @@ AI-assisted coding and design tools were used during development. Human product 
 See [third-party notices](THIRD_PARTY_NOTICES.md). A public repository alone does not grant an open-source license. Any license applied to project-owned work does not replace third-party licenses, grant trademark rights, or establish ownership of prior third-party material. The submitter must confirm rights to inherited code/artwork and disclose relevant prior development in the submission form itself.
 
 Historical Thai planning notes remain in the repository for traceability; this English document is the current reviewer-facing disclosure.
+
+## Feature references (no code copied)
+
+On 2026-11-02 the public repository `jaturapornchai/domepos` was read for its *feature list only* (README). It carries no license, so none of its code, assets or text was copied. The following BitPOS features were written independently after seeing that a cafe POS commonly offers them: short receipt print, cup labels, Z-report print and a spoken pickup call (`apps/web/src/lib/print-slip.ts`, `voice-call.ts`, `components/PrintActions.tsx`). Features of that repository that BitPOS already has or deliberately does not adopt (no-login access, Cloudflare D1 sync, float-free arithmetic is already a BitPOS rule) were not ported.

@@ -64,7 +64,7 @@ export default function PosReports({ orders, ready, failed, language, token, pro
   }, [token, view, range.from, range.to]);
   const productName = (id: string) => { const p = products.find(item => item.id === id); return p ? (language === 'th' ? p.name : p.nameEn) : id.slice(0, 8); };
   const serverView = !!server && (view === 'daily' || view === 'period' || view === 'payouts');
-  const sourceLabel = (kind: string) => ({ register: text('จุดขาย', 'Register'), device: text('POSClock', 'POSClock'), online: text('แอป', 'App'), legacy_counter: text('เดิม', 'Legacy') } as Record<string, string>)[kind] ?? kind;
+  const sourceLabel = (kind: string) => ({ register: text('จุดขาย', 'Register'), device: text('POSClock', 'POSClock'), online: text('แอป', 'App'), cash_counter: text('เงินสด', 'Cash'), legacy_counter: text('เดิม', 'Legacy') } as Record<string, string>)[kind] ?? kind;
   const serverMoney = (g: SalesGroup) => formatMoney({ currency: g.currency, decimals: g.decimals, amountMinor: g.totalMinor } as never);
   // KPI cards and channel shares come from the same server rows; see lib/sales-summary.ts for the single-currency rule.
   const raw = salesSummary(server?.days.flatMap(d => d.groups) ?? []);

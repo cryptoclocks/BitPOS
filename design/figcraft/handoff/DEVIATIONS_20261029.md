@@ -98,3 +98,6 @@ Owner direction: demo-ready, not production. Text/overlay patches rather than fu
 - U07 (name/branch/address search, ทั้งหมด/รับที่ร้าน/จัดส่ง chips, "ร้านที่ค้นพบ"), U08 (store filter sheet with the single pickup/delivery group), U32 and U34 (the app's real settings and privacy rows, no save button), U36 (create/join group, 24 h invite code, lock), U44 sessions, U45 order again (read-only list), U46 reviews (average header).
 - R11/R13 token field instead of 4-digit PIN boxes (QR scan marked planned, photo proof dropped), R20 help, R21 incident dialog with the seven real categories, R25 delivery-problem dialog, R26 pre-pickup withdrawal with the restricted-duty warning; S11 no list-level accept, S12 typed preparation minutes (no default) and collapsed charges.
 - Spelling "ออร์เดอร์" vs "ออเดอร์" and a "customer unreachable" incident category stay app-side and unchanged. Generators: `generators/gen_p16.py, gen_c2.py, gen_r2.py, hl.py` (they overlay new shapes/text on the earlier master state; replay order: gen_honest, gen_p16, gen_c2, gen_r2).
+
+## 2026-11-01 Regulars screens
+U47, U48, W23, W24 and P42 were added (see `REGULARS_20261101.md`). They describe post-deadline, devnet-only work and a non-transferable badge with no monetary value.

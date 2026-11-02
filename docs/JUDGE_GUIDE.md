@@ -28,7 +28,9 @@ This is a shared devnet evaluation environment, so an online terminal may be bus
 | Native terminal QR, confirming/paid feedback, animation and audio | Implemented; firmware 0.3.6 acceptance evidence |
 | Android Phantom on a physical phone | Manual acceptance remains pending; host-wallet payments are separate evidence |
 | Native Actions/Blinks checkout | Planned/incomplete; current checkout is a website/provider flow |
-| Automatic personalized AI offers, loyalty/NFT rewards | Planned/incomplete |
+| Automatic personalized AI offers | Planned/incomplete |
+| Loyalty points and reward vouchers | Implemented (demo-grade), devnet |
+| "Regulars" membership badges (non-transferable Token-2022, opt-in, revocable) | Implemented on Solana devnet **after the 12 Oct submission deadline** (31 Oct 2026); evidence in `docs/evidence/loyalty-devnet-20261031.json`. Not part of the competition-window work. Not yet deployed to the shared OCI runtime. |
 | Mainnet and redeemable USDG | Not enabled |
 
 ## Evidence and source

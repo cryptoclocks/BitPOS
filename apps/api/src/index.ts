@@ -21,6 +21,9 @@ import {fulfillmentRequest} from './fulfillment';
 import {mobileFoodRequest,decideOnlineOrder} from './mobile-food';
 import {mobileProfileRequest} from './mobile-profile';
 import {mobileRewardVoucherRequest,rewardSettings} from './reward-vouchers';
+import {loyaltySettings,verifyLoyaltyWallet,mobileLoyaltyRequest,loyaltyPublicRequest} from './loyalty';
+import {badgeBalance} from './loyalty-chain';
+import {Connection as LoyaltyConnection} from '@solana/web3.js';
 import {mobileRideRequest} from './mobile-rides';
 import {mobileGroupRequest} from './mobile-groups';
 import {driverPlatformRequest,driverPlatformError} from './driver-platform';
@@ -37,6 +40,13 @@ import {promotionsRequest} from './promotions';
 import {servePromotionMedia} from './promotion-assets';
 import {serveProductImage,uploadProductImage,readRaw,maxProductImageBytes} from './product-images';
 import {readProductStory,writeProductStory} from './product-story';
+import {listChannelOrders,syncGrabOrders,grabOrderCommand} from './channels/grabfood-orders';
+import {listItemMap,saveItemMap} from './channels/item-map';
+import {settleChannelOrder} from './channels/settlement';
+import {addBarcode,listBarcodes,lookupBarcode,removeBarcode} from './cash/barcodes';
+import {getPrices,getSettings,putPrices,saveSettings} from './cash/settings';
+import {createCashSale,getCashSale,listCashSales,quoteCashSale,voidCashSale} from './cash/sales';
+import {channelConnectionsRequest,setActiveEnvironment,testChannelConnection} from './channel-connections';
 import {currentScreen} from './device-commands';
 import {avatar,hash,challengeMessage,liveOrder} from '../../../packages/domain/src/index';
 import {build,validateSigned,assertPaymentMessage} from './payments';
@@ -141,6 +151,8 @@ export async function handle(req:http.IncomingMessage){
   if(favourites!==undefined)return favourites;
   const rewardVouchers=await mobileRewardVoucherRequest(url,method??'GET',input,req.headers.authorization);
   if(rewardVouchers!==undefined)return rewardVouchers;
+  const loyaltyMobile=await mobileLoyaltyRequest(url,method??'GET',input,req.headers.authorization);
+  if(loyaltyMobile!==undefined)return loyaltyMobile;
   const profile=await mobileProfileRequest(url,method??'GET',input,req.headers.authorization);
   if(profile!==undefined)return profile;
   const rides=await mobileRideRequest(url,method??'GET',input,req.headers.authorization);
@@ -179,6 +191,7 @@ export async function handle(req:http.IncomingMessage){
   if(method==='POST'){const selected=await demoCredentials(req,input);return login(selected.credentials,selected.role);}
   fail('RESOURCE_NOT_FOUND',404);
  }
+ if(path==='/api/loyalty/bind/challenge'||path==='/api/loyalty/bind'){const r=await loyaltyPublicRequest(path,method??'GET',input);if(r!==undefined)return r;}
  if(path.startsWith('/api/table/')){const checkout=await delegatedCheckoutRequest(path,method??'GET',input);if(checkout!==undefined)return checkout;const grants=await delegatedPaymentsRequest(path,method??'GET',input);if(grants!==undefined)return grants;const coffee=await coffeeCopilotRequest(path,method??'GET',input);if(coffee!==undefined)return coffee;const table=await tableRequest(path,method??'GET',input);if(table===undefined)fail('RESOURCE_NOT_FOUND',404);return table;}
  const customerAuth=await customerAuthRequest(path,method??'GET',input,typeof req.headers.origin==='string'?req.headers.origin:'');if(customerAuth!==undefined)return customerAuth;
  const pay=path.match(/^\/api\/pay\/([^/]+)(?:\/(challenge|bind|attempt|submit|dismiss|assets|asset|menu))?$/);
@@ -259,6 +272,8 @@ export async function handle(req:http.IncomingMessage){
  if(path==='/api/settings/collection'&&(method==='GET'||method==='PUT'))return collectionSettings(db,merchant,session.user_id,session.current_role,method,input);
  if(path.startsWith('/api/promotions')){const result=await promotionsRequest(db,merchant,session.user_id,session.current_role,path,method??'',input);if(result!==undefined)return result;}
  const registered=await registry(db,merchant,session.user_id,session.current_role,path,method??'',input);if(registered!==undefined)return registered;
+ if(path==='/api/loyalty/verify'&&method==='GET')return verifyLoyaltyWallet(db,session.current_role,url,async(mint,wallet)=>(await badgeBalance(new LoyaltyConnection(config.SOLANA_RPC,'finalized'),mint,wallet))>=1n);
+ if(path==='/api/settings/loyalty')return loyaltySettings(db,merchant,session.user_id,session.current_role,method??'GET',input);
  if(path==='/api/settings/rewards')return rewardSettings(db,merchant,session.user_id,session.current_role,method??'GET',input);
  if(path==='/api/settings/pricing'){if(method==='GET')return pricingView(db,merchant);if(method==='PUT')return publishPrices(db,merchant,session.user_id,session.current_role,input);}
  const registerOrder=path.match(/^\/api\/registers\/([^/]+)\/(quotes|orders|submissions)(?:\/([^/]+)(?:\/(dismiss))?)?$/);
@@ -290,6 +305,33 @@ export async function handle(req:http.IncomingMessage){
  if(recovery&&method==='POST'){requireRole(session.current_role);z.object({resolution:z.literal('acknowledged')}).strict().parse(input);const o=(await db.query('SELECT * FROM orders WHERE id=$1 FOR UPDATE',[uuid.parse(recovery[1])])).rows[0];if(!o)fail('RESOURCE_NOT_FOUND',404);if(o.status!=='RECOVERY')fail('RECOVERY_REQUIRED');if((await db.query("SELECT 1 FROM payment_attempts WHERE order_id=$1 AND status IN ('BUILDING','READY','SUBMITTING','SUBMITTED','CONFIRMED')",[o.id])).rowCount)fail('PAYMENT_PENDING');await db.query('UPDATE orders SET recovery_resolved_at=coalesce(recovery_resolved_at,clock_timestamp()) WHERE id=$1',[o.id]);await audit(db,merchant,session.user_id,'order.recovery.acknowledged',o.id);return {ok:true};}
  const productArchive=path.match(/^\/api\/products\/([^/]+)\/(archive|unarchive)$/);
  if(productArchive&&method==='POST')return (productArchive[2]==='archive'?archiveProduct:unarchiveProduct)(db,merchant,session.user_id,session.current_role,productArchive[1]);
+ if(path==='/api/channels/credentials'&&['GET','PUT'].includes(method??''))return channelConnectionsRequest(db,merchant,session.user_id,session.current_role,method!,input);
+ if(path==='/api/channels/environment'&&method==='PUT')return setActiveEnvironment(db,merchant,session.user_id,session.current_role,input);
+ if(path==='/api/channels/test'&&method==='POST')return testChannelConnection(db,merchant,session.user_id,session.current_role,input);
+ if(path==='/api/channels/orders'&&method==='GET')return listChannelOrders(db,merchant,session.current_role,url.searchParams.get('source'));
+ if(path==='/api/channels/item-map'&&method==='GET')return listItemMap(db,merchant,session.current_role,url.searchParams.get('source'));
+ if(path==='/api/channels/item-map'&&method==='PUT')return saveItemMap(db,merchant,session.user_id,session.current_role,input);
+ if(path==='/api/channels/orders/sync'&&method==='POST')return syncGrabOrders(db,merchant,session.user_id,session.current_role);
+ const channelCommand=path.match(/^\/api\/channels\/orders\/([^/]+)\/command$/);
+ if(channelCommand&&method==='POST')return grabOrderCommand(db,merchant,session.user_id,session.current_role,channelCommand[1],input);
+ if(path==='/api/cash/settings'&&method==='GET')return getSettings(db,merchant,session.current_role);
+ if(path==='/api/cash/settings'&&method==='PUT')return saveSettings(db,merchant,session.user_id,session.current_role,input);
+ if(path==='/api/cash/prices'&&method==='GET')return getPrices(db,merchant,session.current_role);
+ if(path==='/api/cash/prices'&&method==='PUT')return putPrices(db,merchant,session.user_id,session.current_role,input);
+ if(path==='/api/cash/quote'&&method==='POST')return quoteCashSale(db,merchant,session.current_role,input);
+ if(path==='/api/cash/sales'&&method==='POST')return createCashSale(db,merchant,session.user_id,session.current_role,input);
+ if(path==='/api/cash/sales'&&method==='GET')return listCashSales(db,merchant,session.current_role);
+ const cashSale=path.match(/^\/api\/cash\/sales\/([^/]+)$/);
+ if(cashSale&&method==='GET')return getCashSale(db,merchant,session.current_role,cashSale[1]);
+ const cashVoid=path.match(/^\/api\/cash\/sales\/([^/]+)\/void$/);
+ if(cashVoid&&method==='POST')return voidCashSale(db,merchant,session.user_id,session.current_role,cashVoid[1],input);
+ if(path==='/api/barcodes'&&method==='GET')return listBarcodes(db,merchant,session.current_role,url.searchParams.get('productId'));
+ if(path==='/api/barcodes'&&method==='PUT')return addBarcode(db,merchant,session.user_id,session.current_role,input);
+ if(path==='/api/barcodes/delete'&&method==='POST')return removeBarcode(db,merchant,session.user_id,session.current_role,input);
+ if(path==='/api/barcodes/lookup'&&method==='GET')return lookupBarcode(db,merchant,session.current_role,url.searchParams.get('code'));
+ const channelSettle=path.match(/^\/api\/channels\/orders\/([^/]+)\/settlement$/);
+ if(channelSettle&&method==='POST')return settleChannelOrder(db,merchant,session.user_id,session.current_role,channelSettle[1],input);
+ if(path==='/api/channels/credentials/delete'&&method==='POST')return channelConnectionsRequest(db,merchant,session.user_id,session.current_role,'POST',input);
  const productStory=path.match(/^\/api\/products\/([^/]+)\/story$/);
  if(productStory&&method==='GET')return readProductStory(db,merchant,session.current_role,productStory[1]);
  if(productStory&&method==='PUT')return writeProductStory(db,merchant,session.user_id,session.current_role,productStory[1],input);

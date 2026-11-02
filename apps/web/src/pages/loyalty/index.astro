@@ -1,0 +1,7 @@
+---
+import LoyaltyBind from '../../components/LoyaltyBind';
+export const prerender = false;
+Astro.response.headers.set('Cache-Control', 'no-store');
+Astro.response.headers.set('Referrer-Policy', 'no-referrer');
+---
+<!doctype html><html lang="en"><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><meta name="color-scheme" content="light dark" /><title>BitPOS · Verify your wallet</title></head><body><LoyaltyBind client:only="react" /></body></html>

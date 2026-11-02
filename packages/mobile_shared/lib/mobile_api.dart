@@ -281,6 +281,11 @@ class MobileApi {
   Future<MobileRewardCatalog> rewardCatalog() async=>MobileRewardCatalog.fromJson(await _request('account/rewards/catalog',authenticated:true));
   /// Debits points and issues one voucher; the same idempotency key replays the same voucher.
   Future<MobileRewardRedemption> redeemReward(MobileRewardRedeemRequest request) async=>MobileRewardRedemption.fromJson(await _request('account/rewards/redeem',method:'POST',body:request.toJson(),authenticated:true));
+  /// "Regulars" membership per shop: lifetime-point tier, consent, bound wallet and the devnet badge state. Everything is server-computed.
+  Future<MobileLoyaltyOverview> loyalty() async=>MobileLoyaltyOverview.fromJson(await _request('account/loyalty',authenticated:true));
+  Future<MobileLoyaltyConsent> setLoyaltyConsent(MobileLoyaltyConsentRequest request) async=>MobileLoyaltyConsent.fromJson(await _request('account/loyalty/consent',method:'POST',body:request.toJson(),authenticated:true));
+  /// One-time code (10 minutes) used on the web page where the wallet signs; no session or personal data goes into the URL.
+  Future<MobileLoyaltyBindCode> loyaltyBindCode() async=>MobileLoyaltyBindCode.fromJson(await _request('account/loyalty/bind-code',method:'POST',body:const <String,Object?>{},authenticated:true));
   Future<MobileVouchers> vouchers() async=>MobileVouchers.fromJson(await _request('account/vouchers',authenticated:true));
   Future<MobileAccountErased> eraseAccountData() async=>MobileAccountErased.fromJson(await _request('account/erase',method:'POST',body:MobileAccountErase(idempotencyKey:const Uuid().v4(),confirm:'ERASE').toJson(),authenticated:true));
   Future<MobileAccountExport> accountExport() async=>MobileAccountExport.fromJson(await _request('account/export',authenticated:true));

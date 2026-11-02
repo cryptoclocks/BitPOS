@@ -22,7 +22,11 @@ async function totals(db:pg.PoolClient,merchant:string,from:Date,to:Date,timeZon
   `SELECT a.catalog_currency AS currency,a.catalog_decimals AS decimals,a.source_kind,count(*)::int AS orders,sum(a.total_minor)::text AS total_minor
    FROM orders o JOIN order_authority a ON a.merchant_id=o.merchant_id AND a.order_id=o.id WHERE ${window} GROUP BY 1,2,3 ORDER BY 1,2,3`,[merchant,from,to])).rows;
  const excluded=(await db.query<{n:number}>(`SELECT count(*)::int AS n FROM orders o WHERE ${window} AND NOT EXISTS(SELECT 1 FROM order_authority a WHERE a.merchant_id=o.merchant_id AND a.order_id=o.id)`,[merchant,from,to])).rows[0].n;
- return {timeZone,groups:rows.map(r=>({currency:r.currency,decimals:r.decimals,sourceKind:r.source_kind,orders:r.orders,totalMinor:r.total_minor})),excludedOrders:excluded,basis:'gross_paid_before_refunds_and_fees'};
+ // Cash taken at the register is its own group (never merged with on-chain orders); voided sales are not counted.
+ const cash=(await db.query<{currency:string;decimals:number;orders:number;total_minor:string}>(
+  `SELECT currency_code AS currency,decimals,count(*)::int AS orders,sum(total_minor)::text AS total_minor FROM cash_sales WHERE merchant_id=$1 AND status='PAID' AND created_at>=$2 AND created_at<$3 GROUP BY 1,2 ORDER BY 1,2`,[merchant,from,to])).rows;
+ const groups=[...rows.map(r=>({currency:r.currency,decimals:r.decimals,sourceKind:r.source_kind,orders:r.orders,totalMinor:r.total_minor})),...cash.map(r=>({currency:r.currency,decimals:r.decimals,sourceKind:'cash_counter',orders:r.orders,totalMinor:r.total_minor}))];
+ return {timeZone,groups,excludedOrders:excluded,basis:'gross_paid_before_refunds_and_fees'};
 }
 /** Owner/manager only. The open period runs from the previous close (or the start of the shop's day) to now; closing freezes the
  * server-computed paid totals in one immutable row. Counted cash is only what the person declared; money is never summed across currencies. */

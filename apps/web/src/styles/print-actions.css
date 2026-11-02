@@ -1,0 +1,9 @@
+.print-actions{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
+.print-actions button{transition:transform .16s cubic-bezier(.2,.7,.2,1),box-shadow .2s}
+.print-actions button:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(91,43,184,.18)}.print-actions button:active{transform:scale(.97)}
+.print-call{animation:print-call-in .4s cubic-bezier(.2,.7,.2,1) both,print-call-glow 2.4s ease-in-out .5s 2}
+.print-actions .notice{flex-basis:100%;margin:0}
+@keyframes print-call-in{from{opacity:0;transform:scale(.9)}to{opacity:1;transform:none}}
+@keyframes print-call-glow{0%,100%{box-shadow:0 0 0 0 rgba(91,43,184,0)}50%{box-shadow:0 0 0 6px rgba(91,43,184,.22)}}
+@media(prefers-reduced-motion:reduce){.print-actions,.print-actions *{animation:none!important;transition:none!important}}
+@media(max-width:600px){.print-actions button{flex:1 1 100%}}

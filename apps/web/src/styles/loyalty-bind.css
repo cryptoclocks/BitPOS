@@ -1,0 +1,42 @@
+.lb,.lb *{box-sizing:border-box}
+.lb{grid-template-columns:minmax(0,1fr);--lb-ink:#2b1a4a;--lb-purple:#64188a;--lb-deep:#3c0f5a;--lb-gold:#ffd36b;min-height:100dvh;display:grid;grid-template-rows:auto 1fr;gap:12px;padding:16px;background:radial-gradient(1200px 520px at 50% -10%,#e9d7f7 0,#f8f5fc 55%);color:var(--lb-ink);font-family:Inter,system-ui,-apple-system,"Noto Sans Thai",sans-serif}
+@media (prefers-color-scheme:dark){.lb{background:radial-gradient(1200px 520px at 50% -10%,#3c0f5a 0,#150a1f 60%);color:#f4ecfb}.lb-brand{color:#e2c4f6}.lb-steps::before{background:rgba(255,255,255,.18)}.lb-field input,.lb-wallet{border-color:rgba(255,255,255,.35)}.lb-error{background:#4a1612;color:#ffd7d2}}
+.lb-top{padding:4px 4px 0;display:flex;justify-content:space-between;align-items:center;max-width:520px;width:100%;margin:0 auto}.lb-brand{font-weight:800;letter-spacing:.04em;color:var(--lb-purple)}
+.lb-lang{min-width:44px;min-height:36px;border-radius:999px;border:1px solid currentColor;background:transparent;color:inherit;font-weight:600;cursor:pointer}
+.lb-card{max-width:520px;width:100%;margin:0 auto;align-self:start;background:#fff;color:var(--lb-ink);border-radius:28px;padding:24px 20px 20px;box-shadow:0 24px 60px rgba(100,24,138,.18);animation:lb-rise .6s cubic-bezier(.2,.8,.2,1) both}
+@media (prefers-color-scheme:dark){.lb-card{background:#241337;color:#f4ecfb}}
+.lb-card h1{font-size:22px;line-height:1.25;text-align:center;margin:8px 0 16px}
+.lb-medal{position:relative;display:grid;place-items:center;margin-top:-52px;filter:drop-shadow(0 12px 18px rgba(255,179,71,.45));animation:lb-float 4.5s ease-in-out infinite}
+.lb-ring{transform-origin:center;animation:lb-spin 14s linear infinite;stroke-dasharray:10 8}
+.lb-check{stroke-dasharray:80;stroke-dashoffset:80;animation:lb-draw .7s .15s ease-out forwards}
+.lb-burst{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none}
+.lb-burst i{position:absolute;width:8px;height:8px;border-radius:50%;background:var(--lb-gold);opacity:0;animation:lb-pop .9s .25s ease-out forwards;transform:rotate(var(--a)) translateY(0)}
+.lb-burst i:nth-child(3n){background:#ff9bd2}.lb-burst i:nth-child(3n+1){background:#a5f3b4}
+.lb-steps{display:flex;justify-content:space-between;list-style:none;margin:0 0 16px;padding:0;position:relative}
+.lb-steps::before{content:"";position:absolute;left:8%;right:8%;top:14px;height:3px;background:rgba(100,24,138,.15);border-radius:3px}
+.lb-steps li{position:relative;flex:1;display:grid;justify-items:center;gap:4px;font-size:12px}
+.lb-steps b{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:#efe6f7;color:var(--lb-purple);font-size:13px;transition:background .35s,color .35s,transform .35s cubic-bezier(.3,1.6,.5,1)}
+.lb-steps [data-state=now] b{background:var(--lb-purple);color:#fff;transform:scale(1.18)}.lb-steps [data-state=past] b{background:#2e9e55;color:#fff}
+.lb-body{animation:lb-slide .45s cubic-bezier(.2,.8,.2,1) both;display:grid;gap:12px}
+.lb-field{display:grid;gap:6px;font-weight:600}.lb-field input{width:100%;min-width:0;font:700 clamp(20px,7.2vw,28px)/1.2 ui-monospace,Menlo,monospace;letter-spacing:.12em;text-align:center;text-transform:uppercase;padding:14px 10px;border-radius:16px;border:2px solid #d8c6e8;background:transparent;color:inherit;transition:border-color .25s,box-shadow .25s}
+.lb-field input:focus{outline:none;border-color:var(--lb-purple);box-shadow:0 0 0 4px rgba(100,24,138,.18)}.lb-field input[aria-invalid=true]{border-color:#c0392b}
+.lb-primary{min-height:52px;border:0;border-radius:16px;background:linear-gradient(135deg,var(--lb-purple),var(--lb-deep));color:#fff;font-weight:700;font-size:16px;cursor:pointer;transition:transform .15s,box-shadow .25s,opacity .25s;box-shadow:0 10px 24px rgba(100,24,138,.35)}
+.lb-primary:active:not(:disabled){transform:scale(.98)}.lb-primary:disabled{opacity:.45;box-shadow:none;cursor:not-allowed}
+.lb-note{margin:0;font-size:14px;line-height:1.5;opacity:.85}.lb-wait{display:flex;align-items:center;gap:10px}
+.lb-wallets{display:grid;gap:10px}.lb-wallet{min-height:56px;display:flex;justify-content:space-between;align-items:center;padding:0 18px;border-radius:16px;border:2px solid #e2d3ee;background:transparent;color:inherit;font-weight:700;font-size:16px;cursor:pointer;transition:transform .15s,border-color .2s,background .2s}
+.lb-wallet:hover:not(:disabled){border-color:var(--lb-purple);background:rgba(100,24,138,.06)}.lb-wallet:active:not(:disabled){transform:scale(.985)}.lb-wallet:disabled{opacity:.5}
+.lb-wallet i{font-style:normal;transition:transform .2s}.lb-wallet:hover i{transform:translateX(4px)}
+.lb-dots{display:inline-flex;gap:4px}.lb-dots i{width:7px;height:7px;border-radius:50%;background:var(--lb-purple);animation:lb-bounce 1s infinite ease-in-out}.lb-dots i:nth-child(2){animation-delay:.15s}.lb-dots i:nth-child(3){animation-delay:.3s}
+.lb-msg summary{cursor:pointer;font-size:13px;opacity:.8}.lb-msg pre{white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px;background:rgba(100,24,138,.08);padding:10px;border-radius:12px;margin:8px 0 0}
+.lb-error{margin:0;padding:12px 14px;border-radius:14px;background:#fdecea;color:#8a1c12;font-size:14px;animation:lb-shake .4s}
+.lb-addr{margin:0;text-align:center;font:700 20px ui-monospace,Menlo,monospace;letter-spacing:.06em}
+.lb-foot{margin:18px 0 0;font-size:12px;text-align:center;opacity:.65}
+@keyframes lb-rise{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:none}}
+@keyframes lb-slide{from{opacity:0;transform:translateX(18px)}to{opacity:1;transform:none}}
+@keyframes lb-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+@keyframes lb-spin{to{transform:rotate(360deg)}}
+@keyframes lb-draw{to{stroke-dashoffset:0}}
+@keyframes lb-pop{0%{opacity:1;transform:rotate(var(--a)) translateY(0) scale(1)}100%{opacity:0;transform:rotate(var(--a)) translateY(calc(-1 * var(--d))) scale(.4)}}
+@keyframes lb-bounce{0%,80%,100%{transform:scale(.6);opacity:.5}40%{transform:scale(1);opacity:1}}
+@keyframes lb-shake{20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
+@media (prefers-reduced-motion:reduce){.lb *,.lb-card,.lb-medal,.lb-ring,.lb-body{animation:none!important;transition:none!important}.lb-check{stroke-dashoffset:0}}

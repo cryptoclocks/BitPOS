@@ -6225,6 +6225,82 @@
           }
         }
       }
+    },
+    "/account/loyalty": {
+      "get": {
+        "operationId": "getLoyalty",
+        "security": [
+          {
+            "mobileBearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Regulars membership per shop where the caller has an online order and the shop configured tiers. Levels come from lifetime points (paid, refund-free orders); the badge, if any, is a non-transferable devnet Token-2022 token with no monetary value.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileLoyaltyOverview"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/account/loyalty/consent": {
+      "post": {
+        "operationId": "setLoyaltyConsent",
+        "security": [
+          {
+            "mobileBearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MobileLoyaltyConsentRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Explicit, per-shop consent to receive the badge on the bound wallet. Withdrawing stops new badges and lets the shop take back an issued one. 404 when the shop has no tiers.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileLoyaltyConsent"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/account/loyalty/bind-code": {
+      "post": {
+        "operationId": "createLoyaltyBindCode",
+        "security": [
+          {
+            "mobileBearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A one-time code (valid 10 minutes) to prove wallet ownership on the BitPOS web page. No session or personal data is placed in the URL.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileLoyaltyBindCode"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -18374,6 +18450,295 @@
           },
           "videoUrl": {
             "type": "string",
+            "maxLength": 200
+          }
+        }
+      },
+      "MobileLoyaltyTier": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "slot",
+          "nameTh",
+          "nameEn",
+          "minPoints",
+          "mintAddress"
+        ],
+        "properties": {
+          "slot": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 3
+          },
+          "nameTh": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 40
+          },
+          "nameEn": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 40
+          },
+          "minPoints": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "mintAddress": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 32,
+                "maxLength": 44
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      "MobileLoyaltyBadge": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "tierSlot",
+          "status",
+          "signature",
+          "mintAddress",
+          "wallet"
+        ],
+        "properties": {
+          "tierSlot": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 3
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "SENT",
+              "CONFIRMED",
+              "FAILED",
+              "REVOKING",
+              "REVOKED"
+            ]
+          },
+          "signature": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 64,
+                "maxLength": 90
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "mintAddress": {
+            "type": "string",
+            "minLength": 32,
+            "maxLength": 44
+          },
+          "wallet": {
+            "type": "string",
+            "minLength": 32,
+            "maxLength": 44
+          }
+        }
+      },
+      "MobileLoyaltyShop": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "merchantId",
+          "merchantName",
+          "configured",
+          "currency",
+          "decimals",
+          "lifetimePoints",
+          "current",
+          "next",
+          "pointsToNext",
+          "consentGranted",
+          "walletBound",
+          "walletAddress",
+          "badge"
+        ],
+        "properties": {
+          "merchantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "merchantName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "configured": {
+            "type": "boolean"
+          },
+          "currency": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 3,
+                "maxLength": 4
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "decimals": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 6
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "lifetimePoints": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "current": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MobileLoyaltyTier"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "next": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MobileLoyaltyTier"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "pointsToNext": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 1
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "consentGranted": {
+            "type": "boolean"
+          },
+          "walletBound": {
+            "type": "boolean"
+          },
+          "walletAddress": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 32,
+                "maxLength": 44
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "badge": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MobileLoyaltyBadge"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      "MobileLoyaltyOverview": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "generatedAt",
+          "shops"
+        ],
+        "properties": {
+          "generatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "shops": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MobileLoyaltyShop"
+            },
+            "maxItems": 30
+          }
+        }
+      },
+      "MobileLoyaltyConsentRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "merchantId",
+          "granted"
+        ],
+        "properties": {
+          "merchantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "granted": {
+            "type": "boolean"
+          }
+        }
+      },
+      "MobileLoyaltyConsent": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "granted"
+        ],
+        "properties": {
+          "granted": {
+            "type": "boolean"
+          }
+        }
+      },
+      "MobileLoyaltyBindCode": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "expiresAt",
+          "bindUrl"
+        ],
+        "properties": {
+          "code": {
+            "type": "string",
+            "pattern": "^[0-9A-HJKMNP-TV-Z]{4}-[0-9A-HJKMNP-TV-Z]{4}$"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "bindUrl": {
+            "type": "string",
+            "minLength": 8,
             "maxLength": 200
           }
         }

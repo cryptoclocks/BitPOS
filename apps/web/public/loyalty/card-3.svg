@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="500" height="700" viewBox="0 0 500 700" role="img" aria-label="BitPOS Regulars Platinum card">
+<defs>
+ <linearGradient id="frame" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F4F7FF"/><stop offset=".5" stop-color="#FFFFFF" stop-opacity=".9"/><stop offset="1" stop-color="#8D9BC0"/></linearGradient>
+ <linearGradient id="plum" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5C1A82"/><stop offset="1" stop-color="#26093B"/></linearGradient>
+ <radialGradient id="glow" cx=".5" cy=".42" r=".6"><stop offset="0" stop-color="#DDE6FF"/><stop offset=".55" stop-color="#C58BE6"/><stop offset="1" stop-color="#6B2594"/></radialGradient>
+ <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFF1B0"/><stop offset="1" stop-color="#F0B429"/></linearGradient>
+ <linearGradient id="cup" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFFFFF"/><stop offset=".6" stop-color="#FFF3E2"/><stop offset="1" stop-color="#F2D7B6"/></linearGradient>
+ <linearGradient id="holo" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6FD6FF" stop-opacity="0"/><stop offset=".35" stop-color="#FF9BD2" stop-opacity=".30"/><stop offset=".5" stop-color="#FFE98A" stop-opacity=".38"/><stop offset=".65" stop-color="#9BFFD0" stop-opacity=".30"/><stop offset="1" stop-color="#6FD6FF" stop-opacity="0"/></linearGradient>
+ <clipPath id="card"><rect x="14" y="14" width="472" height="672" rx="34"/></clipPath>
+ <clipPath id="art"><rect x="44" y="104" width="412" height="372" rx="22"/></clipPath>
+</defs>
+<rect x="6" y="10" width="488" height="684" rx="40" fill="#1B0B26" opacity=".35"/>
+<rect x="4" y="4" width="492" height="692" rx="40" fill="url(#frame)"/>
+<rect x="14" y="14" width="472" height="672" rx="34" fill="url(#plum)"/>
+<g clip-path="url(#card)">
+ <rect x="44" y="104" width="412" height="372" rx="22" fill="url(#glow)"/>
+ <g clip-path="url(#art)">
+  <circle cx="250" cy="300" r="190" fill="#FFFFFF" opacity=".12"/><circle cx="250" cy="300" r="130" fill="#FFFFFF" opacity=".12"/>
+  <polygon points="92.0,219.0 94.6,229.4 105.0,232.0 94.6,234.6 92.0,245.0 89.4,234.6 79.0,232.0 89.4,229.4" fill="#FFFFFF" opacity="0.95"/><polygon points="408.0,245.0 411.4,258.6 425.0,262.0 411.4,265.4 408.0,279.0 404.6,265.4 391.0,262.0 404.6,258.6" fill="#FFFFFF" opacity="0.9"/><polygon points="366.0,159.0 367.8,166.2 375.0,168.0 367.8,169.8 366.0,177.0 364.2,169.8 357.0,168.0 364.2,166.2" fill="#FFFFFF" opacity="0.8"/><polygon points="130.0,364.0 131.6,370.4 138.0,372.0 131.6,373.6 130.0,380.0 128.4,373.6 122.0,372.0 128.4,370.4" fill="#FFFFFF" opacity="0.7"/><polygon points="74.0,324.0 75.2,328.8 80.0,330.0 75.2,331.2 74.0,336.0 72.8,331.2 68.0,330.0 72.8,328.8" fill="#FFFFFF" opacity="0.6"/><polygon points="250.0,130.0 254.0,146.0 270.0,150.0 254.0,154.0 250.0,170.0 246.0,154.0 230.0,150.0 246.0,146.0" fill="#FFFFFF" opacity="0.95"/><polygon points="150.0,179.0 152.2,187.8 161.0,190.0 152.2,192.2 150.0,201.0 147.8,192.2 139.0,190.0 147.8,187.8" fill="#CFE0FF" opacity="0.9"/><polygon points="352.0,202.0 354.4,211.6 364.0,214.0 354.4,216.4 352.0,226.0 349.6,216.4 340.0,214.0 349.6,211.6" fill="#CFE0FF" opacity="0.9"/><g transform="translate(172 346) scale(-1 1)"><ellipse cx="52" cy="-34" rx="56" ry="17" transform="rotate(-38 52 -34)" fill="#FFFFFF" stroke="#C9D6F2" stroke-width="2.5"/><ellipse cx="66" cy="-4" rx="64" ry="18" transform="rotate(-12 66 -4)" fill="#FFFFFF" stroke="#C9D6F2" stroke-width="2.5"/><ellipse cx="58" cy="30" rx="54" ry="16" transform="rotate(16 58 30)" fill="#F4F7FF" stroke="#C9D6F2" stroke-width="2.5"/></g><g transform="translate(328 346) scale(1 1)"><ellipse cx="52" cy="-34" rx="56" ry="17" transform="rotate(-38 52 -34)" fill="#FFFFFF" stroke="#C9D6F2" stroke-width="2.5"/><ellipse cx="66" cy="-4" rx="64" ry="18" transform="rotate(-12 66 -4)" fill="#FFFFFF" stroke="#C9D6F2" stroke-width="2.5"/><ellipse cx="58" cy="30" rx="54" ry="16" transform="rotate(16 58 30)" fill="#F4F7FF" stroke="#C9D6F2" stroke-width="2.5"/></g>
+  <ellipse cx="250" cy="438" rx="132" ry="22" fill="#2A0A40" opacity=".28"/>
+  <ellipse cx="250" cy="426" rx="124" ry="20" fill="#E8D2F2"/><ellipse cx="250" cy="420" rx="124" ry="18" fill="#FFFFFF"/>
+  <path d="M176 272 Q176 420 250 420 Q324 420 324 272 Z" fill="url(#cup)" stroke="#E5C9A6" stroke-width="3"/>
+  <ellipse cx="250" cy="272" rx="74" ry="20" fill="#7B3F1E"/><ellipse cx="250" cy="270" rx="64" ry="14" fill="#A15C2E"/>
+  <path d="M324 300 Q372 296 366 346 Q360 388 318 380" fill="none" stroke="#F2D7B6" stroke-width="16" stroke-linecap="round"/><path d="M324 300 Q372 296 366 346 Q360 388 318 380" fill="none" stroke="#FFF8EC" stroke-width="7" stroke-linecap="round"/>
+  <ellipse cx="226" cy="340" rx="12" ry="16" fill="#3B1F12"/><ellipse cx="274" cy="340" rx="12" ry="16" fill="#3B1F12"/><circle cx="222" cy="333" r="4.5" fill="#FFFFFF"/><circle cx="270" cy="333" r="4.5" fill="#FFFFFF"/>
+  <path d="M232 372 Q250 394 268 372" fill="none" stroke="#3B1F12" stroke-width="5" stroke-linecap="round"/>
+  <ellipse cx="200" cy="368" rx="14" ry="9" fill="#FF8FB1" opacity=".6"/><ellipse cx="300" cy="368" rx="14" ry="9" fill="#FF8FB1" opacity=".6"/>
+  <path d="M214 256 Q200 226 218 206 Q232 188 220 168" fill="none" stroke="#FFFFFF" stroke-width="7" stroke-linecap="round" opacity=".75"/>
+  <path d="M286 256 Q300 230 284 210 Q272 192 284 172" fill="none" stroke="#FFFFFF" stroke-width="7" stroke-linecap="round" opacity=".6"/>
+  <path d="M198 232 L206 178 L232 208 L250 164 L268 208 L294 178 L302 232 Z" fill="url(#gold)" stroke="#B87A0C" stroke-width="3" stroke-linejoin="round"/><rect x="198" y="226" width="104" height="14" rx="6" fill="#E0A21C" stroke="#B87A0C" stroke-width="3"/><circle cx="206" cy="178" r="7" fill="#FF6FA8"/><circle cx="250" cy="164" r="8" fill="#6FD6FF"/><circle cx="294" cy="178" r="7" fill="#FF6FA8"/>
+  <path d="M182 288 Q186 360 206 396" fill="none" stroke="#FFFFFF" stroke-width="8" stroke-linecap="round" opacity=".7"/>
+ </g>
+ <rect x="44" y="104" width="412" height="372" rx="22" fill="none" stroke="url(#frame)" stroke-width="5"/>
+ <rect x="-60" y="120" width="620" height="120" fill="url(#holo)" transform="rotate(-24 250 350)"/>
+ <rect x="30" y="38" width="440" height="48" rx="24" fill="#FFFFFF" opacity=".1"/>
+ <text x="250" y="70" text-anchor="middle" font-family="Inter,Helvetica,Arial,sans-serif" font-size="26" font-weight="800" letter-spacing="6" fill="#FFFFFF">PLATINUM</text>
+ <rect x="44" y="498" width="412" height="150" rx="20" fill="#FFFFFF" opacity=".08"/>
+ <text x="250" y="548" text-anchor="middle" font-family="Inter,Helvetica,Arial,sans-serif" font-size="34" font-weight="800" fill="#FFD36B" letter-spacing="3">BITPOS REGULARS</text>
+ <text x="250" y="582" text-anchor="middle" font-family="Inter,Helvetica,Arial,sans-serif" font-size="17" fill="#FFFFFF" opacity=".9">Level 3 · Platinum</text>
+ <rect x="76" y="598" width="348" height="1.5" fill="#FFFFFF" opacity=".25"/>
+ <text x="250" y="626" text-anchor="middle" font-family="Inter,Helvetica,Arial,sans-serif" font-size="13" fill="#FFFFFF" opacity=".75">Non-transferable · Solana devnet · no monetary value</text>
+</g>
+</svg>

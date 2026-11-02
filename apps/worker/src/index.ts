@@ -18,6 +18,7 @@ import {createFoodSearchWorker} from './food-search';
 import {readFoodNavigationConfig} from '../../api/src/food-navigation-provider';
 import {createDriverSettlementRuntime} from './driver-settlement-runtime';
 import {createFoodRefundRuntime} from './food-refund-runtime';
+import {createLoyaltyRuntime,tickLoyalty} from './loyalty';
 // Shared SQL test seam for the HTTP-submit/worker lock discipline. No RPC here.
 export async function lockReconciliationAttempt(db:pg.PoolClient,orderId:string,attemptId:string):Promise<AttemptRow|null>{
  const order=(await db.query('SELECT id FROM orders WHERE id=$1 FOR UPDATE SKIP LOCKED',[orderId])).rows[0];if(!order)return null;
@@ -108,6 +109,8 @@ export async function runWorker(signal:AbortSignal,fixture?:PromotionJobFixture)
   if(!push)console.error('Mobile phone notifications unavailable: configure dedicated BITPOS_MOBILE_PUSH_DATABASE_URL; no provider delivery asserted');
   try{settlement=createDriverSettlementRuntime();}catch{console.error('Driver settlement configuration unavailable; no payout signing or sending enabled');}
   try{refund=createFoodRefundRuntime();}catch{console.error('Food refund configuration unavailable; no refund signing or sending enabled');}
+  let loyalty:Awaited<ReturnType<typeof createLoyaltyRuntime>>=null;
+  try{loyalty=await createLoyaltyRuntime();}catch{console.error('Loyalty badge signing unavailable (devnet keys or cluster); no badges issued or revoked');}
   await runWorkerLanes([
   {tick,unavailable:'Reconciliation unavailable; durable state retained'},
   {tick:tickRidePrivacy,unavailable:'Ride privacy maintenance unavailable; expired location/text remain hidden by TTL reads'},
@@ -117,6 +120,7 @@ export async function runWorker(signal:AbortSignal,fixture?:PromotionJobFixture)
   {tick:tickPromotions,unavailable:'Promotion lifecycle unavailable; durable state retained'},
   {tick:tickTableOccupancies,unavailable:'Table inactivity reconciliation unavailable; durable state retained'},
   {tick:()=>tickPromotionJobs(signal,fixture),unavailable:'Promotion generation unavailable; durable state retained'},
+  ...(loyalty?[{tick:()=>tickLoyalty(loyalty!),unavailable:'Loyalty badges unavailable; durable state retained'}]:[]),
   ...(dispatch?[{tick:dispatch.tick,unavailable:'Private food discovery maintenance unavailable'}]:[]),
   ...(search?[{tick:()=>search!.tick(signal),unavailable:'Automatic food ranking unavailable; durable search retained'}]:[]),
   ...(push?[{tick:push.tick,unavailable:'Mobile notification transport unavailable; durable opaque deliveries retained'}]:[]),

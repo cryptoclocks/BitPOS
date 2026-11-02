@@ -3,6 +3,7 @@ import { api, errorMessage } from '../lib/api';
 import { requestId } from '../lib/request-id';
 import { formatMoney } from '../lib/money';
 import { perDenomination, toMinor } from '../lib/shift-view';
+import { printDocument, zReportDoc } from '../lib/print-slip';
 
 interface Group { currency: string; decimals: number; sourceKind: string; orders: number; totalMinor: string }
 interface Snapshot { timeZone: string; groups: Group[]; excludedOrders: number }
@@ -60,8 +61,8 @@ export default function ShiftClose({ token, language }: { token: string; languag
       </aside>
     </div>
     <h2>{text('รอบที่ปิดแล้ว', 'Closed rounds')}</h2>
-    {state.closes.length ? <table className="catalog-table"><thead><tr><th>{text('รอบ', 'Round')}</th><th>{text('ยอดชำระแล้ว', 'Paid sales')}</th><th>{text('เงินสดที่นับได้', 'Counted cash')}</th><th>{text('หมายเหตุ', 'Note')}</th></tr></thead>
-      <tbody>{state.closes.map(c => <tr key={c.id}><td>{when(c.periodStart)} – {when(c.periodEnd)}</td><td>{perDenomination(c.snapshot.groups).map(t => `${money(t.totalMinor, t.currency, t.decimals)} (${t.orders})`).join(' · ') || '—'}</td><td>{c.countedCash ? money(c.countedCash.minor, c.countedCash.currency, c.countedCash.decimals) : '—'}</td><td>{c.note || '—'}</td></tr>)}</tbody></table>
+    {state.closes.length ? <table className="catalog-table"><thead><tr><th>{text('รอบ', 'Round')}</th><th>{text('ยอดชำระแล้ว', 'Paid sales')}</th><th>{text('เงินสดที่นับได้', 'Counted cash')}</th><th>{text('หมายเหตุ', 'Note')}</th><th><span className="sr-only">{text('พิมพ์', 'Print')}</span></th></tr></thead>
+      <tbody>{state.closes.map(c => <tr key={c.id}><td>{when(c.periodStart)} – {when(c.periodEnd)}</td><td>{perDenomination(c.snapshot.groups).map(t => `${money(t.totalMinor, t.currency, t.decimals)} (${t.orders})`).join(' · ') || '—'}</td><td>{c.countedCash ? money(c.countedCash.minor, c.countedCash.currency, c.countedCash.decimals) : '—'}</td><td>{c.note || '—'}</td><td><button type="button" className="secondary" onClick={() => void printDocument(zReportDoc({ periodStart: c.periodStart, periodEnd: c.periodEnd, closedBy: c.closedBy, note: c.note, countedCash: c.countedCash, groups: c.snapshot.groups }, language))}>{text('พิมพ์ Z-Report', 'Print Z-Report')}</button></td></tr>)}</tbody></table>
       : <p className="notice">{text('ยังไม่เคยปิดรอบ', 'No round has been closed yet.')}</p>}
   </section>;
 }

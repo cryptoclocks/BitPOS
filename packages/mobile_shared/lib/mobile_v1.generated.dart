@@ -6240,3 +6240,135 @@ class MobileRewardRedemption {
  }
  Map<String,dynamic> toJson() => {"voucher": voucher.toJson(), "balance": balance, "replayed": replayed};
 }
+
+class MobileLoyaltyTier {
+ final int slot;
+ final String nameTh;
+ final String nameEn;
+ final int minPoints;
+ final String? mintAddress;
+ const MobileLoyaltyTier._({required this.slot, required this.nameTh, required this.nameEn, required this.minPoints, required this.mintAddress});
+ factory MobileLoyaltyTier({required int slot, required String nameTh, required String nameEn, required int minPoints, required String? mintAddress}) => MobileLoyaltyTier.fromJson({"slot": slot, "nameTh": nameTh, "nameEn": nameEn, "minPoints": minPoints, "mintAddress": mintAddress});
+ factory MobileLoyaltyTier.fromJson(Map<String,dynamic> json) {
+  if (json.length != 5 || !json.keys.every(["slot","nameTh","nameEn","minPoints","mintAddress"].contains)) throw const FormatException('Invalid MobileLoyaltyTier fields');
+  final slot=(() { final value=json["slot"]; const path="MobileLoyaltyTier.slot"; return _integer(value, path, min: 1, max: 3); })();
+  final nameTh=(() { final value=json["nameTh"]; const path="MobileLoyaltyTier.nameTh"; return _string(value, path, pattern: null, format: null, min: 1, max: 40); })();
+  final nameEn=(() { final value=json["nameEn"]; const path="MobileLoyaltyTier.nameEn"; return _string(value, path, pattern: null, format: null, min: 1, max: 40); })();
+  final minPoints=(() { final value=json["minPoints"]; const path="MobileLoyaltyTier.minPoints"; return _integer(value, path, min: 1, max: null); })();
+  final mintAddress=(() { final value=json["mintAddress"]; const path="MobileLoyaltyTier.mintAddress"; return value == null ? null : (_string(value, path, pattern: null, format: null, min: 32, max: 44)); })();
+  return MobileLoyaltyTier._(slot: slot, nameTh: nameTh, nameEn: nameEn, minPoints: minPoints, mintAddress: mintAddress);
+ }
+ Map<String,dynamic> toJson() => {"slot": slot, "nameTh": nameTh, "nameEn": nameEn, "minPoints": minPoints, "mintAddress": mintAddress};
+}
+
+class MobileLoyaltyBadge {
+ final int tierSlot;
+ final String status;
+ final String? signature;
+ final String mintAddress;
+ final String wallet;
+ const MobileLoyaltyBadge._({required this.tierSlot, required this.status, required this.signature, required this.mintAddress, required this.wallet});
+ factory MobileLoyaltyBadge({required int tierSlot, required String status, required String? signature, required String mintAddress, required String wallet}) => MobileLoyaltyBadge.fromJson({"tierSlot": tierSlot, "status": status, "signature": signature, "mintAddress": mintAddress, "wallet": wallet});
+ factory MobileLoyaltyBadge.fromJson(Map<String,dynamic> json) {
+  if (json.length != 5 || !json.keys.every(["tierSlot","status","signature","mintAddress","wallet"].contains)) throw const FormatException('Invalid MobileLoyaltyBadge fields');
+  final tierSlot=(() { final value=json["tierSlot"]; const path="MobileLoyaltyBadge.tierSlot"; return _integer(value, path, min: 1, max: 3); })();
+  final status=(() { final value=json["status"]; const path="MobileLoyaltyBadge.status"; return _enum(_string(value, path, pattern: null, format: null, min: 0, max: null), ["PENDING","SENT","CONFIRMED","FAILED","REVOKING","REVOKED"], path); })();
+  final signature=(() { final value=json["signature"]; const path="MobileLoyaltyBadge.signature"; return value == null ? null : (_string(value, path, pattern: null, format: null, min: 64, max: 90)); })();
+  final mintAddress=(() { final value=json["mintAddress"]; const path="MobileLoyaltyBadge.mintAddress"; return _string(value, path, pattern: null, format: null, min: 32, max: 44); })();
+  final wallet=(() { final value=json["wallet"]; const path="MobileLoyaltyBadge.wallet"; return _string(value, path, pattern: null, format: null, min: 32, max: 44); })();
+  return MobileLoyaltyBadge._(tierSlot: tierSlot, status: status, signature: signature, mintAddress: mintAddress, wallet: wallet);
+ }
+ Map<String,dynamic> toJson() => {"tierSlot": tierSlot, "status": status, "signature": signature, "mintAddress": mintAddress, "wallet": wallet};
+}
+
+class MobileLoyaltyShop {
+ final String merchantId;
+ final String merchantName;
+ final bool configured;
+ final String? currency;
+ final int? decimals;
+ final int lifetimePoints;
+ final MobileLoyaltyTier? current;
+ final MobileLoyaltyTier? next;
+ final int? pointsToNext;
+ final bool consentGranted;
+ final bool walletBound;
+ final String? walletAddress;
+ final MobileLoyaltyBadge? badge;
+ const MobileLoyaltyShop._({required this.merchantId, required this.merchantName, required this.configured, required this.currency, required this.decimals, required this.lifetimePoints, required this.current, required this.next, required this.pointsToNext, required this.consentGranted, required this.walletBound, required this.walletAddress, required this.badge});
+ factory MobileLoyaltyShop({required String merchantId, required String merchantName, required bool configured, required String? currency, required int? decimals, required int lifetimePoints, required MobileLoyaltyTier? current, required MobileLoyaltyTier? next, required int? pointsToNext, required bool consentGranted, required bool walletBound, required String? walletAddress, required MobileLoyaltyBadge? badge}) => MobileLoyaltyShop.fromJson({"merchantId": merchantId, "merchantName": merchantName, "configured": configured, "currency": currency, "decimals": decimals, "lifetimePoints": lifetimePoints, "current": current?.toJson(), "next": next?.toJson(), "pointsToNext": pointsToNext, "consentGranted": consentGranted, "walletBound": walletBound, "walletAddress": walletAddress, "badge": badge?.toJson()});
+ factory MobileLoyaltyShop.fromJson(Map<String,dynamic> json) {
+  if (json.length != 13 || !json.keys.every(["merchantId","merchantName","configured","currency","decimals","lifetimePoints","current","next","pointsToNext","consentGranted","walletBound","walletAddress","badge"].contains)) throw const FormatException('Invalid MobileLoyaltyShop fields');
+  final merchantId=(() { final value=json["merchantId"]; const path="MobileLoyaltyShop.merchantId"; return _string(value, path, pattern: null, format: "uuid", min: 0, max: null); })();
+  final merchantName=(() { final value=json["merchantName"]; const path="MobileLoyaltyShop.merchantName"; return _string(value, path, pattern: null, format: null, min: 1, max: 120); })();
+  final configured=(() { final value=json["configured"]; const path="MobileLoyaltyShop.configured"; return _boolean(value, path); })();
+  final currency=(() { final value=json["currency"]; const path="MobileLoyaltyShop.currency"; return value == null ? null : (_string(value, path, pattern: null, format: null, min: 3, max: 4)); })();
+  final decimals=(() { final value=json["decimals"]; const path="MobileLoyaltyShop.decimals"; return value == null ? null : (_integer(value, path, min: 0, max: 6)); })();
+  final lifetimePoints=(() { final value=json["lifetimePoints"]; const path="MobileLoyaltyShop.lifetimePoints"; return _integer(value, path, min: 0, max: null); })();
+  final current=(() { final value=json["current"]; const path="MobileLoyaltyShop.current"; return value == null ? null : (MobileLoyaltyTier.fromJson(_object(value, path))); })();
+  final next=(() { final value=json["next"]; const path="MobileLoyaltyShop.next"; return value == null ? null : (MobileLoyaltyTier.fromJson(_object(value, path))); })();
+  final pointsToNext=(() { final value=json["pointsToNext"]; const path="MobileLoyaltyShop.pointsToNext"; return value == null ? null : (_integer(value, path, min: 1, max: null)); })();
+  final consentGranted=(() { final value=json["consentGranted"]; const path="MobileLoyaltyShop.consentGranted"; return _boolean(value, path); })();
+  final walletBound=(() { final value=json["walletBound"]; const path="MobileLoyaltyShop.walletBound"; return _boolean(value, path); })();
+  final walletAddress=(() { final value=json["walletAddress"]; const path="MobileLoyaltyShop.walletAddress"; return value == null ? null : (_string(value, path, pattern: null, format: null, min: 32, max: 44)); })();
+  final badge=(() { final value=json["badge"]; const path="MobileLoyaltyShop.badge"; return value == null ? null : (MobileLoyaltyBadge.fromJson(_object(value, path))); })();
+  return MobileLoyaltyShop._(merchantId: merchantId, merchantName: merchantName, configured: configured, currency: currency, decimals: decimals, lifetimePoints: lifetimePoints, current: current, next: next, pointsToNext: pointsToNext, consentGranted: consentGranted, walletBound: walletBound, walletAddress: walletAddress, badge: badge);
+ }
+ Map<String,dynamic> toJson() => {"merchantId": merchantId, "merchantName": merchantName, "configured": configured, "currency": currency, "decimals": decimals, "lifetimePoints": lifetimePoints, "current": current?.toJson(), "next": next?.toJson(), "pointsToNext": pointsToNext, "consentGranted": consentGranted, "walletBound": walletBound, "walletAddress": walletAddress, "badge": badge?.toJson()};
+}
+
+class MobileLoyaltyOverview {
+ final String generatedAt;
+ final List<MobileLoyaltyShop> shops;
+ const MobileLoyaltyOverview._({required this.generatedAt, required this.shops});
+ factory MobileLoyaltyOverview({required String generatedAt, required List<MobileLoyaltyShop> shops}) => MobileLoyaltyOverview.fromJson({"generatedAt": generatedAt, "shops": shops.map((value) => value.toJson()).toList()});
+ factory MobileLoyaltyOverview.fromJson(Map<String,dynamic> json) {
+  if (json.length != 2 || !json.keys.every(["generatedAt","shops"].contains)) throw const FormatException('Invalid MobileLoyaltyOverview fields');
+  final generatedAt=(() { final value=json["generatedAt"]; const path="MobileLoyaltyOverview.generatedAt"; return _string(value, path, pattern: null, format: "date-time", min: 0, max: null); })();
+  final shops=(() { final value=json["shops"]; const path="MobileLoyaltyOverview.shops"; return List<MobileLoyaltyShop>.unmodifiable(_list(value, path, 0, 30).map((value) => MobileLoyaltyShop.fromJson(_object(value, path)))); })();
+  return MobileLoyaltyOverview._(generatedAt: generatedAt, shops: shops);
+ }
+ Map<String,dynamic> toJson() => {"generatedAt": generatedAt, "shops": shops.map((value) => value.toJson()).toList()};
+}
+
+class MobileLoyaltyConsentRequest {
+ final String merchantId;
+ final bool granted;
+ const MobileLoyaltyConsentRequest._({required this.merchantId, required this.granted});
+ factory MobileLoyaltyConsentRequest({required String merchantId, required bool granted}) => MobileLoyaltyConsentRequest.fromJson({"merchantId": merchantId, "granted": granted});
+ factory MobileLoyaltyConsentRequest.fromJson(Map<String,dynamic> json) {
+  if (json.length != 2 || !json.keys.every(["merchantId","granted"].contains)) throw const FormatException('Invalid MobileLoyaltyConsentRequest fields');
+  final merchantId=(() { final value=json["merchantId"]; const path="MobileLoyaltyConsentRequest.merchantId"; return _string(value, path, pattern: null, format: "uuid", min: 0, max: null); })();
+  final granted=(() { final value=json["granted"]; const path="MobileLoyaltyConsentRequest.granted"; return _boolean(value, path); })();
+  return MobileLoyaltyConsentRequest._(merchantId: merchantId, granted: granted);
+ }
+ Map<String,dynamic> toJson() => {"merchantId": merchantId, "granted": granted};
+}
+
+class MobileLoyaltyConsent {
+ final bool granted;
+ const MobileLoyaltyConsent._({required this.granted});
+ factory MobileLoyaltyConsent({required bool granted}) => MobileLoyaltyConsent.fromJson({"granted": granted});
+ factory MobileLoyaltyConsent.fromJson(Map<String,dynamic> json) {
+  if (json.length != 1 || !json.keys.every(["granted"].contains)) throw const FormatException('Invalid MobileLoyaltyConsent fields');
+  final granted=(() { final value=json["granted"]; const path="MobileLoyaltyConsent.granted"; return _boolean(value, path); })();
+  return MobileLoyaltyConsent._(granted: granted);
+ }
+ Map<String,dynamic> toJson() => {"granted": granted};
+}
+
+class MobileLoyaltyBindCode {
+ final String code;
+ final String expiresAt;
+ final String bindUrl;
+ const MobileLoyaltyBindCode._({required this.code, required this.expiresAt, required this.bindUrl});
+ factory MobileLoyaltyBindCode({required String code, required String expiresAt, required String bindUrl}) => MobileLoyaltyBindCode.fromJson({"code": code, "expiresAt": expiresAt, "bindUrl": bindUrl});
+ factory MobileLoyaltyBindCode.fromJson(Map<String,dynamic> json) {
+  if (json.length != 3 || !json.keys.every(["code","expiresAt","bindUrl"].contains)) throw const FormatException('Invalid MobileLoyaltyBindCode fields');
+  final code=(() { final value=json["code"]; const path="MobileLoyaltyBindCode.code"; return _string(value, path, pattern: "^[0-9A-HJKMNP-TV-Z]{4}-[0-9A-HJKMNP-TV-Z]{4}\$", format: null, min: 0, max: null); })();
+  final expiresAt=(() { final value=json["expiresAt"]; const path="MobileLoyaltyBindCode.expiresAt"; return _string(value, path, pattern: null, format: "date-time", min: 0, max: null); })();
+  final bindUrl=(() { final value=json["bindUrl"]; const path="MobileLoyaltyBindCode.bindUrl"; return _string(value, path, pattern: null, format: null, min: 8, max: 200); })();
+  return MobileLoyaltyBindCode._(code: code, expiresAt: expiresAt, bindUrl: bindUrl);
+ }
+ Map<String,dynamic> toJson() => {"code": code, "expiresAt": expiresAt, "bindUrl": bindUrl};
+}

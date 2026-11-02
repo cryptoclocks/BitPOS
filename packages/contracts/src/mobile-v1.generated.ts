@@ -2443,3 +2443,55 @@ export const MobileRewardRedemptionSchema=z.object({
  replayed:z.boolean(),
 }).strict();
 export type MobileRewardRedemption=z.infer<typeof MobileRewardRedemptionSchema>;
+export const MobileLoyaltyTierSchema=z.object({
+ slot:z.number().int().safe().min(1).max(3),
+ nameTh:z.string().min(1).max(40),
+ nameEn:z.string().min(1).max(40),
+ minPoints:z.number().int().safe().min(1),
+ mintAddress:z.string().min(32).max(44).nullable(),
+}).strict();
+export type MobileLoyaltyTier=z.infer<typeof MobileLoyaltyTierSchema>;
+export const MobileLoyaltyBadgeSchema=z.object({
+ tierSlot:z.number().int().safe().min(1).max(3),
+ status:z.string().refine(value => ["PENDING","SENT","CONFIRMED","FAILED","REVOKING","REVOKED"].includes(value)),
+ signature:z.string().min(64).max(90).nullable(),
+ mintAddress:z.string().min(32).max(44),
+ wallet:z.string().min(32).max(44),
+}).strict();
+export type MobileLoyaltyBadge=z.infer<typeof MobileLoyaltyBadgeSchema>;
+export const MobileLoyaltyShopSchema=z.object({
+ merchantId:z.string().uuid(),
+ merchantName:z.string().min(1).max(120),
+ configured:z.boolean(),
+ currency:z.string().min(3).max(4).nullable(),
+ decimals:z.number().int().safe().min(0).max(6).nullable(),
+ lifetimePoints:z.number().int().safe().min(0),
+ current:MobileLoyaltyTierSchema.nullable(),
+ next:MobileLoyaltyTierSchema.nullable(),
+ pointsToNext:z.number().int().safe().min(1).nullable(),
+ consentGranted:z.boolean(),
+ walletBound:z.boolean(),
+ walletAddress:z.string().min(32).max(44).nullable(),
+ badge:MobileLoyaltyBadgeSchema.nullable(),
+}).strict();
+export type MobileLoyaltyShop=z.infer<typeof MobileLoyaltyShopSchema>;
+export const MobileLoyaltyOverviewSchema=z.object({
+ generatedAt:z.string().datetime({offset:true}).regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/),
+ shops:z.array(MobileLoyaltyShopSchema).max(30),
+}).strict();
+export type MobileLoyaltyOverview=z.infer<typeof MobileLoyaltyOverviewSchema>;
+export const MobileLoyaltyConsentRequestSchema=z.object({
+ merchantId:z.string().uuid(),
+ granted:z.boolean(),
+}).strict();
+export type MobileLoyaltyConsentRequest=z.infer<typeof MobileLoyaltyConsentRequestSchema>;
+export const MobileLoyaltyConsentSchema=z.object({
+ granted:z.boolean(),
+}).strict();
+export type MobileLoyaltyConsent=z.infer<typeof MobileLoyaltyConsentSchema>;
+export const MobileLoyaltyBindCodeSchema=z.object({
+ code:z.string().regex(new RegExp("^[0-9A-HJKMNP-TV-Z]{4}-[0-9A-HJKMNP-TV-Z]{4}$")),
+ expiresAt:z.string().datetime({offset:true}).regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/),
+ bindUrl:z.string().min(8).max(200),
+}).strict();
+export type MobileLoyaltyBindCode=z.infer<typeof MobileLoyaltyBindCodeSchema>;

@@ -1,0 +1,51 @@
+{
+ "cluster": "devnet",
+ "issuer": "BQhX5QZ2dtZNP5TKfCka171ut5LKfrm6uTgBY57LFrXS",
+ "payer": "8u6kFDrJa2fhtDawyiZRrroTTTPzEqhtdThBqboERLXv",
+ "holder": "2Vc5FgAVfHKRhq2kXGBfviUh5TBTs9iojrPpCCyCWx25",
+ "mint": "5sAvTtMx9TjyvQ8zairGPiRmVEtZzpuU9Qq9YYHb7qJi",
+ "createSignature": "5wb46EAn9TuTZYkkrWo4TUUjGMAA8XZFbG1DdCKC5ShC52nxjZ5BaS36nqC7bskJyGjZbcybPPbg6Tht5UK7V7id",
+ "inspect": {
+  "mint": "5sAvTtMx9TjyvQ8zairGPiRmVEtZzpuU9Qq9YYHb7qJi",
+  "decimals": 0,
+  "supply": "0",
+  "mintAuthority": "BQhX5QZ2dtZNP5TKfCka171ut5LKfrm6uTgBY57LFrXS",
+  "freezeAuthority": null,
+  "nonTransferable": true,
+  "permanentDelegate": "BQhX5QZ2dtZNP5TKfCka171ut5LKfrm6uTgBY57LFrXS",
+  "name": "BitPOS Regulars - Smoke",
+  "symbol": "REG",
+  "uri": "https://pay.cashlessthailand.com/loyalty/badge-1.json"
+ },
+ "issue": {
+  "kind": "issued",
+  "signature": "2gNTj5Vh9VR8czCPwP6VcwdtqJReUrMkE1wRdP4TFgTDwUULFLY88qA15TEjGtogKoL3ubKhucro193AHCy9w2vq"
+ },
+ "balanceAfterIssue": "1",
+ "issueAgain": {
+  "kind": "already"
+ },
+ "transferRefusal": {
+  "err": {
+   "InstructionError": [
+    1,
+    {
+     "Custom": 37
+    }
+   ]
+  },
+  "log": [
+   "Program log: Instruction: TransferChecked",
+   "Program log: Transfer is disabled for this mint"
+  ]
+ },
+ "transferRefused": true,
+ "revoke": {
+  "kind": "revoked",
+  "signature": "45rtd7oXfFr8vHQzzcH3JoeqUEeAx8DmdTgeHbjTdnX6YAZjHvSua6xCvv8hDcNJw1hbc56E1Yp4o5KWKjfVkkhq"
+ },
+ "balanceAfterRevoke": "0",
+ "revokeAgain": {
+  "kind": "already"
+ }
+}
