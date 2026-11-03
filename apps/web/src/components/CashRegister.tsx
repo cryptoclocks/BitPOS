@@ -4,6 +4,7 @@ import { requestId } from '../lib/request-id';
 import { toMinor } from '../lib/shift-view';
 import { cashReceiptDoc, printDocument } from '../lib/print-slip';
 import BluetoothPrintButton from './BluetoothPrintButton';
+import CashMovementsPanel from './CashMovementsPanel';
 import { lineKey, minorToInput, moneyOf, optionsText, parseDiscount, quickTenders, type Addon, type CartLine, type CashQuote, type CashSale, type Drawer, type HeldBill } from '../lib/cash-view';
 import { play } from '../lib/sfx';
 import ReceiptLangPicker from './ReceiptLangPicker';
@@ -145,10 +146,11 @@ export default function CashRegister({ token, role, language, products, onChange
     {error && <p className="notice" role="alert">{error}</p>}
     {!settings.enabled && <p className="notice" role="status">{manage ? text('ยังไม่ได้เปิดใช้เครื่องคิดเงินสด เปิดที่ "ตั้งค่าเงินสด" ด้านบน (เฉพาะเจ้าของร้านเปิดได้)', 'Cash register is off. Turn it on under "Cash setup" above (owner only).') : text('ร้านยังไม่เปิดใช้เครื่องคิดเงินสด', 'The shop has not turned the cash register on.')}</p>}
     {settings.enabled && drawer && (drawer.opening
-      ? <p className="cash-drawer" role="status"><span aria-hidden="true">🗄️</span> {text('ลิ้นชักเงินสด', 'Cash drawer')}: {text('เปิดด้วย', 'opened with')} {moneyOf(drawer.opening.floatMinor, currency)} · {text('ขายเงินสด', 'cash sales')} {moneyOf(drawer.cashSalesMinor, currency)} · <b>{text('ควรมี', 'should hold')} {moneyOf(drawer.expectedMinor ?? '0', currency)}</b></p>
+      ? <p className="cash-drawer" role="status"><span aria-hidden="true">🗄️</span> {text('ลิ้นชักเงินสด', 'Cash drawer')}: {text('เปิดด้วย', 'opened with')} {moneyOf(drawer.opening.floatMinor, currency)} · {text('ขายเงินสด', 'cash sales')} {moneyOf(drawer.cashSalesMinor, currency)}{(drawer.cashInMinor ?? '0') !== '0' && <> · {text('เข้า', 'in')} +{moneyOf(drawer.cashInMinor ?? '0', currency)}</>}{(drawer.cashOutMinor ?? '0') !== '0' && <> · {text('ออก', 'out')} −{moneyOf(drawer.cashOutMinor ?? '0', currency)}</>} · <b>{text('ควรมี', 'should hold')} {moneyOf(drawer.expectedMinor ?? '0', currency)}</b></p>
       : <div className="cash-drawer open" role="group" aria-label={text('เปิดลิ้นชัก', 'Open the drawer')}><span>{text('ยังไม่ได้บันทึกเงินทอนตั้งต้นของรอบนี้', 'No starting float recorded for this round')}</span>
         <input aria-label={text('เงินทอนตั้งต้น', 'Starting float')} inputMode="decimal" value={floatText} placeholder={minorToInput('0', currency.decimals)} onChange={e => setFloatText(e.target.value)} />
         <button type="button" disabled={busy || floatText.trim() === ''} onClick={() => void openDrawer()}>{text('เปิดลิ้นชัก', 'Open drawer')}</button></div>)}
+    {settings.enabled && drawer?.opening && <CashMovementsPanel token={token} role={role} drawer={drawer} language={language} onChanged={() => { void loadConfig(); }} />}
     {showSettings && manage && <CashSettingsPanel token={token} role={role} language={language} products={products} settings={settings} prices={prices} addons={addons} onSaved={() => void loadConfig()} />}
     {showSales && <RecentSales token={token} role={role} language={language} refreshKey={done?.id ?? ''} onChanged={() => { onChanged?.(); void loadConfig(); }} />}
     {held.length > 0 && <ul className="cash-held" aria-label={text('บิลที่พักไว้', 'Held bills')}>{held.map(h => <li key={h.id}><b>{h.label}</b><small>{h.items.reduce((n, i) => n + i.qty, 0)} {text('ชิ้น', 'items')}</small>

@@ -105,7 +105,7 @@ test('drawer: one opening float per round, expected cash = float + cash sales, f
  await voidCashSale(db,M,'m','manager',a.id,{reason:'r',restock:false});
  const now=await getDrawer(db,M,'staff');assert.deepEqual([now.cashSalesMinor,now.expectedMinor,now.orders],['5500','205500',1]);
  const closed=await shiftsRequest(db,M,'o','owner',new URL('http://x/api/shifts/close'),'POST',{idempotencyKey:randomUUID(),note:'',countedCash:{minor:'205000',currency:'THB',decimals:2}}) as {close:{snapshot:{drawer:{openingFloatMinor:string;cashSalesMinor:string;expectedMinor:string}|null}}};
- assert.deepEqual(closed.close.snapshot.drawer,{currency:'THB',decimals:2,openingFloatMinor:'200000',cashSalesMinor:'5500',expectedMinor:'205500'});
+ assert.deepEqual(closed.close.snapshot.drawer,{currency:'THB',decimals:2,openingFloatMinor:'200000',cashSalesMinor:'5500',cashInMinor:'0',cashOutMinor:'0',expectedMinor:'205500',countedMinor:'205000',varianceMinor:'-500'});
  assert.equal((await getDrawer(db,M,'staff')).opening,null);   // a new round starts without a float until one is recorded
 }));
 test('a round closed without an opening float has no drawer figure',integration,()=>withDb(async db=>{

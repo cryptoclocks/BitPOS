@@ -5,7 +5,7 @@ import {audit} from './db';
 import {defaultTimeZone} from './opening-hours';
 
 export interface ShiftGroup{currency:string;decimals:number;sourceKind:string;orders:number;totalMinor:string}
-export interface ShiftDrawer{currency:string;decimals:number;openingFloatMinor:string;cashSalesMinor:string;expectedMinor:string}
+export interface ShiftDrawer{currency:string;decimals:number;openingFloatMinor:string;cashSalesMinor:string;cashInMinor?:string;cashOutMinor?:string;expectedMinor:string;countedMinor?:string|null;varianceMinor?:string|null}
 export interface ShiftSnapshot{timeZone:string;groups:ShiftGroup[];excludedOrders:number;basis:'gross_paid_before_refunds_and_fees';drawer?:ShiftDrawer|null}
 export interface ShiftClose{id:string;periodStart:string;periodEnd:string;closedBy:string;countedCash:{minor:string;currency:string;decimals:number}|null;note:string;snapshot:ShiftSnapshot;createdAt:string}
 const close=z.object({idempotencyKey:z.string().min(1).max(128),note:z.string().trim().max(200).default(''),
@@ -29,7 +29,9 @@ async function totals(db:pg.PoolClient,merchant:string,from:Date,to:Date,timeZon
  const groups=[...rows.map(r=>({currency:r.currency,decimals:r.decimals,sourceKind:r.source_kind,orders:r.orders,totalMinor:r.total_minor})),...cash.map(r=>({currency:r.currency,decimals:r.decimals,sourceKind:'cash_counter',orders:r.orders,totalMinor:r.total_minor}))];
  // The cash drawer: what the shop said it started with plus the cash sales of the round. Only when an opening float was recorded for this round.
  const opening=(await db.query<{float_minor:string;currency:string;decimals:number}>('SELECT float_minor::text,currency,decimals FROM cash_drawer_openings WHERE merchant_id=$1 AND period_start=$2',[merchant,from])).rows[0];
- const drawer:ShiftDrawer|null=opening?(()=>{const sales=groups.find(g=>g.sourceKind==='cash_counter'&&g.currency===opening.currency&&g.decimals===opening.decimals)?.totalMinor??'0';return {currency:opening.currency,decimals:opening.decimals,openingFloatMinor:opening.float_minor,cashSalesMinor:sales,expectedMinor:(BigInt(opening.float_minor)+BigInt(sales)).toString()};})():null;
+ const mv=opening?(await db.query<{cin:string;cout:string}>("SELECT COALESCE(sum(amount_minor) FILTER(WHERE kind='IN'),0)::text AS cin,COALESCE(sum(amount_minor) FILTER(WHERE kind='OUT'),0)::text AS cout FROM cash_movements WHERE merchant_id=$1 AND period_start=$2",[merchant,from])).rows[0]:undefined;
+ const cin=mv?.cin??'0',cout=mv?.cout??'0';
+ const drawer:ShiftDrawer|null=opening?(()=>{const sales=groups.find(g=>g.sourceKind==='cash_counter'&&g.currency===opening.currency&&g.decimals===opening.decimals)?.totalMinor??'0';return {currency:opening.currency,decimals:opening.decimals,openingFloatMinor:opening.float_minor,cashSalesMinor:sales,cashInMinor:cin,cashOutMinor:cout,expectedMinor:(BigInt(opening.float_minor)+BigInt(sales)+BigInt(cin)-BigInt(cout)).toString()};})():null;
  return {timeZone,groups,excludedOrders:excluded,basis:'gross_paid_before_refunds_and_fees',drawer};
 }
 /** Owner/manager only. The open period runs from the previous close (or the start of the shop's day) to now; closing freezes the
@@ -52,6 +54,8 @@ export async function shiftsRequest(db:pg.PoolClient,merchant:string,actor:strin
   const start=await periodStart(db,merchant,timeZone),end=(await db.query<{now:Date}>('SELECT clock_timestamp() AS now')).rows[0].now;
   if(!(end>start))fail('INVALID_REQUEST',422);
   const snapshot=await totals(db,merchant,start,end,timeZone),cash=d.countedCash;
+  // What was counted vs what should be there, worked out on the server and frozen with the round. Only when the counted currency is the drawer's own.
+  if(snapshot.drawer){const dr=snapshot.drawer;if(cash&&cash.currency===dr.currency&&cash.decimals===dr.decimals){dr.countedMinor=cash.minor;dr.varianceMinor=(BigInt(cash.minor)-BigInt(dr.expectedMinor)).toString();}else{dr.countedMinor=null;dr.varianceMinor=null;}}
   const row=(await db.query<Row>('INSERT INTO shift_closes(merchant_id,period_start,period_end,closed_by,counted_cash_minor,cash_currency,cash_decimals,note,snapshot,idempotency_key) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING id,period_start,period_end,closed_by,counted_cash_minor::text,cash_currency,cash_decimals,note,snapshot,created_at',
    [merchant,start,end,actor,cash?cash.minor:null,cash?cash.currency:null,cash?cash.decimals:null,d.note,JSON.stringify(snapshot),d.idempotencyKey])).rows[0];
   await audit(db,merchant,actor,'shift.close',row.id);

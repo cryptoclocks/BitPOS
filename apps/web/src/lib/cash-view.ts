@@ -15,7 +15,7 @@ export interface Addon { id: string; label: string; labelEn: string; priceMinor:
 export interface SaleLine { lineNo: number; productId: string; name: string; nameEn: string; qty: number; unit: string; baseMinor: string | null; unitMinor: string; lineTotalMinor: string; sweetness: number | null; addons: Addon[] }
 export interface CartLine { productId: string; qty: number; sweetness?: 0 | 25 | 50 | 75 | 100; addonIds?: string[] }
 export interface HeldBill { id: string; label: string; items: CartLine[]; discount: DiscountInput; createdBy: string; createdAt: string }
-export interface Drawer { periodStart: string; currency: string; decimals: number; opening: { floatMinor: string; openedBy: string; at: string } | null; orders: number; cashSalesMinor: string; expectedMinor: string | null }
+export interface Drawer { periodStart: string; currency: string; decimals: number; opening: { floatMinor: string; openedBy: string; at: string } | null; orders: number; cashSalesMinor: string; cashInMinor?: string; cashOutMinor?: string; expectedMinor: string | null }
 /** One cart line is a product with one set of options; the same drink with other options is another line. */
 export const lineKey = (l: { productId: string; sweetness?: number; addonIds?: string[] }) => `${l.productId}|${l.sweetness ?? ''}|${[...new Set(l.addonIds ?? [])].sort().join(',')}`;
 /** Short text for the options of a line, e.g. "หวาน 50% · วิปครีม". */

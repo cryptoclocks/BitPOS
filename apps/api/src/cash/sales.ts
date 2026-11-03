@@ -83,6 +83,7 @@ export async function createCashSale(db:pg.PoolClient,merchant:string,actor:stri
  const p=saleBody.safeParse(input);if(!p.success)fail('INVALID_REQUEST',422);
  const d=p.data,items=[...d.items].sort((a,b)=>lineKey(a).localeCompare(lineKey(b)));
  const hash=createHash('sha256').update(JSON.stringify({i:items.map(i=>({...i,addonIds:[...(i.addonIds??[])].sort()})),d:d.discount,t:d.tenderMinor})).digest('hex');
+ await db.query('SELECT pg_advisory_xact_lock_shared(hashtext($1))',['shift-close:'+merchant]); // a running shift close waits for this sale and vice versa
  await db.query('SELECT pg_advisory_xact_lock(hashtext($1))',['cash-sale:'+merchant]);
  const prior=(await db.query<SaleRow&{request_hash:string}>(`SELECT ${COLS},request_hash FROM cash_sales WHERE merchant_id=$1 AND idempotency_key=$2`,[merchant,d.idempotencyKey])).rows[0];
  if(prior){if(prior.request_hash!==hash)fail('IDEMPOTENCY_CONFLICT');return {sale:view(prior,await linesOf(db,merchant,prior.id)),replayed:true};}
@@ -126,6 +127,8 @@ export async function getCashSale(db:pg.PoolClient,merchant:string,role:string,i
 export async function voidCashSale(db:pg.PoolClient,merchant:string,actor:string,role:string,id:unknown,input:unknown){
  requireRole(role);
  const u=z.string().uuid().safeParse(id),p=voidBody.safeParse(input);if(!u.success||!p.success)fail('INVALID_REQUEST',422);
+ await db.query('SELECT pg_advisory_xact_lock_shared(hashtext($1))',['shift-close:'+merchant]);
+ await db.query('SELECT pg_advisory_xact_lock(hashtext($1))',['cash-drawer:'+merchant]); // a void lowers expected cash: serialise with cash-out checks
  const cur=(await db.query<SaleRow>(`SELECT ${COLS} FROM cash_sales WHERE merchant_id=$1 AND id=$2 FOR UPDATE`,[merchant,u.data])).rows[0];
  if(!cur)fail('RESOURCE_NOT_FOUND',404);
  if(cur.status!=='PAID')fail('INVALID_REQUEST',409);

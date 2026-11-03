@@ -82,6 +82,7 @@ export const apiRoutes: [RegExp, readonly string[]][] = [
   [/^cash\/prices$/, ['GET', 'PUT']],
   [/^cash\/addons$/, ['GET', 'PUT']],
   [/^cash\/drawer$/, ['GET', 'PUT']],
+  [/^cash\/movements$/, ['GET', 'POST']],
   [/^cash\/held$/, ['GET', 'POST']],
   [/^cash\/held\/[0-9a-f-]{36}\/(recall|discard)$/, ['POST']],
   [/^cash\/quote$/, ['POST']],

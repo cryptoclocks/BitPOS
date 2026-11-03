@@ -18,8 +18,9 @@ export async function getDrawer(db:pg.PoolClient,merchant:string,role:string){
  const start=await roundStart(db,merchant),s=await loadSettings(db,merchant);
  const o=(await db.query<{float_minor:string;opened_by:string;created_at:Date}>('SELECT float_minor::text,opened_by,created_at FROM cash_drawer_openings WHERE merchant_id=$1 AND period_start=$2 AND currency=$3 AND decimals=$4',[merchant,start,s.currency,s.decimals])).rows[0];
  const sales=(await db.query<{orders:number;total:string}>("SELECT count(*)::int orders,COALESCE(sum(total_minor),0)::text total FROM cash_sales WHERE merchant_id=$1 AND status='PAID' AND created_at>=$2 AND currency_code=$3 AND decimals=$4",[merchant,start,s.currency,s.decimals])).rows[0];
+ const mv=(await db.query<{cin:string;cout:string}>("SELECT COALESCE(sum(amount_minor) FILTER(WHERE kind='IN'),0)::text AS cin,COALESCE(sum(amount_minor) FILTER(WHERE kind='OUT'),0)::text AS cout FROM cash_movements WHERE merchant_id=$1 AND period_start=$2",[merchant,start])).rows[0]!;
  return {periodStart:start.toISOString(),currency:s.currency,decimals:s.decimals,opening:o?{floatMinor:o.float_minor,openedBy:o.opened_by,at:o.created_at.toISOString()}:null,
-  orders:sales.orders,cashSalesMinor:sales.total,expectedMinor:o?(BigInt(o.float_minor)+BigInt(sales.total)).toString():null};
+  orders:sales.orders,cashSalesMinor:sales.total,cashInMinor:mv.cin,cashOutMinor:mv.cout,expectedMinor:o?(BigInt(o.float_minor)+BigInt(sales.total)+BigInt(mv.cin)-BigInt(mv.cout)).toString():null};
 }
 /** Records the starting float once per round; it is history afterwards, so a wrong figure is handled by the count at close, not by editing. */
 export async function openDrawer(db:pg.PoolClient,merchant:string,actor:string,role:string,input:unknown){
