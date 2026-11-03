@@ -18,11 +18,11 @@ class MainActivity : FlutterActivity() {
             when (call.method) {
                 "environment" -> result.success(mapOf("applicationId" to packageName,
                     "playServicesStatus" to GoogleApiAvailabilityLight.getInstance().isGooglePlayServicesAvailable(this),
-                    "channelEnabled" to (android.os.Build.VERSION.SDK_INT < 26 || notifications.getNotificationChannel("bitpos_updates_v1")?.importance != NotificationManager.IMPORTANCE_NONE),
+                    "channelEnabled" to (android.os.Build.VERSION.SDK_INT < 26 || notifications.getNotificationChannel("bitpos_updates_v2")?.importance != NotificationManager.IMPORTANCE_NONE),
                     "notificationsEnabled" to notifications.areNotificationsEnabled()))
                 "ensureUpdateChannel" -> {
                     if (android.os.Build.VERSION.SDK_INT >= 26) {
-                        val channel = NotificationChannel("bitpos_updates_v1", call.argument<String>("name") ?: "BitPOS updates", NotificationManager.IMPORTANCE_DEFAULT)
+                        val channel = NotificationChannel("bitpos_updates_v2", call.argument<String>("name") ?: "BitPOS updates", NotificationManager.IMPORTANCE_HIGH)
                         channel.lockscreenVisibility = Notification.VISIBILITY_PRIVATE
                         notifications.createNotificationChannel(channel)
                     }
