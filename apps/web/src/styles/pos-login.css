@@ -27,3 +27,9 @@
 .shell .login-lang button{background:none;border:0;padding:4px 2px;min-height:0;min-width:0;font:inherit;color:#64188a;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
 .shell .login-lang button[aria-pressed=true]{font-weight:700;text-decoration:none}
 @media(max-width:899px){.shell .login-lang{text-align:center}}
+.switch-user-back{position:fixed;inset:0;background:rgba(43,20,88,.45);backdrop-filter:blur(3px);display:grid;place-items:center;padding:16px;z-index:70;animation:su-fade .18s ease-out both}
+.switch-user{width:min(420px,100%);max-height:90vh;overflow:auto;display:grid;gap:12px;padding:18px;border-radius:20px;background:#fff;box-shadow:0 24px 60px rgba(43,20,88,.35);animation:su-in .26s cubic-bezier(.2,.9,.3,1.1) both}.switch-user h2{margin:0}
+.switch-user-people{border:1px solid var(--line,#d9cfee);border-radius:14px;display:grid;gap:6px;padding:10px;min-width:0}.switch-user-people label{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:10px;cursor:pointer}.switch-user-people label:has(input:checked){background:#f4effb;font-weight:700}
+.switch-user form{display:grid;gap:12px}.switch-user label input[type=password]{width:100%;font-size:20px;letter-spacing:.3em}
+@keyframes su-fade{from{opacity:0}to{opacity:1}}@keyframes su-in{from{opacity:0;transform:translateY(14px) scale(.97)}to{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){.switch-user-back,.switch-user{animation:none}}

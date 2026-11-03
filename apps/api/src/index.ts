@@ -73,6 +73,7 @@ import {merchantReturns} from './merchant-returns';
 import {suppliersRequest} from './suppliers';
 import {shiftsRequest} from './shifts';
 import {teamRequest} from './team';
+import {checkSwitch,directory as staffDirectory,setPin as setStaffPin,updateProfile as updateStaffProfile} from './staff-access';
 import {inventoryRequest} from './inventory';
 import {activityHistory} from './activity';
 import {archiveProduct,createProduct,editProduct,renameCategory,unarchiveProduct} from './catalog-edit';
@@ -134,6 +135,7 @@ async function login(credentials:z.infer<typeof credentialsSchema>,demoRole?:Dem
  const memberships=(await pool.query('SELECT merchant_id,role FROM members WHERE user_id=$1 ORDER BY merchant_id',[auth.user.id])).rows;
  const membership=credentials.merchantId?memberships.find(m=>m.merchant_id===credentials.merchantId):memberships.length===1?memberships[0]:null;
  if(!membership||demoRole&&membership.role!==demoRole)fail('ROLE_REQUIRED',403);
+ const denied=(await pool.query('SELECT bitpos.staff_access_denied($1,$2,clock_timestamp()) AS d',[membership.merchant_id,auth.user.id])).rows[0]?.d;if(denied)fail(denied==='DISABLED'?'ACCOUNT_DISABLED':'OUTSIDE_ACCESS_HOURS',403);
  const token=randomBytes(32).toString('base64url');
  await tenant(membership.merchant_id,async db=>{await db.query("INSERT INTO sessions(token_hash,user_id,merchant_id,role,expires_at) VALUES($1,$2,$3,$4,now()+interval '8 hours')",[hash(token),auth.user.id,membership.merchant_id,membership.role]);await audit(db,membership.merchant_id,auth.user.id,demoRole?'session.demo_login':'session.login',auth.user.id);});
  return {token,userId:auth.user.id,merchantId:membership.merchant_id,role:membership.role};
@@ -256,7 +258,14 @@ export async function handle(req:http.IncomingMessage){
  fail('RESOURCE_NOT_FOUND',404)
  });}
  const token=req.headers.authorization?.match(/^Bearer (.+)$/)?.[1];if(!token)fail('AUTH_REQUIRED',401);
- const session=(await pool.query('SELECT s.*,m.role AS current_role FROM sessions s JOIN members m ON m.user_id=s.user_id AND m.merchant_id=s.merchant_id WHERE token_hash=$1 AND expires_at>now()',[hash(token)])).rows[0];if(!session)fail('AUTH_REQUIRED',401);const merchant=session.merchant_id;
+ const session=(await pool.query('SELECT s.*,m.role AS current_role,bitpos.staff_access_denied(s.merchant_id,s.user_id,clock_timestamp()) AS access_denied FROM sessions s JOIN members m ON m.user_id=s.user_id AND m.merchant_id=s.merchant_id WHERE token_hash=$1 AND expires_at>now()',[hash(token)])).rows[0];if(!session)fail('AUTH_REQUIRED',401);
+ if(session.access_denied&&!(path==='/api/session'&&method==='DELETE'))fail(session.access_denied==='DISABLED'?'ACCOUNT_DISABLED':'OUTSIDE_ACCESS_HOURS',403);
+ if(path==='/api/session/switch'&&method==='POST'){
+  const outcome=await tenant(session.merchant_id,async db=>{const r=await checkSwitch(db,session.merchant_id,session.user_id,input);if(r.kind!=='ok')return {r};const next=randomBytes(32).toString('base64url');await db.query("INSERT INTO sessions(token_hash,user_id,merchant_id,role,expires_at) VALUES($1,$2,$3,$4,now()+interval '8 hours')",[hash(next),r.userId,session.merchant_id,r.role]);return {r,token:next};});
+  if(outcome.r.kind!=='ok')fail(outcome.r.code,outcome.r.status);
+  return {token:outcome.token,userId:outcome.r.userId,merchantId:session.merchant_id,role:outcome.r.role};
+ }
+const merchant=session.merchant_id;
  if(path==='/api/product-images'&&method==='POST'){const bytes=await readRaw(req,maxProductImageBytes);return tenant(merchant,db=>uploadProductImage(db,merchant,session.user_id,session.current_role,bytes));}
  return tenant(merchant,async db=>{
  const returned=await merchantFoodReturnRequest(db,url,method??'GET',input,session.current_role,hash(token));if(returned!==undefined)return returned;
@@ -270,6 +279,9 @@ export async function handle(req:http.IncomingMessage){
  if(path==='/api/reports/export'&&method==='GET')return reportExport(db,merchant,session.user_id,session.current_role,url);
  if(path==='/api/returns'&&method==='GET')return merchantReturns(db,merchant,session.current_role,url);
  if(path==='/api/shifts'||path==='/api/shifts/close')return shiftsRequest(db,merchant,session.user_id,session.current_role,url,method??'GET',input);
+ if(path==='/api/team/directory'&&method==='GET')return staffDirectory(db,merchant);
+ if(/^\/api\/team\/[0-9a-f-]{36}\/profile$/.test(path)&&method==='PUT')return updateStaffProfile(db,merchant,session.user_id,session.current_role,path.split('/')[3]!,input);
+ if(/^\/api\/team\/[0-9a-f-]{36}\/pin$/.test(path)&&method==='PUT')return setStaffPin(db,merchant,session.user_id,session.current_role,path.split('/')[3]!,input);
  if(path==='/api/team'||/^\/api\/team\/[0-9a-f-]{36}$/.test(path))return teamRequest(db,merchant,session.user_id,session.current_role,url,method??'GET',input);
  if(path==='/api/suppliers'||/^\/api\/suppliers\/[0-9a-f-]{36}$/.test(path))return suppliersRequest(db,merchant,session.user_id,session.current_role,url,method??'GET',input);
  if(path==='/api/settings/hours'&&(method==='GET'||method==='PUT'))return openingHoursSettings(db,merchant,session.user_id,session.current_role,method,input);

@@ -2,6 +2,7 @@ import type pg from 'pg';
 import {z} from 'zod';
 import {fail,requireRole} from './authority';
 import {audit} from './db';
+import {listStaff} from './staff-access';
 
 export interface TeamMember{userId:string;role:'owner'|'manager'|'staff';you:boolean}
 const uuid=z.string().uuid();
@@ -14,8 +15,7 @@ export async function teamRequest(db:pg.PoolClient,merchant:string,actor:string,
  requireRole(role,true);
  if(url.pathname==='/api/team'&&method==='GET'){
   if(url.search)fail('INVALID_REQUEST',422);
-  const rows=(await db.query<{user_id:string;role:TeamMember['role']}>("SELECT user_id,role FROM members WHERE merchant_id=$1 ORDER BY CASE role WHEN 'owner' THEN 0 WHEN 'manager' THEN 1 ELSE 2 END,user_id",[merchant])).rows;
-  return {members:rows.map((r):TeamMember=>({userId:r.user_id,role:r.role,you:r.user_id===actor}))};
+  return listStaff(db,merchant,actor,role);
  }
  const match=/^\/api\/team\/([0-9a-f-]{36})$/.exec(url.pathname);
  if(match&&method==='PATCH'){
