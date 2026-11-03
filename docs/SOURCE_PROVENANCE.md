@@ -28,3 +28,7 @@ Historical Thai planning notes remain in the repository for traceability; this E
 ## Feature references (no code copied)
 
 On 2026-11-02 the public repository `jaturapornchai/domepos` was read for its *feature list only* (README). It carries no license, so none of its code, assets or text was copied. The following BitPOS features were written independently after seeing that a cafe POS commonly offers them: short receipt print, cup labels, Z-report print and a spoken pickup call (`apps/web/src/lib/print-slip.ts`, `voice-call.ts`, `components/PrintActions.tsx`). Features of that repository that BitPOS already has or deliberately does not adopt (no-login access, Cloudflare D1 sync, float-free arithmetic is already a BitPOS rule) were not ported.
+
+## Bluetooth thermal printer (2026-11-04)
+
+Created during the competition. The PeriPage A9s MAX wire format (setup commands, UI-to-wire density, compressed 1-bit image job, 100-byte / 18 ms pacing) comes from the owner's own physical test on 2026-11-04 (`evidence/printer-bluetooth-20261104/`, analysis of the owner's installed PeriPage application for byte rules). No PeriPage application code was copied; `apps/web/src/lib/printer/` is original. The 1376-byte confirmed job in `tests/fixtures/printer/` is a test artefact produced by the owner's evidence run.
