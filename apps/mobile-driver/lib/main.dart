@@ -298,6 +298,24 @@ class _DriverSessionPageState extends State<DriverSessionPage>
     if (mounted) setState(() => _busy = false);
   }
 
+  // Demo-only: fixed test OTPs configured on the auth provider; no SMS, no real number.
+  static const _demoQuickSignIn = bool.fromEnvironment(
+    'BITPOS_DEMO_QUICK_SIGNIN',
+  );
+  static const _demoPhones = {
+    1: '+66900000001',
+    2: '+66900000002',
+    3: '+66900000003',
+  };
+
+  Future<void> _demoLogin(int n) async {
+    _phone.text = _demoPhones[n]!;
+    await _api!.requestOtp(_phone.text);
+    _code.text = '123456';
+    _sent = true;
+    await _login();
+  }
+
   Future<void> _login() async {
     if (_sent) {
       await _api!.verifyOtp(_phone.text.trim(), _code.text.trim());
@@ -1108,6 +1126,23 @@ class _DriverSessionPageState extends State<DriverSessionPage>
                       ],
                     ),
                   ),
+                  if (!_sent && _demoQuickSignIn) ...[
+                    const SizedBox(height: 16),
+                    Wrap(
+                      alignment: WrapAlignment.center,
+                      spacing: 8,
+                      children: [
+                        for (final n in _demoPhones.keys)
+                          OutlinedButton(
+                            key: ValueKey('demo-signin-$n'),
+                            onPressed: _busy || _api == null
+                                ? null
+                                : () => _run(() => _demoLogin(n)),
+                            child: Text(t('เดโม $n', 'Demo $n')),
+                          ),
+                      ],
+                    ),
+                  ],
                   if (!_sent) ...[
                     const SizedBox(height: 32),
                     Text(

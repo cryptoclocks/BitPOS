@@ -225,11 +225,14 @@ class _CustomerSessionPageState extends State<CustomerSessionPage> {
       await _push!.start();
     } catch (error) {
       // A stored session the server no longer accepts simply lands on sign-in, quietly.
-      final quiet = error is MobileApiException &&
+      final quiet =
+          error is MobileApiException &&
           error.code == 'AUTH_REQUIRED' &&
           !(_api?.signedIn ?? false);
       _error = quiet ? null : error;
-      if (isConnectivityError(error) && _push == null && (_api?.signedIn ?? false)) {
+      if (isConnectivityError(error) &&
+          _push == null &&
+          (_api?.signedIn ?? false)) {
         // Session intact, first server read failed: retry quietly on our own.
         await _sessionOwner?.cancel();
         _sessionOwner = null;
@@ -286,8 +289,14 @@ class _CustomerSessionPageState extends State<CustomerSessionPage> {
 
   // Demo-only: the server's provider has fixed test OTPs for these numbers
   // (GOTRUE_SMS_TEST_OTP); no SMS is sent and no real number is used.
-  static const _demoQuickSignIn = bool.fromEnvironment('BITPOS_DEMO_QUICK_SIGNIN');
-  static const _demoPhones = {1: '+66900000001', 2: '+66900000002', 3: '+66900000003'};
+  static const _demoQuickSignIn = bool.fromEnvironment(
+    'BITPOS_DEMO_QUICK_SIGNIN',
+  );
+  static const _demoPhones = {
+    1: '+66900000001',
+    2: '+66900000002',
+    3: '+66900000003',
+  };
   static const _demoCode = '123456';
 
   Future<void> _demoSignIn(int n) async {
@@ -652,7 +661,8 @@ class _CustomerSessionPageState extends State<CustomerSessionPage> {
     return _buildPage(context);
   }
 
-  Widget _buildPage(BuildContext context) => _account == null && !_busy && _welcome
+  Widget _buildPage(BuildContext context) =>
+      _account == null && !_busy && _welcome
       ? CustomerWelcome(
           thai: _thai,
           onStart: () => setState(() => _welcome = false),
@@ -1107,8 +1117,10 @@ class _CustomerSessionPageState extends State<CustomerSessionPage> {
                                   _message(_error!),
                                   style: TextStyle(
                                     color: isConnectivityError(_error)
-                          ? Theme.of(context).colorScheme.onSurfaceVariant
-                          : Theme.of(context).colorScheme.error,
+                                        ? Theme.of(context)
+                                              .colorScheme
+                                              .onSurfaceVariant
+                                        : Theme.of(context).colorScheme.error,
                                   ),
                                 ),
                               ),
