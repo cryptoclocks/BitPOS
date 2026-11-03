@@ -4,12 +4,14 @@ import {routingLock,fail} from './authority';
 import {audit} from './db';
 import {releaseReservation,streamEvent} from './orders';
 
-type ClosureCause={kind:'ROUTED_CANCEL';exact:{device:string;version:number;generation:string}}|{kind:'QUOTE_TIMEOUT'}|{kind:'ONLINE_ACCEPTANCE_ENDED'};
+type ClosureCause={kind:'ROUTED_CANCEL';exact:{device:string;version:number;generation:string}}|{kind:'QUOTE_TIMEOUT'}|{kind:'ONLINE_ACCEPTANCE_ENDED'}|{kind:'MERCHANT_VOID'};
 async function closeLocked(db:pg.PoolClient,merchant:string,orderId:string,cause:ClosureCause,actor:string){
   const reason=cause.kind==='QUOTE_TIMEOUT'?'timeout':'canceled';
   const exact=cause.kind==='ROUTED_CANCEL'?cause.exact:undefined;
   const authority=(await db.query<AuthorityRow>('SELECT * FROM order_authority WHERE merchant_id=$1 AND order_id=$2',[merchant,orderId])).rows[0];
   if(exact&&(!authority||authority.target_device_id!==exact.device))fail('ORDER_NOT_RELEASABLE');
+  // A merchant void applies to counter/table orders only; an online order has its own acceptance/return lifecycle.
+  if(cause.kind==='MERCHANT_VOID'&&authority?.source_kind==='online')fail('ORDER_NOT_RELEASABLE');
   const screen=authority&&authority.source_kind!=='online'?(await db.query('SELECT * FROM device_screen_state WHERE merchant_id=$1 AND device_id=$2 FOR UPDATE',[merchant,authority.target_device_id])).rows[0]:null;
   const o=(await db.query<OrderRow&{deadline_elapsed:boolean}>('SELECT *,quote_expires_at<=clock_timestamp() AS deadline_elapsed FROM orders WHERE merchant_id=$1 AND id=$2 FOR UPDATE',[merchant,orderId])).rows[0];
   if(!o)fail('RESOURCE_NOT_FOUND',404);
@@ -28,7 +30,7 @@ async function closeLocked(db:pg.PoolClient,merchant:string,orderId:string,cause
   }else if(!['AWAITING_WALLET','AWAITING_PAYMENT'].includes(o.status))fail('ORDER_NOT_PAYABLE');
   await db.query('SELECT id FROM payment_attempts WHERE merchant_id=$1 AND order_id=$2 ORDER BY id FOR UPDATE',[merchant,orderId]);
   const safe=(await db.query<{safe:boolean}>('SELECT bitpos.unpaid_order_safe($1::uuid,$2::uuid) AS safe',[merchant,orderId])).rows[0].safe;
-  if(!safe){if(exact)fail('PAYMENT_PENDING');return {replayed:false,closed:false};}
+  if(!safe){if(exact||cause.kind==='MERCHANT_VOID')fail('PAYMENT_PENDING');return {replayed:false,closed:false};}
   const anomalies=await releaseReservation(db,o);
   if(anomalies>0){console.warn('Reservation counter anomaly clamped to 0',orderId,anomalies);await audit(db,merchant,actor,'order.reservation_anomaly',orderId);}
   const updated=(await db.query<OrderRow>("UPDATE orders SET status='EXPIRED',closure_reason=$3,version=version+1 WHERE merchant_id=$1 AND id=$2 RETURNING *",[merchant,orderId,reason])).rows[0];
@@ -43,13 +45,19 @@ async function closeLocked(db:pg.PoolClient,merchant:string,orderId:string,cause
       await streamEvent(db,merchant,authority.target_device_id,authority.target_assignment_generation,idle.screen_generation,'SNAPSHOT',{screen:{kind:'idle',screenGeneration:idle.screen_generation},closedOrder:{id:orderId,version:updated.version,reason}});
     }
   }
-  await audit(db,merchant,actor,reason==='canceled'?'order.cancel_unpaid':'order.timeout_unpaid',orderId);
+  await audit(db,merchant,actor,cause.kind==='MERCHANT_VOID'?'order.void_unpaid':reason==='canceled'?'order.cancel_unpaid':'order.timeout_unpaid',orderId);
   return {replayed:false,closed:true};
 }
 
 export async function cancelUnpaidOrder(db:pg.PoolClient,merchant:string,device:string,orderId:string,version:number,generation:string,actor:string){
   await routingLock(db,merchant);
   return closeLocked(db,merchant,orderId,{kind:'ROUTED_CANCEL',exact:{device,version,generation}},actor);
+}
+
+/** Merchant-initiated void of one unpaid counter/table order. Same closure routine as every other unpaid close: reservation released exactly once, a replay changes nothing. */
+export async function voidUnpaidOrder(db:pg.PoolClient,merchant:string,orderId:string,actor:string){
+  await routingLock(db,merchant);
+  return closeLocked(db,merchant,orderId,{kind:'MERCHANT_VOID'},actor);
 }
 
 export async function expireUnpaidOrders(db:pg.PoolClient,merchant:string){

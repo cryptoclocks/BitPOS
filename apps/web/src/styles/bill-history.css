@@ -1,0 +1,13 @@
+.bill-history{display:grid;gap:12px}.bill-filters{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;padding:12px;border:1px solid var(--line,#d9cfee);border-radius:16px;background:#fff}
+.bill-filters label{display:grid;gap:4px;min-width:0}.bill-search{flex:1 1 180px}.bill-search input{width:100%}
+.bill-list{list-style:none;margin:0;padding:0;display:grid;gap:8px}.bill-row{border:1px solid var(--line,#d9cfee);border-radius:14px;background:#fff;padding:4px;transition:border-color .2s,box-shadow .2s;animation:bill-in .24s ease-out both}
+.bill-row.voided{background:#faf5f5}.bill-row.expired{opacity:.8}
+.bill-line{all:unset;box-sizing:border-box;width:100%;display:grid;grid-template-columns:minmax(80px,1fr) auto auto auto auto;gap:6px 12px;align-items:center;padding:8px 10px;cursor:pointer;border-radius:10px}.bill-line:hover{background:#f6f1ff}.bill-line:focus-visible{outline:3px solid rgba(91,43,184,.45)}
+.bill-total{font-variant-numeric:tabular-nums;font-weight:800;text-align:right}.bill-when{opacity:.7;font-size:13px}
+.bill-chip{padding:2px 10px;border-radius:999px;font-size:13px;font-weight:700;background:#eee;color:#444}.bill-chip.paid{background:#e5f6ea;color:#1f6b2c}.bill-chip.open{background:#fff6e0;color:#5d4300}.bill-chip.voided{background:#fdeaea;color:#7a1f1f}.bill-chip.src{background:#f4effb;color:#4a148c}
+.bill-reason{display:block;padding:0 12px 6px;opacity:.8}.bill-detail{display:grid;gap:10px;padding:8px 12px 12px;animation:bill-in .2s ease-out both}
+.bill-facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:6px 12px;margin:0}.bill-facts div{display:grid}.bill-facts dt{font-size:13px;opacity:.7}.bill-facts dd{margin:0;overflow-wrap:anywhere}
+.bill-lines,.bill-timeline{margin:0;padding-left:18px;display:grid;gap:2px}.bill-timeline{font-size:13px;opacity:.85}.bill-void{display:grid;gap:8px;max-width:420px}.bill-void label{display:grid;gap:4px}.bill-note{margin:0;padding:8px 10px;border-radius:10px;background:#f4effb}
+@keyframes bill-in{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+@media(max-width:700px){.bill-line{grid-template-columns:1fr auto}.bill-when{grid-column:1/-1;order:5}.bill-total{text-align:right}}
+@media(prefers-reduced-motion:reduce){.bill-row,.bill-detail{animation:none;transition:none}}
