@@ -2113,8 +2113,13 @@ class _CustodyProofDialogState extends State<_CustodyProofDialog> {
       controller: _controller,
       autocorrect: false,
       enableSuggestions: false,
+      textCapitalization: TextCapitalization.characters,
       decoration: InputDecoration(
         labelText: t('รหัสจากร้าน/ลูกค้า', 'Secret from merchant/customer'),
+        helperText: t(
+          'รหัส 10 ตัว ไม่สนตัวพิมพ์เล็ก/ใหญ่ ใส่ขีดหรือเว้นวรรคได้',
+          '10 characters; case, spaces and dashes do not matter',
+        ),
       ),
     ),
     actions: [

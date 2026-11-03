@@ -63,6 +63,7 @@ import {registry} from './registry';
 import {fail,RequestError,errorView,routingLock,requireRole,cart,serving,positive} from './authority';
 import type {AttemptRow,OrderRow} from './types';
 import {demoAccessEnabled,demoCredentials,demoRoles,type DemoRole} from './demo-auth';
+import {newProofSecret} from './proof-code';
 import {assertOrderRepeatLimit,collectionSettings} from './coffee-order-constraints';
 import {openingHoursSettings} from './opening-hours';
 import {salesReport} from './reports';
@@ -292,7 +293,7 @@ export async function handle(req:http.IncomingMessage){
   try{
   if(!deliveryWork[2]&&method==='GET')return FoodMerchantWorkSchema.parse((await db.query('SELECT bitpos.dispatch_merchant_work($1,$2) AS value',[oid,hash(token)])).rows[0].value);
   if(deliveryWork[2]==='pickup-proof'&&method==='POST'){
-   const data=FoodMerchantProofIssueCommandSchema.parse(input);positive.parse(data.generation);positive.parse(data.leaseGeneration);const secret=randomBytes(32).toString('base64url');
+   const data=FoodMerchantProofIssueCommandSchema.parse(input);positive.parse(data.generation);positive.parse(data.leaseGeneration);const secret=newProofSecret();
    const value=(await db.query('SELECT bitpos.dispatch_merchant_issue_proof($1,$2,$3,$4,$5,$6,$7,$8) AS value',[oid,data.assignmentId,data.generation,data.leaseGeneration,data.idempotencyKey,hash(secret),data.rotate,hash(token)])).rows[0].value;
    return FoodProofIssueReceiptSchema.parse({...value,secret:value.replayed?null:secret});
   }

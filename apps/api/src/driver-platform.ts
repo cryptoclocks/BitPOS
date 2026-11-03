@@ -2,6 +2,7 @@ import type pg from 'pg';
 import {z} from 'zod';
 import {randomBytes} from 'node:crypto';
 import {hash} from '../../../packages/domain/src/index';
+import {newProofSecret,normalizeProofSecret} from './proof-code';
 import type {ConsumerError} from '../../../packages/contracts/src/index';
 import {pool} from './db';
 import {mobilePrincipal,type MobilePrincipal} from './mobile-auth';
@@ -131,12 +132,12 @@ export async function driverPlatformRequest(url:URL,method:string,input:unknown,
    if(foodAssignment[2]==='arrive'){const data=FoodArrivalCommandSchema.parse(input);boundedDispatchNumbers(data);return FoodArrivalReceiptSchema.parse((await db.query('SELECT bitpos.dispatch_food_arrive($1,$2::jsonb) AS value',[id,JSON.stringify(data)])).rows[0].value);}
    if(foodAssignment[2]==='location'){const data=FoodLocationCommandSchema.parse(input);boundedDispatchNumbers(data);return FoodLocationReceiptSchema.parse((await db.query('SELECT bitpos.dispatch_food_location($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) AS value',[id,data.generation,data.leaseGeneration,data.sequence,data.capturedAt,data.latitudeE7,data.longitudeE7,data.accuracyMm,data.headingMdeg,data.speedMmS])).rows[0].value);}
    const data=FoodProofConsumeCommandSchema.parse(input);boundedDispatchNumbers(data);
-   const value=(await db.query('SELECT bitpos.dispatch_consume_proof($1,$2,$3,$4,$5,$6) AS value',[id,data.proofId,data.generation,data.leaseGeneration,data.idempotencyKey,hash(data.secret)])).rows[0].value;
+   const value=(await db.query('SELECT bitpos.dispatch_consume_proof($1,$2,$3,$4,$5,$6) AS value',[id,data.proofId,data.generation,data.leaseGeneration,data.idempotencyKey,hash(normalizeProofSecret(data.secret))])).rows[0].value;
    return value.accepted===true?FoodProofConfirmedSchema.parse(value):FoodProofRefusedSchema.parse(value);
   }
   if(foodTracking&&method==='GET'){const value=(await db.query('SELECT bitpos.dispatch_food_tracking($1) AS value',[z.string().uuid().parse(foodTracking[1])])).rows[0].value;return FoodTrackingSnapshotSchema.parse({assignment:value.assignmentId===null?null:value});}
   if(foodDeliveryProof&&method==='POST'){
-   const id=z.string().uuid().parse(foodDeliveryProof[1]),data=FoodProofIssueCommandSchema.parse(input);boundedDispatchNumbers(data);const secret=randomBytes(32).toString('base64url');
+   const id=z.string().uuid().parse(foodDeliveryProof[1]),data=FoodProofIssueCommandSchema.parse(input);boundedDispatchNumbers(data);const secret=newProofSecret();
    const value=(await db.query("SELECT bitpos.dispatch_issue_proof($1,'DELIVERY',$2,$3,$4,$5,$6) AS value",[id,data.generation,data.leaseGeneration,data.idempotencyKey,hash(secret),data.rotate])).rows[0].value;
    return FoodProofIssueReceiptSchema.parse({...value,secret:value.replayed?null:secret});
   }

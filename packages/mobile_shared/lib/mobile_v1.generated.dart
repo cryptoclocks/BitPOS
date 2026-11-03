@@ -589,7 +589,7 @@ class FoodProofConsumeCommand {
   final proofId=(() { final value=json["proofId"]; const path="FoodProofConsumeCommand.proofId"; return _string(value, path, pattern: null, format: "uuid", min: 0, max: null); })();
   final generation=(() { final value=json["generation"]; const path="FoodProofConsumeCommand.generation"; return _string(value, path, pattern: "^[1-9][0-9]{0,18}\$", format: null, min: 0, max: null); })();
   final leaseGeneration=(() { final value=json["leaseGeneration"]; const path="FoodProofConsumeCommand.leaseGeneration"; return _string(value, path, pattern: "^[1-9][0-9]{0,18}\$", format: null, min: 0, max: null); })();
-  final secret=(() { final value=json["secret"]; const path="FoodProofConsumeCommand.secret"; return _string(value, path, pattern: "^[A-Za-z0-9_-]{32,64}\$", format: null, min: 0, max: null); })();
+  final secret=(() { final value=json["secret"]; const path="FoodProofConsumeCommand.secret"; return _string(value, path, pattern: "^[A-Za-z0-9_-]{8,64}\$", format: null, min: 0, max: null); })();
   return FoodProofConsumeCommand._(idempotencyKey: idempotencyKey, proofId: proofId, generation: generation, leaseGeneration: leaseGeneration, secret: secret);
  }
  Map<String,dynamic> toJson() => {"idempotencyKey": idempotencyKey, "proofId": proofId, "generation": generation, "leaseGeneration": leaseGeneration, "secret": secret};
@@ -691,7 +691,7 @@ class FoodProofIssueReceipt {
   final leaseGeneration=(() { final value=json["leaseGeneration"]; const path="FoodProofIssueReceipt.leaseGeneration"; return _string(value, path, pattern: "^[1-9][0-9]{0,18}\$", format: null, min: 0, max: null); })();
   final replayed=(() { final value=json["replayed"]; const path="FoodProofIssueReceipt.replayed"; return _boolean(value, path); })();
   final secretRecoveryRequired=(() { final value=json["secretRecoveryRequired"]; const path="FoodProofIssueReceipt.secretRecoveryRequired"; return _boolean(value, path); })();
-  final secret=(() { final value=json["secret"]; const path="FoodProofIssueReceipt.secret"; return value == null ? null : (_string(value, path, pattern: "^[A-Za-z0-9_-]{32,64}\$", format: null, min: 0, max: null)); })();
+  final secret=(() { final value=json["secret"]; const path="FoodProofIssueReceipt.secret"; return value == null ? null : (_string(value, path, pattern: "^[A-Za-z0-9_-]{8,64}\$", format: null, min: 0, max: null)); })();
   return FoodProofIssueReceipt._(proofId: proofId, assignmentId: assignmentId, kind: kind, expiresAt: expiresAt, generation: generation, leaseGeneration: leaseGeneration, replayed: replayed, secretRecoveryRequired: secretRecoveryRequired, secret: secret);
  }
  Map<String,dynamic> toJson() => {"proofId": proofId, "assignmentId": assignmentId, "kind": kind, "expiresAt": expiresAt, "generation": generation, "leaseGeneration": leaseGeneration, "replayed": replayed, "secretRecoveryRequired": secretRecoveryRequired, "secret": secret};

@@ -6887,7 +6887,7 @@
           },
           "secret": {
             "type": "string",
-            "pattern": "^[A-Za-z0-9_-]{32,64}$"
+            "pattern": "^[A-Za-z0-9_-]{8,64}$"
           }
         }
       },
@@ -7062,7 +7062,7 @@
             "anyOf": [
               {
                 "type": "string",
-                "pattern": "^[A-Za-z0-9_-]{32,64}$"
+                "pattern": "^[A-Za-z0-9_-]{8,64}$"
               },
               {
                 "type": "null"

@@ -222,7 +222,7 @@ export const FoodProofConsumeCommandSchema=z.object({
  proofId:z.string().uuid(),
  generation:z.string().regex(new RegExp("^[1-9][0-9]{0,18}$")),
  leaseGeneration:z.string().regex(new RegExp("^[1-9][0-9]{0,18}$")),
- secret:z.string().regex(new RegExp("^[A-Za-z0-9_-]{32,64}$")),
+ secret:z.string().regex(new RegExp("^[A-Za-z0-9_-]{8,64}$")),
 }).strict();
 export type FoodProofConsumeCommand=z.infer<typeof FoodProofConsumeCommandSchema>;
 export const FoodOfferReceiptSchema=z.object({
@@ -263,7 +263,7 @@ export const FoodProofIssueReceiptSchema=z.object({
  leaseGeneration:z.string().regex(new RegExp("^[1-9][0-9]{0,18}$")),
  replayed:z.boolean(),
  secretRecoveryRequired:z.boolean(),
- secret:z.string().regex(new RegExp("^[A-Za-z0-9_-]{32,64}$")).nullable(),
+ secret:z.string().regex(new RegExp("^[A-Za-z0-9_-]{8,64}$")).nullable(),
 }).strict();
 export type FoodProofIssueReceipt=z.infer<typeof FoodProofIssueReceiptSchema>;
 export const FoodProofConfirmedSchema=z.object({
