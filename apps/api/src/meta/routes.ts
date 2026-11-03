@@ -25,7 +25,7 @@ import {FRAME,L,LANG,LANG_COOKIE,langFromCookie,nm} from './staff-i18n';
 import {servePosApi} from './pos-api';
 import {saveChatCart,talkCart} from './cart-agent';
 import {discardPost,draftPost,postImage,postsByDraft,publishPost,SocialError,type PostView} from './social';
-import {ComboError,comboAnimation,comboImage,decideCombo,draftCombo,illustrateCombo,listCombos,offerAnimation,type ComboView} from './combos';
+import {ComboError,comboAnimation,comboImage,decideCombo,draftCombo,illustrateCombo,listCombos,menuAnimation,offerAnimation,type ComboView} from './combos';
 import {BannerError,bannerImage,bannersByDraft,createBanner,decideBanner,type BannerView} from './banners';
 import {servePos} from './pos';
 import {CartError,cartChatReceipt,cartOrderMerchant,formatCart,handOverCart,parseCart,quoteCart,startCart,type CartLine} from './cart';
@@ -142,11 +142,12 @@ export async function serveMeta(req:http.IncomingMessage,res:http.ServerResponse
   if(!b){res.writeHead(404,{'Content-Type':'text/plain'});res.end('not found');return true;}
   res.writeHead(200,{'Content-Type':b.mime,'Cache-Control':'public, max-age=600','X-Content-Type-Options':'nosniff'});res.end(b.image);return true;
  }
- const anim=path.match(/^\/meta\/anim\/(offer|combo)\/([0-9a-f-]{36})\/(240|480)(?:-[0-9a-f]{8})?\.gif$/);
+ const anim=path.match(/^\/meta\/anim\/(offer|combo|menu)\/([0-9a-f-]{36})\/(240|480)(?:-[0-9a-f]{8})?\.gif$/);
  if(anim&&method==='GET'){
   // Offer animations (meta-pay, Messenger, the BitPOS Mini): only for an offer that is live now in the demo shop.
   const chat=chatDeps(deps);
-  const gif=chat&&deps.demoMerchant?(await (anim[1]==='offer'?offerAnimation:comboAnimation)(chat,deps.demoMerchant,anim[2],Number(anim[3]) as 240|480).catch(()=>null))?.gif:null;
+  const make=anim[1]==='offer'?offerAnimation:anim[1]==='combo'?comboAnimation:menuAnimation;
+  const gif=chat&&deps.demoMerchant?(await make(chat,deps.demoMerchant,anim[2],Number(anim[3]) as 240|480).catch(()=>null))?.gif:null;
   if(!gif){res.writeHead(404,{'Content-Type':'text/plain','Cache-Control':'no-store'});res.end('not found');return true;}
   res.writeHead(200,{'Content-Type':'image/gif','Content-Length':gif.length,'Cache-Control':'public, max-age=300','X-Content-Type-Options':'nosniff'});res.end(gif);return true;
  }
@@ -635,7 +636,10 @@ function deviceAnim(deps:MetaRouteDeps){
   }
   // A shop promotion set outside meta-pos (inherited POS pricing) still shows when nothing else is live.
   const item=[...live][0],one=item?await offerAnimation(chat,merchantId,item,240):null;
-  return one?`/meta/anim/offer/${item}/240-${one.tag}.gif`:'';
+  if(one)return `/meta/anim/offer/${item}/240-${one.tag}.gif`;
+  // No promotion at all: a menu photo with its price, so the home screen keeps its picture card.
+  const menu=await menuAnimation(chat,merchantId,null,240);
+  return menu?`/meta/anim/menu/${menu.productId}/240-${menu.tag}.gif`:'';
  }
 }
 const ANIM_MEMO=new Map<string,{path:string;at:number}>();

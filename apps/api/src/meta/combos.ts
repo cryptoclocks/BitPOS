@@ -92,6 +92,18 @@ export async function offerAnimation(deps:AgentDeps,merchantId:string,productId:
   return (banner?await offerGif({...spec,image:banner.image,mime:banner.mime}):null)??(photo?await offerGif({...spec,image:photo,mime:'image/jpeg'}):null);
  });
 }
+/** Idle animation when no promotion is live: one real menu photo with its price (no discount badge), a different
+ * payable item each hour, so the BitPOS Mini's home screen keeps its picture card instead of falling back to text. */
+export async function menuAnimation(deps:AgentDeps,merchantId:string,productId:string|null,size:240|480):Promise<Anim&{productId:string}|null>{
+ const items=(await listMenu(deps,merchantId)).filter(i=>i.payable&&i.imageUrl);if(!items.length)return null;
+ const m=productId?items.find(i=>i.productId===productId):items[Math.floor(Date.now()/3_600_000)%items.length];if(!m)return null;
+ const key=`v1:menu:${m.productId}:${m.price.amountMinor}:${size}`.toLowerCase().replace(/[^a-z0-9:._-]/g,'');
+ const a=await cached(deps.db,merchantId,key,async()=>{
+  const photo=await photoOf(m);
+  return photo?offerGif({image:photo,mime:'image/jpeg',badge:m.price.display.replace(/\.00$/,''),title:size>300?`${m.name} · ${m.nameEn}`:m.nameEn,subtitle:size>300?'เมนูวันนี้ · On the menu today':'',size,frames:size>300?20:16}):null;
+ });
+ return a&&{...a,productId:m.productId};
+}
 /** Animation for a live two-item offer: both real menu photos side by side, then the generated picture once it is made. */
 export async function comboAnimation(deps:AgentDeps,merchantId:string,id:string,size:240|480):Promise<Anim|null>{
  const c=(await listCombos(deps.db,merchantId,true)).find(x=>x.id===id);if(!c)return null;

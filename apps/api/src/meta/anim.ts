@@ -51,7 +51,7 @@ export function frame(s:AnimSpec,i:number,n:number,href:string|[string,string]):
 ${pic}
 <rect x="${sweep}" y="${-S*0.2}" width="${S*0.35}" height="${S*1.4}" fill="url(#sh)" transform="rotate(18 ${S/2} ${S/2})"/>
 <rect width="${S}" height="${S}" fill="url(#dk)"/>${stars}
-<g transform="translate(${bx} ${by}) scale(${bs.toFixed(3)})"><circle r="${R}" fill="url(#bg)" stroke="#fff" stroke-width="${5*k}"/><text y="${16*k}" font-size="${46*k}" font-weight="600" fill="#fff" text-anchor="middle">${x(glyphs(s.badge))}</text></g>
+${s.badge?`<g transform="translate(${bx} ${by}) scale(${bs.toFixed(3)})"><circle r="${R}" fill="url(#bg)" stroke="#fff" stroke-width="${5*k}"/><text y="${(s.badge.length>4?12:16)*k}" font-size="${(s.badge.length>4?34:46)*k}" font-weight="600" fill="#fff" text-anchor="middle">${x(glyphs(s.badge))}</text></g>`:''}
 <g opacity="${fade.toFixed(2)}"><text x="${24*k}" y="${S-60*k}" font-size="${34*k}" font-weight="600" fill="#fff">${x(glyphs(s.title)).slice(0,40)}</text>
 <text x="${24*k}" y="${S-24*k}" font-size="${22*k}" fill="#dfe7ff">${x(glyphs(s.subtitle)).slice(0,52)}</text></g></svg>`;
 }

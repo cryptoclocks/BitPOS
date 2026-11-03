@@ -32,7 +32,7 @@ const glyphs=(s:string)=>s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').repla
 export type DeviceLang='en'|'th';
 export async function deviceView(db:MetaDb,deviceId:string,publicOrigin:string,animFor?:AnimFor,lang:DeviceLang='en'):Promise<DeviceView|null>{
  const v=await view(db,deviceId,publicOrigin,animFor,lang);
- return v&&{...v,anim:/^\/meta\/anim\/(offer|combo)\/[0-9a-f-]{36}\/240(-[0-9a-f]{8})?\.gif$/.test(v.anim)?v.anim:'',table:glyphs(v.table),title:glyphs(v.title),line1:glyphs(v.line1),line2:glyphs(v.line2),big:glyphs(v.big)};
+ return v&&{...v,anim:/^\/meta\/anim\/(offer|combo|menu)\/[0-9a-f-]{36}\/240(-[0-9a-f]{8})?\.gif$/.test(v.anim)?v.anim:'',table:glyphs(v.table),title:glyphs(v.title),line1:glyphs(v.line1),line2:glyphs(v.line2),big:glyphs(v.big)};
 }
 async function view(db:MetaDb,deviceId:string,publicOrigin:string,animFor:AnimFor|undefined,lang:DeviceLang):Promise<DeviceView|null>{
  if(!UUID.test(deviceId))return null;
