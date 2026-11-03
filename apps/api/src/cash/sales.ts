@@ -3,6 +3,7 @@ import type pg from 'pg';
 import {z} from 'zod';
 import {fail,requireRole} from '../authority';
 import {audit} from '../db';
+import {assertSellable} from '../catalog-availability';
 import {CashPriceError,priceCashSale,type CashTotals,type Discount} from './pricing';
 import {loadSettings,type CashSettings} from './settings';
 
@@ -44,6 +45,7 @@ async function lockProducts(db:pg.PoolClient,merchant:string,ids:string[]){
  const rows=(await db.query<Prod>(`SELECT p.id,p.name,p.name_en,p.stock,p.reserved,c.price_minor::text,c.unit,c.sweetness_enabled FROM products p LEFT JOIN cash_prices c ON c.merchant_id=p.merchant_id AND c.product_id=p.id
   WHERE p.merchant_id=$1 AND p.id=ANY($2::uuid[]) AND p.archived_at IS NULL ORDER BY p.id FOR UPDATE OF p`,[merchant,ids])).rows;
  if(rows.length!==ids.length)fail('RESOURCE_NOT_FOUND',404);
+ await assertSellable(db,merchant,ids);
  return new Map(rows.map(r=>[r.id,r]));
 }
 async function loadAddons(db:pg.PoolClient,merchant:string,ids:string[]){

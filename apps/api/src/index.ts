@@ -76,6 +76,7 @@ import {teamRequest} from './team';
 import {inventoryRequest} from './inventory';
 import {activityHistory} from './activity';
 import {archiveProduct,createProduct,editProduct,renameCategory,unarchiveProduct} from './catalog-edit';
+import {listAvailability,setAvailability} from './catalog-availability';
 import {serveX402} from './x402';
 import {coffeeCopilotRequest} from './coffee-copilot';
 import {customerAuthRequest} from './customer-auth';
@@ -348,6 +349,8 @@ export async function handle(req:http.IncomingMessage){
  if(productStory&&method==='PUT')return writeProductStory(db,merchant,session.user_id,session.current_role,productStory[1],input);
  const productEdit=path.match(/^\/api\/products\/([^/]+)$/);
  if(productEdit&&method==='PATCH')return editProduct(db,merchant,session.user_id,session.current_role,productEdit[1],input);
+ if(path==='/api/products/availability'&&method==='GET')return listAvailability(db,merchant,session.current_role);
+ if(/^\/api\/products\/[^/]+\/availability$/.test(path)&&method==='PUT')return setAvailability(db,merchant,session.user_id,session.current_role,path.split('/')[3]!,input);
  if(path==='/api/products'&&method==='POST')return createProduct(db,merchant,session.user_id,session.current_role,input);
  if(path==='/api/categories/rename'&&method==='POST')return renameCategory(db,merchant,session.user_id,session.current_role,input);
  const offer=path.match(/^\/api\/products\/([^/]+)\/offer$/);

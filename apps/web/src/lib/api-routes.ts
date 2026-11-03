@@ -95,6 +95,8 @@ export const apiRoutes: [RegExp, readonly string[]][] = [
   [/^channels\/orders\/[0-9a-f-]{36}\/settlement$/, ['POST']],
   [/^channels\/test$/, ['POST']],
   [/^products\/[0-9a-f-]{36}\/(archive|unarchive)$/, ['POST']],
+  [/^products\/availability$/, ['GET']],
+  [/^products\/[0-9a-f-]{36}\/availability$/, ['PUT']],
   [/^categories\/rename$/, ['POST']],
   [/^products$/, ['POST']],
   [/^product-images$/, ['POST']],

@@ -12,7 +12,7 @@ import {effectiveCatalog} from './catalog';
 export interface EffectiveMenu {bundles?:import('../../../packages/contracts/src/bundle-promotions').BundleOffer[];
  merchant:{id:string;name:string};asOf:string;priceValidUntil:string;
  menuVersion:string;priceVersion:string|null;pricingRevision:string;currency:'USD'|'USDG'|null;decimals:number|null;
- products:{id:string;catalogKey:string|null;name:string;nameEn:string;emoji:string;available:number;imageUrl:unknown;category:unknown;description:unknown;basePrice:Money|null;unitPrice:Money|null;promotion:(ActiveFoodPromotion&{priceVersion:string})|null;scopedPromotion?:ScopedPromotionLine;dailyPromotion?:DailyPromotionLine;personalPromotion?:PersonalPromotionLine}[];
+ products:{id:string;catalogKey:string|null;name:string;nameEn:string;emoji:string;available:number;unavailable?:'PAUSED'|'OUTSIDE_HOURS';imageUrl:unknown;category:unknown;description:unknown;basePrice:Money|null;unitPrice:Money|null;promotion:(ActiveFoodPromotion&{priceVersion:string})|null;scopedPromotion?:ScopedPromotionLine;dailyPromotion?:DailyPromotionLine;personalPromotion?:PersonalPromotionLine}[];
 }
 const discount=z.discriminatedUnion('kind',[
  z.object({kind:z.literal('amount'),amountMinor:positive}).strict(),

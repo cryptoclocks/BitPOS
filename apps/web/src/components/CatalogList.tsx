@@ -4,6 +4,7 @@ import type { Product } from '../lib/menu';
 import { catalogStatus, categorySummary, filterCatalog } from '../lib/catalog-view';
 import StockManager from './StockManager';
 import SuppliersManager from './SuppliersManager';
+import ProductAvailabilityPanel from './ProductAvailabilityPanel';
 import { CategoryRename, ProductDetailsForm } from './CatalogEditor';
 import { ProductStoryForm } from './ProductStoryForm';
 import '../styles/catalog-list.css';
@@ -30,6 +31,7 @@ export default function CatalogList({ products, language, canEdit, menuReady, on
       <table className="catalog-table"><thead><tr><th>{text('สินค้า', 'Product')}</th><th>{text('หมวด', 'Category')}</th><th>{text('พร้อมขาย', 'Available')}</th></tr></thead><tbody>{[...products].sort((a, b) => a.available - b.available).map(product => <tr key={product.id}><td><strong>{language === 'th' ? product.name : product.nameEn}</strong></td><td>{product.category || '—'}</td><td data-status={product.available > 0 ? 'on_sale' : 'sold_out'}>{product.available > 0 ? product.available : text('หมด', 'Sold out')}</td></tr>)}</tbody></table>
       <div className="catalog-unavailable" role="note"><h2>{text('ยังไม่เปิดใช้งาน', 'Not available yet')}</h2><p className="catalog-sub">{text('รายการเหล่านี้ยังไม่มี หรือใช้ได้เฉพาะบทบาทที่มีสิทธิ์', 'These do not exist yet, or are limited to roles that can manage stock.')}</p><ul>{[text('แจ้งเตือนสต็อกต่ำ', 'Low-stock alerts'), text('ซัพพลายเออร์', 'Suppliers'), text('รับเข้า/ปรับสต็อก (เฉพาะเจ้าของและผู้จัดการ)', 'Receive/adjust stock (owner and manager only)')].map(name => <li key={name}>{name}</li>)}</ul></div>
     </section> : <>
+    {stockToken && <ProductAvailabilityPanel products={products} token={stockToken} language={language} canEditHours={canEdit} onChanged={() => onChanged?.()} />}
     {!menuReady && <p className="notice" role="status">{text('กำลังอัปเดตเมนู รายการอาจไม่ล่าสุด', 'Menu is updating; the list may be out of date.')}</p>}
     <div className="catalog-toolbar"><input aria-label={text('ค้นหาสินค้า', 'Search products')} value={query} placeholder={text('ค้นหาสินค้า…', 'Search products…')} onChange={event => setQuery(event.target.value)} /><small>{text(`${rows.length} จาก ${products.length} รายการ`, `${rows.length} of ${products.length} products`)}</small></div>
     <div className="catalog-chips" role="group" aria-label={text('หมวดสินค้า', 'Categories')}><button type="button" aria-pressed={!category} onClick={() => setCategory('')}>{text('ทั้งหมด', 'All')}</button>{categories.filter(c => c.category).map(c => <button type="button" key={c.category} aria-pressed={category === c.category} onClick={() => setCategory(c.category)}>{c.category} · {c.count}</button>)}</div>
