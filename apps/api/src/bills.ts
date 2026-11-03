@@ -41,18 +41,19 @@ export async function listBills(db:pg.PoolClient,merchant:string,url:URL){
  const tz=(await db.query<{time_zone:string}>('SELECT time_zone FROM merchant_opening_hours WHERE merchant_id=$1',[merchant])).rows[0]?.time_zone??defaultTimeZone;
  const hex=q.q&&/^[0-9a-f-]{3,36}$/i.test(q.q)?q.q.toLowerCase():null;
  // Each statement gets its own parameter list: a bound value that the statement never mentions is an error in Postgres.
- const mk=(alias:string)=>{
+ const mk=(alias:string,windowCol='created_at')=>{
   const args:unknown[]=[merchant,tz];const arg=(v:unknown)=>{args.push(v);return '$'+args.length;};
-  const created=alias+'created_at',idText=alias+'id::text';
+  const created=alias+'created_at',winCol=alias+windowCol,idText=alias+'id::text';
   const win:string[]=[];
-  if(q.from)win.push(`${created}>=(${arg(q.from)}::date::timestamp AT TIME ZONE $2)`);
-  if(q.to)win.push(`${created}<((${arg(q.to)}::date+1)::timestamp AT TIME ZONE $2)`);
+  if(q.from)win.push(`${winCol}>=(${arg(q.from)}::date::timestamp AT TIME ZONE $2)`);
+  if(q.to)win.push(`${winCol}<((${arg(q.to)}::date+1)::timestamp AT TIME ZONE $2)`);
   if(after)win.push(`(to_char(${created} AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US"Z"'),${idText})<(${arg(after[0])},${arg(after[1])})`);
   return {args,arg,win,idText};
  };
  const rows:(BillRow&{ck:string})[]=[];
  if(q.source!=='cash'){
-  const m=mk('o.');
+  // A date range on paid bills means "paid in that range" (paid_at), exactly the window the sales report and CSV use, so summary = drill-down.
+  const m=mk('o.',q.state==='paid'?'paid_at':'created_at');
   const st={all:'true',paid:"o.status='PAID'",open:"o.status IN('AWAITING_WALLET','AWAITING_PAYMENT','CONFIRMING','RECOVERY') AND o.closure_reason IS NULL",voided:"o.closure_reason='canceled'",expired:"o.status='EXPIRED' AND coalesce(o.closure_reason,'timeout')='timeout'"}[q.state];
   const where=['$2::text IS NOT NULL',...m.win,st,q.source==='store'?"coalesce(a.source_kind,'')<>'online'":q.source==='online'?"a.source_kind='online'":'true',hex?`${m.idText} LIKE ${m.arg(hex+'%')}`:q.q?'false':'true'];
   const lim=m.arg(q.limit+1);

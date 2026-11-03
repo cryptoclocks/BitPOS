@@ -2,6 +2,7 @@ import test,{after} from 'node:test';
 import assert from 'node:assert/strict';
 import {randomUUID} from 'node:crypto';
 import {once} from 'node:events';
+import pg from 'pg';
 import {tableFixture,staffToken} from './backend-table-fixture';
 // Bill history, detail and void over the real HTTP server with real roles and the real order-closure routine.
 // Needs the backend fixtures: BITPOS_BACKEND_INTEGRATION=1 plus a throwaway Postgres with migrations through 188.
@@ -90,9 +91,10 @@ test('bill history, detail and void of an unpaid counter order: roles, paging, i
  }finally{
   server.close();
   // The cash sale is append-only history; remove this test's rows (superuser, triggers off) so shared scratch databases stay clean for the next file.
-  await f.pool.query('BEGIN');await f.pool.query('SET LOCAL session_replication_role=replica');
-  for(const t of ['cash_sale_lines','cash_sales','cash_receipt_counters','cash_prices','cash_settings'])await f.pool.query(`DELETE FROM ${t} WHERE merchant_id=$1`,[f.merchant]).catch(()=>undefined);
-  await f.pool.query("DELETE FROM stock_movements WHERE merchant_id=$1 AND kind IN('CASH_SALE','CASH_VOID_RETURN')",[f.merchant]).catch(()=>undefined);
-  await f.pool.query('COMMIT');
+  const admin=new pg.Pool({connectionString:process.env.ADMIN_DATABASE_URL,max:1});
+  try{await admin.query('BEGIN');await admin.query('SET LOCAL session_replication_role=replica');
+   for(const t of ['cash_sale_lines','cash_sales','cash_receipt_counters','cash_prices','cash_settings'])await admin.query(`DELETE FROM ${t} WHERE merchant_id=$1`,[f.merchant]).catch(()=>undefined);
+   await admin.query("DELETE FROM stock_movements WHERE merchant_id=$1 AND kind IN('CASH_SALE','CASH_VOID_RETURN')",[f.merchant]).catch(()=>undefined);
+   await admin.query('COMMIT');}catch{await admin.query('ROLLBACK').catch(()=>undefined);}finally{await admin.end();}
  }
 });

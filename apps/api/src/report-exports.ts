@@ -4,11 +4,12 @@ import {fail,requireRole} from './authority';
 import {audit} from './db';
 import {defaultTimeZone} from './opening-hours';
 import {maxReportDays} from './reports';
+import {salesBreakdown} from './report-breakdown';
 
 const day=z.string().regex(/^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/).refine(v=>!Number.isNaN(Date.parse(v+'T00:00:00Z'))&&new Date(v+'T00:00:00Z').toISOString().slice(0,10)===v);
-const query=z.object({kind:z.enum(['sales','net','stock','cash']),from:day,to:day,cursor:z.string().uuid().optional()}).strict();
+const query=z.object({kind:z.enum(['sales','net','stock','cash','breakdown']),from:day,to:day,cursor:z.string().uuid().optional()}).strict();
 export const exportPageSize=500;
-export interface ReportExportPage{kind:'sales'|'net'|'stock'|'cash';from:string;to:string;timeZone:string;filename:string;csv:string;rows:number;nextCursor:string|null}
+export interface ReportExportPage{kind:'sales'|'net'|'stock'|'cash'|'breakdown';from:string;to:string;timeZone:string;filename:string;csv:string;rows:number;nextCursor:string|null}
 /** Text cells: neutralise spreadsheet formulas (= + - @ tab CR) and quote when needed. Only ever used for free text, never for money. */
 export function csvText(value:string):string{
  const safe=/^[=+\-@\t\r]/.test(value)?`'${value}`:value;
@@ -32,7 +33,21 @@ export async function reportExport(db:pg.PoolClient,merchant:string,actor:string
  const paidWindow=`o.merchant_id=$1 AND o.status='PAID' AND o.paid_at IS NOT NULL AND o.paid_at>=($2::date::timestamp AT TIME ZONE $4) AND o.paid_at<(($3::date+1)::timestamp AT TIME ZONE $4)`;
  const limit=pageSize+1,base=[merchant,from,to,timeZone,cursor];
  let header:string[],out:string[][],ids:string[];
- if(kind==='sales'){
+ if(kind==='breakdown'){
+  // Small, unpaged summary: one row per group with its section, so the sheet ties out to the screen and to the sales CSV.
+  if(cursor)fail('INVALID_REQUEST',422);
+  const b=await salesBreakdown(db,merchant,role,new URL(`http://local/?from=${from}&to=${to}`));
+  header=['section','key','currency','decimals','orders_or_units','total_minor'];
+  out=[
+   ...b.totals.map(r=>['total','all',r.currency,r.decimals,r.orders,r.totalMinor]),
+   ...b.channels.map(r=>['channel',r.channel,r.currency,r.decimals,r.orders,r.totalMinor]),
+   ...b.methods.map(r=>['method',r.method,r.currency,r.decimals,r.orders,r.totalMinor]),
+   ...b.categories.map(r=>['category',r.category,r.currency,r.decimals,r.units,r.totalMinor]),
+   ...b.unallocated.map(r=>['unallocated','',r.currency,r.decimals,0,r.totalMinor]),
+   ...b.pipeline.map(r=>['not_revenue_'+r.state,'',r.currency,r.decimals,r.count,r.totalMinor]),
+  ].map(r=>[csvText(String(r[0])),csvText(String(r[1])),csvText(String(r[2])),csvInt(r[3]),csvInt(r[4]),csvInt(r[5])]);
+  ids=[];
+ }else if(kind==='sales'){
   header=['order_id','paid_at_utc','local_day','source_kind','currency','decimals','total_minor'];
   if(cursor&&!(await db.query('SELECT 1 FROM orders WHERE merchant_id=$1 AND id=$2',[merchant,cursor])).rowCount)fail('INVALID_REQUEST',422);
   const rows=(await db.query<{id:string;paid_at:Date;local_day:string;source_kind:string;currency:string;decimals:number;total_minor:string}>(

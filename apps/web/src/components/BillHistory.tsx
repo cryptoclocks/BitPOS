@@ -10,9 +10,9 @@ interface CashDetail { sale: { id: string; receiptNo: string; status: 'PAID' | '
 // Every bill in one searchable list (counter/table orders and cash sales), newest first. Totals are shown in each bill's own currency and are
 // never added together. A void here only closes an UNPAID counter/table order (or voids a cash sale); a paid order can never be voided, money
 // goes back through the return/refund workflow. The server decides who may do what; the buttons only follow its answer.
-export default function BillHistory({ token, role, language }: { token: string; role: string; language: 'th' | 'en' }) {
+export default function BillHistory({ token, role, language, preset }: { token: string; role: string; language: 'th' | 'en'; preset?: { state: string; source: string; from: string; to: string } }) {
   const text = (th: string, en: string) => language === 'th' ? th : en;
-  const [state, setState] = useState('all'); const [source, setSource] = useState('all'); const [from, setFrom] = useState(''); const [to, setTo] = useState(''); const [query, setQuery] = useState('');
+  const [state, setState] = useState(preset?.state ?? 'all'); const [source, setSource] = useState(preset?.source ?? 'all'); const [from, setFrom] = useState(preset?.from ?? ''); const [to, setTo] = useState(preset?.to ?? ''); const [query, setQuery] = useState('');
   const [bills, setBills] = useState<Bill[]>(); const [cursor, setCursor] = useState<string | null>(null); const [loading, setLoading] = useState(false); const [error, setError] = useState('');
   const [openKey, setOpenKey] = useState(''); const [detail, setDetail] = useState<Detail | CashDetail>(); const [detailError, setDetailError] = useState(''); const [reason, setReason] = useState(''); const [restock, setRestock] = useState(false); const [busy, setBusy] = useState(false); const [message, setMessage] = useState('');
   const manager = role === 'owner' || role === 'manager';
