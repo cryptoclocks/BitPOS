@@ -3809,3 +3809,10 @@ Validation: `tests/backend-table-paid-reorder.test.ts` plus table/durability/pay
 - Rollback: `docker tag bitpos-runtime:rollback-20261103a bitpos-runtime:current` then `docker compose -p bitpos-runtime up -d --no-deps --no-build web` in `/home/ubuntu/bitpos-runtime/infra/oci`.
 
 - Rider app (`apps/mobile-driver`) got the same Demo 1/2/3 quick sign-in (compile-time `BITPOS_DEMO_QUICK_SIGNIN`). `flutter analyze` issue counts unchanged vs before (info only).
+
+### 2026-11-03 demo-account order run on OCI (AVD, Demo 1 customer + Demo 2 rider, Phantom devnet)
+- Order `07c93d25-a264-4fad-9efd-767c1b030c00` (1 x Americano, delivery, USD 0.22 = USDG 0.22 devnet). Reached: customer app (Demo 1 quick sign-in) -> cart -> review -> Phantom devnet payment (pay page "payment succeeded") -> POS owner (quick sign-in) accepted with 10 min -> start preparing -> ready -> `oci-demo-dispatch.ts` (helper had to be re-copied into the api container after the rebuild; it also re-offered after the first 2-minute offer expired) -> rider app (Demo 2 = the demo rider account `40e9faf1`/auth `8de170e1`) accepted the offer -> "arrived at store" -> POS "Issue pickup proof".
+- NOT reached: the rider entering the pickup proof, then handover, drop-off and delivered. Blockers seen: (1) the proof is a 43-character URL-safe token the rider must type; on the emulator the IME dropped/garbled characters (stuck caps, input stopped after 7-10 chars) so it could not be entered reliably; (2) the rider app's confirm-pickup page rebuilt itself roughly every 10-12 s while the AVD network flickered between Wi-Fi and LTE ("reconnecting"), closing the code dialog; (3) proofs expire after about 5 minutes (replacing one works from the POS after ticking the confirm box).
+- Product finding: a 43-character token is a poor rider UX; a short code or QR scan would fix it. Not changed here.
+- Also seen: the rider app showed "status unconfirmed" until a fresh sign-in after the app had been idle (stale session); pay page logo showed a broken-image icon on first load in Chrome.
+- AVD settings changed for the test were restored (mobile data on, IME shown with hardware keyboard).
