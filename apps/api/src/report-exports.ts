@@ -76,15 +76,15 @@ export async function reportExport(db:pg.PoolClient,merchant:string,actor:string
   ids=rows.map(r=>r.order_id);
   out=rows.slice(0,pageSize).map(r=>[csvText(r.order_id),csvText(r.currency),csvInt(r.decimals),csvInt(r.gross),csvInt(r.refunded),csvInt(r.net)]);
  }else{
-  header=['movement_id','created_at_utc','local_day','product_id','product_name','kind','delta','stock_before','stock_after','reason','reference','actor'];
+  header=['movement_id','created_at_utc','local_day','product_id','product_name','kind','delta','stock_before','stock_after','reason','reference','actor','supplier_id'];
   if(cursor&&!(await db.query('SELECT 1 FROM stock_movements WHERE merchant_id=$1 AND id=$2',[merchant,cursor])).rowCount)fail('INVALID_REQUEST',422);
-  const rows=(await db.query<{id:string;created_at:Date;local_day:string;product_id:string;name:string|null;kind:string;delta:number;stock_before:number;stock_after:number;reason:string;reference:string;actor:string}>(
-   `SELECT m.id,m.created_at,to_char((m.created_at AT TIME ZONE $4)::date,'YYYY-MM-DD') AS local_day,m.product_id,p.name_en AS name,m.kind,m.delta,m.stock_before,m.stock_after,m.reason,m.reference,m.actor
+  const rows=(await db.query<{id:string;created_at:Date;local_day:string;product_id:string;name:string|null;kind:string;delta:number;stock_before:number;stock_after:number;reason:string;reference:string;actor:string;supplier_id:string|null}>(
+   `SELECT m.id,m.created_at,to_char((m.created_at AT TIME ZONE $4)::date,'YYYY-MM-DD') AS local_day,m.product_id,m.supplier_id,p.name_en AS name,m.kind,m.delta,m.stock_before,m.stock_after,m.reason,m.reference,m.actor
     FROM stock_movements m LEFT JOIN products p ON p.merchant_id=m.merchant_id AND p.id=m.product_id
     WHERE m.merchant_id=$1 AND m.created_at>=($2::date::timestamp AT TIME ZONE $4) AND m.created_at<(($3::date+1)::timestamp AT TIME ZONE $4)
     AND($5::uuid IS NULL OR (m.created_at,m.id)>(SELECT created_at,id FROM stock_movements WHERE merchant_id=$1 AND id=$5)) ORDER BY m.created_at,m.id LIMIT ${limit}`,base)).rows;
   ids=rows.map(r=>r.id);
-  out=rows.slice(0,pageSize).map(r=>[csvText(r.id),csvText(iso(r.created_at)),csvText(r.local_day),csvText(r.product_id),csvText(r.name??''),csvText(r.kind),csvInt(r.delta),csvInt(r.stock_before),csvInt(r.stock_after),csvText(r.reason),csvText(r.reference),csvText(r.actor)]);
+  out=rows.slice(0,pageSize).map(r=>[csvText(r.id),csvText(iso(r.created_at)),csvText(r.local_day),csvText(r.product_id),csvText(r.name??''),csvText(r.kind),csvInt(r.delta),csvInt(r.stock_before),csvInt(r.stock_after),csvText(r.reason),csvText(r.reference),csvText(r.actor),csvText(r.supplier_id??'')]);
  }
  const more=ids.length>pageSize;
  if(!cursor)await audit(db,merchant,actor,'report.export',kind);

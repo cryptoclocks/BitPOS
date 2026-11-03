@@ -11,7 +11,7 @@ test('inventory: ledgered receive/adjust with optimistic stock, idempotency, res
  const call=(merchant:string,role:string,method:string,path:string,input?:unknown)=>f.tenant(merchant,db=>inventoryRequest(db,merchant,f.actor,role,new URL('http://localhost'+path),method,input)) as Promise<any>;
  const body=(over:Record<string,unknown>={})=>({productId:f.product,kind:'RECEIVE',delta:3,reason:'Delivery from supplier',reference:'INV-1',expectedStock:5,idempotencyKey:randomUUID(),...over});
  const stock=async()=>(await call(f.merchant,'owner','GET','/api/inventory/stock')).products.find((p:any)=>p.productId===f.product);
- assert.deepEqual(await stock(),{productId:f.product,stock:5,reserved:0,available:5});
+ assert.deepEqual(await stock(),{productId:f.product,stock:5,reserved:0,available:5,reorderLevel:null});
  const key=randomUUID();
  const first=await call(f.merchant,'manager','POST','/api/inventory/movements',body({idempotencyKey:key}));
  assert.deepEqual([first.replayed,first.movement.stockBefore,first.movement.stockAfter,first.movement.delta],[false,5,8,3]);
