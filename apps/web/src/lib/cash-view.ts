@@ -47,3 +47,10 @@ export function minorToInput(minor: string, decimals: number): string {
   if (decimals === 0) return minor;
   const d = minor.padStart(decimals + 1, '0'); return `${d.slice(0, -decimals)}.${d.slice(-decimals)}`;
 }
+
+/** Demo-only starter price: catalog amount x 35, rounded to the nearest 5 baht (at least 10), as minor units of the cash currency. */
+export function demoStarterPriceMinor(catalogMinor: string, catalogDecimals: number, cashDecimals: number): string {
+  const num = BigInt(catalogMinor) * 35n, den = 10n ** BigInt(catalogDecimals);
+  const baht = (num + den / 2n) / den, fives = ((baht + 2n) / 5n) * 5n, price = fives < 10n ? 10n : fives;
+  return (price * 10n ** BigInt(cashDecimals)).toString();
+}

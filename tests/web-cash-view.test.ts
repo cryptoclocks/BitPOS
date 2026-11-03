@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {lineKey,minorToInput,optionsText,parseDiscount,quickTenders} from '../apps/web/src/lib/cash-view';
+import {demoStarterPriceMinor,lineKey,minorToInput,optionsText,parseDiscount,quickTenders} from '../apps/web/src/lib/cash-view';
 import {cashReceiptDoc,isTaxInvoice} from '../apps/web/src/lib/print-slip';
 import type {CashSale} from '../apps/web/src/lib/cash-view';
 
@@ -62,4 +62,11 @@ test('English and bilingual bills: names, labels, options and the shop name foll
  // an English bill never invents English text: a shop with no English name falls back to the Thai one
  assert.ok(cashReceiptDoc(sale(),'en').includes('ร้านทดสอบ'));
  assert.ok(optionsText(null,[{label:'ไข่มุก',labelEn:''}],'en')==='ไข่มุก');
+});
+
+test('demo starter price: catalog amount x 35, nearest 5 baht, at least 10',()=>{
+  assert.equal(demoStarterPriceMinor('250',2,2),'9000');
+  assert.equal(demoStarterPriceMinor('100',2,2),'3500');
+  assert.equal(demoStarterPriceMinor('4',2,2),'1000');
+  assert.equal(demoStarterPriceMinor('1000000',6,0),'35');
 });

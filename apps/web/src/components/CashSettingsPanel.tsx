@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { api, errorMessage } from '../lib/api';
 import { toMinor } from '../lib/shift-view';
-import { minorToInput, type Addon } from '../lib/cash-view';
+import { demoStarterPriceMinor, minorToInput, type Addon } from '../lib/cash-view';
 import type { Product } from '../lib/menu';
 
 export interface CashSettings { enabled: boolean; currency: string; decimals: number; vatMode: 'none' | 'inclusive'; vatBps: number; sellerName: string; sellerNameEn: string; sellerTaxId: string; sellerBranch: string; sellerAddress: string; sellerAddressEn: string; receiptPrefix: string; staffMaxDiscountBps: number }
@@ -49,6 +49,13 @@ export default function CashSettingsPanel({ token, role, language, products, set
       setDraft({});
     });
   };
+  // One click for a demo shop: turns the register on, fills a plain shop profile and a starter baht price list. Owner only; everything stays editable.
+  const demoSetup = () => void run(text('ตั้งค่าเดโมเรียบร้อย พร้อมขาย', 'Demo setup done. Ready to sell.'), async () => {
+    const list = products.filter(p => p.unitPrice).map(p => ({ productId: p.id, priceMinor: demoStarterPriceMinor(String(p.unitPrice!.amountMinor), p.unitPrice!.decimals, decimals), unit: text('แก้ว', 'cup') }));
+    if (!list.length) throw new Error(text('ยังไม่มีสินค้าที่มีราคา', 'No priced products yet'));
+    await api('/cash/settings', { ...form, enabled: true, sellerName: form.sellerName || 'BitPOS Demo Cafe', sellerNameEn: form.sellerNameEn || 'BitPOS Demo Cafe', vatBps: Math.round(Number(vatPct) * 100), staffMaxDiscountBps: Math.round(Number(staffPct) * 100) }, token, 'PUT');
+    for (let i = 0; i < list.length; i += 200) await api('/cash/prices', { set: list.slice(i, i + 200), clear: [] }, token, 'PUT');
+  });
   const startAddons = (id: string) => { setEditing(editing === id ? null : id); setRows((addons.get(id) ?? []).map(a => ({ id: a.id, label: a.label, labelEn: a.labelEn, price: minorToInput(a.priceMinor, decimals) }))); };
   const saveAddons = (productId: string) => {
     const out: { id?: string; label: string; labelEn: string; priceMinor: string }[] = [];
@@ -64,6 +71,7 @@ export default function CashSettingsPanel({ token, role, language, products, set
 
   return <section className="cash-setup" aria-label={text('ตั้งค่าเครื่องคิดเงินสด', 'Cash register setup')}>
     {error && <p className="notice" role="alert">{error}</p>}{note && <p className="notice" role="status">{note}</p>}
+    {owner && !settings.enabled && prices.size === 0 && <div className="cash-demo-setup"><p>{text('ร้านเดโม: กดครั้งเดียวเพื่อเปิดเครื่องคิดเงินสดและตั้งราคาบาทตัวอย่าง (ราคาเมนู × 35 ปัดเป็น 5 บาท) แก้ภายหลังได้', 'Demo shop: one click turns the register on and fills sample baht prices (menu price × 35, rounded to 5 baht). Editable afterwards.')}</p><button type="button" disabled={busy} onClick={demoSetup}>{text('ตั้งค่าเดโมอัตโนมัติ', 'Set up demo automatically')}</button></div>}
     <details open className="cash-setup-block"><summary>{text('ร้านและภาษี', 'Shop and tax')}</summary>
       {!owner && <p className="notice" role="status">{text('เฉพาะเจ้าของร้านแก้ส่วนนี้ได้', 'Only the owner can change this section.')}</p>}
       <fieldset disabled={!owner || busy} className="cash-form">

@@ -74,3 +74,8 @@
 @keyframes cash-fade{from{opacity:0}to{opacity:1}}
 @keyframes cash-sheet-in{from{opacity:0;transform:translateY(24px) scale(.96)}to{opacity:1;transform:none}}
 .cash-register .sr-only{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.cash-demo-setup{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;padding:12px 14px;border-radius:16px;border:1px dashed var(--cash-accent);background:linear-gradient(135deg,var(--cash-soft),#fff);animation:cash-rise .32s cubic-bezier(.2,.7,.2,1) both}.cash-demo-setup p{margin:0;flex:1 1 260px}.cash-demo-setup button{flex:0 0 auto;font-weight:800;border-radius:12px;transition:transform .16s cubic-bezier(.2,.7,.2,1),box-shadow .2s}.cash-demo-setup button:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 8px 18px rgba(91,43,184,.28)}
+.cash-register :is(button,input,select,summary):focus-visible{outline:3px solid rgba(91,43,184,.45);outline-offset:2px}
+.cash-pay:disabled,.cash-quick-sale:disabled{cursor:not-allowed;filter:saturate(.5)}
+@media(max-width:900px){.cash-bill{padding-bottom:calc(14px + env(safe-area-inset-bottom))}.cash-pay{position:sticky;bottom:8px;box-shadow:0 8px 22px rgba(43,20,88,.28)}.cash-cards>li{animation-delay:calc(var(--i,0)*16ms)}}
+@media(max-width:600px){.cash-card{padding:6px}.cash-card-name{font-size:14px}.cash-qty button{width:38px;height:38px}.cash-quick button{min-height:42px}.cash-sheet{border-radius:22px 22px 0 0;align-self:end}.cash-sheet-back{place-items:end center;padding:0}}

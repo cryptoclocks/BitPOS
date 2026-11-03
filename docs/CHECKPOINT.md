@@ -3795,3 +3795,10 @@ Validation: `tests/backend-table-paid-reorder.test.ts` plus table/durability/pay
 - Verified after: `pos.*` 200, `pay.*` 302, `/api/cash/settings`, `/api/cash/sales`, `/api/barcodes/lookup`, `/api/reports/export`, `/api/channels/orders` all 401 without a session (not 404), host `127.0.0.1:4321/platform` 200; api log clean; worker log only its existing "unavailable" lines. No sign-in and no data created. The cash register is OFF by default (`cash_settings.enabled=false`; no rows).
 - Rollback: `docker tag bitpos-runtime:rollback-20261102a bitpos-runtime:current` then `cd /home/ubuntu/bitpos-runtime/infra/oci && docker compose -p bitpos-runtime up -d --no-deps --no-build api worker web`; restore the 14 files from the rollback folder (new files can stay). Migrations are not reversed by the image: close the module with `enabled=false`.
 - Not done on the live system: Grab/LINE MAN (deferred by the owner), a signed-in click-through of the new "Cash sale" tab, real printer/voice, accountant review of the tax invoice.
+
+## 2026-11-03 demo quick start (cash register + mobile)
+- Cash settings panel: owner-only "Set up demo automatically" button (shown only while the register is off and has no prices) turns the register on and writes a starter baht price list (catalog amount x 35, nearest 5 baht, min 10) through the normal `/api/cash/settings` and `/api/cash/prices` routes. Demo seed only, labelled in the UI, editable afterwards. Helper `demoStarterPriceMinor` + test in `tests/web-cash-view.test.ts`.
+- Cash register UX polish: focus rings, sticky pay button and safe-area padding on phones, bottom-sheet options on narrow screens, larger tap targets.
+- Mobile customer app: demo quick sign-in buttons (Demo 1/2/3) compiled in only with `--dart-define=BITPOS_DEMO_QUICK_SIGNIN=true`. They use the OCI auth provider's fixed test OTPs (+66900000001/2/3, code 123456); no SMS is sent. NOT compiled or run here (no Dart/Flutter toolchain on this Mac).
+- Merchant web quick sign-in (owner/manager/staff) already exists and is enabled on OCI.
+- Not deployed in this entry: web change needs a rebuild/rsync of the web image.

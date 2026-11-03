@@ -284,6 +284,33 @@ class _CustomerSessionPageState extends State<CustomerSessionPage> {
     );
   }
 
+  // Demo-only: the server's provider has fixed test OTPs for these numbers
+  // (GOTRUE_SMS_TEST_OTP); no SMS is sent and no real number is used.
+  static const _demoQuickSignIn = bool.fromEnvironment('BITPOS_DEMO_QUICK_SIGNIN');
+  static const _demoPhones = {1: '+66900000001', 2: '+66900000002', 3: '+66900000003'};
+  static const _demoCode = '123456';
+
+  Future<void> _demoSignIn(int n) async {
+    if (!_demoQuickSignIn || _busy || _api == null) return;
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    try {
+      final phone = _demoPhones[n]!;
+      _phone.text = phone;
+      await _api!.requestOtp(phone);
+      await _api!.verifyOtp(phone, _demoCode);
+      _account = await _api!.account();
+      _thai = _account!.locale == 'th';
+      _renewFoodOwner();
+      _showLocationOnboarding = true;
+    } catch (error) {
+      _error = error;
+    }
+    if (mounted) setState(() => _busy = false);
+  }
+
   Future<void> _submit() async {
     if (_busy || !_form.currentState!.validate() || _api == null) return;
     setState(() {
@@ -1166,6 +1193,25 @@ class _CustomerSessionPageState extends State<CustomerSessionPage> {
                                     if (!_sent) ...[
                                       const SizedBox(height: 20),
                                       CustomerSignInInformation(thai: _thai),
+                                      if (_demoQuickSignIn) ...[
+                                        const SizedBox(height: 12),
+                                        Wrap(
+                                          alignment: WrapAlignment.center,
+                                          spacing: 8,
+                                          children: [
+                                            for (final n in _demoPhones.keys)
+                                              OutlinedButton(
+                                                key: ValueKey('demo-signin-$n'),
+                                                onPressed: _busy || _api == null
+                                                    ? null
+                                                    : () => _demoSignIn(n),
+                                                child: Text(
+                                                  text('เดโม $n', 'Demo $n'),
+                                                ),
+                                              ),
+                                          ],
+                                        ),
+                                      ],
                                     ],
                                     if (_sent)
                                       TextButton(
