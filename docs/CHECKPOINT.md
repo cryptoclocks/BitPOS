@@ -3802,3 +3802,8 @@ Validation: `tests/backend-table-paid-reorder.test.ts` plus table/durability/pay
 - Mobile customer app: demo quick sign-in buttons (Demo 1/2/3) compiled in only with `--dart-define=BITPOS_DEMO_QUICK_SIGNIN=true`. They use the OCI auth provider's fixed test OTPs (+66900000001/2/3, code 123456); no SMS is sent. NOT compiled or run here (no Dart/Flutter toolchain on this Mac).
 - Merchant web quick sign-in (owner/manager/staff) already exists and is enabled on OCI.
 - Not deployed in this entry: web change needs a rebuild/rsync of the web image.
+
+### Deploy #23 on OCI: web only, cash demo auto-setup + UI polish (2026-11-03)
+- Owner said "Deploy เลย". Synced 3 web files (CashSettingsPanel.tsx, cash-view.ts, cash-register.css; replaced copies in `/home/ubuntu/bitpos-runtime.rollback23-20261103`), `docker compose -p bitpos-runtime build web`, `up -d --no-deps --no-build web`. No DB change, no data written, api/worker untouched.
+- Verified: pos 200, `/api/demo-session` enabled with owner/manager/staff, web log clean.
+- Rollback: `docker tag bitpos-runtime:rollback-20261103a bitpos-runtime:current` then `docker compose -p bitpos-runtime up -d --no-deps --no-build web` in `/home/ubuntu/bitpos-runtime/infra/oci`.
