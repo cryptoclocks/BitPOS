@@ -14,3 +14,12 @@ test('moving a product inside a category skips products of other categories',()=
  assert.deepEqual(moveProduct(p,'3',-1),['1','3','2']);
  assert.equal(moveProduct(p,'1',-1,'A'),null);assert.equal(moveProduct(p,'x',1),null);
 });
+
+import {cellKey,channelChanges,savedMap} from '../apps/web/src/lib/channel-prices';
+test('channel price changes send only edited cells; blank removes a saved override; bad text names the cell',()=>{
+ const saved=savedMap([{productId:'p1',channel:'counter',unitMinor:'300'}]);
+ const parse=(t:string)=>{if(!/^\d+(\.\d{1,2})?$/.test(t))throw Error('bad');return String(Math.round(Number(t)*100));};
+ assert.deepEqual(channelChanges(saved,{[cellKey('p1','counter')]:'3.00',[cellKey('p1','table')]:''},parse),{set:[]});
+ assert.deepEqual(channelChanges(saved,{[cellKey('p1','counter')]:'',[cellKey('p2','online')]:'1.5'},parse),{set:[{productId:'p1',channel:'counter',unitMinor:null},{productId:'p2',channel:'online',unitMinor:'150'}]});
+ assert.deepEqual(channelChanges(saved,{[cellKey('p1','table')]:'abc'},parse),{bad:'p1|table'});
+});

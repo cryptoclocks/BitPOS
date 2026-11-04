@@ -27,7 +27,7 @@ export async function coffeeCopilotRequest(path:string,method:string,input:unkno
   if(v.order_id||new Date(v.expires_at).getTime()<=Date.now())fail('LEASE_EXPIRED');
   await assertVisitOccupancy(db,merchant,v.id);
   if(!(await db.query('SELECT 1 FROM devices d JOIN merchant_tables t ON t.merchant_id=d.merchant_id AND t.id=d.table_id WHERE d.merchant_id=$1 AND d.id=$2 AND d.assignment_generation=$3 AND d.auth_generation=$4 AND d.revoked_at IS NULL AND t.retired_at IS NULL',[merchant,v.device_id,v.assignment_generation,v.auth_generation])).rowCount)fail('ASSIGNMENT_CHANGED');
-  const destination=(await db.query('SELECT table_id FROM devices WHERE merchant_id=$1 AND id=$2',[merchant,v.device_id])).rows[0];const menu=await effectiveCatalog(db,merchant,destination.table_id);
+  const destination=(await db.query('SELECT table_id FROM devices WHERE merchant_id=$1 AND id=$2',[merchant,v.device_id])).rows[0];const menu=await effectiveCatalog(db,merchant,destination.table_id,destination.table_id?'table':'counter');
   // Migration032 is a REQUIRED rollout dependency; missing relation is an error.
   const policy=(await db.query('SELECT counter_enabled,version FROM merchant_collection_policy WHERE merchant_id=$1',[merchant])).rows[0];const counter=policy?.counter_enabled===true;
   const hash=digest([menu.menuVersion,policy?.version??'0',counter]);

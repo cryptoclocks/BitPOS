@@ -38,7 +38,7 @@ async function view(db:pg.PoolClient,e:Entry,v:Visit){
  liveVisit(v);await currentEntry(db,e);await assertVisitOccupancy(db,e.merchant_id,v.id);const o=await occupancy(db,e,v);
  const quote=v.review_quote_id?(await db.query<QuoteRow>('SELECT * FROM order_quotes WHERE merchant_id=$1 AND id=$2 AND session_id=$3',[e.merchant_id,v.review_quote_id,v.session_id])).rows[0]:null;
  const leased=o.state.kind==='cart'&&o.state.session_id===v.session_id&&new Date(o.state.lease_until).getTime()>Date.now();
- return {kind:'draft' as const,expiresAt:v.expires_at.toISOString(),online:o.online,available:o.available,occupancy:await tableOccupancyView(db,e.merchant_id,e.table_id,v.id),menu:await personalPromotionMenu(db,e.merchant_id,await scopePromotionMenu(db,e.merchant_id,await effectiveCatalog(db,e.merchant_id,e.table_id),leased?v.session_id:null),leased?v.session_id:null),quote:leased&&quote?{...await coffeeQuoteView(db,e.merchant_id,quote.id,quoteView(quote)),authority:quote.authority}:null};
+ return {kind:'draft' as const,expiresAt:v.expires_at.toISOString(),online:o.online,available:o.available,occupancy:await tableOccupancyView(db,e.merchant_id,e.table_id,v.id),menu:await personalPromotionMenu(db,e.merchant_id,await scopePromotionMenu(db,e.merchant_id,await effectiveCatalog(db,e.merchant_id,e.table_id,'table'),leased?v.session_id:null),leased?v.session_id:null),quote:leased&&quote?{...await coffeeQuoteView(db,e.merchant_id,quote.id,quoteView(quote)),authority:quote.authority}:null};
 }
 async function publishCart(db:pg.PoolClient,e:Entry){const screen=await currentScreen(db,e.merchant_id,e.device_id),promotionPlaylist=await currentPromotionPlaylist(db,e.merchant_id,e.device_id);await streamEvent(db,e.merchant_id,e.device_id,e.assignment_generation,screen.screenGeneration,'CART',{...screen,promotionPlaylist});}
 export async function tableRequest(path:string,method:string,input:unknown){
@@ -48,7 +48,7 @@ export async function tableRequest(path:string,method:string,input:unknown){
   await routingLock(db,merchant);
   const e=(await db.query<Entry>('SELECT id,merchant_id,device_id,table_id,assignment_generation::text,auth_generation::text,entry_token FROM table_entries WHERE merchant_id=$1 AND entry_token=$2',[merchant,entryToken])).rows[0];if(!e)fail('RESOURCE_NOT_FOUND',404);
   if(!match[2]&&method==='GET'){
-   await currentEntry(db,e);const o=await occupancy(db,e);const menu=await effectiveCatalog(db,merchant,e.table_id);const table=(await db.query('SELECT label FROM merchant_tables WHERE merchant_id=$1 AND id=$2',[merchant,e.table_id])).rows[0];
+   await currentEntry(db,e);const o=await occupancy(db,e);const menu=await effectiveCatalog(db,merchant,e.table_id,'table');const table=(await db.query('SELECT label FROM merchant_tables WHERE merchant_id=$1 AND id=$2',[merchant,e.table_id])).rows[0];
    const stories=Object.fromEntries(await storiesFor(db,merchant,menu.products.map(p=>p.id)));const coverUrl=(await db.query<{cover_url:string|null}>('SELECT cover_url FROM marketplace_branches WHERE merchant_id=$1 AND cover_url IS NOT NULL ORDER BY enabled DESC,id LIMIT 1',[merchant])).rows[0]?.cover_url??'';
    return {tableLabel:table.label,menu,stories,coverUrl,online:o.online,available:o.available,occupancy:await tableOccupancyView(db,merchant,e.table_id),collectionPolicy:await collectionPolicy(db,merchant)};
   }
@@ -117,7 +117,7 @@ export async function tableRequest(path:string,method:string,input:unknown){
   const origin={kind:'device' as const,id:e.device_id,sessionId:v.session_id!,cartVersion:session.cart_version};
   let q=await captureQuote(db,merchant,origin,d.items,route.authority);
   await bindVisitRecipient(db,merchant,v.id);
-  const personal=await personalPromotionMenu(db,merchant,await effectiveCatalog(db,merchant,e.table_id),v.session_id);
+  const personal=await personalPromotionMenu(db,merchant,await effectiveCatalog(db,merchant,e.table_id,'table'),v.session_id);
   if(q.lines.some(line=>personal.products.find(p=>p.id===line.productId)?.personalPromotion?.targetId!==line.personalPromotion?.targetId))q=await captureQuote(db,merchant,origin,d.items,route.authority);
   await freezeCoffeeQuote(db,merchant,q,d.collection,repeat,d.delegation?await reviewedGrantPayment(db,merchant,d.delegation,q):undefined);
   if(repeatId)await db.query('INSERT INTO repeat_quote_requests(merchant_id,visit_id,request_id,input_hash,quote_id) VALUES($1,$2,$3,$4,$5)',[merchant,v.id,repeatId,repeatHash,q.id]);

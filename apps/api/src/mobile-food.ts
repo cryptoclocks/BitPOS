@@ -156,7 +156,7 @@ export async function mobileFoodRequest(url:URL,method:string,input:unknown,bear
   if((after===null)!==(version===null))fail('INVALID_REQUEST',422);if(after!==null)uuid.parse(after);if(version!==null)z.string().min(1).max(128).parse(version);
   const b=await publicBranch(uuid.parse(menu[1]));
   return tenant(b.merchant_id,async db=>{
-   await enabledBranch(db,b.merchant_id,b.profile.id);const m=await effectiveCatalog(db,b.merchant_id);
+   await enabledBranch(db,b.merchant_id,b.profile.id);const m=await effectiveCatalog(db,b.merchant_id,null,'online');
    const heads=(await db.query<{product_id:string;active_version_id:string}>('SELECT product_id,active_version_id FROM product_online_options WHERE merchant_id=$1 ORDER BY product_id',[b.merchant_id])).rows;
    const menuVersion=hash(m.menuVersion+JSON.stringify(heads));if(version!==null&&version!==menuVersion)fail('QUOTE_CHANGED',409);
    const found=after===null?-1:m.products.findIndex(p=>p.id===after);if(after!==null&&found<0)fail('INVALID_REQUEST',422);

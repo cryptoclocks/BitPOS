@@ -12,7 +12,7 @@ export interface CashSale {
   lines: SaleLine[];
 }
 export interface Addon { id: string; label: string; labelEn: string; priceMinor: string }
-export interface SaleLine { lineNo: number; productId: string; name: string; nameEn: string; qty: number; unit: string; baseMinor: string | null; unitMinor: string; lineTotalMinor: string; sweetness: number | null; addons: Addon[] }
+export interface SaleLine { vatExempt?: boolean; lineNo: number; productId: string; name: string; nameEn: string; qty: number; unit: string; baseMinor: string | null; unitMinor: string; lineTotalMinor: string; sweetness: number | null; addons: Addon[] }
 export interface CartLine { productId: string; qty: number; sweetness?: 0 | 25 | 50 | 75 | 100; addonIds?: string[] }
 export interface HeldBill { id: string; label: string; items: CartLine[]; discount: DiscountInput; createdBy: string; createdAt: string }
 export interface Drawer { periodStart: string; currency: string; decimals: number; opening: { floatMinor: string; openedBy: string; at: string } | null; orders: number; cashSalesMinor: string; cashInMinor?: string; cashOutMinor?: string; expectedMinor: string | null }

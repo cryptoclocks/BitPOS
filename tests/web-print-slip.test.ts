@@ -71,3 +71,12 @@ test('receipt look: Z-report and cash receipt take the shop look; a voided cash 
  assert.ok(html.includes('<h1>ร้านทดสอบ</h1>'),'the legal seller name on a cash receipt still comes from the cash settings, not the receipt look');
  assert.ok(!html.includes('ใบกำกับภาษี')&&!/tax invoice/i.test(html),'a cash receipt is never called a tax invoice');
 });
+
+test('a VAT-exempt line is starred on a tax-inclusive cash receipt with a footnote, in Thai and English; plain sales show none',()=>{
+ const line=(name:string,vatExempt:boolean)=>({lineNo:1,productId:'p',name,nameEn:name+' EN',qty:1,unit:'',baseMinor:null,unitMinor:'1000',lineTotalMinor:'1000',sweetness:null,vatExempt,addons:[]});
+ const sale=(lines:unknown[])=>({id:'s',receiptNo:'V-0001',status:'PAID',createdAt:'2026-11-01T03:00:00Z',currency:{code:'THB',decimals:2},vatMode:'inclusive',vatBps:700,subtotalMinor:'2000',discountMinor:'0',netMinor:'1935',totalMinor:'2000',vatMinor:'65',tenderMinor:'2000',changeMinor:'0',cashier:'c',void:null,seller:{name:'ร้าน',taxId:'0105500000001',branch:'00000'},lines}) as never;
+ const th=cashReceiptDoc(sale([line('น้ำ',true),line('กาแฟ',false)]),'th'),en=cashReceiptDoc(sale([line('น้ำ',true),line('กาแฟ',false)]),'en');
+ assert.ok(th.includes('* สินค้าไม่คิด VAT')&&en.includes('* VAT-exempt item'));
+ assert.equal((th.match(/@ [^<]*\*/g)??[]).length,1);
+ assert.ok(!cashReceiptDoc(sale([line('กาแฟ',false)]),'th').includes('VAT-exempt')&&!cashReceiptDoc(sale([line('กาแฟ',false)]),'th').includes('ไม่คิด VAT'));
+});

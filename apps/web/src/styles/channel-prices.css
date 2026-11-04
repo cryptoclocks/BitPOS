@@ -1,0 +1,20 @@
+.channel-prices{min-width:0}
+.channel-prices h2{margin:0 0 6px}
+.channel-prices-scroll{max-width:100%;overflow-x:auto;margin-top:12px}
+.channel-prices table{width:100%;border-collapse:collapse;min-width:640px}
+.channel-prices th,.channel-prices td{padding:8px 10px;text-align:left;vertical-align:middle;border-bottom:1px solid var(--bp-line)}
+.channel-prices td input{min-height:40px;min-width:110px}
+.tax-list{list-style:none;margin:12px 0 0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px}
+.tax-list li{border:1px solid var(--bp-line);border-radius:12px;padding:10px 12px;min-width:0;overflow-wrap:anywhere}
+.tax-list label{display:flex;align-items:center;gap:8px;margin:0}
+.tax-list input{width:auto;min-height:24px}
+@media(max-width:640px){
+ .channel-prices table{min-width:0}
+ .channel-prices thead{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+ .channel-prices table,.channel-prices tbody,.channel-prices tr,.channel-prices td{display:block}
+ .channel-prices tr{border:1px solid var(--bp-line);border-radius:12px;padding:8px 10px;margin-bottom:8px}
+ .channel-prices td{border:0;padding:3px 0;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;align-items:center}
+ .channel-prices td::before{content:attr(data-label);font-size:12px;font-weight:700;color:var(--bp-muted,#6b5b7b)}
+ .channel-prices td.cp-name{display:block}.channel-prices td.cp-name::before{content:none}
+ .channel-prices td input{min-width:0;width:100%}
+}

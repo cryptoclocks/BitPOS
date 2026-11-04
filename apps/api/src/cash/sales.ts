@@ -19,16 +19,16 @@ const voidBody=z.object({reason:z.string().trim().min(1).max(200),restock:z.bool
 const staffUp=(role:string)=>{if(!['owner','manager','staff'].includes(role))fail('ROLE_REQUIRED',403);};
 
 export interface CashSaleView{id:string;seq:string;receiptNo:string;status:'PAID'|'VOIDED';currency:{code:string;decimals:number};subtotalMinor:string;discountMinor:string;totalMinor:string;netMinor:string;vatMinor:string;vatMode:'none'|'inclusive';vatBps:number;tenderMinor:string;changeMinor:string;cashier:string;createdAt:string;
- void:{at:string;by:string;reason:string;restocked:boolean}|null;seller:Record<string,unknown>;lines:{lineNo:number;productId:string;name:string;nameEn:string;qty:number;unit:string;baseMinor:string|null;unitMinor:string;lineTotalMinor:string;sweetness:number|null;addons:{id:string;label:string;labelEn:string;priceMinor:string}[]}[]}
+ void:{at:string;by:string;reason:string;restocked:boolean}|null;seller:Record<string,unknown>;lines:{lineNo:number;productId:string;name:string;nameEn:string;qty:number;unit:string;baseMinor:string|null;unitMinor:string;lineTotalMinor:string;sweetness:number|null;vatExempt:boolean;addons:{id:string;label:string;labelEn:string;priceMinor:string}[]}[]}
 type SaleRow={id:string;seq:string;receipt_no:string;status:'PAID'|'VOIDED';currency_code:string;decimals:number;subtotal_minor:string;discount_minor:string;total_minor:string;net_minor:string;vat_minor:string;vat_mode:'none'|'inclusive';vat_bps:number;tender_minor:string;change_minor:string;cashier:string;created_at:Date;voided_at:Date|null;voided_by:string|null;void_reason:string|null;void_restocked:boolean|null;seller:Record<string,unknown>};
 const COLS='id,seq::text,receipt_no,status,currency_code,decimals,subtotal_minor::text,discount_minor::text,total_minor::text,net_minor::text,vat_minor::text,vat_mode,vat_bps,tender_minor::text,change_minor::text,cashier,created_at,voided_at,voided_by,void_reason,void_restocked,seller';
 const view=(r:SaleRow,lines:CashSaleView['lines']):CashSaleView=>({id:r.id,seq:r.seq,receiptNo:r.receipt_no,status:r.status,currency:{code:r.currency_code,decimals:r.decimals},subtotalMinor:r.subtotal_minor,discountMinor:r.discount_minor,totalMinor:r.total_minor,netMinor:r.net_minor,vatMinor:r.vat_minor,vatMode:r.vat_mode,vatBps:r.vat_bps,tenderMinor:r.tender_minor,changeMinor:r.change_minor,cashier:r.cashier,createdAt:r.created_at.toISOString(),
  void:r.voided_at?{at:r.voided_at.toISOString(),by:r.voided_by!,reason:r.void_reason!,restocked:r.void_restocked!}:null,seller:r.seller,lines});
 async function linesOf(db:pg.PoolClient,merchant:string,id:string){
- return (await db.query<{line_no:number;product_id:string;name:string;name_en:string;qty:number;unit:string;base_minor:string|null;unit_minor:string;line_total_minor:string;sweetness:number|null;addons:CashSaleView['lines'][number]['addons']}>('SELECT line_no,product_id,name,name_en,qty,unit,base_minor::text,unit_minor::text,line_total_minor::text,sweetness,addons FROM cash_sale_lines WHERE merchant_id=$1 AND sale_id=$2 ORDER BY line_no',[merchant,id])).rows
-  .map(l=>({lineNo:l.line_no,productId:l.product_id,name:l.name,nameEn:l.name_en,qty:l.qty,unit:l.unit,baseMinor:l.base_minor,unitMinor:l.unit_minor,lineTotalMinor:l.line_total_minor,sweetness:l.sweetness,addons:l.addons}));
+ return (await db.query<{line_no:number;product_id:string;name:string;name_en:string;qty:number;unit:string;base_minor:string|null;unit_minor:string;line_total_minor:string;sweetness:number|null;vat_exempt:boolean;addons:CashSaleView['lines'][number]['addons']}>('SELECT line_no,product_id,name,name_en,qty,unit,base_minor::text,unit_minor::text,line_total_minor::text,sweetness,vat_exempt,addons FROM cash_sale_lines WHERE merchant_id=$1 AND sale_id=$2 ORDER BY line_no',[merchant,id])).rows
+  .map(l=>({lineNo:l.line_no,productId:l.product_id,name:l.name,nameEn:l.name_en,qty:l.qty,unit:l.unit,baseMinor:l.base_minor,unitMinor:l.unit_minor,lineTotalMinor:l.line_total_minor,sweetness:l.sweetness,vatExempt:l.vat_exempt,addons:l.addons}));
 }
-const totalsView=(t:CashTotals)=>({subtotalMinor:String(t.subtotal),discountMinor:String(t.discount),totalMinor:String(t.total),netMinor:String(t.net),vatMinor:String(t.vat),tenderMinor:t.tender===null?null:String(t.tender),changeMinor:t.change===null?null:String(t.change)});
+const totalsView=(t:CashTotals)=>({exemptMinor:String(t.exempt),subtotalMinor:String(t.subtotal),discountMinor:String(t.discount),totalMinor:String(t.total),netMinor:String(t.net),vatMinor:String(t.vat),tenderMinor:t.tender===null?null:String(t.tender),changeMinor:t.change===null?null:String(t.change)});
 function priceOrFail(lines:Parameters<typeof priceCashSale>[0],d:Discount,s:CashSettings,tender?:bigint){
  try{return priceCashSale(lines,d,{mode:s.vatMode,bps:s.vatBps},tender);}
  catch(e){if(e instanceof CashPriceError)fail(e.code==='TENDER_TOO_LOW'||e.code==='BAD_AMOUNT'||e.code==='DISCOUNT_TOO_LARGE'?'INVALID_PRICE':'INVALID_REQUEST',422);throw e;}
@@ -39,10 +39,10 @@ function checkDiscountRight(role:string,d:Discount,subtotal:bigint,s:CashSetting
  const bps=d.kind==='percent'?BigInt(d.bps):(BigInt(d.minor)*10000n+subtotal-1n)/subtotal; // round up: never understate how large the discount is
  if(bps>BigInt(s.staffMaxDiscountBps))fail('ROLE_REQUIRED',403);
 }
-type Prod={id:string;name:string;name_en:string;stock:number;reserved:number;price_minor:string|null;unit:string|null;sweetness_enabled:boolean|null};
+type Prod={id:string;name:string;name_en:string;stock:number;reserved:number;price_minor:string|null;unit:string|null;sweetness_enabled:boolean|null;vat_exempt:boolean};
 type Addon={id:string;label:string;labelEn:string;priceMinor:string};
 async function lockProducts(db:pg.PoolClient,merchant:string,ids:string[]){
- const rows=(await db.query<Prod>(`SELECT p.id,p.name,p.name_en,p.stock,p.reserved,c.price_minor::text,c.unit,c.sweetness_enabled FROM products p LEFT JOIN cash_prices c ON c.merchant_id=p.merchant_id AND c.product_id=p.id
+ const rows=(await db.query<Prod>(`SELECT p.id,p.name,p.name_en,p.stock,p.reserved,c.price_minor::text,c.unit,c.sweetness_enabled,p.vat_exempt FROM products p LEFT JOIN cash_prices c ON c.merchant_id=p.merchant_id AND c.product_id=p.id
   WHERE p.merchant_id=$1 AND p.id=ANY($2::uuid[]) AND p.archived_at IS NULL ORDER BY p.id FOR UPDATE OF p`,[merchant,ids])).rows;
  if(rows.length!==ids.length)fail('RESOURCE_NOT_FOUND',404);
  await assertSellable(db,merchant,ids);
@@ -52,7 +52,7 @@ async function loadAddons(db:pg.PoolClient,merchant:string,ids:string[]){
  const rows=(await db.query<{product_id:string;id:string;label:string;label_en:string;price_minor:string}>('SELECT product_id,id,label,label_en,price_minor::text FROM cash_addons WHERE merchant_id=$1 AND product_id=ANY($2::uuid[])',[merchant,ids])).rows;
  return new Map(rows.map(r=>[r.id,{product:r.product_id,addon:{id:r.id,label:r.label,labelEn:r.label_en,priceMinor:r.price_minor}}]));
 }
-interface PricedItem{productId:string;qty:number;unitMinor:bigint;baseMinor:bigint;unit:string;sweetness:number|null;addons:Addon[]}
+interface PricedItem{productId:string;qty:number;unitMinor:bigint;baseMinor:bigint;unit:string;sweetness:number|null;vatExempt:boolean;addons:Addon[]}
 /** Unit price = the product's cash price plus the chosen paid add-ons, all read from the server's own tables. */
 async function priced(db:pg.PoolClient,merchant:string,items:{productId:string;qty:number;sweetness?:number;addonIds?:string[]}[],byId:Map<string,Prod>):Promise<PricedItem[]>{
  const addons=await loadAddons(db,merchant,[...byId.keys()]);
@@ -61,7 +61,7 @@ async function priced(db:pg.PoolClient,merchant:string,items:{productId:string;q
   if(i.sweetness!==undefined&&!p.sweetness_enabled)fail('INVALID_REQUEST',422);
   const chosen=(i.addonIds??[]).map(id=>{const a=addons.get(id);if(!a||a.product!==i.productId)fail('RESOURCE_NOT_FOUND',404);return a.addon;});
   const base=BigInt(p.price_minor),unit=base+chosen.reduce((n,a)=>n+BigInt(a.priceMinor),0n);
-  return {productId:i.productId,qty:i.qty,unitMinor:unit,baseMinor:base,unit:p.unit??'',sweetness:i.sweetness??null,addons:chosen};
+  return {productId:i.productId,qty:i.qty,unitMinor:unit,baseMinor:base,unit:p.unit??'',sweetness:i.sweetness??null,vatExempt:p.vat_exempt,addons:chosen};
  });
 }
 function ready(s:CashSettings){if(!s.enabled)fail('CONFIGURATION_REQUIRED',409);}
@@ -74,7 +74,7 @@ export async function quoteCashSale(db:pg.PoolClient,merchant:string,role:string
  const byId=await lockProducts(db,merchant,p.data.items.map(i=>i.productId));
  const lines=await priced(db,merchant,p.data.items,byId),t=priceOrFail(lines,p.data.discount,s);
  checkDiscountRight(role,p.data.discount,t.subtotal,s);
- return {currency:{code:s.currency,decimals:s.decimals},vatMode:s.vatMode,vatBps:s.vatBps,...totalsView(t),lines:lines.map(l=>({productId:l.productId,qty:l.qty,unitMinor:String(l.unitMinor),sweetness:l.sweetness,addons:l.addons}))};
+ return {currency:{code:s.currency,decimals:s.decimals},vatMode:s.vatMode,vatBps:s.vatBps,...totalsView(t),lines:lines.map(l=>({productId:l.productId,qty:l.qty,unitMinor:String(l.unitMinor),sweetness:l.sweetness,vatExempt:l.vatExempt,addons:l.addons}))};
 }
 
 /** One transaction: price on the server, take stock through the ledger, number the receipt without gaps, store an immutable snapshot. */
@@ -102,7 +102,7 @@ export async function createCashSale(db:pg.PoolClient,merchant:string,actor:stri
  const running=new Map([...byId].map(([id,x])=>[id,x.stock]));
  for(const [i,l] of lines.entries()){
   const x=byId.get(l.productId)!,lineNo=i+1,before=running.get(l.productId)!,after=before-l.qty;running.set(l.productId,after);
-  await db.query('INSERT INTO cash_sale_lines(merchant_id,sale_id,line_no,product_id,name,name_en,qty,unit,base_minor,unit_minor,line_total_minor,sweetness,addons) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)',[merchant,row.id,lineNo,l.productId,x.name,x.name_en,l.qty,l.unit,String(l.baseMinor),String(l.unitMinor),String(l.unitMinor*BigInt(l.qty)),l.sweetness,JSON.stringify(l.addons)]);
+  await db.query('INSERT INTO cash_sale_lines(merchant_id,sale_id,line_no,product_id,name,name_en,qty,unit,base_minor,unit_minor,line_total_minor,sweetness,addons,vat_exempt) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)',[merchant,row.id,lineNo,l.productId,x.name,x.name_en,l.qty,l.unit,String(l.baseMinor),String(l.unitMinor),String(l.unitMinor*BigInt(l.qty)),l.sweetness,JSON.stringify(l.addons),l.vatExempt]);
   await db.query('UPDATE products SET stock=$3 WHERE merchant_id=$1 AND id=$2',[merchant,l.productId,after]);
   await db.query(`INSERT INTO stock_movements(merchant_id,product_id,kind,delta,stock_before,stock_after,reason,reference,actor,idempotency_key,request_hash) VALUES($1,$2,'CASH_SALE',$3,$4,$5,'cash sale',$6,$7,$8,$9)`,
    [merchant,l.productId,-l.qty,before,after,receiptNo,actor,`cash:${row.id}:${lineNo}:sale`,createHash('sha256').update(`${row.id}:${lineNo}:${l.qty}`).digest('hex')]);
