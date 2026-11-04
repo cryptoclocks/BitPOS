@@ -74,7 +74,7 @@ test('product images: role/tenant fenced upload, magic bytes, size cap, SVG refu
  try{
   const base='http://127.0.0.1:'+(server.address() as AddressInfo).port;
   const owner=await staffToken(f.pool,f.merchant,f.actor,'owner'),staff=await staffToken(f.pool,f.merchant,randomUUID(),'staff');
-  const post=(token:string|null,body:Buffer)=>fetch(base+'/api/product-images',{method:'POST',headers:{'Content-Type':'application/octet-stream',...(token?{Authorization:'Bearer '+token}:{})},body});
+  const post=(token:string|null,body:Buffer)=>fetch(base+'/api/product-images',{method:'POST',headers:{'Content-Type':'application/octet-stream',...(token?{Authorization:'Bearer '+token}:{})},body:new Uint8Array(body)});
   assert.equal((await post(null,png(3))).status,401);
   assert.equal((await post(staff,png(3))).status,403);
   assert.equal((await post(owner,svg)).status,415);

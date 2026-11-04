@@ -27,7 +27,7 @@ export async function editProduct(db:pg.PoolClient,merchant:string,actor:string,
  requireRole(role);
  const id=uuid.safeParse(productId);if(!id.success)fail('INVALID_REQUEST',422);
  const data=edit.safeParse(input);if(!data.success)fail('INVALID_REQUEST',422);
- const row=(await db.query<{name:string;name_en:string;category:string;description:string}>('SELECT name,name_en,category,description,image_url FROM products WHERE merchant_id=$1 AND id=$2 FOR UPDATE',[merchant,id.data])).rows[0];
+ const row=(await db.query<{name:string;name_en:string;category:string;description:string;image_url:string|null}>('SELECT name,name_en,category,description,image_url FROM products WHERE merchant_id=$1 AND id=$2 FOR UPDATE',[merchant,id.data])).rows[0];
  if(!row)fail('RESOURCE_NOT_FOUND',404);
  const now=current(row),{expected:{imageUrl:expectedImage,...expected},imageUrl:nextImage,...next}=data.data;
  if(JSON.stringify(now)!==JSON.stringify(expected))fail('PRODUCT_CHANGED');
@@ -51,6 +51,43 @@ export async function renameCategory(db:pg.PoolClient,merchant:string,actor:stri
  await db.query('UPDATE products SET category=$3 WHERE merchant_id=$1 AND category=$2',[merchant,data.data.from,data.data.to]);
  await audit(db,merchant,actor,'catalog.category.rename',data.data.from+' -> '+data.data.to);
  return {updated:ids.length};
+}
+
+// M02: menu ordering. Every screen (POS, table menu, cash register, catalog) lists the menu by products.sort_order and takes
+// category order from the first product of each category, so one ordering of live products is the whole truth: no second table.
+const orderBody=z.object({ids:z.array(uuid).min(1).max(200),expected:z.array(uuid).min(1).max(200)}).strict();
+const categoryOrderBody=z.object({categories:z.array(text(40)).min(1).max(200),expected:z.array(text(40)).min(1).max(200)}).strict();
+const same=(a:string[],b:string[])=>a.length===b.length&&a.every((v,i)=>v===b[i]);
+async function lockedLiveOrder(db:pg.PoolClient,merchant:string){
+ await db.query('SELECT id FROM merchants WHERE id=$1 FOR NO KEY UPDATE',[merchant]);
+ return (await db.query<{id:string;category:string}>('SELECT id,category FROM products WHERE merchant_id=$1 AND archived_at IS NULL ORDER BY sort_order,id FOR UPDATE',[merchant])).rows;
+}
+async function writeOrder(db:pg.PoolClient,merchant:string,ids:string[]){
+ await db.query('UPDATE products p SET sort_order=v.pos FROM unnest($2::uuid[]) WITH ORDINALITY AS v(id,pos) WHERE p.merchant_id=$1 AND p.id=v.id',[merchant,ids]);
+}
+/** Owner/manager only. `ids` is the complete new order of live products; `expected` is the order the caller saw. Stale = PRODUCT_CHANGED. */
+export async function reorderProducts(db:pg.PoolClient,merchant:string,actor:string,role:string,input:unknown):Promise<{changed:boolean;ids:string[]}>{
+ requireRole(role);
+ const data=orderBody.safeParse(input);if(!data.success)fail('INVALID_REQUEST',422);
+ const live=await lockedLiveOrder(db,merchant),current=live.map(r=>r.id);
+ if(!same(current,data.data.expected))fail('PRODUCT_CHANGED');
+ if(new Set(data.data.ids).size!==data.data.ids.length||data.data.ids.length!==current.length||!data.data.ids.every(id=>current.includes(id)))fail('INVALID_REQUEST',422);
+ if(same(current,data.data.ids))return {changed:false,ids:current};
+ await writeOrder(db,merchant,data.data.ids);
+ await audit(db,merchant,actor,'catalog.order.update',String(current.length)+' products');
+ return {changed:true,ids:data.data.ids};
+}
+/** Owner/manager only. Orders categories (blank = uncategorised). Products keep their relative order inside a category. */
+export async function reorderCategories(db:pg.PoolClient,merchant:string,actor:string,role:string,input:unknown):Promise<{changed:boolean;categories:string[]}>{
+ requireRole(role);
+ const data=categoryOrderBody.safeParse(input);if(!data.success)fail('INVALID_REQUEST',422);
+ const live=await lockedLiveOrder(db,merchant),current=[...new Set(live.map(r=>r.category))];
+ if(!same(current,data.data.expected))fail('PRODUCT_CHANGED');
+ if(new Set(data.data.categories).size!==data.data.categories.length||data.data.categories.length!==current.length||!data.data.categories.every(c=>current.includes(c)))fail('INVALID_REQUEST',422);
+ if(same(current,data.data.categories))return {changed:false,categories:current};
+ await writeOrder(db,merchant,data.data.categories.flatMap(c=>live.filter(r=>r.category===c).map(r=>r.id)));
+ await audit(db,merchant,actor,'catalog.category.reorder',data.data.categories.length+' categories');
+ return {changed:true,categories:data.data.categories};
 }
 
 export const maxProducts=200;
