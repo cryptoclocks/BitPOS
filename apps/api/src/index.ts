@@ -83,6 +83,7 @@ import {askAssistant} from './assistant';
 import {shopReadiness} from './help';
 import {getReceiptSettings,saveReceiptSettings,recordReprint} from './receipt-settings';
 import {channelPrices,saveChannelPrices} from './channel-prices';
+import {myBranches,switchBranch} from './branch-switch';
 import {productVat,setProductVat} from './product-vat';
 import {archiveProduct,createProduct,editProduct,renameCategory,reorderCategories,reorderProducts,unarchiveProduct} from './catalog-edit';
 import {listAvailability,setAvailability} from './catalog-availability';
@@ -276,6 +277,8 @@ export async function handle(req:http.IncomingMessage){
   return {token:outcome.token,userId:outcome.r.userId,merchantId:session.merchant_id,role:outcome.r.role};
  }
 const merchant=session.merchant_id;
+ if(path==='/api/branches'&&method==='GET')return myBranches(session.user_id,merchant,session.current_role);
+ if(path==='/api/branches/switch'&&method==='POST')return switchBranch(session.user_id,merchant,session.current_role,token,input);
  if(path==='/api/assistant/ask'&&method==='POST')return askAssistant(merchant,session.user_id,session.current_role,input);
  if(path==='/api/branches/comparison'&&method==='GET')return branchComparison(session.user_id,merchant,session.current_role,url);
  if(path==='/api/product-images'&&method==='POST'){const bytes=await readRaw(req,maxProductImageBytes);return tenant(merchant,db=>uploadProductImage(db,merchant,session.user_id,session.current_role,bytes));}
