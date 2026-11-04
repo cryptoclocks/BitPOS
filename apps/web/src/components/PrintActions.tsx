@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import type { OrderView } from '../../../../packages/contracts/src/index';
 import { printDocument, receiptDoc, stickerDocs, type DocLang } from '../lib/print-slip';
 import { readReceiptLang } from '../lib/receipt-lang';
+import { receiptLook } from '../lib/receipt-look';
 import ReceiptLangPicker from './ReceiptLangPicker';
 import BluetoothPrintButton from './BluetoothPrintButton';
 import { queuePhrase, speak } from '../lib/voice-call';
@@ -19,8 +20,8 @@ export default function PrintActions({ order, language }: { order: OrderView; la
     setNote(r === 'spoken' ? '' : r === 'no_voice' ? text('เครื่องนี้ไม่มีเสียงพูดภาษาไทย (ติดตั้งเสียงไทยในระบบก่อน)', 'No voice for this language is installed on this device') : text('เบราว์เซอร์นี้ไม่รองรับเสียงพูด', 'This browser has no speech support'));
   }
   return <div className="print-actions" role="group" aria-label={text('พิมพ์และเรียกคิว', 'Print and call')}>
-    <button type="button" className="secondary" onClick={() => void print(receiptDoc(order, bill))}><span aria-hidden="true">🧾</span> {text('พิมพ์ใบเสร็จย่อ', 'Print receipt')}</button>
-    <BluetoothPrintButton docKey={`receipt:${order.id}:${bill}`} label={`#${order.id.slice(0, 8)}`} html={() => receiptDoc(order, bill)} language={language} />
+    <button type="button" className="secondary" onClick={() => void print(receiptDoc(order, bill, receiptLook()))}><span aria-hidden="true">🧾</span> {text('พิมพ์ใบเสร็จย่อ', 'Print receipt')}</button>
+    <BluetoothPrintButton docKey={`receipt:${order.id}:${bill}`} label={`#${order.id.slice(0, 8)}`} html={() => receiptDoc(order, bill, receiptLook())} language={language} />
     <button type="button" className="secondary" onClick={() => void print(stickerDocs(order, bill))}><span aria-hidden="true">🏷️</span> {text('พิมพ์สติกเกอร์แก้ว', 'Print cup labels')}</button>
     {ready && <button type="button" className="print-call" onClick={call}><span aria-hidden="true">📣</span> {text('เรียกคิวด้วยเสียง', 'Call by voice')}</button>}
     <ReceiptLangPicker value={bill} onChange={setBill} language={language} />

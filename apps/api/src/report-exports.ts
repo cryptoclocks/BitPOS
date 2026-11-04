@@ -7,9 +7,9 @@ import {maxReportDays} from './reports';
 import {salesBreakdown} from './report-breakdown';
 
 const day=z.string().regex(/^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/).refine(v=>!Number.isNaN(Date.parse(v+'T00:00:00Z'))&&new Date(v+'T00:00:00Z').toISOString().slice(0,10)===v);
-const query=z.object({kind:z.enum(['sales','net','stock','cash','breakdown']),from:day,to:day,cursor:z.string().uuid().optional()}).strict();
+const query=z.object({kind:z.enum(['sales','net','stock','cash','breakdown','audit']),from:day,to:day,cursor:z.string().uuid().optional()}).strict();
 export const exportPageSize=500;
-export interface ReportExportPage{kind:'sales'|'net'|'stock'|'cash'|'breakdown';from:string;to:string;timeZone:string;filename:string;csv:string;rows:number;nextCursor:string|null}
+export interface ReportExportPage{kind:'sales'|'net'|'stock'|'cash'|'breakdown'|'audit';from:string;to:string;timeZone:string;filename:string;csv:string;rows:number;nextCursor:string|null}
 /** Text cells: neutralise spreadsheet formulas (= + - @ tab CR) and quote when needed. Only ever used for free text, never for money. */
 export function csvText(value:string):string{
  const safe=/^[=+\-@\t\r]/.test(value)?`'${value}`:value;
@@ -75,6 +75,17 @@ export async function reportExport(db:pg.PoolClient,merchant:string,actor:string
     FROM g FULL JOIN f ON f.order_id=g.order_id WHERE($5::uuid IS NULL OR coalesce(g.order_id,f.order_id)>$5::uuid) ORDER BY 1 LIMIT ${limit}`,base)).rows;
   ids=rows.map(r=>r.order_id);
   out=rows.slice(0,pageSize).map(r=>[csvText(r.order_id),csvText(r.currency),csvInt(r.decimals),csvInt(r.gross),csvInt(r.refunded),csvInt(r.net)]);
+ }else if(kind==='audit'){
+  // The audit log itself: oldest first so pages concatenate in order. Actor is the account id the server recorded; the role comes from today's membership.
+  header=['entry_id','created_at_utc','local_day','actor','actor_role','action','subject'];
+  if(cursor&&!(await db.query('SELECT 1 FROM audit_logs WHERE merchant_id=$1 AND id=$2',[merchant,cursor])).rowCount)fail('INVALID_REQUEST',422);
+  const rows=(await db.query<{id:string;created_at:Date;local_day:string;actor:string;actor_role:string|null;action:string;subject:string}>(
+   `WITH page AS(SELECT id,created_at,actor,action,subject FROM audit_logs WHERE merchant_id=$1 AND created_at>=($2::date::timestamp AT TIME ZONE $4) AND created_at<(($3::date+1)::timestamp AT TIME ZONE $4)
+     AND($5::uuid IS NULL OR (created_at,id)>(SELECT created_at,id FROM audit_logs WHERE merchant_id=$1 AND id=$5)) ORDER BY created_at,id LIMIT ${limit})
+    SELECT p.id,p.created_at,to_char((p.created_at AT TIME ZONE $4)::date,'YYYY-MM-DD') AS local_day,p.actor,m.role AS actor_role,p.action,p.subject FROM page p
+    LEFT JOIN members m ON m.merchant_id=$1 AND p.actor ~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' AND m.user_id::text=p.actor ORDER BY p.created_at,p.id`,base)).rows;
+  ids=rows.map(r=>r.id);
+  out=rows.slice(0,pageSize).map(r=>[csvText(r.id),csvText(iso(r.created_at)),csvText(r.local_day),csvText(r.actor),csvText(r.actor_role??''),csvText(r.action),csvText(r.subject)]);
  }else{
   header=['movement_id','created_at_utc','local_day','product_id','product_name','kind','delta','stock_before','stock_after','reason','reference','actor','supplier_id'];
   if(cursor&&!(await db.query('SELECT 1 FROM stock_movements WHERE merchant_id=$1 AND id=$2',[merchant,cursor])).rowCount)fail('INVALID_REQUEST',422);

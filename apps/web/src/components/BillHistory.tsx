@@ -1,6 +1,9 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { api, ApiError, errorMessage } from '../lib/api';
 import { formatMoney } from '../lib/money';
+import { printDocument, receiptDoc, cashReceiptDoc } from '../lib/print-slip';
+import { readReceiptLang } from '../lib/receipt-lang';
+import { receiptLook } from '../lib/receipt-look';
 import '../styles/bill-history.css';
 
 interface Bill { kind: 'order' | 'cash'; id: string; ref: string; state: 'PAID' | 'OPEN' | 'VOIDED' | 'EXPIRED'; source: 'store' | 'online' | 'cash'; createdAt: string; currency: string; decimals: number; totalMinor: string | null; voidReason: string | null }
@@ -31,6 +34,19 @@ export default function BillHistory({ token, role, language, preset }: { token: 
     setOpenKey(key); setDetail(undefined); setDetailError(''); setReason(''); setRestock(false); setMessage('');
     try { setDetail(b.kind === 'order' ? await api<Detail>(`/bills/orders/${b.id}`, undefined, token) : await api<CashDetail>(`/cash/sales/${b.id}`, undefined, token)); }
     catch (e) { setDetailError(errorMessage(e)); }
+  }
+  // A reprint is recorded on the server first (who, which bill, which copy); only then does the till print, stamped as a copy.
+  async function reprint(b: Bill) {
+    setBusy(true); setMessage('');
+    try {
+      const rec = await api<{ copy: number }>('/receipts/reprint', { kind: b.kind, id: b.id }, token);
+      const lang = readReceiptLang(language);
+      const html = b.kind === 'order' && detail && 'order' in detail ? receiptDoc(detail.order as never, lang, { ...(receiptLook() ?? { shopName: 'BitPOS', shopNameEn: '', footer: '', footerEn: '', paperMm: 80 as const }), copy: rec.copy })
+        : b.kind === 'cash' && detail && 'sale' in detail ? cashReceiptDoc(detail.sale as never, lang, { ...(receiptLook() ?? {}), copy: rec.copy }) : '';
+      if (!html) throw new Error('NO_DETAIL');
+      setMessage((await printDocument(html)) ? text(`ส่งพิมพ์สำเนาใบเสร็จแล้ว (สำเนาที่ ${rec.copy - 1})`, `Receipt copy sent to print (copy ${rec.copy - 1}).`) : text('เบราว์เซอร์บล็อกการพิมพ์', 'The browser blocked printing'));
+    } catch (e) { setMessage(errorMessage(e)); }
+    setBusy(false);
   }
   async function voidBill(b: Bill) {
     if (reason.trim().length < 3) { setMessage(text('ใส่เหตุผลอย่างน้อย 3 ตัวอักษร', 'Give a reason of at least 3 characters.')); return; }
@@ -73,14 +89,14 @@ export default function BillHistory({ token, role, language, preset }: { token: 
         {detail && b.kind === 'order' && 'order' in detail && <>
           <dl className="bill-facts"><div><dt>{text('สถานะออเดอร์', 'Order status')}</dt><dd>{detail.order.status}</dd></div>{detail.attempts.map((a, i) => <div key={i}><dt>{text('การชำระ', 'Payment')} {i + 1}</dt><dd>{a.status}{a.signature ? ` · ${a.signature.slice(0, 10)}…` : ''}</dd></div>)}</dl>
           {detail.order.pricing?.lines && <ul className="bill-lines">{detail.order.pricing.lines.map((l, i) => <li key={i}>{l.qty}× {language === 'en' && l.nameEn ? l.nameEn : l.name}</li>)}</ul>}
-          {detail.void && <p className="notice" role="status">{text('ยกเลิกแล้ว', 'Voided')} · {when(detail.void.at)} · {detail.void.reason}</p>}
+          {detail.void && <p className="notice" role="status">{text('ยกเลิกแล้ว', 'Voided')} · {when(detail.void.at)} · {detail.void.reason}</p>}{b.state === 'PAID' && <div className="toolbar"><button type="button" className="secondary" disabled={busy} onClick={() => void reprint(b)}>{text('พิมพ์ใบเสร็จซ้ำ (สำเนา)', 'Reprint receipt (copy)')}</button></div>}
           <ol className="bill-timeline" aria-label={text('ประวัติการดำเนินการ', 'Timeline')}>{detail.timeline.map((t, i) => <li key={i}><time>{when(t.at)}</time> {t.action}</li>)}</ol>
           {detail.canVoid ? <div className="bill-void"><label>{text('เหตุผลที่ยกเลิก (3–120 ตัวอักษร)', 'Reason for voiding (3–120 characters)')}<input value={reason} maxLength={120} onChange={e => setReason(e.target.value)} /></label><button type="button" disabled={busy} onClick={() => void voidBill(b)}>{text('ยกเลิกออเดอร์ (void)', 'Void order')}</button></div> : <p className="bill-note">{voidBlockedText(detail)}</p>}
         </>}
         {detail && b.kind === 'cash' && 'sale' in detail && <>
           <dl className="bill-facts"><div><dt>{text('เงินที่รับ', 'Tendered')}</dt><dd>{formatMoney({ currency: detail.sale.currency.code, decimals: detail.sale.currency.decimals, amountMinor: detail.sale.tenderMinor } as never)}</dd></div><div><dt>{text('เงินทอน', 'Change')}</dt><dd>{formatMoney({ currency: detail.sale.currency.code, decimals: detail.sale.currency.decimals, amountMinor: detail.sale.changeMinor } as never)}</dd></div></dl>
           <ul className="bill-lines">{detail.sale.lines.map((l, i) => <li key={i}>{l.qty}× {language === 'en' && l.nameEn ? l.nameEn : l.name}</li>)}</ul>
-          {detail.sale.void && <p className="notice" role="status">{text('ยกเลิกแล้ว', 'Voided')} · {when(detail.sale.void.at)} · {detail.sale.void.reason}{detail.sale.void.restocked ? ` · ${text('คืนสต็อกแล้ว', 'stock returned')}` : ''}</p>}
+          <div className="toolbar"><button type="button" className="secondary" disabled={busy} onClick={() => void reprint(b)}>{text('พิมพ์ใบเสร็จซ้ำ (สำเนา)', 'Reprint receipt (copy)')}</button></div>{detail.sale.void && <p className="notice" role="status">{text('ยกเลิกแล้ว', 'Voided')} · {when(detail.sale.void.at)} · {detail.sale.void.reason}{detail.sale.void.restocked ? ` · ${text('คืนสต็อกแล้ว', 'stock returned')}` : ''}</p>}
           {detail.sale.status === 'PAID' && (manager ? <div className="bill-void"><label>{text('เหตุผลที่ยกเลิก', 'Reason for voiding')}<input value={reason} maxLength={200} onChange={e => setReason(e.target.value)} /></label><label className="cash-check-row"><input type="checkbox" checked={restock} onChange={e => setRestock(e.target.checked)} />{text('สินค้ายังขายได้ คืนเข้าสต็อก', 'Goods are sellable again; return to stock')}</label><button type="button" disabled={busy} onClick={() => void voidBill(b)}>{text('ยกเลิกบิลเงินสด', 'Void cash sale')}</button></div> : <p className="bill-note">{voidBlockedText({ voidBlocked: 'ROLE' } as Detail)}</p>)}
         </>}
       </div>}

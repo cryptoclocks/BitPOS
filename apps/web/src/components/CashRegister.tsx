@@ -3,6 +3,7 @@ import { api, errorMessage } from '../lib/api';
 import { requestId } from '../lib/request-id';
 import { toMinor } from '../lib/shift-view';
 import { cashReceiptDoc, printDocument } from '../lib/print-slip';
+import { receiptLook } from '../lib/receipt-look';
 import BluetoothPrintButton from './BluetoothPrintButton';
 import CashMovementsPanel from './CashMovementsPanel';
 import { lineKey, minorToInput, moneyOf, optionsText, parseDiscount, quickTenders, type Addon, type CartLine, type CashQuote, type CashSale, type Drawer, type HeldBill } from '../lib/cash-view';
@@ -239,7 +240,7 @@ function SuccessSheet({ sale, language, onNew }: { sale: CashSale; language: 'th
     <p className="cash-done-title">{text('ขายสำเร็จ', 'Sale complete')} · {sale.receiptNo}</p>
     <p className="cash-done-change">{text('เงินทอน', 'Change')} <b>{moneyOf(sale.changeMinor, sale.currency)}</b></p>
     <ReceiptLangPicker value={bill} onChange={setBill} language={language} />
-    <div className="toolbar"><button type="button" onClick={() => void printDocument(cashReceiptDoc(sale, bill))}>{text('พิมพ์ใบเสร็จ', 'Print receipt')}</button><BluetoothPrintButton docKey={`cash:${sale.id}:${bill}`} label={sale.receiptNo ?? sale.id.slice(0, 8)} html={() => cashReceiptDoc(sale, bill)} language={language} /><button type="button" className="secondary" onClick={onNew}>{text('ขายรายการใหม่', 'New sale')}</button></div>
+    <div className="toolbar"><button type="button" onClick={() => void printDocument(cashReceiptDoc(sale, bill, receiptLook()))}>{text('พิมพ์ใบเสร็จ', 'Print receipt')}</button><BluetoothPrintButton docKey={`cash:${sale.id}:${bill}`} label={sale.receiptNo ?? sale.id.slice(0, 8)} html={() => cashReceiptDoc(sale, bill, receiptLook())} language={language} /><button type="button" className="secondary" onClick={onNew}>{text('ขายรายการใหม่', 'New sale')}</button></div>
   </div>;
 }
 

@@ -1,6 +1,6 @@
 // Server-built CSV exports (GET /api/reports/export). The server owns the rows, role check, merchant scope, formula guard and
 // integer minor units; this module only walks the pages and joins them. Nothing is recomputed on the device.
-export type ExportKind = 'sales' | 'net' | 'stock' | 'cash' | 'breakdown';
+export type ExportKind = 'sales' | 'net' | 'stock' | 'cash' | 'breakdown' | 'audit';
 export interface ExportPage { csv: string; rows: number; nextCursor: string | null; filename: string }
 export const maxExportPages = 200;
 export async function collectExport(fetchPage: (cursor: string) => Promise<ExportPage>): Promise<{ csv: string; filename: string; rows: number }> {
