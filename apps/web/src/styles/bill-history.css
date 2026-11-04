@@ -20,3 +20,5 @@
 .bill-refund-steps{list-style:none;margin:2px 0;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;font-size:13px}.bill-refund-steps li{display:flex;align-items:center;gap:8px;min-width:0;color:#8a7fa0}.bill-refund-steps li span{flex:0 0 24px;height:24px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:700;background:#e6def5;color:#6d5a96}.bill-refund-steps li[data-step=done]{color:#1f6b2c}.bill-refund-steps li[data-step=done] span{background:#d8f0de;color:#1f6b2c}.bill-refund-steps li[data-step=now]{color:#302344;font-weight:700}.bill-refund-steps li[data-step=now] span{background:#623cb4;color:#fff}
 .bill-refund-state{margin:0;font-size:14px;font-weight:600}.bill-refund-foot{color:#7a7089}.bill-refund-sign{gap:8px}
 @media(max-width:560px){.bill-refund-steps{grid-template-columns:1fr}}
+
+@media(max-width:700px){.bill-history{padding:0 16px 24px;box-sizing:border-box}}

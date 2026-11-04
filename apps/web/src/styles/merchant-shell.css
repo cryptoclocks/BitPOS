@@ -44,9 +44,9 @@
 .shell header .toolbar>:is(button:not(.language-toggle),.badge){min-width:124px;height:48px;min-height:48px;box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:0 16px;border-radius:12px;margin:0;font-size:15px;font-weight:650;line-height:1;white-space:nowrap}
 .shell header .toolbar>.language-toggle{width:48px;min-width:48px;height:48px;min-height:48px;padding:0;flex:0 0 48px}
 .shell header .toolbar>select{height:48px;min-height:48px}
-@media(max-width:560px){.shell header .toolbar>:is(button:not(.language-toggle),.badge){min-width:0;flex:1 1 0;padding:0 10px}}
+@media(max-width:560px){.shell header .toolbar{flex-wrap:wrap;width:100%}.shell header .toolbar>:is(button:not(.language-toggle),.badge){min-width:0;flex:1 1 112px;padding:0 10px;font-size:14px}}
 /* Breadcrumb under the header on every signed-in page. */
 .crumbs{margin:0;padding:12px 32px 8px;font-size:14px}.crumbs ol{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px}
-.crumbs li{display:flex;align-items:center;gap:8px;color:var(--bp-muted,#7a7089)}.crumbs li+li::before{content:'›';color:#b3a6c8}.shell .crumbs button,.crumbs span{background:none;border:0;padding:0;min-height:0;min-width:0;font:inherit;color:inherit;border-radius:6px;text-align:left}.shell .crumbs button{cursor:pointer;color:#623cb4;font-weight:600;display:inline}.shell .crumbs button:hover:not(:disabled){background:none;transform:none;text-decoration:underline}
+.crumbs li{display:flex;align-items:center;gap:8px;color:var(--bp-muted,#7a7089)}.crumbs li:not(:last-child)::after{content:'›';color:#b3a6c8}.shell .crumbs button,.crumbs span{background:none;border:0;padding:0;min-height:0;min-width:0;font:inherit;color:inherit;border-radius:6px;text-align:left}.shell .crumbs button{cursor:pointer;color:#623cb4;font-weight:600;display:inline}.shell .crumbs button:hover:not(:disabled){background:none;transform:none;text-decoration:underline}
 .crumbs li[aria-current=page] span{color:#302344;font-weight:700}
 @media(max-width:700px){.crumbs{padding:10px 16px 0;font-size:13px}}
