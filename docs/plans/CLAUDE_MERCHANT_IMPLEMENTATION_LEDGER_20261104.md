@@ -58,7 +58,7 @@ Started 2026-11-04. Source plan: `docs/plans/CLAUDE_MERCHANT_FEATURE_COMPLETION_
 
 | # | Group | State | Where it is proven / what is still open |
 |---|---|---|---|
-| 1 | Sales overview | partial | Overview already reads the server summary (`/api/overview/summary`, same definition as report/CSV; my earlier note that it was computed on the device was out of date). Open: business-day filter, refund total, drill-down to the source bill, branch filter (use Reports › Branches). |
+| 1 | Sales overview | implemented_verified (API→SQL; UI not screenshotted) | Overview reads the server summary (`/api/overview/summary`, same definition as report/CSV). Added after the first M14 pass: `?day=` business-day filter (shop time, not future), `net` = gross paid − FINALIZED refunds per denomination (same refund source as the sales report; staff get null), `isToday` (in-progress shown only for today), and a ‘Paid bills of this day’ button into Bills with the same date window. `tests/overview-day-http.test.ts`. The refund subtraction with real refund cases is NOT exercised (needs the food-return fixtures); with no refunds net = sales is asserted. Branch filter = Reports › Branches. |
 | 2 | Sales reports by type | implemented_verified | M07 breakdown by channel/payment method/category, drill-down, CSV; per-item report and refunds inside the breakdown are open. |
 | 3 | Cash drawer review | implemented_verified | M06; per-register drawers and a separate drawer-history screen are open. |
 | 4 | Bill history and void | partial | M05; **store-side refund of a paid wallet/online order is missing** (mandatory gap). |
@@ -80,7 +80,7 @@ Started 2026-11-04. Source plan: `docs/plans/CLAUDE_MERCHANT_FEATURE_COMPLETION_
 ### Mandatory gaps (why this is not called complete)
 1. Store-side refund of a paid wallet/online order (money path; needs a reviewed payout/refund design).
 2. Order-sale stock-ledger rows (counter/table/online sales change stock without a `stock_movements` row; needs a change to the payment-settlement SQL).
-3. Overview: business-day filter, refund total, drill-down.
+3. (closed) Overview business-day filter, net after refunds and drill-down — see group 1; refund arithmetic with real refund cases unverified.
 4. M12: provider-neutral adapter + automatic-retry outbox; no live provider verification.
 5. M13: shop-audience support requests.
 6. Nothing from M03a–M14 is deployed; migrations 186–192 are not applied to OCI; no click-through in a real signed-in browser; TH-mobile/EN-desktop screenshots for several screens not taken.

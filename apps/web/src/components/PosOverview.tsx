@@ -2,24 +2,26 @@ import React, { useEffect, useState } from 'react';
 import { api } from '../lib/api';
 import { formatMoney } from '../lib/money';
 import type { PrivateOrder } from '../lib/table';
-import { shopTime, todayMayBeTruncated, viewFromOrders, viewFromSummary, type Channel, type OverviewSummaryWire } from '../lib/pos-overview';
+import { shopDay, shopTime, todayMayBeTruncated, viewFromOrders, viewFromSummary, type Channel, type OverviewSummaryWire } from '../lib/pos-overview';
 import '../styles/pos-overview.css';
 
-export default function PosOverview({ orders, ready, failed, language, token, now = new Date(), onOpenOrders }: { orders: PrivateOrder[]; ready: boolean; failed: boolean; language: 'th' | 'en'; token?: string; now?: Date; onOpenOrders: () => void }) {
+export default function PosOverview({ orders, ready, failed, language, token, now = new Date(), onOpenOrders, onOpenBills }: { orders: PrivateOrder[]; ready: boolean; failed: boolean; language: 'th' | 'en'; token?: string; now?: Date; onOpenOrders: () => void; onOpenBills?: (day: string) => void }) {
   const text = (th: string, en: string) => language === 'th' ? th : en;
   // The numbers come from the server (SQL over every order, shop time zone). The capped order list is only a fallback.
+  const [day, setDay] = useState(''); // '' = the shop's current day
   const [summary, setSummary] = useState<OverviewSummaryWire>();
   const [state, setState] = useState<'loading' | 'ok' | 'failed'>(token ? 'loading' : 'failed');
   const ordersKey = orders.reduce((n, order) => n + order.version + (order.fulfillment?.version ?? 0), orders.length);
   useEffect(() => {
     if (!token) { setSummary(undefined); setState('failed'); return; }
     let active = true;
-    api<OverviewSummaryWire>('/overview/summary', undefined, token)
+    api<OverviewSummaryWire>(`/overview/summary${day ? `?day=${day}` : ''}`, undefined, token)
       .then(next => { if (active) { setSummary(next); setState('ok'); } })
       .catch(() => { if (active) { setSummary(undefined); setState('failed'); } });
     return () => { active = false; };
-  }, [token, ordersKey]);
+  }, [token, ordersKey, day]);
   const fromServer = state === 'ok' && !!summary;
+  const past = fromServer && summary!.isToday === false;
   const view = fromServer ? viewFromSummary(summary!) : viewFromOrders(orders, now);
   const waiting = fromServer ? false : state === 'loading' && !summary ? true : !ready;
   const peak = Math.max(1, ...view.buckets.map(b => b.count));
@@ -34,21 +36,22 @@ export default function PosOverview({ orders, ready, failed, language, token, no
   const sales = view.sales;
   const multi = sales.kind === 'money' && sales.items.length > 1;
   return <main className="pos-overview" aria-label={text('ภาพรวมร้าน', 'Shop overview')}>
-    <div className="section-heading"><div><p className="eyebrow">{text('วันนี้', 'TODAY')}</p><h1>{text('ภาพรวมร้าน', 'Shop overview')}</h1>
+    <div className="section-heading"><div><p className="eyebrow">{past ? summary!.day : text('วันนี้', 'TODAY')}</p><h1>{text('ภาพรวมร้าน', 'Shop overview')}</h1>
       <p className="pos-overview-sub">{fromServer
         ? text('คำนวณที่เซิร์ฟเวอร์จากทุกออเดอร์ของวันนี้ตามเวลาร้าน (Asia/Bangkok) ยอดขายและออเดอร์ที่ชำระแล้วนับตามเวลาชำระเงิน จำนวนออเดอร์ทั้งหมดและช่องทางนับตามเวลาสร้างออเดอร์ ตรงกับรายงานและไฟล์ส่งออก ไม่ใช่รายงานปิดรอบ', 'Computed on the server from every order today in shop time (Asia/Bangkok). Sales and paid orders count by the time paid; total orders and channels count by the time created. Same rule as Reports and the CSV export. Not a closed-shift report.')
         : text('สรุปจากออเดอร์ที่โหลดอยู่ในระบบ ไม่ใช่รายงานปิดรอบ', 'Summarised from the orders currently loaded. This is not a closed-shift report.')}</p></div></div>
+    {token && <div className="pos-overview-day"><label>{text('วันธุรกิจ (เวลาร้าน)', 'Business day (shop time)')}<input type="date" value={day || shopDay(now)} max={shopDay(now)} onChange={event => setDay(event.target.value === shopDay(now) ? '' : event.target.value)} /></label>{day && <button type="button" className="secondary" onClick={() => setDay('')}>{text('กลับไปวันนี้', 'Back to today')}</button>}{fromServer && onOpenBills && <button type="button" className="secondary" onClick={() => onOpenBills(summary!.day)}>{text('ดูบิลที่ชำระของวันนี้', 'Paid bills of this day')}</button>}</div>}
     {!fromServer && state === 'failed' && ready && <p className="notice" role="status" data-overview-fallback="orders">{text('ยังโหลดสรุปจากเซิร์ฟเวอร์ไม่ได้ ตัวเลขด้านล่างมาจากออเดอร์ล่าสุดที่โหลดไว้ในเครื่องนี้', 'The server summary is unavailable. Figures below come from the latest orders loaded on this device.')}</p>}
     {!fromServer && ready && todayMayBeTruncated(orders, now) && <p className="notice" role="status">{text('ระบบส่งออเดอร์ล่าสุดสูงสุด 200 รายการ ตัวเลขวันนี้อาจไม่ครบ ดูยอดเต็มในรายงาน', 'The server returns only the newest 200 orders, so today\'s figures may be incomplete. Use Reports for the full total.')}</p>}
     {!fromServer && failed && <p className="error" role="status">{text('โหลดออเดอร์ไม่สำเร็จ ตัวเลขอาจไม่ล่าสุด', 'Orders could not be loaded. Figures may be stale.')}</p>}
     {view.excludedOrders > 0 && <p className="notice" role="status">{text(`ออเดอร์เดิม ${view.excludedOrders} รายการที่ชำระแล้วไม่มีข้อมูลราคา นับในจำนวนแต่ไม่รวมในยอดขาย`, `${view.excludedOrders} older paid orders have no price record: counted as paid, not in sales.`)}</p>}
     {waiting ? <p className="notice" role="status">{text('กำลังโหลดภาพรวม…', 'Loading overview…')}</p> : <>
       <section className="pos-overview-kpis" aria-label={text('ตัวเลขสำคัญ', 'Key figures')}>
-        <article><small>{text('ยอดขายวันนี้', 'Sales today')}</small><strong>{sales.kind === 'money' ? sales.items.map(m => <span className="pos-overview-money" key={m.currency + m.decimals}>{formatMoney(m)}</span>) : sales.kind === 'mixed' ? text('หลายสกุลเงิน', 'Mixed currencies') : '—'}</strong>
+        <article><small>{past ? text('ยอดขายของวัน', 'Sales of the day') : text('ยอดขายวันนี้', 'Sales today')}</small><strong>{sales.kind === 'money' ? sales.items.map(m => <span className="pos-overview-money" key={m.currency + m.decimals}>{formatMoney(m)}</span>) : sales.kind === 'mixed' ? text('หลายสกุลเงิน', 'Mixed currencies') : '—'}</strong>
           <span>{sales.kind === 'hidden' ? text('เฉพาะเจ้าของร้านและผู้จัดการ', 'Owner or manager only') : sales.kind === 'mixed' || multi ? text('ไม่รวมยอดข้ามสกุลเงิน', 'Not totalled across denominations') : text(`${view.paidCount} ออเดอร์ที่ชำระแล้ว`, `${view.paidCount} paid orders`)}</span></article>
-        <article><small>{text('ออเดอร์ทั้งหมดวันนี้', 'Orders today')}</small><strong>{view.todayCount}</strong><span>{text('รวมที่ยังไม่ชำระ', 'Including unpaid')}</span></article>
-        <article><small>{text('กำลังดำเนินการ', 'In progress')}</small><strong>{view.inProgress}</strong><span>{text('ชำระแล้ว ยังไม่ส่งมอบ', 'Paid, not yet collected')}</span></article>
-        <article><small>{text('ยอดสุทธิร้าน', 'Net after fees')}</small><strong>—</strong><span>{text('เซิร์ฟเวอร์ยังไม่ส่งยอดหลังหักค่าธรรมเนียม', 'The server does not provide fee-adjusted totals yet')}</span></article>
+        <article><small>{past ? text('ออเดอร์ทั้งหมดของวัน', 'Orders of the day') : text('ออเดอร์ทั้งหมดวันนี้', 'Orders today')}</small><strong>{view.todayCount}</strong><span>{text('รวมที่ยังไม่ชำระ', 'Including unpaid')}</span></article>
+        <article><small>{text('กำลังดำเนินการ', 'In progress')}</small><strong>{past ? '—' : view.inProgress}</strong><span>{past ? text('แสดงเฉพาะวันนี้', 'Shown for today only') : text('ชำระแล้ว ยังไม่ส่งมอบ', 'Paid, not yet collected')}</span></article>
+        <article><small>{text('ยอดสุทธิหลังคืนเงิน', 'Net after refunds')}</small><strong>{fromServer && summary!.net ? (summary!.net.length ? summary!.net.map(n => <span className="pos-overview-money" key={n.currency + n.decimals}>{formatMoney({ currency: n.currency, decimals: n.decimals, amountMinor: n.netMinor } as never)}</span>) : '—') : '—'}</strong><span>{fromServer && summary!.net ? (summary!.net.some(n => n.refundedMinor !== '0') ? summary!.net.filter(n => n.refundedMinor !== '0').map(n => text(`คืนเงินแล้ว ${formatMoney({ currency: n.currency, decimals: n.decimals, amountMinor: n.refundedMinor } as never)}`, `Refunded ${formatMoney({ currency: n.currency, decimals: n.decimals, amountMinor: n.refundedMinor } as never)}`)).join(' · ') : text('ยังไม่มีการคืนเงินที่เสร็จสมบูรณ์ · ก่อนหักค่าธรรมเนียม', 'No finalized refunds · before fees')) : text('เฉพาะเจ้าของร้านและผู้จัดการ', 'Owner or manager only')}</span></article>
       </section>
       <div className="pos-overview-grid">
         <section aria-label={text('ออเดอร์ชำระแล้วรายชั่วโมง', 'Paid orders by hour')}><h2>{text('ออเดอร์ที่ชำระแล้วรายชั่วโมง', 'Paid orders by hour')}</h2>

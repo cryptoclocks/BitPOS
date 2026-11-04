@@ -59,7 +59,9 @@ export function hourlyBuckets(orders: PrivateOrder[]): { hour: number; count: nu
 
 /** Wire shape of GET /api/overview/summary (apps/api/src/overview-summary.ts). Sales: paid time; order count and channels: created time. */
 export interface OverviewSummaryWire {
-  day: string; timeZone: string; generatedAt: string;
+  day: string; isToday?: boolean; timeZone: string; generatedAt: string;
+  /** Gross paid minus finalized refunds per denomination (before fees); null for roles without sales access. */
+  net?: { currency: string; decimals: number; salesMinor: string; refundedMinor: string; netMinor: string }[] | null;
   orders: { today: number; paid: number; inProgress: number };
   sales: { currency: string; decimals: number; orders: number; totalMinor: string }[] | null;
   excludedOrders: number | null;

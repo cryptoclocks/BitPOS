@@ -87,7 +87,7 @@ test('overview summary: 230 paid orders are not capped, midnight straddlers foll
   const staff=await call(f,'staff');assert.equal(staff.sales,null);assert.equal(staff.excludedOrders,null);
   assert.deepEqual(staff.orders,summary.orders);assert.deepEqual(staff.hours,summary.hours);assert.deepEqual(staff.channels,summary.channels);
   assert.deepEqual((await call(f,'manager')).sales,summary.sales,'manager sees sales like the report');
-  for(const bad of ['?x=1','?day=2026-01-01','?from=2026-01-01&to=2026-01-02'])await assert.rejects(call(f,'owner',bad),/INVALID_REQUEST/);
+  for(const bad of ['?x=1','?day=2999-01-01','?day=2026-01-01&x=1','?from=2026-01-01&to=2026-01-02'])await assert.rejects(call(f,'owner',bad),/INVALID_REQUEST/);
 
   // Tenant fence: the second merchant sees only its own two paid orders, and ours did not change.
   const theirs=await call(g,'owner');

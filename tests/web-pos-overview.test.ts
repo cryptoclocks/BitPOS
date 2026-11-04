@@ -62,3 +62,10 @@ test('order-list fallback view is labelled as such and never merges denomination
   const mixed = viewFromOrders([order(usd('100'), '2026-10-26T10:00:00+07:00'), order({ currency: 'USDG', decimals: 6, amountMinor: '5' }, '2026-10-26T11:00:00+07:00')], new Date('2026-10-26T20:00:00+07:00'));
   assert.equal(mixed.source, 'orders'); assert.deepEqual(mixed.sales, { kind: 'mixed' }); assert.equal(mixed.todayCount, 2);
 });
+
+test('summary wire accepts the optional day fields and the view is unchanged by them', () => {
+  const wire = { day: '2026-11-01', isToday: false, timeZone: 'Asia/Bangkok', generatedAt: '', orders: { today: 1, paid: 1, inProgress: 0 }, sales: [{ currency: 'USD', decimals: 2, orders: 1, totalMinor: '500' }], excludedOrders: 0,
+    net: [{ currency: 'USD', decimals: 2, salesMinor: '500', refundedMinor: '100', netMinor: '400' }], channels: { store: 1, delivery: 0, pickup: 0 }, hours: [], recent: [] } as never;
+  const view = viewFromSummary(wire);
+  assert.equal(view.source, 'server'); assert.equal(view.todayCount, 1);
+});

@@ -26,3 +26,4 @@
 @media(max-width:900px){.pos-overview-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.pos-overview-grid{grid-template-columns:minmax(0,1fr)}.pos-overview-recent{overflow-x:auto}}
 @media(max-width:480px){.pos-overview-kpis{grid-template-columns:minmax(0,1fr)}.pos-overview-kpis strong{font-size:26px}}
 .pos-overview-kpis strong span.pos-overview-money{display:block;font-size:inherit;color:inherit;line-height:inherit}.pos-overview-kpis strong span.pos-overview-money+span.pos-overview-money{font-size:.72em;margin-top:2px}
+.pos-overview-day{display:flex;flex-wrap:wrap;gap:10px 12px;align-items:flex-end;margin:10px 0}.pos-overview-day label{display:grid;gap:4px;font-weight:600;font-size:14px;margin:0}.pos-overview-day input{min-height:40px;width:auto}
