@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {demoStarterPriceMinor,lineKey,minorToInput,optionsText,parseDiscount,quickTenders} from '../apps/web/src/lib/cash-view';
-import {cashReceiptDoc,isTaxInvoice} from '../apps/web/src/lib/print-slip';
+import {cashReceiptDoc,showsTaxDetails} from '../apps/web/src/lib/print-slip';
 import type {CashSale} from '../apps/web/src/lib/cash-view';
 
 const sale=(over:Partial<CashSale>={}):CashSale=>({id:'i',seq:'7',receiptNo:'T000007',status:'PAID',currency:{code:'THB',decimals:2},subtotalMinor:'18500',discountMinor:'1850',totalMinor:'16650',netMinor:'15561',vatMinor:'1089',vatMode:'inclusive',vatBps:700,tenderMinor:'20000',changeMinor:'3350',cashier:'c',createdAt:'2026-11-02T03:00:00Z',void:null,
@@ -26,10 +26,11 @@ test('discount box: percent in basis points, amount in minor units, empty means 
 test('minorToInput shows the editable decimal text',()=>{
  assert.equal(minorToInput('6500',2),'65.00');assert.equal(minorToInput('5',2),'0.05');assert.equal(minorToInput('7',0),'7');
 });
-test('tax-inclusive sale with a complete seller prints as an abbreviated tax invoice',()=>{
+test('tax-inclusive sale with a complete seller shows tax id and VAT but is titled Receipt, never a tax invoice',()=>{
  const th=cashReceiptDoc(sale(),'th');
- assert.ok(isTaxInvoice(sale()));
- for(const x of ['ใบกำกับภาษีอย่างย่อ','T000007','0105500000001','ร้านทดสอบ','THB 166.50','THB 155.61','VAT 7%','THB 10.89','ราคารวมภาษีมูลค่าเพิ่มแล้ว','THB 33.50','ส่วนลด'])assert.ok(th.includes(x),x);
+ assert.ok(showsTaxDetails(sale()));
+ assert.ok(!th.includes('ใบกำกับภาษี')&&th.includes('ใบเสร็จรับเงิน'));
+ for(const x of ['ใบเสร็จรับเงิน','เลขประจำตัวผู้เสียภาษี','T000007','0105500000001','ร้านทดสอบ','THB 166.50','THB 155.61','VAT 7%','THB 10.89','ราคารวมภาษีมูลค่าเพิ่มแล้ว','THB 33.50','ส่วนลด'])assert.ok(th.includes(x),x);
  assert.ok(!th.includes('ลาเต้ <b>')&&th.includes('ลาเต้ &lt;b&gt;'));
 });
 test('without tax data it is a plain receipt; a voided sale is stamped; English labels follow the language',()=>{
@@ -37,7 +38,7 @@ test('without tax data it is a plain receipt; a voided sale is stamped; English 
   const html=cashReceiptDoc(s,'en');assert.ok(html.includes('Receipt')&&!html.includes('tax invoice')&&!html.includes('VAT'),html.slice(0,80));
  }
  assert.ok(cashReceiptDoc(sale({status:'VOIDED',void:{at:'x',by:'m',reason:'r',restocked:false}}),'en').includes('VOID'));
- assert.ok(cashReceiptDoc(sale(),'en').includes('Abbreviated tax invoice')&&cashReceiptDoc(sale(),'en').includes('Latte'));
+ assert.ok(cashReceiptDoc(sale(),'en').includes('Receipt')&&!/tax invoice/i.test(cashReceiptDoc(sale(),'en'))&&cashReceiptDoc(sale(),'en').includes('Tax ID')&&cashReceiptDoc(sale(),'en').includes('Latte'));
  assert.ok(!cashReceiptDoc(sale({discountMinor:'0',subtotalMinor:'16650'}),'th').includes('ส่วนลด'));
 });
 test('options text, line identity and the receipt show sweetness, add-ons and units',()=>{
@@ -55,10 +56,10 @@ test('options text, line identity and the receipt show sweetness, add-ons and un
 test('English and bilingual bills: names, labels, options and the shop name follow the chosen language',()=>{
  const s=sale({seller:{name:'ร้านตัวอย่าง',nameEn:'Sample Cafe',taxId:'0105500000001',branch:'00000',address:'1 ถนนตัวอย่าง',addressEn:'1 Sample Rd'}});
  const en=cashReceiptDoc(s,'en');
- for(const x of ['Sample Cafe','1 Sample Rd','Abbreviated tax invoice','Latte','Sweet 50% · Whip','Cash received','Change','Thank you'])assert.ok(en.includes(x),x);
+ for(const x of ['Sample Cafe','1 Sample Rd','Receipt','Tax ID','Latte','Sweet 50% · Whip','Cash received','Change','Thank you'])assert.ok(en.includes(x),x);
  assert.ok(!/[\u0e00-\u0e7f]/.test(en.replace(/<title>.*<\/title>/,'').replace('แก้ว','')),'no Thai left on an English bill except the unit the owner typed');
  const both=cashReceiptDoc(s,'both');
- for(const x of ['ร้านตัวอย่าง / Sample Cafe','ใบกำกับภาษีอย่างย่อ / Abbreviated tax invoice','ลาเต้','Latte','รับเงินสด / Cash received','เงินทอน / Change','ขอบคุณที่อุดหนุน / Thank you','หวาน 50% / Sweet 50%'])assert.ok(both.includes(x)||both.includes(x.replace(' / ',' / ')),x);
+ for(const x of ['ร้านตัวอย่าง / Sample Cafe','ใบเสร็จรับเงิน / Receipt','ลาเต้','Latte','รับเงินสด / Cash received','เงินทอน / Change','ขอบคุณที่อุดหนุน / Thank you','หวาน 50% / Sweet 50%'])assert.ok(both.includes(x)||both.includes(x.replace(' / ',' / ')),x);
  // an English bill never invents English text: a shop with no English name falls back to the Thai one
  assert.ok(cashReceiptDoc(sale(),'en').includes('ร้านทดสอบ'));
  assert.ok(optionsText(null,[{label:'ไข่มุก',labelEn:''}],'en')==='ไข่มุก');

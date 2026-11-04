@@ -69,5 +69,5 @@ test('receipt look: Z-report and cash receipt take the shop look; a voided cash 
  const html=cashReceiptDoc(sale,'th',look({copy:2,paperMm:58}));
  assert.ok(html.includes('ยกเลิกแล้ว')&&html.includes('สำเนา ครั้งที่ 1')&&html.includes('แล้วพบกันใหม่')&&html.includes('size:48mm auto')&&html.includes('THB 65.00'));
  assert.ok(html.includes('<h1>ร้านทดสอบ</h1>'),'the legal seller name on a cash receipt still comes from the cash settings, not the receipt look');
- assert.ok(!html.includes('ใบกำกับภาษี'),'a no-VAT sale is never called a tax invoice');
+ assert.ok(!html.includes('ใบกำกับภาษี')&&!/tax invoice/i.test(html),'a cash receipt is never called a tax invoice');
 });

@@ -69,19 +69,19 @@ export function zReportDoc(slip: ShiftSlip, language: Lang, shop: ReceiptLook | 
 <p class="c"><small>${escapeHtml(t(language, 'ยอดชำระแล้ว ก่อนหักคืนเงินและค่าธรรมเนียม', 'Paid sales before refunds and fees'))}</small></p>`, 'Z-Report');
 }
 
-/** True when a cash sale may be shown as an abbreviated tax invoice: tax-inclusive, with a seller name and a 13-digit tax id. */
-export const isTaxInvoice = (sale: Pick<CashSale, 'vatMode' | 'seller'>) => sale.vatMode === 'inclusive' && !!sale.seller.name && /^[0-9]{13}$/.test(sale.seller.taxId ?? '');
-/** Cash register slip. Tax-inclusive sales with a complete seller profile print as an abbreviated tax invoice, everything else as a plain receipt. A voided sale is stamped. */
+/** True when a cash receipt shows the seller's tax id and the VAT breakdown: tax-inclusive, with a seller name and a 13-digit tax id. It is still only a receipt, never titled as a tax invoice. */
+export const showsTaxDetails = (sale: Pick<CashSale, 'vatMode' | 'seller'>) => sale.vatMode === 'inclusive' && !!sale.seller.name && /^[0-9]{13}$/.test(sale.seller.taxId ?? '');
+/** Cash register slip, always titled "ใบเสร็จรับเงิน / Receipt" (the system does not issue tax invoices). Tax-inclusive sales with a complete seller profile also show the tax id and VAT lines. A voided sale is stamped. */
 export function cashReceiptDoc(sale: CashSale, language: Lang, look: Partial<ReceiptLook> = {}): string {
   const money = (minor: string) => escapeHtml(formatMoney({ currency: sale.currency.code, decimals: sale.currency.decimals, amountMinor: minor } as never));
-  const invoice = isTaxInvoice(sale), when = new Date(sale.createdAt).toLocaleString(locale(language), { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  const invoice = showsTaxDetails(sale), when = new Date(sale.createdAt).toLocaleString(locale(language), { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
   const rows = sale.lines.map(l => { const opts = optionsText(l.sweetness, l.addons, language); return `<div class="row"><span>${l.qty}${l.unit ? ' ' + escapeHtml(l.unit) : '×'} ${escapeHtml(nm(language, l.name, l.nameEn))}${opts ? `<br><small>${escapeHtml(opts)}</small>` : ''}<br><small>@ ${money(l.unitMinor)}</small></span><span>${money(l.lineTotalMinor)}</span></div>`; }).join('');
   const sellerName = nm(language, sale.seller.name ?? '', sale.seller.nameEn), sellerAddress = nm(language, sale.seller.address ?? '', sale.seller.addressEn);
   const seller = sellerName ? `<h1>${escapeHtml(sellerName)}</h1>${sellerAddress ? `<p class="c">${escapeHtml(sellerAddress)}</p>` : ''}${invoice ? `<p class="c">${escapeHtml(t(language, 'เลขประจำตัวผู้เสียภาษี', 'Tax ID'))} ${escapeHtml(sale.seller.taxId ?? '')} · ${escapeHtml(t(language, 'สาขา', 'Branch'))} ${escapeHtml(sale.seller.branch ?? '00000')}</p>` : ''}` : '<h1>BitPOS</h1>';
   const discount = BigInt(sale.discountMinor) > 0n ? `<div class="row"><span>${escapeHtml(t(language, 'ยอดก่อนลด', 'Subtotal'))}</span><span>${money(sale.subtotalMinor)}</span></div><div class="row"><span>${escapeHtml(t(language, 'ส่วนลด', 'Discount'))}</span><span>-${money(sale.discountMinor)}</span></div>` : '';
   const vat = invoice ? `<div class="row"><span>${escapeHtml(t(language, 'มูลค่าก่อนภาษี', 'Amount before VAT'))}</span><span>${money(sale.netMinor)}</span></div><div class="row"><span>VAT ${(sale.vatBps / 100).toString()}%</span><span>${money(sale.vatMinor)}</span></div><p class="c"><small>${escapeHtml(t(language, 'ราคารวมภาษีมูลค่าเพิ่มแล้ว', 'Prices include VAT'))}</small></p>` : '';
   const voided = sale.status === 'VOIDED' ? `<p class="c big">*** ${escapeHtml(t(language, 'ยกเลิกแล้ว', 'VOID'))} ***</p>` : '';
-  const title = invoice ? t(language, 'ใบกำกับภาษีอย่างย่อ', 'Abbreviated tax invoice') : t(language, 'ใบเสร็จรับเงิน', 'Receipt');
+  const title = t(language, 'ใบเสร็จรับเงิน', 'Receipt');
   return base(widthOf(look), `${seller}<p class="c"><b>${escapeHtml(title)}</b><br>${escapeHtml(t(language, 'เลขที่', 'No.'))} ${escapeHtml(sale.receiptNo)}<br>${escapeHtml(when)}</p>${voided}${copyStamp(look, language)}<hr>${rows}<hr>${discount}
 <div class="row big"><span>${escapeHtml(t(language, 'รวมทั้งสิ้น', 'Total'))}</span><span>${money(sale.totalMinor)}</span></div>${vat}
 <div class="row"><span>${escapeHtml(t(language, 'รับเงินสด', 'Cash received'))}</span><span>${money(sale.tenderMinor)}</span></div><div class="row"><span>${escapeHtml(t(language, 'เงินทอน', 'Change'))}</span><span>${money(sale.changeMinor)}</span></div><hr>

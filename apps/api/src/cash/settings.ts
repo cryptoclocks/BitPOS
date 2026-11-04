@@ -19,7 +19,7 @@ export async function loadSettings(db:pg.PoolClient,merchant:string,lock=false):
  return r?view(r):DEFAULTS;
 }
 export async function getSettings(db:pg.PoolClient,merchant:string,role:string){staffUp(role);return {settings:await loadSettings(db,merchant)};}
-/** Owner only. A tax invoice needs a seller name and a 13-digit tax id; currency cannot change once prices or sales exist (no conversion is ever done). */
+/** Owner only. Showing VAT on the receipt needs a seller name and a 13-digit tax id (the printed document is a receipt, never a tax invoice); currency cannot change once prices or sales exist (no conversion is ever done). */
 export async function saveSettings(db:pg.PoolClient,merchant:string,actor:string,role:string,input:unknown){
  requireRole(role,true);
  const p=save.safeParse(input);if(!p.success)fail('INVALID_REQUEST',422);const d=p.data;
