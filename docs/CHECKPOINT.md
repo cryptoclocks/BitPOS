@@ -3933,3 +3933,8 @@ Validation: `tests/backend-table-paid-reorder.test.ts` plus table/durability/pay
 ### Mobile header hamburger (2026-11-05, commits `09066a4a`, follow-up `brand and hamburger on one row`)
 - At ≤700 px (signed in) the account actions (Guide, language with a text label, role badge, Switch user, Log out) collapse behind a hamburger on the same row as the logo; they open as a full-width list of equal 48 px rows and close on selection of Guide/language or when the section changes. Signed-out pages keep the Guide and language buttons.
 - Checked live at 375×812: hamburger on the logo row, real taps open and close it, list rows equal. Not checked: opening Switch user / Branch dialogs from inside the list on a phone; tablets between 560 and 700 px.
+
+### Header hamburger: the items left unchecked, now checked (2026-11-05, commit `590583b7`)
+- Switch user dialog opens from inside the phone hamburger list (centered modal) and closes; the list stays open as designed. The Branch dialog uses the same mechanism but the demo owner has a single branch, so it was not exercised.
+- Tablet widths: at 620 px the hamburger sits on the logo row and the sections show as a scrolling tab strip; at 760 px the normal action row shows.
+- Found and fixed a real bug while doing this: the shared `.shell button` style forced the hamburger visible on wide screens (it appeared next to the normal action row at 760 px and would on desktop). Fixed with a stronger selector; measured live: 375 px toggle visible and toolbar collapsed, 760 px and 1137 px toggle hidden and toolbar shown.
