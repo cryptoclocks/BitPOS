@@ -5,6 +5,7 @@ import {audit} from './db';
 import {defaultTimeZone} from './opening-hours';
 import {voidUnpaidOrder} from './order-closure';
 import {demoState} from './demo-money';
+import {refundState} from './order-refunds';
 import {orderViews} from './orders';
 import type {OrderRow} from './types';
 
@@ -91,7 +92,8 @@ export async function billDetail(db:pg.PoolClient,merchant:string,role:string,or
  const online=(await db.query<{k:string|null}>('SELECT source_kind AS k FROM order_authority WHERE merchant_id=$1 AND order_id=$2',[merchant,id.data])).rows[0]?.k==='online';
  const unpaid=['AWAITING_WALLET','AWAITING_PAYMENT'].includes(row.status)&&!row.closure_reason;
  const demo=await demoState(db,merchant,role,id.data,row.status,online,!!row.closure_reason);
- return {demo,order,void:voided?{reason:voided.reason,by:voided.voided_by,at:voided.voided_at.toISOString()}:null,
+ const refunds=await refundState(db,merchant,role,id.data,row.status,online);
+ return {demo,...refunds,order,void:voided?{reason:voided.reason,by:voided.voided_by,at:voided.voided_at.toISOString()}:null,
   attempts:attempts.map(a=>({status:a.status,signature:a.signature,at:a.created_at.toISOString()})),
   timeline:timeline.map(t=>({action:t.action,actor:t.actor,at:t.created_at.toISOString()})),
   canVoid:unpaid&&!online&&['owner','manager'].includes(role),

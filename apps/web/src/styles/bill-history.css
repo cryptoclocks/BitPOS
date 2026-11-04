@@ -12,3 +12,4 @@
 @media(max-width:700px){.bill-line{grid-template-columns:1fr auto}.bill-when{grid-column:1/-1;order:5}.bill-total{text-align:right}}
 @media(prefers-reduced-motion:reduce){.bill-row,.bill-detail{animation:none;transition:none}}
 .bill-demo{border:2px dashed #c99024;background:#fff8e6;border-radius:12px;padding:10px 12px;margin:10px 0;display:grid;gap:8px}.bill-demo-tag{margin:0;font-size:13px;color:#805300}.bill-demo label{display:grid;gap:4px;font-weight:600;font-size:14px;margin:0}.bill-demo input{min-height:40px}
+.bill-refund{border:2px solid #623cb4;background:#f6f1ff;border-radius:12px;padding:10px 12px;margin:10px 0;display:grid;gap:8px}.bill-refund-tag{margin:0;font-size:13px;color:#4a2a99}.bill-refund label{display:grid;gap:4px;font-weight:600;font-size:14px;margin:0}.bill-refund input{min-height:40px}.bill-refund small{overflow-wrap:anywhere}

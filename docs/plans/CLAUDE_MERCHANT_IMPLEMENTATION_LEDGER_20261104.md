@@ -78,7 +78,7 @@ Started 2026-11-04. Source plan: `docs/plans/CLAUDE_MERCHANT_FEATURE_COMPLETION_
 | 18 | Merchant support / package | partial / blocked_external | M13 help + readiness only. |
 
 ### Mandatory gaps (why this is not called complete)
-1. Store-side refund of a paid wallet/online order (money path; needs a reviewed payout/refund design). For demos only, a labelled SIMULATED refund and a demo pay button exist (migration 193, `demo-money.ts`, demo-catalog shops only); they are not the real feature.
+1. (closed for counter/table wallet orders, see CHECKPOINT: real devnet refund verified on chain; online orders keep the existing food-return flow; refunds are only executable where BitPOS operates the shop's treasury key) Store-side refund of a paid wallet order (was: money path; needs a reviewed payout/refund design). For demos only, a labelled SIMULATED refund and a demo pay button exist (migration 193, `demo-money.ts`, demo-catalog shops only); they are not the real feature.
 2. (closed, see below) Order-sale stock-ledger rows: migration 194 patches `settle_verified_attempt` in place with one statement after its product UPDATE (kind `ORDER_SALE`, same transaction and row locks, not on late settlement). Verified through the demo-pay path that runs the real routine; orders paid before the migration have no rows; a real chain payment has not been run through it.
 3. (closed) Overview business-day filter, net after refunds and drill-down — see group 1; refund arithmetic with real refund cases unverified.
 4. M12: provider-neutral adapter + automatic-retry outbox; no live provider verification.

@@ -18,6 +18,7 @@ import {createFoodSearchWorker} from './food-search';
 import {readFoodNavigationConfig} from '../../api/src/food-navigation-provider';
 import {createDriverSettlementRuntime} from './driver-settlement-runtime';
 import {createFoodRefundRuntime} from './food-refund-runtime';
+import {createStoreRefundRuntime} from './store-refund-runtime';
 import {createLoyaltyRuntime,tickLoyalty} from './loyalty';
 // Shared SQL test seam for the HTTP-submit/worker lock discipline. No RPC here.
 export async function lockReconciliationAttempt(db:pg.PoolClient,orderId:string,attemptId:string):Promise<AttemptRow|null>{
@@ -102,6 +103,8 @@ export async function runWorker(signal:AbortSignal,fixture?:PromotionJobFixture)
  let settlementStatus='';
  let refund:ReturnType<typeof createFoodRefundRuntime>|null=null;
  let refundStatus='';
+ let storeRefund:ReturnType<typeof createStoreRefundRuntime>|null=null;
+ let storeRefundStatus='';
  try{
   if(process.env.BITPOS_FOOD_SEARCH_DATABASE_URL!==undefined)search=createFoodSearchWorker(process.env.BITPOS_FOOD_SEARCH_DATABASE_URL,readFoodNavigationConfig(process.env));
   if(!search)console.error('Automatic food search unavailable: configure dedicated BITPOS_FOOD_SEARCH_DATABASE_URL before enabling the service');
@@ -109,6 +112,7 @@ export async function runWorker(signal:AbortSignal,fixture?:PromotionJobFixture)
   if(!push)console.error('Mobile phone notifications unavailable: configure dedicated BITPOS_MOBILE_PUSH_DATABASE_URL; no provider delivery asserted');
   try{settlement=createDriverSettlementRuntime();}catch{console.error('Driver settlement configuration unavailable; no payout signing or sending enabled');}
   try{refund=createFoodRefundRuntime();}catch{console.error('Food refund configuration unavailable; no refund signing or sending enabled');}
+  try{storeRefund=createStoreRefundRuntime();}catch{console.error('Store refund configuration unavailable; store refunds stay queued, nothing is signed or sent');}
   let loyalty:Awaited<ReturnType<typeof createLoyaltyRuntime>>=null;
   try{loyalty=await createLoyaltyRuntime();}catch{console.error('Loyalty badge signing unavailable (devnet keys or cluster); no badges issued or revoked');}
   await runWorkerLanes([
@@ -124,9 +128,10 @@ export async function runWorker(signal:AbortSignal,fixture?:PromotionJobFixture)
   ...(dispatch?[{tick:dispatch.tick,unavailable:'Private food discovery maintenance unavailable'}]:[]),
   ...(search?[{tick:()=>search!.tick(signal),unavailable:'Automatic food ranking unavailable; durable search retained'}]:[]),
   ...(push?[{tick:push.tick,unavailable:'Mobile notification transport unavailable; durable opaque deliveries retained'}]:[]),
+  ...(storeRefund?[{tick:async()=>{const result=await storeRefund!.worker.tick(signal),status=result.status+':'+Object.keys(result.outcomes).sort().join(',');if(status!==storeRefundStatus){storeRefundStatus=status;if(result.status!=='AVAILABLE')console.error('Store refund: '+result.status+'; no transfer inferred; outcomes='+Object.keys(result.outcomes).sort().join(','));}},unavailable:'Store refunds unavailable; durable requests retained'}]:[]),
   ...(refund?[{tick:async()=>{const result=await refund!.worker.tick(signal),status=result.status+':'+Object.keys(result.outcomes).sort().join(',');if(status!==refundStatus){refundStatus=status;if(result.status!=='AVAILABLE')console.error('Food refund: '+result.status+'; no transfer inferred; outcomes='+Object.keys(result.outcomes).sort().join(','));}},unavailable:'Food refund unavailable; durable reservations retained'}]:[]),
   ...(settlement?[{tick:async()=>{const result=await settlement!.worker.tick(signal),status=result.status+':'+Object.keys(result.reasons).sort().join(',');if(status!==settlementStatus){settlementStatus=status;if(result.status!=='AVAILABLE')console.error('Driver settlement: '+result.status+'; no transfer inferred; reasons='+Object.keys(result.reasons).sort().join(','));}},unavailable:'Driver settlement unavailable; durable reserves retained'}]:[]),
- ],signal);}finally{await Promise.all([search?.close(),dispatch?.close(),push?.close(),settlement?.close(),refund?.close()]);}
+ ],signal);}finally{await Promise.all([search?.close(),dispatch?.close(),push?.close(),settlement?.close(),refund?.close(),storeRefund?.close()]);}
 }
 async function run(){
  const stop=new AbortController(),shutdown=()=>stop.abort();

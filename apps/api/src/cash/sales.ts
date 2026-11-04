@@ -4,6 +4,7 @@ import {z} from 'zod';
 import {fail,requireRole} from '../authority';
 import {audit} from '../db';
 import {assertSellable} from '../catalog-availability';
+import {demoCashState} from '../demo-money';
 import {CashPriceError,priceCashSale,type CashTotals,type Discount} from './pricing';
 import {loadSettings,type CashSettings} from './settings';
 
@@ -121,7 +122,7 @@ export async function getCashSale(db:pg.PoolClient,merchant:string,role:string,i
  const u=z.string().uuid().safeParse(id);if(!u.success)fail('INVALID_REQUEST',422);
  const r=(await db.query<SaleRow>(`SELECT ${COLS} FROM cash_sales WHERE merchant_id=$1 AND id=$2`,[merchant,u.data])).rows[0];
  if(!r)fail('RESOURCE_NOT_FOUND',404);
- return {sale:view(r,await linesOf(db,merchant,r.id))};
+ return {sale:view(r,await linesOf(db,merchant,r.id)),demo:await demoCashState(db,merchant,role,r.id,r.status)};
 }
 /** Owner/manager only, with a reason. Stock goes back only when the person says the goods are sellable again. A receipt number is never reused. */
 export async function voidCashSale(db:pg.PoolClient,merchant:string,actor:string,role:string,id:unknown,input:unknown){
