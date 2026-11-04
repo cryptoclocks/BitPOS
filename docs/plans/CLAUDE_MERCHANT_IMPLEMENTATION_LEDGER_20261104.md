@@ -78,7 +78,7 @@ Started 2026-11-04. Source plan: `docs/plans/CLAUDE_MERCHANT_FEATURE_COMPLETION_
 | 18 | Merchant support / package | partial / blocked_external | M13 help + readiness only. |
 
 ### Mandatory gaps (why this is not called complete)
-1. Store-side refund of a paid wallet/online order (money path; needs a reviewed payout/refund design).
+1. Store-side refund of a paid wallet/online order (money path; needs a reviewed payout/refund design). For demos only, a labelled SIMULATED refund and a demo pay button exist (migration 193, `demo-money.ts`, demo-catalog shops only); they are not the real feature.
 2. Order-sale stock-ledger rows (counter/table/online sales change stock without a `stock_movements` row; needs a change to the payment-settlement SQL).
 3. (closed) Overview business-day filter, net after refunds and drill-down — see group 1; refund arithmetic with real refund cases unverified.
 4. M12: provider-neutral adapter + automatic-retry outbox; no live provider verification.

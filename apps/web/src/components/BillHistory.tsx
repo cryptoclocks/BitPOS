@@ -7,7 +7,7 @@ import { receiptLook } from '../lib/receipt-look';
 import '../styles/bill-history.css';
 
 interface Bill { kind: 'order' | 'cash'; id: string; ref: string; state: 'PAID' | 'OPEN' | 'VOIDED' | 'EXPIRED'; source: 'store' | 'online' | 'cash'; createdAt: string; currency: string; decimals: number; totalMinor: string | null; voidReason: string | null }
-interface Detail { order: { id: string; status: string; pricing?: { lines: { qty: number; name: string; nameEn?: string }[] } }; void: { reason: string; by: string; at: string } | null; attempts: { status: string; signature: string | null; at: string }[]; timeline: { action: string; actor: string; at: string }[]; canVoid: boolean; voidBlocked: 'PAID' | 'ONLINE' | 'NOT_OPEN' | 'ROLE' | null }
+interface Detail { order: { id: string; status: string; pricing?: { lines: { qty: number; name: string; nameEn?: string }[] } }; void: { reason: string; by: string; at: string } | null; attempts: { status: string; signature: string | null; at: string }[]; timeline: { action: string; actor: string; at: string }[]; demo?: { available: boolean; paidByDemo: boolean; canPay: boolean; canRefund: boolean; refund: { reason: string; by: string; at: string; amount: { currency: string; decimals: number; amountMinor: string } } | null }; canVoid: boolean; voidBlocked: 'PAID' | 'ONLINE' | 'NOT_OPEN' | 'ROLE' | null }
 interface CashDetail { sale: { id: string; receiptNo: string; status: 'PAID' | 'VOIDED'; cashier: string; tenderMinor: string; changeMinor: string; currency: { code: string; decimals: number }; void: { reason: string; at: string; restocked: boolean } | null; lines: { name: string; nameEn: string; qty: number }[] } }
 
 // Every bill in one searchable list (counter/table orders and cash sales), newest first. Totals are shown in each bill's own currency and are
@@ -46,6 +46,23 @@ export default function BillHistory({ token, role, language, preset }: { token: 
       if (!html) throw new Error('NO_DETAIL');
       setMessage((await printDocument(html)) ? text(`ส่งพิมพ์สำเนาใบเสร็จแล้ว (สำเนาที่ ${rec.copy - 1})`, `Receipt copy sent to print (copy ${rec.copy - 1}).`) : text('เบราว์เซอร์บล็อกการพิมพ์', 'The browser blocked printing'));
     } catch (e) { setMessage(errorMessage(e)); }
+    setBusy(false);
+  }
+  const [demoReason, setDemoReason] = useState('');
+  // Demo money: only offered by the server in a demo-catalog shop. Nothing real moves; the label says so everywhere.
+  async function demoPayBill(b: Bill) {
+    if (!window.confirm(text('ชำระออเดอร์นี้ด้วยเงินเดโม? ไม่มีเงินจริงเคลื่อนไหว ใช้เพื่อสาธิตเท่านั้น', 'Pay this order with demo money? No real money moves. For demonstration only.'))) return;
+    setBusy(true); setMessage('');
+    try { await api(`/bills/orders/${b.id}/demo-pay`, undefined, token, 'POST'); setMessage(text('ชำระด้วยเงินเดโมแล้ว', 'Paid with demo money.')); await load(false); await open({ ...b }); }
+    catch (e) { setMessage(errorMessage(e)); }
+    setBusy(false);
+  }
+  async function demoRefundBill(b: Bill) {
+    if (demoReason.trim().length < 3) { setMessage(text('ใส่เหตุผลอย่างน้อย 3 ตัวอักษร', 'Give a reason of at least 3 characters.')); return; }
+    if (!window.confirm(text('จำลองการคืนเงินเต็มจำนวน? ไม่มีเงินจริงถูกคืน บันทึกเป็นรายการจำลองเท่านั้น', 'Simulate a full refund? No real money is returned; only a simulated record is saved.'))) return;
+    setBusy(true); setMessage('');
+    try { await api(`/bills/orders/${b.id}/demo-refund`, { reason: demoReason.trim() }, token); setDemoReason(''); setMessage(text('บันทึกการคืนเงินจำลองแล้ว', 'Simulated refund recorded.')); await open({ ...b }); }
+    catch (e) { setMessage(errorMessage(e)); }
     setBusy(false);
   }
   async function voidBill(b: Bill) {
@@ -91,6 +108,12 @@ export default function BillHistory({ token, role, language, preset }: { token: 
           {detail.order.pricing?.lines && <ul className="bill-lines">{detail.order.pricing.lines.map((l, i) => <li key={i}>{l.qty}× {language === 'en' && l.nameEn ? l.nameEn : l.name}</li>)}</ul>}
           {detail.void && <p className="notice" role="status">{text('ยกเลิกแล้ว', 'Voided')} · {when(detail.void.at)} · {detail.void.reason}</p>}{b.state === 'PAID' && <div className="toolbar"><button type="button" className="secondary" disabled={busy} onClick={() => void reprint(b)}>{text('พิมพ์ใบเสร็จซ้ำ (สำเนา)', 'Reprint receipt (copy)')}</button></div>}
           <ol className="bill-timeline" aria-label={text('ประวัติการดำเนินการ', 'Timeline')}>{detail.timeline.map((t, i) => <li key={i}><time>{when(t.at)}</time> {t.action}</li>)}</ol>
+          {detail.demo?.available && <div className="bill-demo" role="group" aria-label={text('ปุ่มเดโม', 'Demo buttons')}><p className="bill-demo-tag"><b>DEMO</b> {text('ไม่ใช่เงินจริง ใช้สาธิตในร้านที่ตั้งแค็ตตาล็อกทดสอบเท่านั้น', 'Not real money. Only in a shop with a test catalog.')}</p>
+            {detail.demo.canPay && <button type="button" disabled={busy} onClick={() => void demoPayBill(b)}>{text('ชำระด้วยเงินเดโม', 'Pay with demo money')}</button>}
+            {detail.demo.paidByDemo && <p className="bill-note">{text('ชำระด้วยเงินเดโมแล้ว', 'Paid with demo money')}</p>}
+            {detail.demo.canRefund && <><label>{text('เหตุผลที่คืนเงิน (3–120 ตัวอักษร)', 'Reason for the refund (3–120 characters)')}<input value={demoReason} maxLength={120} onChange={e => setDemoReason(e.target.value)} /></label><button type="button" className="secondary" disabled={busy} onClick={() => void demoRefundBill(b)}>{text('จำลองคืนเงิน (เดโม)', 'Simulate refund (demo)')}</button></>}
+            {detail.demo.refund && <p className="notice" role="status">{text('คืนเงินจำลองแล้ว', 'Simulated refund')} · {formatMoney({ ...detail.demo.refund.amount } as never)} · {when(detail.demo.refund.at)} · {detail.demo.refund.reason}</p>}
+          </div>}
           {detail.canVoid ? <div className="bill-void"><label>{text('เหตุผลที่ยกเลิก (3–120 ตัวอักษร)', 'Reason for voiding (3–120 characters)')}<input value={reason} maxLength={120} onChange={e => setReason(e.target.value)} /></label><button type="button" disabled={busy} onClick={() => void voidBill(b)}>{text('ยกเลิกออเดอร์ (void)', 'Void order')}</button></div> : <p className="bill-note">{voidBlockedText(detail)}</p>}
         </>}
         {detail && b.kind === 'cash' && 'sale' in detail && <>
