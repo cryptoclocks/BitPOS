@@ -21,14 +21,20 @@ export interface SalesBreakdown{from:string;to:string;timeZone:string;totals:Tal
 const key=(c:string,d:number)=>c+'\u0000'+d;
 function add(map:Map<string,bigint>,k:string,v:string){map.set(k,(map.get(k)??0n)+BigInt(v));}
 
-/** Owner/manager only. */
-export async function salesBreakdown(db:pg.PoolClient,merchant:string,role:string,url:URL):Promise<SalesBreakdown>{
- requireRole(role);
+/** The one definition of a valid report window (strict {from,to}, from<=to, at most maxReportDays), shared with the branch comparison. */
+export function parseBreakdownWindow(url:URL):{from:string;to:string}{
  const keys=[...url.searchParams.keys()];if(new Set(keys).size!==keys.length)fail('INVALID_REQUEST',422);
  const q=query.safeParse(Object.fromEntries(url.searchParams));if(!q.success)fail('INVALID_REQUEST',422);
  const {from,to}=q.data;
  const span=(Date.parse(to+'T00:00:00Z')-Date.parse(from+'T00:00:00Z'))/86400000;
  if(span<0||span+1>maxReportDays)fail('INVALID_REQUEST',422);
+ return {from,to};
+}
+
+/** Owner/manager only. */
+export async function salesBreakdown(db:pg.PoolClient,merchant:string,role:string,url:URL):Promise<SalesBreakdown>{
+ requireRole(role);
+ const {from,to}=parseBreakdownWindow(url);
  const timeZone=(await db.query<{time_zone:string}>('SELECT time_zone FROM merchant_opening_hours WHERE merchant_id=$1',[merchant])).rows[0]?.time_zone??defaultTimeZone;
  const args=[merchant,from,to,timeZone];
  const paid=`o.merchant_id=$1 AND o.status='PAID' AND o.paid_at IS NOT NULL AND o.paid_at>=($2::date::timestamp AT TIME ZONE $4) AND o.paid_at<(($3::date+1)::timestamp AT TIME ZONE $4)`;

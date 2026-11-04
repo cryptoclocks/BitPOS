@@ -77,6 +77,7 @@ import {teamRequest} from './team';
 import {checkSwitch,directory as staffDirectory,setPin as setStaffPin,updateProfile as updateStaffProfile} from './staff-access';
 import {inventoryRequest} from './inventory';
 import {activityHistory} from './activity';
+import {branchComparison} from './branches';
 import {getReceiptSettings,saveReceiptSettings,recordReprint} from './receipt-settings';
 import {archiveProduct,createProduct,editProduct,renameCategory,unarchiveProduct} from './catalog-edit';
 import {listAvailability,setAvailability} from './catalog-availability';
@@ -270,6 +271,7 @@ export async function handle(req:http.IncomingMessage){
   return {token:outcome.token,userId:outcome.r.userId,merchantId:session.merchant_id,role:outcome.r.role};
  }
 const merchant=session.merchant_id;
+ if(path==='/api/branches/comparison'&&method==='GET')return branchComparison(session.user_id,merchant,session.current_role,url);
  if(path==='/api/product-images'&&method==='POST'){const bytes=await readRaw(req,maxProductImageBytes);return tenant(merchant,db=>uploadProductImage(db,merchant,session.user_id,session.current_role,bytes));}
  return tenant(merchant,async db=>{
  const returned=await merchantFoodReturnRequest(db,url,method??'GET',input,session.current_role,hash(token));if(returned!==undefined)return returned;
