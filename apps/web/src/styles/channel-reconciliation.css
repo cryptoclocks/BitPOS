@@ -1,0 +1,11 @@
+.channel-recon-providers,.channel-recon-issues{list-style:none;margin:8px 0;padding:0;display:grid;gap:8px}
+.channel-recon-providers li{display:grid;grid-template-columns:110px minmax(0,1fr);gap:2px 10px;align-items:baseline;border:1px solid var(--bp-line);border-radius:12px;padding:10px 12px}
+.channel-recon-providers li small{grid-column:2;color:var(--bp-muted,#6b5b7b)}
+.channel-recon-issues li{border:1px solid var(--bp-line);border-radius:12px;padding:10px 12px;min-width:0}
+.channel-recon-issues li[data-severity=attention]{border-color:var(--bp-action)}
+.channel-recon-issues p{margin:4px 0}
+.recon-chip{display:inline-block;border-radius:999px;padding:2px 10px;font-size:12px;background:#efe7f8;color:#4a2a78}
+.recon-chip.blocked_external,.recon-chip.attention{background:#f7e4e4;color:#8a1f1f}
+.recon-chip.credentials_only{background:#fdf1d8;color:#7a5200}
+.recon-sample{font-size:13px;overflow-wrap:anywhere}
+@media(max-width:560px){.channel-recon-providers li{grid-template-columns:minmax(0,1fr)}.channel-recon-providers li small{grid-column:1}}
