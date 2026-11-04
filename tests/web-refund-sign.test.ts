@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {signOwnerRefund,cancelOwnerRefund,WalletMismatch,decodeBase64,encodeBase64,shortAddress} from '../apps/web/src/lib/refund-sign';
+import {signOwnerRefund,cancelOwnerRefund,WalletMismatch,WalletTimeout,withWalletTimeout,decodeBase64,encodeBase64,shortAddress} from '../apps/web/src/lib/refund-sign';
 import type {ConnectedWallet} from '../apps/web/src/lib/wallet';
 // Browser side of the owner-signed refund: the connected wallet must be the shop's treasury BEFORE anything is requested, the prepared bytes go to the wallet
 // untouched, and only what the wallet returns is submitted.
@@ -28,3 +28,13 @@ test('prepare, sign the exact prepared bytes, submit only the signed bytes',asyn
  }finally{s.restore();}
 });
 test('base64 helpers round-trip and addresses are shortened for display',()=>{assert.deepEqual(Array.from(decodeBase64(encodeBase64(Uint8Array.from([0,255,128])))),[0,255,128]);assert.equal(shortAddress('4Vm9jmb7JNd7SRJiD6PWxhkxjFck1xDGzxGchTd7BAdh'),'4Vm9…7BAdh'.replace('…','…').slice(0,4)+'…'+'7BAdh'.slice(1));});
+test('a wallet that never answers ends in a visible timeout instead of hanging forever',async()=>{
+ const s=stubFetch(()=>({refundId:'r',sourceOwner:'TREASURY',beneficiary:'B',amountMinor:'1',unsignedBase64:'AQ==',lastValidBlockHeight:1}));
+ const silent:ConnectedWallet={address:'TREASURY',name:'t',fixture:true,signMessage:async()=>new Uint8Array(64),signTransaction:()=>new Promise<Uint8Array>(()=>{})};
+ try{
+  await assert.rejects(signOwnerRefund('o1','tok',silent,'TREASURY',30),(e:unknown)=>e instanceof WalletTimeout&&e.step==='sign');
+  assert.deepEqual(s.calls.map(c=>c.path),['/api/bills/orders/o1/refund/prepare'],'nothing is submitted when the wallet never signed');
+  await assert.rejects(withWalletTimeout(new Promise<never>(()=>{}),'connect',20),(e:unknown)=>e instanceof WalletTimeout&&e.step==='connect');
+  assert.equal(await withWalletTimeout(Promise.resolve(7),'connect',20),7);
+ }finally{s.restore();}
+});

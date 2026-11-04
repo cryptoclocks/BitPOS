@@ -7,16 +7,23 @@ import type { ConnectedWallet } from './wallet';
 export interface PreparedRefund { refundId: string; sourceOwner: string; beneficiary: string; amountMinor: string; unsignedBase64: string; lastValidBlockHeight: number }
 export class WalletMismatch extends Error { constructor(public readonly expected: string, public readonly actual: string) { super('WALLET_MISMATCH'); } }
 
+/** The wallet never answered (locked, popup hidden or closed). The page must not hang silently: it tells the owner what to check and lets them try again. */
+export class WalletTimeout extends Error { constructor(public readonly step: 'connect' | 'sign') { super('WALLET_TIMEOUT'); } }
+export const CONNECT_TIMEOUT_MS = 45_000, SIGN_TIMEOUT_MS = 120_000;
+export function withWalletTimeout<T>(work: Promise<T>, step: 'connect' | 'sign', ms: number): Promise<T> {
+  let timer: ReturnType<typeof setTimeout>;
+  return Promise.race([work, new Promise<never>((_, reject) => { timer = setTimeout(() => reject(new WalletTimeout(step)), ms); })]).finally(() => clearTimeout(timer));
+}
 export const shortAddress = (address: string) => address.length > 12 ? `${address.slice(0, 4)}…${address.slice(-4)}` : address;
 export const decodeBase64 = (value: string) => Uint8Array.from(atob(value), char => char.charCodeAt(0));
 export const encodeBase64 = (bytes: Uint8Array) => btoa(Array.from(bytes, byte => String.fromCharCode(byte)).join(''));
 
 /** Connect, check this is the treasury wallet, fetch a fresh unsigned transaction, sign it and hand it back. */
-export async function signOwnerRefund(orderId: string, token: string, wallet: ConnectedWallet, expectedOwner: string) {
+export async function signOwnerRefund(orderId: string, token: string, wallet: ConnectedWallet, expectedOwner: string, signTimeoutMs = SIGN_TIMEOUT_MS) {
   if (wallet.address !== expectedOwner) throw new WalletMismatch(expectedOwner, wallet.address);
   const prepared = await api<PreparedRefund>(`/bills/orders/${orderId}/refund/prepare`, {}, token);
   if (prepared.sourceOwner !== wallet.address) throw new WalletMismatch(prepared.sourceOwner, wallet.address);
-  const signed = await wallet.signTransaction(decodeBase64(prepared.unsignedBase64));
+  const signed = await withWalletTimeout(wallet.signTransaction(decodeBase64(prepared.unsignedBase64)), 'sign', signTimeoutMs);
   return api<{ refund: { id: string; state: string; signature: string | null } }>(`/bills/orders/${orderId}/refund/submit`, { base64: encodeBase64(signed) }, token);
 }
 export async function cancelOwnerRefund(orderId: string, token: string) {

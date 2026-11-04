@@ -3,7 +3,7 @@ import { api, ApiError, errorMessage } from '../lib/api';
 import { formatMoney } from '../lib/money';
 import { printDocument, receiptDoc, cashReceiptDoc } from '../lib/print-slip';
 import { discoverWallets, type WalletChoice } from '../lib/wallet';
-import { signOwnerRefund, cancelOwnerRefund, shortAddress, WalletMismatch } from '../lib/refund-sign';
+import { signOwnerRefund, cancelOwnerRefund, shortAddress, WalletMismatch, WalletTimeout, withWalletTimeout, CONNECT_TIMEOUT_MS } from '../lib/refund-sign';
 import { readReceiptLang } from '../lib/receipt-lang';
 import { receiptLook } from '../lib/receipt-look';
 import '../styles/bill-history.css';
@@ -83,12 +83,12 @@ export default function BillHistory({ token, role, language, preset }: { token: 
     REFUND_CHAIN_UNAVAILABLE: ['ติดต่อ Solana devnet ไม่ได้ในขณะนี้ ลองใหม่อีกครั้ง', 'Solana devnet is not reachable right now. Try again.'],
     REFUND_NOT_AWAITING: ['คำขอคืนเงินนี้ไม่ได้รอการเซ็นแล้ว รีเฟรชดูสถานะล่าสุด', 'This refund is no longer waiting for a signature. Refresh to see its latest state.'],
   };
-  const refundError = (e: unknown) => e instanceof WalletMismatch ? text(`กระเป๋าที่ต่อไม่ใช่กระเป๋า treasury ของร้าน (${shortAddress(e.expected)}) ให้เปลี่ยนบัญชีในกระเป๋าแล้วลองใหม่`, `The connected wallet is not the shop’s treasury wallet (${shortAddress(e.expected)}). Switch the account in your wallet and try again.`)
+  const refundError = (e: unknown) => e instanceof WalletTimeout ? text(e.step === 'connect' ? 'กระเป๋าไม่ตอบรับการเชื่อมต่อ ปลดล็อก Phantom (ไอคอนส่วนขยายมุมขวาบนของเบราว์เซอร์) ดูว่ามีคำขอ Connect ค้างอยู่หรือไม่ อนุมัติหรือปิดคำขอนั้น แล้วกดเซ็นใหม่' : 'ยังไม่ได้รับการอนุมัติเซ็นจากกระเป๋า เปิด Phantom ดูคำขอที่ค้างอยู่ กด Confirm หรือปิดคำขอ แล้วกดเซ็นใหม่ (ยังไม่มีเงินเคลื่อนไหว)', e.step === 'connect' ? 'The wallet did not answer the connection request. Unlock Phantom (extension icon, top right of the browser), look for a pending Connect request, approve or close it, then press Sign again.' : 'The wallet has not approved the signature yet. Open Phantom, find the pending request, press Confirm or close it, then press Sign again (no money has moved).') : e instanceof WalletMismatch ? text(`กระเป๋าที่ต่อไม่ใช่กระเป๋า treasury ของร้าน (${shortAddress(e.expected)}) ให้เปลี่ยนบัญชีในกระเป๋าแล้วลองใหม่`, `The connected wallet is not the shop’s treasury wallet (${shortAddress(e.expected)}). Switch the account in your wallet and try again.`)
     : e instanceof ApiError && refundMessages[e.code] ? text(...refundMessages[e.code]!) : errorMessage(e);
   async function signRefundWith(b: Bill, choice: WalletChoice, expected: string) {
     setChoices(null); setBusy(true); setMessage('');
     try {
-      const wallet = await choice.connect();
+      const wallet = await withWalletTimeout(choice.connect(), 'connect', CONNECT_TIMEOUT_MS);
       await signOwnerRefund(b.id, token, wallet, expected);
       setMessage(text('เซ็นแล้ว ระบบกำลังส่งเข้าเครือข่ายและรอยืนยันบน blockchain', 'Signed. The system is sending it to the network and waiting for on-chain confirmation.'));
     } catch (e) { setMessage(refundError(e)); }
@@ -189,7 +189,7 @@ export default function BillHistory({ token, role, language, preset }: { token: 
                 {detail.refund.signature && <><dt>{text('ลายเซ็นธุรกรรม', 'Signature')}</dt><dd><a href={`https://explorer.solana.com/tx/${detail.refund.signature}?cluster=devnet`} target="_blank" rel="noreferrer noopener">{detail.refund.signature.slice(0, 16)}…</a></dd></>}</dl>
               {detail.refund.lastReason && detail.refund.state !== 'FINALIZED' && <small>{detail.refund.lastReason}</small>}</>}
             {detail.refund?.state === 'AWAITING_OWNER' && <div className="bill-refund-sign">
-              {busy && <p className="bill-refund-wait" role="status">{text('กำลังรอคุณอนุมัติในกระเป๋า (หน้าต่าง Phantom หรือกระเป๋าที่เลือก)…', 'Waiting for you to approve in your wallet (the Phantom or other wallet window)…')}</p>}
+              {busy && <p className="bill-refund-wait" role="status">{text('กำลังรอคุณอนุมัติในกระเป๋า ถ้าไม่เห็นหน้าต่างเด้งขึ้นมา ให้คลิกไอคอน Phantom ที่แถบส่วนขยายของเบราว์เซอร์ (ต้องปลดล็อกก่อน) ระบบจะหยุดรอเองใน 45 วินาที', 'Waiting for you to approve in your wallet. If no window appeared, click the Phantom icon in the browser’s extension bar (unlock it first). This stops waiting by itself after 45 seconds.')}</p>}
               {choices && <div className="bill-refund-actions" role="group" aria-label={text('เลือกกระเป๋า', 'Choose a wallet')}>{choices.map(c => <button key={c.name} type="button" className="secondary" disabled={busy} onClick={() => void signRefundWith(b, c, detail.refund!.sourceOwner)}>{c.name}</button>)}</div>}
               <div className="bill-refund-actions">
                 <button type="button" disabled={busy} onClick={() => void startRefundSign(b, detail.refund!.sourceOwner)}>{text('เซ็นคืนเงินด้วยกระเป๋าเจ้าของร้าน', 'Sign the refund with the owner’s wallet')}</button>
