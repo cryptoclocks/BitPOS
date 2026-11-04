@@ -164,7 +164,7 @@ export default function BillHistory({ token, role, language, preset }: { token: 
     {error && <p className="error" role="alert">{error} <button type="button" className="secondary" onClick={() => void load(false)}>{text('ลองอีกครั้ง', 'Retry')}</button></p>}
     {!bills && loading && <p className="notice" role="status">{text('กำลังโหลด…', 'Loading…')}</p>}
     {bills && !bills.length && !error && <p className="notice" role="status">{text('ไม่พบบิลตามเงื่อนไข', 'No bills match.')}</p>}
-    {bills && !!bills.length && <ul className="bill-list">{bills.map(b => { const key = `${b.kind}:${b.id}`; return <li key={key} className={`bill-row ${b.state.toLowerCase()}`}>
+    {bills && !!bills.length && <ul className="bill-list"><li className="bill-list-head" aria-hidden="true"><span>{text('เลขบิล', 'Receipt')}</span><span>{text('เวลา', 'Time')}</span><span>{text('ช่องทาง', 'Channel')}</span><span>{text('สถานะ', 'Status')}</span><span>{text('ยอด', 'Amount')}</span></li>{bills.map(b => { const key = `${b.kind}:${b.id}`; return <li key={key} className={`bill-row ${b.state.toLowerCase()}`}>
       <button type="button" className="bill-line" aria-expanded={openKey === key} onClick={() => void open(b)}><strong>#{b.ref}</strong><span className="bill-when">{when(b.createdAt)}</span><span className="bill-chip src">{sourceLabel[b.source]}</span><span className={`bill-chip ${b.state.toLowerCase()}`}>{stateLabel[b.state]}</span><span className="bill-total">{total(b)}</span></button>
       {b.voidReason && <small className="bill-reason">{text('เหตุผล', 'Reason')}: {b.voidReason}</small>}
       {openKey === key && <div className="bill-detail">
