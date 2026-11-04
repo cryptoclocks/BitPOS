@@ -37,8 +37,13 @@ test('demo pay settles through the real routine and demo refund is only a simula
   assert.equal((await row('SELECT status FROM orders WHERE id=$1',[A]))[0].status,'PAID');
   assert.deepEqual((await row('SELECT stock,reserved FROM products WHERE id=$1',[f.product]))[0],{stock:98,reserved:0});
   const pay=await row('SELECT signature,state FROM payments WHERE order_id=$1',[A]);assert.equal(pay.length,1);assert.ok(pay[0].signature.startsWith('demo:'));
+  // the sale is in the stock ledger exactly once, reconciling products.stock (100 -> 98)
+  const led=await row('SELECT kind,delta,stock_before,stock_after,reference FROM stock_movements WHERE kind=$1 AND product_id=$2',['ORDER_SALE',f.product]);
+  assert.deepEqual(led.map(r=>[r.kind,r.delta,r.stock_before,r.stock_after,r.reference]),[['ORDER_SALE',-2,100,98,'order:'+A]]);
+  const viaApi=(await call('owner','GET','/api/inventory/movements?kind=ORDER_SALE')).body;assert.equal(viaApi.movements.filter((m:any)=>m.reference==='order:'+A).length,1);
   assert.equal((await call('owner','POST',`/api/bills/orders/${A}/demo-pay`)).body.replayed,true);
   assert.deepEqual((await row('SELECT stock FROM products WHERE id=$1',[f.product]))[0],{stock:98},'a second tap sells nothing more');
+  assert.equal((await row('SELECT count(*)::int n FROM stock_movements WHERE kind=$1 AND product_id=$2',['ORDER_SALE',f.product]))[0].n,1);
   const d1=(await call('owner','GET',`/api/bills/orders/${A}`)).body;assert.deepEqual([d1.order.status,d1.demo.paidByDemo,d1.demo.canPay,d1.demo.canRefund],['PAID',true,false,true]);
   // it is a normal paid sale for reports
   const day=today();const bd=(await call('owner','GET',`/api/reports/breakdown?from=${day}&to=${day}`)).body;assert.equal(bd.totals.find((t:any)=>t.currency==='USD').totalMinor,'540');

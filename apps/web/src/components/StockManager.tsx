@@ -6,7 +6,7 @@ import { isLowStock, lowStockRows } from '../lib/low-stock';
 import '../styles/stock-manager.css';
 
 interface StockRow { productId: string; stock: number; reserved: number; available: number; reorderLevel: number | null }
-type MovementKind = 'RECEIVE' | 'ADJUST' | 'CHANNEL_SALE' | 'CASH_SALE' | 'CASH_VOID_RETURN';
+type MovementKind = 'RECEIVE' | 'ADJUST' | 'CHANNEL_SALE' | 'CASH_SALE' | 'CASH_VOID_RETURN' | 'ORDER_SALE';
 interface SupplierOption { id: string; name: string; active: boolean }
 interface Movement { id: string; productId: string; kind: MovementKind; supplierId: string | null; delta: number; stockBefore: number; stockAfter: number; reason: string; reference: string; actor: string; createdAt: string }
 
@@ -21,7 +21,7 @@ export default function StockManager({ products, token, language }: { products: 
   const [suppliers, setSuppliers] = useState<SupplierOption[]>([]); const [supplierId, setSupplierId] = useState('');
   const [filterKind, setFilterKind] = useState(''); const [filterProduct, setFilterProduct] = useState(''); const [nextCursor, setNextCursor] = useState<string | null>(null); const [moreBusy, setMoreBusy] = useState(false);
   const [view, setView] = useState<'all' | 'low'>('all'); const [levelFor, setLevelFor] = useState<StockRow>(); const [level, setLevel] = useState('');
-  const kindLabel = (kind: MovementKind) => ({ RECEIVE: text('รับเข้า', 'Receive'), ADJUST: text('ปรับ', 'Adjust'), CASH_SALE: text('ขายเงินสด', 'Cash sale'), CASH_VOID_RETURN: text('คืนสต็อกจากยกเลิกบิลเงินสด', 'Cash void return'), CHANNEL_SALE: text('ขายผ่านแพลตฟอร์ม', 'Platform sale') } as Record<MovementKind, string>)[kind];
+  const kindLabel = (kind: MovementKind) => ({ RECEIVE: text('รับเข้า', 'Receive'), ADJUST: text('ปรับ', 'Adjust'), CASH_SALE: text('ขายเงินสด', 'Cash sale'), CASH_VOID_RETURN: text('คืนสต็อกจากยกเลิกบิลเงินสด', 'Cash void return'), CHANNEL_SALE: text('ขายผ่านแพลตฟอร์ม', 'Platform sale'), ORDER_SALE: text('ขายออเดอร์ (หน้าร้าน/โต๊ะ/ออนไลน์)', 'Order sale (store/table/online)') } as Record<MovementKind, string>)[kind];
   const supplierName = (id: string) => suppliers.find(item => item.id === id)?.name ?? id.slice(0, 8);
   const name = (id: string) => { const p = products.find(item => item.id === id); return p ? (language === 'th' ? p.name : p.nameEn) : id.slice(0, 8); };
   const movementPath = (cursor = '') => {
@@ -94,7 +94,7 @@ export default function StockManager({ products, token, language }: { products: 
     {message && <p className="notice" role="status">{message}</p>}
     <h2>{text('รายการเคลื่อนไหวสต็อก', 'Stock movements')}</h2>
     <div className="toolbar" role="group" aria-label={text('ตัวกรองรายการเคลื่อนไหว', 'Movement filters')}>
-      <label>{text('ประเภท', 'Type')}<select value={filterKind} onChange={event => setFilterKind(event.target.value)}><option value="">{text('ทั้งหมด', 'All')}</option>{(['RECEIVE', 'ADJUST', 'CASH_SALE', 'CASH_VOID_RETURN', 'CHANNEL_SALE'] as MovementKind[]).map(kind => <option key={kind} value={kind}>{kindLabel(kind)}</option>)}</select></label>
+      <label>{text('ประเภท', 'Type')}<select value={filterKind} onChange={event => setFilterKind(event.target.value)}><option value="">{text('ทั้งหมด', 'All')}</option>{(['RECEIVE', 'ADJUST', 'CASH_SALE', 'CASH_VOID_RETURN', 'CHANNEL_SALE', 'ORDER_SALE'] as MovementKind[]).map(kind => <option key={kind} value={kind}>{kindLabel(kind)}</option>)}</select></label>
       <label>{text('สินค้า', 'Product')}<select value={filterProduct} onChange={event => setFilterProduct(event.target.value)}><option value="">{text('ทั้งหมด', 'All')}</option>{rows.map(row => <option key={row.productId} value={row.productId}>{name(row.productId)}</option>)}</select></label>
     </div>
     {history.length ? <div className="stock-scroll"><table className="catalog-table"><thead><tr><th>{text('เวลา', 'When')}</th><th>{text('สินค้า', 'Product')}</th><th>{text('ประเภท', 'Type')}</th><th>{text('เปลี่ยน', 'Change')}</th><th>{text('หลังเปลี่ยน', 'After')}</th><th>{text('เหตุผล', 'Reason')}</th></tr></thead><tbody>{history.map(m => <tr key={m.id}><td>{new Date(m.createdAt).toLocaleString(language === 'th' ? 'th-TH' : 'en-GB')}</td><td>{name(m.productId)}</td><td>{kindLabel(m.kind)}</td><td>{m.delta > 0 ? `+${m.delta}` : m.delta}</td><td>{m.stockAfter}</td><td>{m.reason}{m.reference ? ` · ${m.reference}` : ''}{m.supplierId ? ` · ${supplierName(m.supplierId)}` : ''}</td></tr>)}</tbody></table></div> : <p className="notice">{filterKind || filterProduct ? text('ไม่มีรายการตามตัวกรองนี้', 'No movements match these filters.') : text('ยังไม่มีรายการ', 'No movements yet.')}</p>}

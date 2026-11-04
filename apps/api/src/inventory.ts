@@ -12,8 +12,8 @@ const movement=z.object({
  expectedStock:z.number().int().min(0),idempotencyKey:z.string().min(1).max(128),supplierId:uuid.nullable().optional()
 }).strict().refine(v=>v.kind!=='RECEIVE'||v.delta>0).refine(v=>!v.supplierId||v.kind==='RECEIVE');
 export interface StockRow{productId:string;stock:number;reserved:number;available:number;reorderLevel:number|null}
-export type MovementKind='RECEIVE'|'ADJUST'|'CHANNEL_SALE'|'CASH_SALE'|'CASH_VOID_RETURN';
-const kinds:MovementKind[]=['RECEIVE','ADJUST','CHANNEL_SALE','CASH_SALE','CASH_VOID_RETURN'];
+export type MovementKind='RECEIVE'|'ADJUST'|'CHANNEL_SALE'|'CASH_SALE'|'CASH_VOID_RETURN'|'ORDER_SALE';
+const kinds:MovementKind[]=['RECEIVE','ADJUST','CHANNEL_SALE','CASH_SALE','CASH_VOID_RETURN','ORDER_SALE'];
 export interface StockMovement{id:string;productId:string;supplierId:string|null;kind:MovementKind;delta:number;stockBefore:number;stockAfter:number;reason:string;reference:string;actor:string;createdAt:string}
 const view=(r:{id:string;product_id:string;supplier_id?:string|null;kind:MovementKind;delta:number;stock_before:number;stock_after:number;reason:string;reference:string;actor:string;created_at:Date}):StockMovement=>({id:r.id,productId:r.product_id,supplierId:r.supplier_id??null,kind:r.kind,delta:r.delta,stockBefore:r.stock_before,stockAfter:r.stock_after,reason:r.reason,reference:r.reference,actor:r.actor,createdAt:r.created_at.toISOString()});
 /** Owner/manager only. Quantity changes are optimistic (expectedStock), idempotent, never below reserved stock, and ledgered. */
