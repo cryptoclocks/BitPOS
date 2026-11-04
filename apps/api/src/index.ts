@@ -85,7 +85,7 @@ import {getReceiptSettings,saveReceiptSettings,recordReprint} from './receipt-se
 import {channelPrices,saveChannelPrices} from './channel-prices';
 import {myBranches,switchBranch} from './branch-switch';
 import {demoPay,demoRefund,demoCashRefund} from './demo-money';
-import {requestOrderRefund} from './order-refunds';
+import {requestOrderRefund,prepareOwnerRefund,submitOwnerRefund,cancelOwnerRefund} from './order-refunds';
 import {createSupportCase,listSupportCases,readSupportCase,replySupportCase,resolveSupportCase} from './shop-support';
 import {shopSupportStaffRequest} from './shop-support-staff';
 import {productVat,setProductVat} from './product-vat';
@@ -312,6 +312,8 @@ const merchant=session.merchant_id;
  if(/^\/api\/support\/cases\/[^/]+\/messages$/.test(path)&&method==='POST')return replySupportCase(db,merchant,session.user_id,session.current_role,path.split('/')[4],input);
  if(/^\/api\/support\/cases\/[^/]+\/resolve$/.test(path)&&method==='POST')return resolveSupportCase(db,merchant,session.user_id,session.current_role,path.split('/')[4]);
  if(/^\/api\/bills\/orders\/[^/]+\/refund$/.test(path)&&method==='POST')return requestOrderRefund(db,merchant,session.user_id,session.current_role,path.split('/')[4],input);
+ if(/^\/api\/bills\/orders\/[^/]+\/refund\/cancel$/.test(path)&&method==='POST')return cancelOwnerRefund(db,merchant,session.user_id,session.current_role,path.split('/')[4]);
+ if(/^\/api\/bills\/orders\/[^/]+\/refund\/(prepare|submit)$/.test(path)&&method==='POST')return (path.endsWith('/prepare')?prepareOwnerRefund(merchant,session.current_role,path.split('/')[4]):submitOwnerRefund(merchant,session.user_id,session.current_role,path.split('/')[4],input));
  if(/^\/api\/cash\/sales\/[^/]+\/demo-refund$/.test(path)&&method==='POST')return demoCashRefund(db,merchant,session.user_id,session.current_role,path.split('/')[4],input);
  if(/^\/api\/bills\/orders\/[^/]+\/demo-pay$/.test(path)&&method==='POST')return demoPay(db,merchant,session.user_id,session.current_role,path.split('/')[4],input);
  if(/^\/api\/bills\/orders\/[^/]+\/demo-refund$/.test(path)&&method==='POST')return demoRefund(db,merchant,session.user_id,session.current_role,path.split('/')[4],input);

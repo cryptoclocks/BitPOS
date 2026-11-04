@@ -82,7 +82,7 @@ export const apiRoutes: [RegExp, readonly string[]][] = [
   [/^bills$/, ['GET']],
   [/^bills\/orders\/[0-9a-f-]{36}$/, ['GET']],
   [/^bills\/orders\/[0-9a-f-]{36}\/void$/, ['POST']],
-  [/^bills\/orders\/[0-9a-f-]{36}\/(demo-pay|demo-refund|refund)$/, ['POST']],
+  [/^bills\/orders\/[0-9a-f-]{36}\/(demo-pay|demo-refund|refund|refund\/prepare|refund\/submit|refund\/cancel)$/, ['POST']],
   [/^team\/[0-9a-f-]{36}\/(profile|pin)$/, ['PUT']],
   [/^session\/switch$/, ['POST']],
   [/^shifts\/close$/, ['POST']],

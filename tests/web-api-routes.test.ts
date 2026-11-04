@@ -29,3 +29,8 @@ test('every literal api() path used by the web app is allowed by the proxy',()=>
  }
  assert.ok(checked>80,'scan found the calls');assert.deepEqual(missing,[]);
 });
+
+test('owner-signed refund routes are forwarded as POST only', () => {
+  for (const tail of ['refund', 'refund/prepare', 'refund/submit', 'refund/cancel']) { assert.ok(allowed(`bills/orders/${id}/${tail}`, 'POST'), tail); assert.equal(allowed(`bills/orders/${id}/${tail}`, 'GET'), false, tail); }
+  assert.equal(allowed(`bills/orders/${id}/refund/other`, 'POST'), false);
+});

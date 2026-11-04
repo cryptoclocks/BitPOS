@@ -32,6 +32,8 @@ export interface PayoutIntent {
 export interface PreparedPayout extends PayoutIntent {
  signedBase64:string;signature:string;signedBytesSha256:string;intentDigest:string;memo:string;reference:string;
 }
+/** Unsigned transaction for the treasury OWNER to sign in their own wallet. Nothing here is signed or sent by BitPOS; the signed bytes come back through acceptOwnerSignedPayout. */
+export interface OwnerPayout extends PayoutIntent {intentDigest:string;memo:string;reference:string;unsignedBase64:string;}
 interface DecodedPayout {prepared:Readonly<PreparedPayout>;bytes:Buffer;signed:Transaction;}
 export interface PayoutReceiptEvidence {
  version:1;provider:'solana-devnet';commitment:'confirmed'|'finalized';genesisHash:string;signature:string;
@@ -52,6 +54,8 @@ export type ReconcilePayoutResult=
  |{status:'UNKNOWN';signature:string;reason:'PROVIDER_UNAVAILABLE'|'INVALID_PREPARED'|'HISTORY_UNAVAILABLE'|'PROOF_REJECTED'|'NOT_FINALIZED'|'EXPIRED_WITHOUT_COMPLETE_HISTORY';expiry?:{finalizedBlockHeight:number;lastValidBlockHeight:number;blockhashValid:boolean;historySearchRequested:true;absenceIsConclusive:false}};
 export interface ReadyPayoutProvider {
  kind:'ready';prepare:(input:PreparePayoutInput)=>Promise<Readonly<PreparedPayout>>;
+ /** Owner-signed mode: builds the exact unsigned transaction (fee payer = source owner). Never loads a key. */
+ prepareForOwner?:(input:PreparePayoutInput)=>Promise<Readonly<OwnerPayout>>;
  broadcast:(prepared:PreparedPayout)=>Promise<BroadcastPayoutResult>;
  reconcile:(prepared:PreparedPayout)=>Promise<ReconcilePayoutResult>;
 }
@@ -74,6 +78,8 @@ const activeConfigSchema=z.object({kind:z.literal('solana-devnet'),sourceOwner:o
 const inputSchema=z.object({attemptId:idSchema,batchId:idSchema,beneficiaryOwner:ownerSchema,amountMinor:amountSchema,asset:assetSchema}).strict();
 const intentSchema=z.object({version:z.literal(1),attemptId:idSchema,batchId:idSchema,amountMinor:amountSchema,asset:assetSchema,genesisHash:z.literal(DEVNET_GENESIS),recipientOwner:ownerSchema,recipientTokenAccount:keySchema,sourceOwner:ownerSchema,sourceTokenAccount:keySchema,feePayerOwner:ownerSchema,blockhash:keySchema,lastValidBlockHeight:z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER),preparedAtSlot:z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER),createRecipientAccount:z.boolean(),feeLamports:z.number().int().nonnegative().max(1_000_000),rentLamports:z.number().int().nonnegative().max(10_000_000)}).strict();
 const preparedSchema=intentSchema.extend({signedBase64:z.string().min(1).max(1644),signature:z.string().min(64).max(88),signedBytesSha256:z.string().regex(/^[a-f0-9]{64}$/),intentDigest:z.string().regex(/^[a-f0-9]{64}$/),memo:z.string().max(128),reference:keySchema}).strict();
+const ownerPayoutSchema=intentSchema.extend({intentDigest:z.string().regex(/^[a-f0-9]{64}$/),memo:z.string().max(128),reference:keySchema,unsignedBase64:z.string().min(1).max(1644)}).strict();
+export const payoutOwnerSchema=ownerPayoutSchema;
 // Shared structural boundaries; cryptographic verification remains in the provider.
 export const payoutAssetSchema=assetSchema;
 export const payoutPreparedSchema=preparedSchema;
@@ -159,6 +165,15 @@ export function validatePreparedPayout(value:PreparedPayout,policy:{allowedAsset
  }
  return readPrepared(value);
 }
+/** Pure check of what the owner's wallet returned: it must be EXACTLY the prepared message, signed by the source owner, nothing added. */
+export function acceptOwnerSignedPayout(owned:unknown,signedBase64:string,policy:Parameters<typeof validatePreparedPayout>[1]):Readonly<PreparedPayout>{
+ const {unsignedBase64,...intent}=ownerPayoutSchema.parse(owned);void unsignedBase64;
+ const bytes=Buffer.from(signedBase64,'base64');
+ if(!signedBase64||bytes.length>1232||bytes.toString('base64')!==signedBase64)throw new PayoutProviderError('INVALID_REQUEST');
+ let signed:Transaction;try{signed=Transaction.from(bytes);}catch{throw new PayoutProviderError('INVALID_REQUEST');}
+ if(!signed.signature)throw new PayoutProviderError('INVALID_REQUEST');
+ return validatePreparedPayout({...intent,signedBase64,signature:bs58.encode(signed.signature),signedBytesSha256:sha(bytes)},policy).prepared;
+}
 export function createPayoutProvider(config:unknown=undefined,deps?:PayoutProviderDeps):PayoutProvider {
  if(config===undefined||config===null)return {kind:'unavailable',reason:'NOT_CONFIGURED'};
  const disabled=z.object({kind:z.literal('unavailable')}).strict().safeParse(config);
@@ -179,7 +194,7 @@ export function createPayoutProvider(config:unknown=undefined,deps?:PayoutProvid
   if(intent.feeLamports>policy.maxFeeLamports||intent.feeLamports+intent.rentLamports>policy.maxTotalLamports||(!intent.createRecipientAccount&&intent.rentLamports!==0))throw new PayoutProviderError('FEE_POLICY');
  }
  function readPrepared(value:PreparedPayout):DecodedPayout{return validatePreparedPayout(value,policy);}
- async function prepare(value:PreparePayoutInput):Promise<Readonly<PreparedPayout>>{
+ async function build(value:PreparePayoutInput,forOwner:boolean):Promise<Readonly<PreparedPayout>|Readonly<OwnerPayout>>{
   let input:z.infer<typeof inputSchema>;
   try{input=inputSchema.parse(value);}catch{throw new PayoutProviderError('INVALID_REQUEST');}
   let asset:Readonly<PaymentAsset>;
@@ -227,6 +242,13 @@ export function createPayoutProvider(config:unknown=undefined,deps?:PayoutProvid
    const exactFee=(await connection.getFeeForMessage(tx.compileMessage(),'confirmed')).value;
    if(exactFee!==intent.feeLamports)throw new PayoutProviderError('FEE_POLICY');
    if(safeLamports(await connection.getBalance(new PublicKey(intent.feePayerOwner),'confirmed'))<intent.feeLamports+intent.rentLamports)throw new PayoutProviderError('INSUFFICIENT_LIQUIDITY');
+   if(forOwner){
+    if(intent.feePayerOwner!==intent.sourceOwner)throw new PayoutProviderError('CONFIG_ERROR');
+    const unsigned=tx.serialize({requireAllSignatures:false,verifySignatures:false});if(unsigned.length>1232)throw new PayoutProviderError('INVALID_REQUEST');
+    const trial=await connection.simulateTransaction(VersionedTransaction.deserialize(unsigned),{sigVerify:false,replaceRecentBlockhash:false,commitment:'confirmed',minContextSlot:intent.preparedAtSlot});
+    if(trial.value.err)throw new PayoutProviderError('SIMULATION_FAILED');
+    return Object.freeze(ownerPayoutSchema.parse({...intent,...binding,unsignedBase64:unsigned.toString('base64')}) as OwnerPayout);
+   }
    const keys=await loadSigningKeys();
    if(keys.source.publicKey.toBase58()!==intent.sourceOwner||keys.feePayer.publicKey.toBase58()!==intent.feePayerOwner)throw new PayoutProviderError('CONFIG_ERROR');
    tx.sign(...(keys.source.publicKey.equals(keys.feePayer.publicKey)?[keys.source]:[keys.feePayer,keys.source]));
@@ -313,7 +335,7 @@ export function createPayoutProvider(config:unknown=undefined,deps?:PayoutProvid
    return unknown('HISTORY_UNAVAILABLE');
   }catch{return unknown('PROVIDER_UNAVAILABLE');}
  }
- return {kind:'ready',prepare,broadcast,reconcile};
+ return {kind:'ready',prepare:async v=>(await build(v,false)) as Readonly<PreparedPayout>,prepareForOwner:async v=>(await build(v,true)) as Readonly<OwnerPayout>,broadcast,reconcile};
 }
 function balance(rows:TokenBalance[]|null|undefined,index:number,owner:string,asset:Readonly<PaymentAsset>,allowMissing:boolean):bigint {
  const matches=rows?.filter(row=>row.accountIndex===index)??[];

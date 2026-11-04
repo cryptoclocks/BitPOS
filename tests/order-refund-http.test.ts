@@ -16,7 +16,7 @@ after(async()=>{if(process.env.BITPOS_BACKEND_INTEGRATION==='1'){const {pool}=aw
 const pub=()=>Keypair.generate().publicKey.toBase58();
 const sha=(s:string)=>createHash('sha256').update(s).digest('hex');
 
-test('refund request: owner/manager only, real wallet payments only, one per order, needs the treasury key; durable store state machine',integration,async()=>{
+test('refund request: owner/manager only, real wallet payments only, one per order, server-key mode; durable store state machine',integration,async()=>{
  const f=await tableFixture();const {server}=await import('../apps/api/src/index');const {settleAttempt}=await import('../apps/api/src/orders');const {createOrderRefundStore}=await import('../apps/worker/src/store-refund-runtime');
  server.listen(0,'127.0.0.1');await once(server,'listening');const address=server.address();assert.ok(address&&typeof address==='object');const base='http://127.0.0.1:'+address.port;
  const tok={owner:await staffToken(f.pool,f.merchant,randomUUID(),'owner'),manager:await staffToken(f.pool,f.merchant,randomUUID(),'manager'),staff:await staffToken(f.pool,f.merchant,randomUUID(),'staff'),other:await staffToken(f.pool,f.other,randomUUID(),'owner')};
@@ -52,7 +52,7 @@ test('refund request: owner/manager only, real wallet payments only, one per ord
   // configure the signer = this shop's treasury
   await raw(async db=>{await db.query('UPDATE merchants SET treasury=$2 WHERE id=$1',[f.merchant,treasury]);});
   process.env.BITPOS_STORE_REFUND_SOURCE_OWNER=pub();
-  assert.equal((await req('owner',A)).status,409,'a source that is not the treasury is refused');
+  assert.deepEqual((await call('owner','GET',`/api/bills/orders/${A}`)).body.refundable,{available:true,blocked:null},'a server key for another wallet does not apply: the owner signs instead (tests/order-refund-owner-http.test.ts)');
   process.env.BITPOS_STORE_REFUND_SOURCE_OWNER=treasury;
   assert.deepEqual((await call('manager','GET',`/api/bills/orders/${A}`)).body.refundable,{available:true,blocked:null});
   assert.deepEqual((await call('staff','GET',`/api/bills/orders/${A}`)).body.refundable,{available:false,blocked:'ROLE'});
@@ -60,7 +60,7 @@ test('refund request: owner/manager only, real wallet payments only, one per ord
   // request: full amount actually paid, to the wallet that paid, queued for the worker (nothing is sent by the API)
   const [r1,r2]=await Promise.all([req('owner',A),req('manager',A)]);
   assert.deepEqual([r1.status,r2.status],[200,200]);assert.equal([r1,r2].filter(r=>r.body.replayed===false).length,1,'racing requests create one refund');
-  const refund=r1.body.refund;assert.deepEqual([refund.state,refund.beneficiary,refund.amountMinor,refund.assetId,refund.signature],['SIGNING',payer,'5400000',USDG_ASSET.assetId,null]);
+  const refund=r1.body.refund;assert.deepEqual([refund.state,refund.signingMode,refund.sourceOwner,refund.beneficiary,refund.amountMinor,refund.assetId,refund.signature],['SIGNING','server',treasury,payer,'5400000',USDG_ASSET.assetId,null]);
   const detail=(await call('owner','GET',`/api/bills/orders/${A}`)).body;assert.deepEqual([detail.refund.state,detail.refundable.blocked],['SIGNING','ALREADY']);
   assert.equal((await f.tenant(f.merchant,db=>db.query('SELECT count(*)::int n FROM order_refunds'))).rows[0].n,1);
   assert.equal((await req('owner',A)).body.replayed,true);
