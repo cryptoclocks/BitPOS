@@ -1,5 +1,5 @@
 import {createHash} from 'node:crypto';
-import {PublicKey,Transaction,TransactionInstruction,VersionedTransaction,type Connection,type Signer,type TokenBalance} from '@solana/web3.js';
+import {ComputeBudgetProgram,PublicKey,Transaction,TransactionInstruction,VersionedTransaction,type Connection,type Signer,type TokenBalance} from '@solana/web3.js';
 import * as spl from '@solana/spl-token';
 import nacl from 'tweetnacl';
 import bs58 from 'bs58';
@@ -27,6 +27,8 @@ export interface PayoutIntent {
  version:1;attemptId:string;batchId:string;amountMinor:string;asset:Readonly<PaymentAsset>;genesisHash:string;
  recipientOwner:string;recipientTokenAccount:string;sourceOwner:string;sourceTokenAccount:string;feePayerOwner:string;
  blockhash:string;lastValidBlockHeight:number;preparedAtSlot:number;createRecipientAccount:boolean;feeLamports:number;rentLamports:number;
+ /** Only owner-mode refunds set this: the message then ends with SetComputeUnitLimit so a wallet has nothing to add. Absent for every older/server-mode payout. */
+ computeUnitLimit?:number;
 }
 /** Persist this ENTIRE object atomically against the exclusive durable attempt BEFORE broadcast. */
 export interface PreparedPayout extends PayoutIntent {
@@ -66,6 +68,8 @@ export class PayoutProviderError extends Error {
  }
 }
 
+/** Wallets (Phantom) insert their own SetComputeUnitLimit(200000) when a transaction has none, which changes the message. Owner-mode refunds therefore carry exactly this instruction (appended last, so every other instruction keeps its index) and the wallet has nothing to add. */
+export const OWNER_COMPUTE_UNIT_LIMIT=200_000;
 const MEMO_PROGRAM=new PublicKey('MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr');
 const USDG_EXTENSION_TYPES=[3,12,1,4,16,14,18,19] as const;
 const USDG_ISSUER='DFWDTsWsyGgFLbVARTS92wHDKK2hwTUNk71uPM3mf16S';
@@ -76,7 +80,7 @@ const ownerSchema=keySchema.refine(value=>{try{return PublicKey.isOnCurve(new Pu
 const assetSchema=z.object({assetId:idSchema,symbol:z.enum(['USDG','USDC','USDT']),displayLabel:z.string().min(1).max(96),cluster:z.literal('devnet'),genesisHash:z.literal(DEVNET_GENESIS),mint:keySchema,tokenProgram:keySchema,decimals:z.literal(6),instructionPolicy:z.enum(['token2022_zero_fee','spl_checked']),issuerTestAsset:z.boolean()}).strict();
 const activeConfigSchema=z.object({kind:z.literal('solana-devnet'),sourceOwner:ownerSchema,feePayerOwner:ownerSchema,allowedAssetIds:z.array(idSchema).min(1).max(16),maxAmountMinor:amountSchema,maxFeeLamports:z.number().int().min(1).max(1_000_000),maxTotalLamports:z.number().int().min(1).max(10_000_000)}).strict();
 const inputSchema=z.object({attemptId:idSchema,batchId:idSchema,beneficiaryOwner:ownerSchema,amountMinor:amountSchema,asset:assetSchema}).strict();
-const intentSchema=z.object({version:z.literal(1),attemptId:idSchema,batchId:idSchema,amountMinor:amountSchema,asset:assetSchema,genesisHash:z.literal(DEVNET_GENESIS),recipientOwner:ownerSchema,recipientTokenAccount:keySchema,sourceOwner:ownerSchema,sourceTokenAccount:keySchema,feePayerOwner:ownerSchema,blockhash:keySchema,lastValidBlockHeight:z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER),preparedAtSlot:z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER),createRecipientAccount:z.boolean(),feeLamports:z.number().int().nonnegative().max(1_000_000),rentLamports:z.number().int().nonnegative().max(10_000_000)}).strict();
+const intentSchema=z.object({version:z.literal(1),attemptId:idSchema,batchId:idSchema,amountMinor:amountSchema,asset:assetSchema,genesisHash:z.literal(DEVNET_GENESIS),recipientOwner:ownerSchema,recipientTokenAccount:keySchema,sourceOwner:ownerSchema,sourceTokenAccount:keySchema,feePayerOwner:ownerSchema,blockhash:keySchema,lastValidBlockHeight:z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER),preparedAtSlot:z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER),createRecipientAccount:z.boolean(),feeLamports:z.number().int().nonnegative().max(1_000_000),rentLamports:z.number().int().nonnegative().max(10_000_000),computeUnitLimit:z.number().int().min(1).max(1_400_000).optional()}).strict();
 const preparedSchema=intentSchema.extend({signedBase64:z.string().min(1).max(1644),signature:z.string().min(64).max(88),signedBytesSha256:z.string().regex(/^[a-f0-9]{64}$/),intentDigest:z.string().regex(/^[a-f0-9]{64}$/),memo:z.string().max(128),reference:keySchema}).strict();
 const ownerPayoutSchema=intentSchema.extend({intentDigest:z.string().regex(/^[a-f0-9]{64}$/),memo:z.string().max(128),reference:keySchema,unsignedBase64:z.string().min(1).max(1644)}).strict();
 export const payoutOwnerSchema=ownerPayoutSchema;
@@ -89,7 +93,7 @@ function assetTuple(asset:Readonly<PaymentAsset>){
  return [asset.assetId,asset.symbol,asset.displayLabel,asset.cluster,asset.genesisHash,asset.mint,asset.tokenProgram,asset.decimals,asset.instructionPolicy,asset.issuerTestAsset];
 }
 function intentDigest(intent:PayoutIntent){
- return sha(JSON.stringify(['BitPOS/SolanaDevnet/PayoutIntent/v1',intent.version,intent.attemptId,intent.batchId,intent.amountMinor,assetTuple(intent.asset),intent.genesisHash,intent.recipientOwner,intent.recipientTokenAccount,intent.sourceOwner,intent.sourceTokenAccount,intent.feePayerOwner,intent.blockhash,intent.lastValidBlockHeight,intent.preparedAtSlot,intent.createRecipientAccount,intent.feeLamports,intent.rentLamports]));
+ return sha(JSON.stringify(['BitPOS/SolanaDevnet/PayoutIntent/v1',intent.version,intent.attemptId,intent.batchId,intent.amountMinor,assetTuple(intent.asset),intent.genesisHash,intent.recipientOwner,intent.recipientTokenAccount,intent.sourceOwner,intent.sourceTokenAccount,intent.feePayerOwner,intent.blockhash,intent.lastValidBlockHeight,intent.preparedAtSlot,intent.createRecipientAccount,intent.feeLamports,intent.rentLamports,...(intent.computeUnitLimit===undefined?[]:[intent.computeUnitLimit])]));
 }
 function attribution(digest:string){
  return {intentDigest:digest,memo:'bitpos:payout:v1:'+digest,reference:new PublicKey(Buffer.from(sha('BitPOS/SolanaDevnet/PayoutReference/v1\0'+digest),'hex')).toBase58()};
@@ -127,7 +131,7 @@ function instructions(intent:PayoutIntent,memo:string,reference:string){
  ];
 }
 function transaction(intent:PayoutIntent,memo:string,reference:string){
- return new Transaction({feePayer:new PublicKey(intent.feePayerOwner),recentBlockhash:intent.blockhash}).add(...instructions(intent,memo,reference));
+ return new Transaction({feePayer:new PublicKey(intent.feePayerOwner),recentBlockhash:intent.blockhash}).add(...instructions(intent,memo,reference),...(intent.computeUnitLimit===undefined?[]:[ComputeBudgetProgram.setComputeUnitLimit({units:intent.computeUnitLimit})]));
 }
 function safeLamports(value:number){if(!Number.isSafeInteger(value)||value<0)throw new PayoutProviderError('FEE_POLICY');return value;}
 function tokenAccountValid(account:spl.Account,owner:string,asset:Readonly<PaymentAsset>){
@@ -204,7 +208,7 @@ export function createPayoutProvider(config:unknown=undefined,deps?:PayoutProvid
    const registered=canonicalAsset(await resolveAsset(asset.assetId));
    if(JSON.stringify(assetTuple(asset))!==JSON.stringify(assetTuple(registered)))throw Error();
   }catch{throw new PayoutProviderError('ASSET_POLICY');}
-  const initial:PayoutIntent={version:1,attemptId:input.attemptId,batchId:input.batchId,amountMinor:input.amountMinor,asset,genesisHash:asset.genesisHash,recipientOwner:input.beneficiaryOwner,recipientTokenAccount:ata(input.beneficiaryOwner,asset),sourceOwner:policy.sourceOwner,sourceTokenAccount:ata(policy.sourceOwner,asset),feePayerOwner:policy.feePayerOwner,blockhash:PublicKey.default.toBase58(),lastValidBlockHeight:0,preparedAtSlot:0,createRecipientAccount:false,feeLamports:0,rentLamports:0};
+  const initial:PayoutIntent={version:1,attemptId:input.attemptId,batchId:input.batchId,amountMinor:input.amountMinor,asset,genesisHash:asset.genesisHash,recipientOwner:input.beneficiaryOwner,recipientTokenAccount:ata(input.beneficiaryOwner,asset),sourceOwner:policy.sourceOwner,sourceTokenAccount:ata(policy.sourceOwner,asset),feePayerOwner:policy.feePayerOwner,blockhash:PublicKey.default.toBase58(),lastValidBlockHeight:0,preparedAtSlot:0,createRecipientAccount:false,feeLamports:0,rentLamports:0,...(forOwner?{computeUnitLimit:OWNER_COMPUTE_UNIT_LIMIT}:{})};
   assertPolicy(initial);
   try{
    await assertGenesis();

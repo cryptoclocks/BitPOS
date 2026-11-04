@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {Keypair,PublicKey,SystemProgram,Transaction} from '@solana/web3.js';
+import {ComputeBudgetProgram,Keypair,PublicKey,SystemProgram,Transaction} from '@solana/web3.js';
 import bs58 from 'bs58';
 import nacl from 'tweetnacl';
 import {acceptOwnerSignedPayout,createPayoutProvider,type OwnerPayout,type PayoutTransport} from '../apps/worker/src/payout-provider';
@@ -60,4 +60,23 @@ test('owner mode refuses a separate fee payer and a shortfall',async()=>{
  const split=createPayoutProvider({kind:'solana-devnet',...ownerRefundPolicy(owner.publicKey.toBase58(),amount),feePayerOwner:other},{connection:f.connection as PayoutTransport,resolveAsset:async()=>USDG_ASSET,loadSigningKeys:async()=>{throw Error('no key');}}) as Extract<ReturnType<typeof createPayoutProvider>,{kind:'ready'}>;
  f.state.balance=10_000_000n;await assert.rejects(split.prepareForOwner!(input(amount)),/CONFIG_ERROR/);
  assert.equal(bs58.encode(new Uint8Array(1)).length,1);
+});
+
+// A real wallet check on live devnet showed Phantom inserting its own SetComputeUnitLimit(200000) first when a transaction has none, which changes the message.
+// Owner-mode transactions therefore already carry exactly that instruction (appended LAST so the transfer keeps its index); a wallet that still adds or reorders is refused.
+test('owner mode ends the message with SetComputeUnitLimit, and a wallet that adds another compute-budget instruction is refused',async()=>{
+ const {provider,amount}=setup();
+ const owned=await provider.prepareForOwner!(input(amount));const policy=ownerRefundPolicy(owned.sourceOwner,amount);
+ assert.equal(owned.computeUnitLimit,200_000);
+ const tx=Transaction.from(Buffer.from(owned.unsignedBase64,'base64'));
+ const programs=tx.instructions.map(i=>i.programId.toBase58());
+ assert.equal(programs.filter(p=>p==='ComputeBudget111111111111111111111111111111').length,1,'exactly one compute-budget instruction');
+ assert.equal(programs[programs.length-1],'ComputeBudget111111111111111111111111111111','appended last, so the transfer index is unchanged');
+ assert.equal(tx.instructions[tx.instructions.length-1]!.data[0],2,'SetComputeUnitLimit');assert.equal(tx.instructions[tx.instructions.length-1]!.data.readUInt32LE(1),200_000);
+ acceptOwnerSignedPayout(owned,sign(owned),policy); // a wallet that finds a limit already present signs the message untouched
+ const phantomLike=Transaction.from(Buffer.from(owned.unsignedBase64,'base64'));
+ phantomLike.instructions.unshift(ComputeBudgetProgram.setComputeUnitLimit({units:200_000}));phantomLike.sign(owner);
+ assert.throws(()=>acceptOwnerSignedPayout(owned,phantomLike.serialize().toString('base64'),policy),/INVALID_REQUEST/,'a wallet-inserted duplicate changes the message');
+ const priced=Transaction.from(Buffer.from(owned.unsignedBase64,'base64'));priced.add(ComputeBudgetProgram.setComputeUnitPrice({microLamports:1_000_000}));priced.sign(owner);
+ assert.throws(()=>acceptOwnerSignedPayout(owned,priced.serialize().toString('base64'),policy),/INVALID_REQUEST/,'a priority fee added by the wallet is refused');
 });
