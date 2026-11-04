@@ -8,7 +8,7 @@ export function coffeeConfiguration(env:NodeJS.ProcessEnv=process.env){
  let u:URL;try{u=new URL(url);}catch{throw new CoffeeProviderError('CONFIGURATION_REQUIRED');}if(u.origin!=='https://generativelanguage.googleapis.com'||u.username||u.password||u.search||u.hash)throw new CoffeeProviderError('CONFIGURATION_REQUIRED');
  return {key,model};
 }
-async function generate(parts:unknown[],schema:unknown){
+export async function generate(parts:unknown[],schema:unknown){
  const c=coffeeConfiguration();let response:Response;
  try{response=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${c.model}:generateContent`,{method:'POST',redirect:'error',signal:AbortSignal.timeout(15000),headers:{'Content-Type':'application/json','x-goog-api-key':c.key},body:JSON.stringify({contents:[{role:'user',parts}],generationConfig:{temperature:0,responseMimeType:'application/json',responseJsonSchema:schema,maxOutputTokens:1024}})});}catch{throw new CoffeeProviderError('PROVIDER_OUTCOME_UNKNOWN');}
  if(!response.ok){await response.body?.cancel();throw new CoffeeProviderError(response.status===429?'PROVIDER_RATE_LIMITED':'PROVIDER_REJECTED');}
