@@ -1,0 +1,15 @@
+.shop-help h3{margin:18px 0 6px}
+.help-items{list-style:none;margin:8px 0;padding:0;display:grid;gap:8px}
+.help-items li{display:grid;grid-template-columns:auto minmax(0,1fr);gap:2px 10px;align-items:baseline;border:1px solid var(--bp-line);border-radius:12px;padding:10px 12px;min-width:0}
+.help-items li small{grid-column:2;color:var(--bp-muted,#6b5b7b)}
+.help-items li button{grid-column:2;justify-self:start;min-height:36px}
+.help-chip{display:inline-block;border-radius:999px;padding:2px 10px;font-size:12px;white-space:nowrap}
+.help-chip.done{background:#e3f4e8;color:#1c5a30}
+.help-chip.req{background:#f7e4e4;color:#8a1f1f}
+.help-chip.rec{background:#fdf1d8;color:#7a5200}
+.help-verdict.ok{border-left:4px solid #2b8a4a}
+.help-verdict.todo{border-left:4px solid #b33}
+.help-topics{display:grid;gap:8px}
+.help-topics details{border:1px solid var(--bp-line);border-radius:12px;padding:8px 12px}
+.help-topics summary{cursor:pointer;font-weight:600;min-height:32px}
+.help-topics ul{margin:6px 0 4px 18px;padding:0;display:grid;gap:4px}
