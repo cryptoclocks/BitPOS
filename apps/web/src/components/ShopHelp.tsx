@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { api, errorMessage } from '../lib/api';
 import { helpTopics } from '../lib/help-topics';
+import ShopSupport from './ShopSupport';
 import '../styles/shop-help.css';
 
 // M13: in-system help for the shop. A readiness check read from the shop's own data, how-to topics, and an honest list of what BitPOS cannot offer yet
@@ -28,7 +29,6 @@ export default function ShopHelp({ token, language, go }: { token: string; langu
   };
   const providerRows: [string, string, string][] = [
     [text('แชตสดกับทีมงาน', 'Live chat with the team'), text('ยังไม่มี', 'Not available'), text('ยังไม่มีผู้ให้บริการแชต จึงไม่มีช่องทางนี้ในแอป', 'No chat vendor is connected, so there is no live chat in the app.')],
-    [text('ส่งคำร้องจากแอปถึงทีมงาน', 'Send a request to the team from the app'), text('ยังไม่มี', 'Not available'), text('ระบบคำร้องปัจจุบันรองรับเฉพาะลูกค้าแอป ยังไม่รองรับร้านค้า', 'The current request system serves app customers only, not shops.')],
     [text('แพ็กเกจ/การสมัครใช้งาน', 'Packages / subscription'), text('ยังไม่เปิด', 'Not offered'), text('ยังไม่มีแพ็กเกจ ราคา หรือสัญญา ระบบไม่เรียกเก็บเงินร้านใด ๆ', 'There are no packages, prices or contracts, and nothing is billed to any shop.')],
   ];
   const countText = (i: Item) => i.detail ? (i.detail.of !== undefined ? ` (${i.detail.count}/${i.detail.of})` : ` (${i.detail.count})`) : '';
@@ -49,6 +49,7 @@ export default function ShopHelp({ token, language, go }: { token: string; langu
     </>}
     <h3>{text('วิธีใช้งาน', 'How things work')}</h3>
     <div className="help-topics">{helpTopics.map(t => <details key={t.id}><summary>{text(t.title[0], t.title[1])}</summary><ul>{t.points.map(([th, en], idx) => <li key={idx}>{text(th, en)}</li>)}</ul></details>)}</div>
+    <ShopSupport token={token} language={language} />
     <h3>{text('ติดต่อทีมงานและแพ็กเกจ', 'Contact and packages')}</h3>
     <ul className="help-items">{providerRows.map(([name, status, why]) => <li key={name} data-done="false"><span className="help-chip rec">{status}</span><strong>{name}</strong><small>{why}</small></li>)}</ul>
   </section>;

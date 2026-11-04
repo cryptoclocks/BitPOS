@@ -11,6 +11,7 @@ export const platformNav: PlatformNavItem[] = [
   { href: '/platform/drivers', title: ['ตรวจสอบไรเดอร์', 'Driver verification'] },
   { href: '/platform/food-incidents', title: ['เหตุและความช่วยเหลือ', 'Incidents and support'] },
   { href: '/platform/support', title: ['ช่วยเหลือลูกค้า', 'Customer support'] },
+  { href: '/platform/shop-support', title: ['คำร้องจากร้านค้า', 'Shop requests'] },
   { href: '/platform/reviews', title: ['ตรวจรีวิว', 'Review moderation'] },
   { href: '/platform/driver-earnings', title: ['รายได้ไรเดอร์', 'Driver earnings'] },
   { href: '/platform/food-cancellation-reviews', title: ['คำขอยกเลิก', 'Cancellation reviews'] },
