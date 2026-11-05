@@ -48,7 +48,9 @@ export async function tableRequest(path:string,method:string,input:unknown){
   const e=(await db.query<Entry>('SELECT id,merchant_id,device_id,table_id,assignment_generation::text,auth_generation::text,entry_token FROM table_entries WHERE merchant_id=$1 AND entry_token=$2',[merchant,entryToken])).rows[0];if(!e)fail('RESOURCE_NOT_FOUND',404);
   if(!match[2]&&method==='GET'){
    await currentEntry(db,e);const o=await occupancy(db,e);const menu=await effectiveCatalog(db,merchant,e.table_id);const table=(await db.query('SELECT label FROM merchant_tables WHERE merchant_id=$1 AND id=$2',[merchant,e.table_id])).rows[0];
-   return {tableLabel:table.label,menu,online:o.online,available:o.available,occupancy:await tableOccupancyView(db,merchant,e.table_id),collectionPolicy:await collectionPolicy(db,merchant)};
+   return {tableLabel:table.label,menu,online:o.online,available:o.available,occupancy:await tableOccupancyView(db,merchant,e.table_id),collectionPolicy:await collectionPolicy(db,merchant),
+    // PayPal AI Hackathon work: a PayPal shop's table page hides the wallet-only options (see paypal-hackathon/PROVENANCE.md).
+    paypalShop:(await db.query('SELECT enabled FROM paypal_merchant_settings WHERE merchant_id=$1',[merchant])).rows[0]?.enabled===true};
   }
   if(match[2]&&!match[3]&&method==='POST'){
    const d=z.object({requestId:uuid,offer:capability.optional(),sourceVisitToken:capability.optional(),customerSessionToken:capability.optional()}).strict().parse(input);await currentEntry(db,e);

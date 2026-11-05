@@ -76,7 +76,7 @@ export default function PosReports({ orders, ready, failed, language, token, pro
   const total = sumSingleDenomination(paid);
   const money = (value: ReturnType<typeof sumSingleDenomination>) => value === null ? '—' : value === 'mixed' ? text('หลายสกุลเงิน', 'Mixed currencies') : formatMoney(value);
   const views: [View, string][] = [['daily', text('รายวัน', 'Daily')], ['period', text('ตามช่วงเวลา', 'By period')], ['analytics', text('วิเคราะห์', 'Analytics')], ['top', text('ขายดี', 'Top products')], ['receive', text('รับเข้าสินค้า', 'Stock received')], ['payouts', text('ยอดสุทธิและรอบโอน', 'Net & payouts')], ['returns', text('คืนสินค้าและคืนเงิน', 'Returns & refunds')], ['shift', text('ปิดรอบการขาย', 'Close round')], ['export', text('ส่งออก', 'Export')]];
-  const statusLabel: Record<string, string> = { PAID: text('ชำระแล้ว', 'Paid'), AWAITING_PAYMENT: text('รอชำระเงิน', 'Awaiting payment'), AWAITING_WALLET: text('รอกระเป๋า', 'Awaiting wallet'), CONFIRMING: text('กำลังยืนยัน', 'Confirming'), EXPIRED: text('หมดอายุ', 'Expired'), RECOVERY: text('ต้องตรวจสอบ', 'Needs review') };
+  const statusLabel: Record<string, string> = { PAID: text('ชำระแล้ว', 'Paid'), AWAITING_PAYMENT: text('รอชำระเงิน', 'Awaiting payment'), AWAITING_WALLET: text('รอลูกค้าจ่าย', 'Awaiting customer'), CONFIRMING: text('กำลังยืนยัน', 'Confirming'), EXPIRED: text('หมดอายุ', 'Expired'), RECOVERY: text('ต้องตรวจสอบ', 'Needs review') };
   const [exporting, setExporting] = useState<ExportKind | ''>(''); const [exportError, setExportError] = useState(''); const [exported, setExported] = useState('');
   async function serverExport(kind: ExportKind) {
     if (!token || exporting) return;

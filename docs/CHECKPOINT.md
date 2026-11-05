@@ -1,3 +1,10 @@
+## PayPal hackathon — hosted on OCI, POS polish — 5 November 2026
+
+- Hosted since 31 Oct on project `bitpos-paypal` (front 3103, API 3104, worker, web 4361): `https://paypal-pos.cashlessthailand.com`, `https://paypal-pay.cashlessthailand.com`; migrations 400–405 in the ledger; webhook registered and checked with the simulator (`paypal-hackathon/evidence/oci-deploy-2026-10-31.md`).
+- 5 Nov polish, deployed and opened on the live site: Copilot workspace in the app's look, expired drafts, single register auto-selected, device name BitPOS Mini, English pages without Thai, PayPal wording in price settings and Guide, wallet-only table options hidden for PayPal shops.
+- Verified: 49 tests (PayPal, demo origin, table authority), 0 skipped. Root typecheck still reports pre-existing errors outside this work (`catalog-edit.ts`, `backend-product-images.test.ts`, `tools/runtime/*` playwright imports).
+- Not verified live: a real table order and PayPal payment on the hosted site. It needs a BitPOS Mini provisioned for the PayPal shop (table orders refuse `DEVICE_OFFLINE` without one); which board to use is still the owner's decision. Nothing pushed.
+
 ## PayPal hackathon — Phases 3–7 code complete (local) — 31 October 2026
 
 - Phase 3 customer checkout: `apps/api/src/paypal/{checkout,routes}.ts` (status/create/capture/cancel keyed by bill token; lock → decide → commit, never across a PayPal call; capture only while payable; unknown outcomes kept for reconcile), `PayPalPayment.tsx` + `paypal-sdk.ts` on `/pay/[token]` (falls back to the unchanged Solana `Payment` for non-PayPal shops), US demo shop seed `tools/paypal/seed-demo.ts`, local preview API `tools/paypal/dev-api.ts` (ports 3061/4361; fixture DB only).
