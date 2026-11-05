@@ -29,6 +29,7 @@ import {ComboError,comboAnimation,comboImage,decideCombo,draftCombo,illustrateCo
 import {BannerError,bannerImage,bannersByDraft,createBanner,decideBanner,type BannerView} from './banners';
 import {servePos} from './pos';
 import {CartError,cartChatReceipt,cartOrderMerchant,formatCart,handOverCart,parseCart,quoteCart,startCart,type CartLine} from './cart';
+import {tableCardKeyValid,tableCardPng,type TableCardKind} from './table-card';
 import {receiptAvailable,receiptImageKeyValid,receiptImageUrl,receiptPng} from './receipt-image';
 import {deviceKeyValid,deviceView} from './device';
 import {readFile} from 'node:fs/promises';
@@ -116,7 +117,7 @@ export async function serveMeta(req:http.IncomingMessage,res:http.ServerResponse
  // Customer pages live on META_PUBLIC_URL's host, staff pages on META_STAFF_URL's host. On the staff host only
  // /meta/staff (and the menu photos its pages show) answers; elsewhere (customer host or the legacy pay.… /meta/ route) staff pages redirect there.
  // Direct loopback requests (host health checks, tests) are not redirected.
- const staffOrigin=deps.staff?.config.origin,host=(req.headers.host??'').toLowerCase(),isStaffPath=path==='/meta/staff'||path.startsWith('/meta/staff/'),isMenuImage=/^\/meta\/images\/menu\/[a-z0-9-]{1,64}\.jpg$|^\/meta\/icons\/|^\/meta\/anim\/|^\/meta\/look\//.test(path);
+ const staffOrigin=deps.staff?.config.origin,host=(req.headers.host??'').toLowerCase(),isStaffPath=path==='/meta/staff'||path.startsWith('/meta/staff/'),isMenuImage=/^\/meta\/images\/menu\/[a-z0-9-]{1,64}\.jpg$|^\/meta\/icons\/|^\/meta\/anim\/|^\/meta\/look\/|^\/meta\/card\//.test(path);
  if(staffOrigin&&staffOrigin!==deps.identity.publicOrigin&&!/^(127\.0\.0\.1|localhost)(:\d+)?$/.test(host)){
   if(host===new URL(staffOrigin).host){if(!isStaffPath&&!isMenuImage){res.writeHead(404,{'Content-Type':'text/plain'});res.end('not found');return true;}}
   else if(isStaffPath&&method==='GET'){res.writeHead(302,{Location:staffOrigin+path,'Cache-Control':'no-store'});res.end();return true;}
@@ -267,6 +268,13 @@ export async function serveMeta(req:http.IncomingMessage,res:http.ServerResponse
   if(o===null){page(res,404,'ไม่พบรายการ',['Order not found for this browser.']);return true;}
   if(o?.status==='PAID'){page(res,200,'จ่ายแล้ว ✓',['ร้านได้รับออเดอร์แล้ว กำลังเตรียม จะแจ้งใน Messenger เมื่อพร้อมรับ','Paid — we are preparing it and will tell you in Messenger when it is ready.',`รหัสรับสินค้า / Pickup code: <strong>${esc(pickupCode(url.searchParams.get('o')??''))}</strong>`,'<small>Stripe sandbox · test mode · no real money</small>']);return true;}
   page(res,202,'กำลังตรวจสอบการชำระเงิน',['ยังไม่ได้รับการยืนยันจาก Stripe ลองรีเฟรชอีกครั้ง','Waiting for Stripe to confirm. Refresh in a moment.']);return true;
+ }
+ const tableCard=path.match(/^\/meta\/card\/(welcome|checked-in)\.png$/);
+ if(tableCard&&method==='GET'){
+  const shop=url.searchParams.get('s')??'',table=url.searchParams.get('t')??'';
+  const png=tableCardKeyValid(deps.identity.masterKey,tableCard[1],shop,table,url.searchParams.get('k'))?await tableCardPng(tableCard[1] as TableCardKind,shop,table).catch(()=>null):null;
+  if(!png){json(res,404,{error:'RESOURCE_NOT_FOUND'});return true;}
+  res.writeHead(200,{'Content-Type':'image/png','Content-Length':png.length,'Cache-Control':'public, max-age=86400','X-Content-Type-Options':'nosniff'});res.end(png);return true;
  }
  const pic=path.match(/^\/meta\/receipt\/([0-9a-f-]{36})\.png$/);
  if(pic&&method==='GET'){

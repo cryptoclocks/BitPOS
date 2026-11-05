@@ -3,6 +3,7 @@
 // network calls (Messenger Send API) are returned as an outbox and made by the caller after commit.
 // Each insert reads the clock once (CTE `n`) so created_at/expires_at satisfy the exact TTL checks.
 import type pg from 'pg';
+import {tableCardUrl,tableNumber,type TableCardKind} from './table-card';
 import {createHash,createHmac,randomBytes,timingSafeEqual} from 'node:crypto';
 import {deriveTagKeys,verifySun,SunError} from '../../../../packages/meta-ai/src/ntag424';
 import {REF,type Outgoing,type ParsedEvent} from './messenger';
@@ -141,6 +142,20 @@ const T={
  checkedIn:(h:TableHold)=>`เช็กอินโต๊ะ ${h.tableLabel} แล้วค่ะ ยินดีต้อนรับ 🙏\nChecked in at table ${h.tableLabel}. Welcome!`,
  notLinked:'สั่งผ่านแชทได้หลังเชื่อมต่อกับร้าน แตะมือถือที่เครื่องในร้านเพื่อเริ่มค่ะ\nTo order by chat, connect first: tap your phone on the device in the shop.',
 };
+/**
+ * The reply to a tap: a card with the shop and table, when the tap is at a table. The facts come from the tap session's
+ * device; a device with no table gets the plain message.
+ */
+async function tapCard(deps:IdentityDeps,db:pg.PoolClient,psid:string,tapSessionId:string|null,kind:TableCardKind,fallback:Outgoing,open?:string):Promise<Outgoing>{
+ if(!tapSessionId)return fallback;
+ const r=(await db.query<{label:string;shop:string}>('SELECT t.label,m.name AS shop FROM meta_tap_sessions s JOIN devices d ON d.merchant_id=s.merchant_id AND d.id=s.device_id JOIN merchant_tables t ON t.merchant_id=d.merchant_id AND t.id=d.table_id JOIN merchants m ON m.id=s.merchant_id WHERE s.id=$1',[tapSessionId])).rows[0];
+ if(!r)return fallback;
+ const n=tableNumber(r.label),imageUrl=tableCardUrl(deps.publicOrigin,deps.masterKey,kind,r.shop,r.label);
+ const orders={type:'postback' as const,title:'🧾 ออเดอร์ของฉัน',payload:'BITPOS_MY_ORDERS'},menu={type:'postback' as const,title:'☕ ดูเมนู / Menu',payload:'BITPOS_MENU'};
+ return {kind:'cards',psid,quick:QUICK_START,cards:[kind==='checked-in'
+  ?{title:`✅ เช็กอินโต๊ะ ${n} แล้วค่ะ`,subtitle:`โต๊ะนี้เป็นของคุณ · Checked in at table ${n}`,imageUrl,buttons:[menu,orders]}
+  :{title:`${r.shop} · โต๊ะ ${n}`,subtitle:'สั่งจากเมนู หรือพิมพ์สิ่งที่อยากทานได้เลยค่ะ · Order right here',imageUrl,buttons:[menu,{type:'postback',title:'✨ ช่วยแนะนำหน่อย',payload:'BITPOS_SUGGEST'},...(open?[openButton(open)]:[orders])]}]};
+}
 const openButton=(url:string)=>({type:'web_url' as const,title:'เปิดหน้าร้าน / Open',url});
 
 /** A customer just became known at a tap: the caller picks and sends an offer after commit. */
@@ -180,9 +195,11 @@ export async function handleMessengerEvents(deps:IdentityDeps,events:ParsedEvent
      const held=await tableHoldForTap(db,tap.tap_session_id);
      if(held&&held.linkId!==link.id)return {kind:'text',psid,text:T.tableHeld(held)} as Outgoing;
      if(await bindTap(db,tap.tap_session_id,link.id)){
-      if(held&&await checkIn(db,held,tap.tap_session_id))return {kind:'text',psid,text:T.checkedIn(held)} as Outgoing;
+      if(held&&await checkIn(db,held,tap.tap_session_id))return tapCard(deps,db,psid,tap.tap_session_id,'checked-in',{kind:'text',psid,text:T.checkedIn(held)});
       offers.push({merchantId,linkId:link.id,tapSessionId:tap.tap_session_id,psid});
-     }return {kind:'buttons',psid,text:T.back,buttons:[openButton(await magicLink(deps,db,merchantId,link.id,tap.tap_session_id))]} as Outgoing;}
+     }
+     const open=await magicLink(deps,db,merchantId,link.id,tap.tap_session_id);
+     return tapCard(deps,db,psid,tap.tap_session_id,'welcome',{kind:'buttons',psid,text:T.back,buttons:[openButton(open)]},open);}
     const request=(await db.query<{id:string}>("WITH n AS (SELECT clock_timestamp() AS t) INSERT INTO meta_consent_requests(merchant_id,page_id,psid,tap_session_id,created_at,expires_at) SELECT $1,$2,$3,$4,t,t+interval '15 minutes' FROM n RETURNING id",[merchantId,pageId,psid,tap.tap_session_id])).rows[0];
     return {kind:'buttons',psid,text:T.consent,buttons:[{type:'postback',title:'ยินยอม / Allow',payload:`BITPOS_CONSENT_ACCEPT:${request.id}`},{type:'postback',title:'ไม่ / No',payload:`BITPOS_CONSENT_DECLINE:${request.id}`}]} as Outgoing;
    }
@@ -193,7 +210,8 @@ export async function handleMessengerEvents(deps:IdentityDeps,events:ParsedEvent
    const link=(await db.query<{id:string}>('SELECT id FROM meta_customer_links WHERE page_id=$1 AND psid=$2 AND revoked_at IS NULL',[pageId,psid])).rows[0];
    const held=decided.tap_session_id?await tableHoldForTap(db,decided.tap_session_id):null;
    if(!(held&&held.linkId!==link.id)&&await bindTap(db,decided.tap_session_id,link.id))offers.push({merchantId,linkId:link.id,tapSessionId:decided.tap_session_id!,psid});
-   return {kind:'buttons',psid,text:T.welcome,buttons:[openButton(await magicLink(deps,db,merchantId,link.id,decided.tap_session_id))]} as Outgoing;
+   const open=await magicLink(deps,db,merchantId,link.id,decided.tap_session_id);
+   return tapCard(deps,db,psid,decided.tap_session_id,'welcome',{kind:'buttons',psid,text:T.welcome,buttons:[openButton(open)]},open);
   });
   if(reply)out.push(reply);
  }

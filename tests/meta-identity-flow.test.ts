@@ -1,3 +1,4 @@
+import {tableCardKeyValid,tableCardSvg} from '../apps/api/src/meta/table-card';
 // Meta hackathon work (2026-10-26..11-04). See meta-hackathon/PROVENANCE.md.
 // End-to-end tap → Messenger consent → web session against a disposable PostgreSQL with migrations
 // 001–302 applied. Runs only when META_TEST_DATABASE_URL points at such a database (superuser);
@@ -41,7 +42,7 @@ const T0=Date.now();
 const webhook=(m:Record<string,unknown>,ts:number,page=PAGE_A)=>parseMessengerWebhook({object:'page',entry:[{id:page,messaging:[{sender:{id:PSID},recipient:{id:page},timestamp:T0+ts,...m}]}]});
 const outboxOf=async(e:ReturnType<typeof parseMessengerWebhook>)=>(await handleMessengerEvents(deps,e)).outbox;
 const refOf=(u:string)=>new URL(u).searchParams.get('ref')!;
-const magicOf=(o:Outgoing)=>{assert.equal(o.kind,'buttons');const b=(o as any).buttons.find((x:any)=>x.type==='web_url');return new URL(b.url).searchParams.get('t')!;};
+const magicOf=(o:Outgoing)=>{const b=((o as any).buttons??(o as any).cards[0].buttons).find((x:any)=>x.type==='web_url');return new URL(b.url).searchParams.get('t')!;};
 
 before(async()=>{
  if(skip)return;
@@ -133,6 +134,25 @@ test('static sticker link: right key opens fresh sessions for its device every t
  assert.equal((await handleStaticTap(deps,TAG_A,null,null)).kind,'invalid');
  assert.equal((await handleStaticTap(deps,TAG_B,k,null)).kind,'invalid');
  assert.equal((await handleStaticTap(deps,'no-such-tag',staticTapKey(deps.masterKey,'no-such-tag'),null)).kind,'invalid');
+});
+
+test('tap at a table: the chat reply is a card with the shop and table, on a signed picture URL',{skip},async()=>{
+ const table=(await admin.query("INSERT INTO merchant_tables(merchant_id,id,label) VALUES($1,gen_random_uuid(),$2) RETURNING id",[A,`Table c${run}`])).rows[0].id;
+ await admin.query('UPDATE devices SET table_id=$2 WHERE id=$1',[DEV_A,table]);
+ try{
+  const open=await handleStaticTap(deps,TAG_A,staticTapKey(deps.masterKey,TAG_A),null);
+  const ref=new URL((open as any).url).searchParams.get('ref');
+  const r=await handleMessengerEvents(deps,parseMessengerWebhook({object:'page',entry:[{id:PAGE_A,messaging:[{sender:{id:`card-${run}`},recipient:{id:PAGE_A},timestamp:T0+90,referral:{ref}}]}]}));
+  const accept=(r.outbox[0] as any).buttons[0].payload;
+  const done=await handleMessengerEvents(deps,parseMessengerWebhook({object:'page',entry:[{id:PAGE_A,messaging:[{sender:{id:`card-${run}`},recipient:{id:PAGE_A},timestamp:T0+91,postback:{payload:accept,mid:`card-p-${run}`}}]}]}));
+  const c=done.outbox[0] as any;
+  assert.equal(c.kind,'cards');assert.match(c.cards[0].title,new RegExp(`โต๊ะ c${run}`));
+  assert.ok(c.cards[0].buttons.some((b:any)=>b.type==='web_url'&&b.url.includes('/meta/login?t=')));
+  const u=new URL(c.cards[0].imageUrl);assert.equal(u.pathname,'/meta/card/welcome.png');
+  assert.ok(tableCardKeyValid(deps.masterKey,'welcome',u.searchParams.get('s')!,u.searchParams.get('t')!,u.searchParams.get('k')));
+  assert.ok(!tableCardKeyValid(deps.masterKey,'welcome',u.searchParams.get('s')!,'Table 99',u.searchParams.get('k')));
+  assert.match(await tableCardSvg('checked-in','A & B','Table 1'),/A &amp; B/);
+ }finally{await admin.query('UPDATE devices SET table_id=NULL WHERE id=$1',[DEV_A]);}
 });
 
 test('declining consent stores no link',{skip},async()=>{

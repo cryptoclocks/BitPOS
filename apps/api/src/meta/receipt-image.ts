@@ -22,7 +22,7 @@ const FONTS=['apps/web/public/fonts/bitpos-sarabun-regular.ttf','apps/web/public
 const x=(s:string)=>s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]!));
 /** Sarabun covers Thai and Latin; emoji and other symbols would render as boxes. */
 // resvg places ำ (sara am) badly with Sarabun; nikhahit + sara aa draws the same word correctly.
-const glyphs=(s:string)=>s.replace(/\u0e33/g,'\u0e4d\u0e32').replace(/×/g,'x').replace(/[^\x20-\x7e\u00a0-\u00ff\u0e00-\u0e7f\u2013\u2014\u2212]/g,'').replace(/\s+/g,' ').trim();
+export const glyphs=(s:string)=>s.replace(/\u0e33/g,'\u0e4d\u0e32').replace(/×/g,'x').replace(/[^\x20-\x7e\u00a0-\u00ff\u0e00-\u0e7f\u2013\u2014\u2212]/g,'').replace(/\s+/g,' ').trim();
 const cut=(s:string,n:number)=>s.length<=n?s:s.slice(0,n-1)+'…';
 const money=(n:number,cur:string)=>`${cur==='USD'?'$':cur==='THB'?'฿':cur+' '}${n.toFixed(2)}`;
 
@@ -76,4 +76,10 @@ export async function receiptAvailable():Promise<boolean>{return !!(await load()
 export async function receiptPng(p:ReceiptPicture):Promise<Buffer|null>{
  const R=await load();if(!R)return null;
  return new R.Resvg(await receiptSvg(p),{font:{fontFiles:FONTS,loadSystemFonts:false,defaultFontFamily:'Sarabun'},fitTo:{mode:'width',value:720}}).render().asPng();
+}
+
+/** Any of the Meta pictures, or null when the renderer is not installed. */
+export async function renderPng(svg:string,width:number):Promise<Buffer|null>{
+ const R=await load();if(!R)return null;
+ return new R.Resvg(svg,{font:{fontFiles:FONTS,loadSystemFonts:false,defaultFontFamily:'Sarabun'},fitTo:{mode:'width',value:width}}).render().asPng();
 }
