@@ -71,7 +71,7 @@ META_TEST_DATABASE_URL=postgres://… node --import tsx --test tests/meta-*.test
 
 - **Not a listed Muse connector yet.** Muse connectors need review, and Stripe Shared Payment Tokens are not available in Thailand. The demo therefore plays the agent with our own client and Stripe's sandbox SPT helper, as a US test merchant.
 - **Messenger app is in development mode.** Only accounts with a role on the app can chat until Meta reviews it.
-- **Stickers.** The live demo used a simulated SUN tap (`tools/meta/sim-tap.ts`, which computes exactly what the chip would), until a physical NTAG 424 sticker is provisioned. Runs that used it are labelled as simulated.
+- **Stickers.** The live demo used a simulated SUN tap (`tools/meta/sim-tap.ts`, which computes exactly what the chip would), until a physical NTAG 424 sticker is provisioned. Runs that used it are labelled as simulated. Table 1 also has a physical card written with a plain, unchanging link (`/meta/s/<tag>?k=…`). It starts the same flow but is **not** copy-proof: anyone holding the link can open it away from the table, so the one-time and replay guarantees above do not apply to that card.
 - **Not used:** anything crypto in the Meta demo.
 - **Not built:** a mass Messenger broadcast to all customers (it would need Marketing Messages opt-in). Customers get promotions when they tap or scan. Post drafts are not published automatically; only the owner presses Post.
 - **Time zone:** bookings use Asia/Bangkok for every shop.

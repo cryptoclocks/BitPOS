@@ -9,7 +9,7 @@ import http from 'node:http';
 import type {AddressInfo} from 'node:net';
 import pg from 'pg';
 import {aesCmac,deriveTagKeys} from '../packages/meta-ai/src/ntag424';
-import {consumeMagicLink,customerFromSession,handleMessengerEvents,handleQrTap,handleTap,issueDeviceQr,offerForTap,type IdentityDeps,type MetaDb,type OfferDeps} from '../apps/api/src/meta/identity';
+import {consumeMagicLink,customerFromSession,handleMessengerEvents,handleQrTap,handleStaticTap,handleTap,staticTapKey,issueDeviceQr,offerForTap,type IdentityDeps,type MetaDb,type OfferDeps} from '../apps/api/src/meta/identity';
 import {invocationSink} from '../apps/api/src/meta/evidence';
 import {applyStripeWebhook,reconcileTapOrder,startTapCheckout,type StripeDeps} from '../apps/api/src/meta/tap-checkout';
 import {createMetaRouter} from '../packages/meta-ai/src/router';
@@ -120,6 +120,19 @@ test('Mini QR: a short-lived link opens a tap session for its device like NFC, a
  const old=await issueDeviceQr(deps,DEV_A);await admin.query("UPDATE meta_device_qr_links SET created_at=created_at-interval '10 minutes',expires_at=expires_at-interval '10 minutes'");
  assert.equal((await handleQrTap(deps,old!.url.split('/').pop()!,null)).kind,'replayed');
  assert.equal(await issueDeviceQr(deps,'00000000-0000-4000-8000-0000000000ff'),null);
+});
+
+test('static sticker link: right key opens fresh sessions for its device every time; wrong key or tag does not',{skip},async()=>{
+ const k=staticTapKey(deps.masterKey,TAG_A);
+ const r1=await handleStaticTap(deps,TAG_A,k,null),r2=await handleStaticTap(deps,TAG_A,k,null);
+ assert.equal(r1.kind,'messenger');assert.equal(r2.kind,'messenger');
+ assert.notEqual((r1 as any).tapSessionId,(r2 as any).tapSessionId);
+ assert.equal((await admin.query('SELECT device_id FROM meta_tap_sessions WHERE id=$1',[(r1 as any).tapSessionId])).rows[0].device_id,DEV_A);
+ for(let i=0;i<7;i++)assert.equal((await handleStaticTap(deps,TAG_A,k,null)).kind,'messenger');// never runs out
+ assert.equal((await handleStaticTap(deps,TAG_A,'x'.repeat(k.length),null)).kind,'invalid');
+ assert.equal((await handleStaticTap(deps,TAG_A,null,null)).kind,'invalid');
+ assert.equal((await handleStaticTap(deps,TAG_B,k,null)).kind,'invalid');
+ assert.equal((await handleStaticTap(deps,'no-such-tag',staticTapKey(deps.masterKey,'no-such-tag'),null)).kind,'invalid');
 });
 
 test('declining consent stores no link',{skip},async()=>{

@@ -3,7 +3,7 @@
 // They need the exact request bytes (webhook signature), cookies and redirects, so they sit beside the JSON API.
 import type http from 'node:http';
 import type {Outgoing} from './messenger';
-import {consumeMagicLink,customerFromSession,handleMessengerEvents,handleQrTap,handleTap,issueDeviceQr,offerForTap,offerMessage,revokeFromSession,type IdentityDeps,type OfferDeps,type OfferView} from './identity';
+import {consumeMagicLink,customerFromSession,handleMessengerEvents,handleQrTap,handleStaticTap,handleTap,issueDeviceQr,offerForTap,offerMessage,revokeFromSession,type IdentityDeps,type OfferDeps,type OfferView} from './identity';
 import {invocationSink} from './evidence';
 import {applyStripeWebhook,reconcileTapOrder,startTapCheckout,type StripeDeps} from './tap-checkout';
 import {stripeSandboxFromEnv,StripePaymentError} from './stripe';
@@ -157,10 +157,11 @@ export async function serveMeta(req:http.IncomingMessage,res:http.ServerResponse
   catch{res.writeHead(404,{'Content-Type':'text/plain'});res.end('not found');}
   return true;
  }
- const tap=path.match(/^\/meta\/t\/([A-Za-z0-9_-]{4,64})$/),qrTap=path.match(/^\/meta\/q\/([A-Za-z0-9_-]{43})$/);
- if((tap||qrTap)&&method==='GET'){
+ const tap=path.match(/^\/meta\/t\/([A-Za-z0-9_-]{4,64})$/),qrTap=path.match(/^\/meta\/q\/([A-Za-z0-9_-]{43})$/),staticTap=path.match(/^\/meta\/s\/([A-Za-z0-9_-]{4,64})$/);
+ if((tap||qrTap||staticTap)&&method==='GET'){
   // NFC sticker tap (NTAG424 SUN) or the BitPOS Mini's short-lived "scan to open Messenger" QR: the same flow after this.
   const r=tap?await handleTap(deps.identity,tap[1],url.searchParams.get('e'),url.searchParams.get('m'),cookieValue(req.headers.cookie))
+   :staticTap?await handleStaticTap(deps.identity,staticTap[1],url.searchParams.get('k'),cookieValue(req.headers.cookie))
    :await handleQrTap(deps.identity,qrTap![1],cookieValue(req.headers.cookie));
   if(r.kind==='messenger'){res.writeHead(303,{Location:r.url,'Cache-Control':'no-store','Referrer-Policy':'no-referrer'});res.end();return true;}
   if(r.kind==='reserved'){

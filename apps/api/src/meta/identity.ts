@@ -3,7 +3,7 @@
 // network calls (Messenger Send API) are returned as an outbox and made by the caller after commit.
 // Each insert reads the clock once (CTE `n`) so created_at/expires_at satisfy the exact TTL checks.
 import type pg from 'pg';
-import {createHash,randomBytes} from 'node:crypto';
+import {createHash,createHmac,randomBytes,timingSafeEqual} from 'node:crypto';
 import {deriveTagKeys,verifySun,SunError} from '../../../../packages/meta-ai/src/ntag424';
 import {REF,type Outgoing,type ParsedEvent} from './messenger';
 import type {EffectiveMenu} from '../offers';
@@ -51,6 +51,24 @@ export async function handleQrTap(deps:IdentityDeps,qrToken:string,cookieToken?:
  const tap=(await deps.db.query<{merchant_id:string;device_id:string;session_id:string}>('SELECT merchant_id,device_id,session_id FROM bitpos.meta_record_qr($1,$2)',[sha(qrToken),sha(token())])).rows[0];
  if(!tap)return {kind:'replayed'};
  return afterTap(deps,tap,cookieToken);
+}
+
+/** Key for a printed static sticker link; opens tap sessions for that one tag only. Derived apart from SUN and screen keys. */
+export function staticTapKey(masterKey:Buffer,tagId:string):string{
+ return createHmac('sha256',masterKey).update(`bitpos-meta-static-tap-v1:${tagId}`).digest().subarray(0,16).toString('base64url');
+}
+/**
+ * A sticker written with a plain NDEF URL (no SUN): the same flow as a device QR. Unlike SUN, this link never changes, so
+ * it does NOT prove the phone is at the table; anyone who has the link can open a session.
+ */
+export async function handleStaticTap(deps:IdentityDeps,tagId:string,key:string|null,cookieToken?:string|null):Promise<TapOutcome>{
+ if(!TAG.test(tagId)||!key)return {kind:'invalid'};
+ const want=Buffer.from(staticTapKey(deps.masterKey,tagId)),got=Buffer.from(key);
+ if(want.length!==got.length||!timingSafeEqual(want,got))return {kind:'invalid'};
+ const device=(await deps.db.query<{device_id:string}>('SELECT device_id FROM bitpos.meta_tag_device($1)',[tagId])).rows[0]?.device_id;
+ if(!device)return {kind:'invalid'};
+ const q=await issueDeviceQr(deps,device);
+ return q?handleQrTap(deps,q.url.split('/').pop()!,cookieToken):{kind:'invalid'};
 }
 
 async function afterTap(deps:IdentityDeps,tap:{merchant_id:string;device_id:string;session_id:string},cookieToken?:string|null):Promise<TapOutcome>{
