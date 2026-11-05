@@ -8,13 +8,15 @@ const integration={skip:process.env.BITPOS_BACKEND_INTEGRATION!=='1'||process.en
 test('batch snapshot and draft enforce scope and exact replay over HTTP',integration,async()=>{
  const {server}=await import('../apps/api/src/index');const {pool}=await import('../apps/api/src/db');
  const db=new pg.Client({connectionString:process.env.ADMIN_DATABASE_URL});await db.connect();
- assert.equal((await db.query('SELECT current_database() n')).rows[0].n,'bitpos_delivery_fixture');
+ // Release every handle BEFORE a failed precondition throws, otherwise the open pool/db keep the test process alive forever.
+ const precondition=async(ok:boolean,message:string)=>{if(!ok){await db.end();await pool.end();assert.fail(message);}};
+ await precondition((await db.query('SELECT current_database() n')).rows[0].n==='bitpos_delivery_fixture','this test needs the disposable bitpos_delivery_fixture database');
  const fixture=(await db.query(`SELECT m.id merchant,b.id branch,s.id shipment,g.account_id staff FROM bitpos.merchants m
  JOIN bitpos.marketplace_branches b ON b.merchant_id=m.id JOIN bitpos.food_shipments s ON s.merchant_id=m.id
  JOIN bitpos.platform_role_scopes sc ON sc.merchant_id=m.id JOIN bitpos.platform_staff_role_grants g ON g.id=sc.grant_id
  WHERE m.name='DELIVERY060 ROLLBACK FIXTURE' AND g.role='dispatcher' AND g.revoked_at IS NULL AND g.expires_at>clock_timestamp()
  ORDER BY s.created_at DESC LIMIT 1`)).rows[0];
- assert.ok(fixture,'run the disposable joined race fixture first');
+ await precondition(Boolean(fixture),'run the disposable joined race fixture first');
  const token=randomBytes(32).toString('base64url'),session=randomUUID();
  const draftFixture=(await db.query(`SELECT c.actor_account_id,c.request,c.response FROM bitpos.food_batch_draft_commands c
  JOIN bitpos.merchants m ON m.id=(c.request->>0)::uuid WHERE m.name='DELIVERY060 ROLLBACK FIXTURE'
