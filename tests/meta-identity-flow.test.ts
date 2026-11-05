@@ -137,14 +137,15 @@ test('static sticker link: right key opens fresh sessions for its device every t
 });
 
 test('tap at a table: the chat reply is a card with the shop and table, on a signed picture URL',{skip},async()=>{
+ const psid=`77${Date.now()}`;
  const table=(await admin.query("INSERT INTO merchant_tables(merchant_id,id,label) VALUES($1,gen_random_uuid(),$2) RETURNING id",[A,`Table c${run}`])).rows[0].id;
  await admin.query('UPDATE devices SET table_id=$2 WHERE id=$1',[DEV_A,table]);
  try{
   const open=await handleStaticTap(deps,TAG_A,staticTapKey(deps.masterKey,TAG_A),null);
   const ref=new URL((open as any).url).searchParams.get('ref');
-  const r=await handleMessengerEvents(deps,parseMessengerWebhook({object:'page',entry:[{id:PAGE_A,messaging:[{sender:{id:`card-${run}`},recipient:{id:PAGE_A},timestamp:T0+90,referral:{ref}}]}]}));
+  const r=await handleMessengerEvents(deps,parseMessengerWebhook({object:'page',entry:[{id:PAGE_A,messaging:[{sender:{id:psid},recipient:{id:PAGE_A},timestamp:T0+90,referral:{ref}}]}]}));
   const accept=(r.outbox[0] as any).buttons[0].payload;
-  const done=await handleMessengerEvents(deps,parseMessengerWebhook({object:'page',entry:[{id:PAGE_A,messaging:[{sender:{id:`card-${run}`},recipient:{id:PAGE_A},timestamp:T0+91,postback:{payload:accept,mid:`card-p-${run}`}}]}]}));
+  const done=await handleMessengerEvents(deps,parseMessengerWebhook({object:'page',entry:[{id:PAGE_A,messaging:[{sender:{id:psid},recipient:{id:PAGE_A},timestamp:T0+91,postback:{payload:accept,mid:`card-p-${run}`}}]}]}));
   const c=done.outbox[0] as any;
   assert.equal(c.kind,'cards');assert.match(c.cards[0].title,new RegExp(`โต๊ะ c${run}`));
   assert.ok(c.cards[0].buttons.some((b:any)=>b.type==='web_url'&&b.url.includes('/meta/login?t=')));
