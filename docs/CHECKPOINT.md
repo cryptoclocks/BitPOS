@@ -3956,3 +3956,8 @@ Still red (4), not verified: `backend-settlement-statement` and `backend-refund-
 
 ### Pillow installed (2026-11-05, user-authorized)
 `python3 -m pip install --user Pillow` (Pillow 11.3.0, python 3.9). The licensed `device/firmware/fonts/Sarabun-Regular.ttf` and the product photo were already in the repo, so no font or photo download was needed. `backend-promotions-lifecycle` now passes 10/10 on the scratch DB. Remaining red: settlement-statement, refund-unknown (W01 fixture data), food-batch-api (DELIVERY060 fixture).
+
+### Third follow-up: committed fixtures for food-batch-api and settlement-statement (2026-11-05)
+Now passing on the scratch Postgres (not on OCI): `backend-food-batch-api` 1/1 and `backend-settlement-statement` 2/2.
+How: retargeted temporary copies (deleted afterwards, nothing in the repo changed) of `delivery-snapshot-smoke.ts` with `--dispatch --own-fixture --race-draft` and again with `--race-food` (the test needs BOTH a draft actor whose dispatcher grant is revoked AND a staff account with an active dispatcher grant); then `delivery-fixture-server.ts` (API :3003 + synthetic auth :55437) on the scratch DB, `cryptoclock` superuser role, and `dispatch-http-smoke.ts` run twice to commit food earnings for two different drivers. The test DB must be named `bitpos_delivery_fixture`.
+Still red (1): `backend-refund-unknown` needs a committed prepared UNKNOWN food refund. Its seeder (`food-return108-sql-smoke.ts` via `refund-committed-smoke.ts`) installs migration 108 itself onto the W01 base, which is older than 108, so it fails with "relation food_return108_cases already exists" on a fully migrated DB. It would need a DB restored to the pre-108 W01 state; not attempted.
