@@ -37,7 +37,8 @@ test('an inconsistent reservation counter is clamped, audited, and no longer blo
   await expireUnpaidOrders(db,f.merchant);
   const rows=(await db.query('SELECT id,status,closure_reason,reservation_released FROM orders WHERE id=ANY($1::uuid[])',[ids])).rows;
   assert.equal(rows.find(row=>row.id===ids[0]).closure_reason,'timeout');assert.equal(rows.find(row=>row.id===ids[0]).reservation_released,true);
-  assert.equal((await db.query("SELECT count(*)::int AS n FROM audit_logs WHERE action='order.reservation_anomaly' AND subject=ANY($1::text[])",[ids])).rows[0].n,1);
+  assert.equal((await db.query("SELECT count(*)::int AS n FROM audit_logs WHERE action='order.reservation_anomaly' AND subject=$1",[ids[0]])).rows[0].n,1); // the 2-unit order always exceeds reserved=1, whatever order the expiry sweep (ORDER BY random uuid) visits the orders in; the 1-unit order is also flagged when it is visited second
+  assert.ok((await db.query("SELECT count(*)::int AS n FROM audit_logs WHERE action='order.reservation_anomaly' AND subject=ANY($1::text[])",[ids])).rows[0].n<=2);
   assert.equal(rows.find(row=>row.id===ids[1]).closure_reason,'timeout');
   assert.equal((await db.query('SELECT reserved FROM products WHERE id=$1',[f.product])).rows[0].reserved,0);
   await expireUnpaidOrders(db,f.merchant);
