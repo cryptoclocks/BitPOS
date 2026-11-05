@@ -13,7 +13,7 @@ interface Money {currency:string;decimals:number;amountMinor:string}
 interface Envelope {id:string;state:string;endedReason:string|null;version:number;approvedBy:string|null;maxUnits:number;maxUnitsPerOrder:number;discountPercent:number;endsAt:string;
  job:{id:string;state:string;blocker:string|null};campaign:null|{id:string;version:number;state:string;headline:string;copy:string;rationale:string;productName:string|null;productNameTh:string|null;basePrice:Money|null;offerPrice:Money|null};
  units:{reserved:number;consumed:number;released:number;remaining:number};targets:{id:string;state:string;label:string;renderedAt:string|null}[]}
-interface Recent {id:string;state:string;maxUnits:number;discountPercent:number;endsAt:string;createdAt:string;productName:string|null;productNameTh:string|null}
+interface Recent {id:string;state:string;maxUnits:number;discountPercent:number;endsAt:string;createdAt:string;productName:string|null;productNameTh:string|null;imageUrl:string|null}
 interface Screen {deviceId:string;label:string;tableLabel:string|null;online:boolean;busy:boolean;capable:boolean}
 interface Outcome {totals:{unitsPaid:number;unitsReserved:number;unitsRemaining:number;maxUnits:number;ordersPaid:number;collected:number;recovery:number;gross:string|null;fee:string|null;net:string|null;refunded:string|null;refunds:number};
  orders:{orderId:string;units:number;unitState:string;status:string;createdAt:string;serving:string|null;captureId:string|null;settlement:string|null;gross:string|null}[]}
@@ -27,8 +27,8 @@ export default function PayPalWorkspace({session,language}:{session:Session;lang
  const t=(th:string,en:string)=>language==='th'?th:en;
  const [view,setView]=useState<'copilot'|'ledger'>('copilot');
  return <main className="paypal-workspace">
-  <header className="pp-ws-header"><div><p className="eyebrow">PayPal Sandbox</p><h1>{view==='copilot'?'Café Copilot':t('รายการ PayPal','PayPal payments')}</h1></div>
-   <nav className="pp-ws-tabs" aria-label="PayPal"><button aria-pressed={view==='copilot'} onClick={()=>setView('copilot')}>Café Copilot</button><button aria-pressed={view==='ledger'} onClick={()=>setView('ledger')}>{t('รายการ PayPal','Ledger')}</button></nav></header>
+  <div className="pp-ws-header"><div><p className="eyebrow">PayPal Sandbox</p><h1>{view==='copilot'?'Café Copilot':t('รายการ PayPal','PayPal payments')}</h1></div>
+   <nav className="pp-ws-tabs" aria-label="PayPal"><button aria-pressed={view==='copilot'} onClick={()=>setView('copilot')}>Café Copilot</button><button aria-pressed={view==='ledger'} onClick={()=>setView('ledger')}>{t('รายการ PayPal','Ledger')}</button></nav></div>
   <p className="pp-sandbox" role="note">{t('PayPal Sandbox · เงินทดสอบ ไม่มีการตัดเงินจริง','PayPal Sandbox — test money only')}</p>
   {view==='copilot'?<Copilot session={session} t={t} language={language}/>:<Ledger session={session} t={t}/>}
  </main>;
@@ -74,14 +74,16 @@ function Copilot({session,t,language}:{session:Session;t:(th:string,en:string)=>
   <div className="pp-card">
    <label htmlFor="pp-intent"><strong>{t('บอกสิ่งที่อยากขาย','Tell Copilot what to sell')}</strong></label>
    <textarea id="pp-intent" rows={3} maxLength={600} value={intent} onChange={e=>setIntent(e.target.value)} placeholder={examples[0]} disabled={!manage||busy}/>
-   <div className="pp-row">{examples.map(x=><button key={x} type="button" className="secondary" onClick={()=>setIntent(x)}>{x}</button>)}</div>
+   <div className="pp-examples"><small>{t('ตัวอย่าง','Try')}</small>{examples.map(x=><button key={x} type="button" className="secondary" onClick={()=>setIntent(x)}>{x}</button>)}</div>
    <div className="pp-row"><button type="button" disabled={!manage||busy||intent.trim().length<3} onClick={()=>void start()}>{busy?t('AI กำลังทำงาน…','Copilot is working…'):t('ให้ Copilot ร่างโปร','Draft with Copilot')}</button>
     <button type="button" className="secondary" onClick={()=>setForm(v=>!v)}>{t('ใช้แบบฟอร์มแทน (ไม่ใช้ AI)','Use the form instead (no AI)')}</button></div>
    <p className="pp-caption">{t('AI อ่านสต็อกและยอดขาย ตรวจขอบเขต แล้วบันทึกเป็นร่างเท่านั้น ไม่เผยแพร่ ไม่เลือกจอ ไม่เก็บเงินเอง','AI reads stock and sales, checks the limits and saves a draft only. It never publishes, picks screens or takes money.')}</p>
   </div>
   {recent.length>0&&<div className="pp-card"><h2>{t('แคมเปญล่าสุด','Recent campaigns')}</h2>
-   <ul className="pp-recent">{recent.map(r=><li key={r.id} aria-current={envelope?.id===r.id?'true':undefined}><button type="button" className="secondary" onClick={()=>void open(r.id)}>
-    {(language==='th'?r.productNameTh:r.productName)??'—'} · −{r.discountPercent}% · {r.maxUnits} {t('ชิ้น','units')} · {t('จบ','ends')} {time(r.endsAt)} · <strong>{stateText(r.state,t)}</strong></button></li>)}</ul></div>}
+   <ul className="pp-recent">{recent.map(r=>{const state=shownState(r);return <li key={r.id} aria-current={envelope?.id===r.id?'true':undefined}><button type="button" onClick={()=>void open(r.id)}>
+    <span className="pp-recent-photo">{r.imageUrl&&<img src={r.imageUrl} alt="" loading="lazy"/>}</span>
+    <span className="pp-recent-main"><strong>{(language==='th'?r.productNameTh:r.productName)??'—'}</strong><small>−{r.discountPercent}% · {r.maxUnits} {t('ชิ้น','units')} · {t('จบ','ends')} {time(r.endsAt)}</small></span>
+    <span className="pp-pill" data-state={state}>{stateText(state,t)}</span></button></li>;})}</ul></div>}
   {form&&<RulesForm call={call} t={t} language={language} onDone={(id,r)=>{setRun(r);void loadEnvelope(id);setForm(false);}} onError={setError}/>}
   {error&&<div className="error" role="alert">{error}</div>}
   {run&&<div className="pp-card"><h2>{t('ขั้นตอนของ AI','What Copilot did')}</h2>
@@ -101,13 +103,14 @@ function Copilot({session,t,language}:{session:Session;t:(th:string,en:string)=>
     <dt>{t('จบเวลา','Ends')}</dt><dd>{time(envelope.endsAt)}</dd>
     <dt>{t('หัวข้อ','Headline')}</dt><dd>{c.headline}</dd><dt>{t('ข้อความ','Copy')}</dt><dd>{c.copy}</dd>
     <dt>{t('เหตุผลของ AI','Why')}</dt><dd>{c.rationale}</dd></dl>}
-   {envelope.state==='DRAFT'&&c&&manage&&(!confirming?<button type="button" onClick={()=>setConfirming(true)}>{t('อนุมัติ','Approve')}</button>:
+   {envelope.state==='DRAFT'&&Date.parse(envelope.endsAt)<=Date.now()&&<p className="notice" role="status">{t('ร่างนี้หมดเวลาแล้ว อนุมัติไม่ได้ กรุณาร่างใหม่','This draft has passed its end time and can no longer be approved. Draft a new one.')}</p>}
+   {envelope.state==='DRAFT'&&Date.parse(envelope.endsAt)>Date.now()&&c&&manage&&(!confirming?<button type="button" onClick={()=>setConfirming(true)}>{t('อนุมัติ','Approve')}</button>:
     <div className="pp-confirm" role="dialog" aria-label={t('ยืนยันการอนุมัติ','Confirm approval')}><p>{t(`จะเปิดราคาโปรนี้จนถึง ${time(envelope.endsAt)} หรือจนขายครบ ${envelope.maxUnits} ชิ้น ลูกค้าจ่ายด้วย PayPal Sandbox`,`This offer runs until ${time(envelope.endsAt)} or until ${envelope.maxUnits} sell. Customers pay with PayPal Sandbox.`)}</p>
      <button type="button" disabled={busy} onClick={()=>void approve()}>{t('ยืนยันอนุมัติ','Confirm approval')}</button> <button type="button" className="secondary" onClick={()=>setConfirming(false)}>{t('ยกเลิก','Cancel')}</button></div>)}
    {envelope.state==='APPROVED'&&manage&&<div className="pp-screens"><h3>{t('ส่งไปจอของร้าน','Send to the shop’s screens')}</h3>
     <p className="pp-caption">{t('โปรประจำวันจะแสดงบนทุกจอของร้าน','A daily offer shows on every screen of the shop.')}</p>
     {screens.length===0&&<p>{t('ยังไม่มีจอ','No screens yet')}</p>}
-    <ul>{screens.map(s=><li key={s.deviceId}>{s.label}{s.tableLabel?` · ${s.tableLabel}`:''} <small>{s.online?t('ออนไลน์','online'):t('ออฟไลน์ (จะแสดงเมื่อกลับมา)','offline (shows when back)')}{!s.capable?' · '+t('จอนี้ไม่รองรับ','not supported'):''}</small></li>)}</ul>
+    <ul>{screens.map(s=><li key={s.deviceId}>{s.label}{s.tableLabel?` · ${s.tableLabel}`:''} <small>{s.online?t('ออนไลน์','online'):t('ออฟไลน์ (จะแสดงเมื่อกลับมา)','offline (shows when back)')}{s.online&&!s.capable?' · '+t('จอนี้ไม่รองรับ','not supported'):''}</small></li>)}</ul>
     <div className="pp-row"><button type="button" disabled={busy||!screens.length} onClick={()=>void publish()}>{t(`ส่งไปทุกจอ (${screens.length})`,`Send to all screens (${screens.length})`)}</button> <button type="button" className="secondary" disabled={busy} onClick={()=>void stop()}>{t('หยุดโปร','Stop offer')}</button></div>
     {envelope.targets.length>0&&<ul>{envelope.targets.map(x=><li key={x.id}>{x.label}: {x.state}{x.renderedAt?` · ${t('แสดงแล้ว','shown')} ${time(x.renderedAt)}`:''}</li>)}</ul>}</div>}
   </div>}
@@ -121,8 +124,8 @@ function Copilot({session,t,language}:{session:Session;t:(th:string,en:string)=>
     <Tile label={t('คืนเงิน','Refunded')} value={`USD ${outcome.totals.refunded??'0.00'}`}/>
    </div>
    {outcome.totals.recovery>0&&<p className="error">{t(`มี ${outcome.totals.recovery} รายการที่ต้องตรวจ (RECOVERY)`,`${outcome.totals.recovery} payment(s) need review (RECOVERY)`)}</p>}
-   <table className="pp-table"><thead><tr><th>{t('เวลา','Time')}</th><th>{t('ที่','Where')}</th><th>{t('สถานะ','Status')}</th><th>PayPal</th><th></th></tr></thead><tbody>
-    {outcome.orders.map(o=><tr key={o.orderId}><td>{time(o.createdAt)}</td><td>{o.serving??''}</td><td>{o.status}{o.settlement?` · ${o.settlement}`:''}</td><td>{o.captureId?`…${o.captureId.slice(-6)} · USD ${o.gross}`:'—'}</td><td><button type="button" className="secondary" onClick={()=>void openEvidence(o.orderId)}>{t('หลักฐาน','Evidence')}</button></td></tr>)}</tbody></table>
+   <div className="pp-table-wrap"><table className="pp-table"><thead><tr><th>{t('เวลา','Time')}</th><th>{t('ที่','Where')}</th><th>{t('สถานะ','Status')}</th><th>PayPal</th><th></th></tr></thead><tbody>
+    {outcome.orders.map(o=><tr key={o.orderId}><td>{time(o.createdAt)}</td><td>{o.serving??''}</td><td>{o.status}{o.settlement?` · ${o.settlement}`:''}</td><td>{o.captureId?`…${o.captureId.slice(-6)} · USD ${o.gross}`:'—'}</td><td><button type="button" className="secondary" onClick={()=>void openEvidence(o.orderId)}>{t('หลักฐาน','Evidence')}</button></td></tr>)}</tbody></table></div>
    <p className="pp-caption">{t('ตัวเลขทั้งหมดมาจาก capture ที่เซิร์ฟเวอร์ตรวจกับ PayPal แล้ว (Sandbox ไม่ใช่ยอดขายจริง)','All money comes from captures the server verified with PayPal (Sandbox, not real sales).')}</p>
   </div>}
   {evidence&&<div className="pp-card" role="dialog" aria-label={t('หลักฐาน','Evidence')}><h2>{t('หลักฐานของออร์เดอร์','Order evidence')} · {evidence.orderId.slice(0,8)}</h2>
@@ -155,9 +158,9 @@ function Ledger({session,t}:{session:Session;t:(th:string,en:string)=>string}){
   {error&&<div className="error" role="alert">{error}</div>}
   <div className="pp-tiles"><Tile label={t('จ่ายแล้ว','Paid')} value={String(settled.length)}/><Tile label="Gross" value={`USD ${sum('gross').toFixed(2)}`}/><Tile label={t('ค่าธรรมเนียม','Fee')} value={`USD ${sum('fee').toFixed(2)}`}/><Tile label={t('สุทธิ','Net')} value={`USD ${sum('net').toFixed(2)}`}/>
    <Tile label={t('ต้องตรวจ','Needs attention')} value={String((rows??[]).filter(r=>['MISMATCH','UNKNOWN','PENDING'].includes(r.status)||r.settlement==='RECOVERY').length)}/></div>
-  <table className="pp-table"><thead><tr><th>{t('เวลา','Time')}</th><th>PayPal order</th><th>{t('สถานะ','Status')}</th><th>USD</th><th>Capture</th><th>Gross / fee / net</th><th>{t('ตรวจจาก','Verified via')}</th></tr></thead><tbody>
+  <div className="pp-table-wrap"><table className="pp-table"><thead><tr><th>{t('เวลา','Time')}</th><th>PayPal order</th><th>{t('สถานะ','Status')}</th><th>USD</th><th>Capture</th><th>Gross / fee / net</th><th>{t('ตรวจจาก','Verified via')}</th></tr></thead><tbody>
    {(rows??[]).map(r=><tr key={(r.paypalOrderId??'')+r.createdAt}><td>{time(r.createdAt)}</td><td>{r.paypalOrderId??'—'}</td><td>{r.status}{r.settlement?` · ${r.settlement}`:''}{r.issue?` · ${r.issue}`:''}</td><td>{r.amount}</td><td>{r.captureId?`…${r.captureId.slice(-6)} ${r.captureStatus}`:'—'}</td><td>{r.gross?`${r.gross} / ${r.fee??'—'} / ${r.net??'—'}`:'—'}</td><td>{r.verifiedVia??''}</td></tr>)}
-  </tbody></table>
+  </tbody></table></div>
   {rows&&rows.length===0&&<p>{t('ยังไม่มีการจ่ายด้วย PayPal','No PayPal payments yet')}</p>}
  </section>;
 }
@@ -172,8 +175,10 @@ function stepText(s:Step,t:(th:string,en:string)=>string){
  if(s.tool==='save_campaign_draft')return r.saved?t('บันทึกเป็นร่างแล้ว','saved as a draft'):t('บันทึกไม่ได้','not saved');
  return '';
 }
+/** A draft past its end time can no longer be approved: it is shown as expired, not as a draft waiting for the owner. */
+function shownState(r:Pick<Recent,'state'|'endsAt'>){return r.state==='DRAFT'&&Date.parse(r.endsAt)<=Date.now()?'EXPIRED':r.state;}
 function stateText(state:string,t:(th:string,en:string)=>string){
- return state==='DRAFT'?t('ร่าง','Draft'):state==='APPROVED'?t('อนุมัติแล้ว','Approved'):state==='ENDED'?t('จบแล้ว','Ended'):state==='REVOKED'?t('ยกเลิก','Revoked'):state;
+ return state==='EXPIRED'?t('หมดเวลา','Expired'):state==='DRAFT'?t('ร่าง','Draft'):state==='APPROVED'?t('อนุมัติแล้ว','Approved'):state==='ENDED'?t('จบแล้ว','Ended'):state==='REVOKED'?t('ยกเลิก','Revoked'):state;
 }
 /** Owner-facing errors: the shared errorMessage() wording is about a customer's saved order, which is wrong here. */
 function ownerError(e:unknown,t:(th:string,en:string)=>string){

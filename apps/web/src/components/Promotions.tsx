@@ -256,7 +256,7 @@ export default function Promotions({ session, language, products, tables, device
           return inTab && (!query || [item.headline, item.copy, status(item.state)].some(value => value.toLocaleLowerCase().includes(query)));
         });
         const page = Math.min(libraryPage, Math.max(0, Math.ceil(items.length / 6) - 1));
-        return <><p className="promotion-caption">{items.length} {text('รายการ', 'campaigns')}</p>
+        return <><p className="promotion-caption">{items.length} {text('รายการ', items.length === 1 ? 'campaign' : 'campaigns')}</p>
           <div className="promotion-library-table" role="list">
             <div className="promotion-library-columns" aria-hidden="true"><span>{text('รายการ', 'Campaign')}</span><span>{text('รายละเอียด', 'Details')}</span><span>{text('สถานะ', 'Status')}</span><span>{text('หมดอายุ', 'Expires')}</span></div>
             {!fresh ? <p className="promotion-library-state" role="status">{text('กำลังโหลดรายการจากเซิร์ฟเวอร์', 'Loading campaigns from the server…')}</p> : !items.length ? <p className="promotion-library-state">{query ? text('ไม่พบรายการที่ตรงกับการค้นหา', 'No campaigns match this search.') : text('ยังไม่มีรายการในหมวดนี้', 'No campaigns in this filter.')}</p> : items.slice(page * 6, page * 6 + 6).map(item => <article className="promotion-library-card" key={item.id}>

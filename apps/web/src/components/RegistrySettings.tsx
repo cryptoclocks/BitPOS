@@ -74,7 +74,7 @@ export default function RegistrySettings({ session, tables, devices, registers, 
     {error && <p className="error" role="alert">{error} · {text('รีเฟรชก่อนลองใหม่เมื่อรุ่นข้อมูลขัดแย้ง ระบบจะไม่เขียนทับอัตโนมัติ', 'Refresh before retrying a generation conflict; no automatic overwrite.')}</p>}
     {message && <p role="status">{message}</p>}
     <TableClearControls session={session} tables={tables} refresh={refresh} language={language}/>
-    {editable && <CollectionSettings session={session}/>}
+    {editable && <CollectionSettings session={session} language={language}/>}
   </section>;
 }
 

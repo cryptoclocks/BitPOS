@@ -39,3 +39,41 @@
 .pp-terminal-qr{display:block;margin:12px auto;border-radius:12px;background:#fff}
 .pp-terminal-paid{font-size:28px;font-weight:700;color:#1E7A46}
 .pp-terminal.is-paid h1{color:#1E7A46}
+
+/* Merchant workspace in the app's own look: same purple tokens, heading, segmented tabs and card radius as the other
+   merchant pages; PayPal's own colours stay on the customer's Pay button and the sandbox note. */
+.paypal-workspace{max-width:1200px;width:100%;box-sizing:border-box;padding:20px 16px 32px;color:var(--bp-ink)}
+.pp-ws-header{align-items:center}
+.pp-ws-header .eyebrow{margin:0 0 4px}
+.pp-ws-tabs{gap:6px;padding:5px;background:var(--bp-white);border:1px solid var(--bp-line);border-radius:14px}
+.pp-ws-tabs button{background:transparent;color:var(--bp-muted);border-radius:10px;padding:8px 16px;font-weight:600}
+.pp-ws-tabs button[aria-pressed="true"]{background:#ede2fa;color:var(--bp-primary)}
+.paypal-workspace .pp-sandbox{margin:0;text-align:left;padding:8px 14px}
+.paypal-workspace .pp-card{gap:12px;padding:18px 20px;border-color:var(--bp-line);border-radius:18px;background:var(--bp-white)}
+.paypal-workspace .pp-card h2{color:var(--bp-ink)}
+.paypal-workspace .pp-card textarea{box-sizing:border-box;padding:12px 14px;border-color:var(--bp-line);border-radius:14px;resize:vertical}
+.paypal-workspace .pp-caption{margin:0;text-align:left;color:var(--bp-muted)}
+.pp-examples{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.pp-examples small{color:var(--bp-muted);font-weight:600}
+.paypal-workspace .pp-examples button{min-height:34px;padding:6px 12px;border-radius:999px;font-size:13px;font-weight:600;text-align:left}
+.pp-recent{gap:8px}
+.paypal-workspace .pp-recent button{display:flex;align-items:center;gap:12px;min-height:64px;padding:8px 14px 8px 8px;background:var(--bp-white);color:var(--bp-ink);border:1px solid var(--bp-line);border-radius:14px;font-weight:400}
+.paypal-workspace .pp-recent button:hover{background:#faf6fd}
+.pp-recent [aria-current] button{outline:2px solid var(--bp-primary);outline-offset:-1px}
+.pp-recent-photo{flex:0 0 48px;width:48px;height:48px;border-radius:10px;overflow:hidden;background:#f3ecfa}
+.pp-recent-photo img{display:block;width:100%;height:100%;object-fit:cover}
+.pp-recent-main{flex:1;min-width:0;display:grid;gap:2px}
+.pp-recent-main strong{font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pp-recent-main small{font-size:12px;color:var(--bp-muted)}
+.pp-pill{flex:0 0 auto;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:700;background:#efe6f8;color:var(--bp-primary)}
+.pp-pill[data-state=APPROVED]{background:#e3f4ea;color:#1d7a4a}
+.pp-pill[data-state=EXPIRED],.pp-pill[data-state=ENDED],.pp-pill[data-state=REVOKED]{background:#f3f1f6;color:var(--bp-muted)}
+.paypal-workspace .pp-tile{border-color:var(--bp-line);border-radius:14px;background:var(--bp-white)}
+.paypal-workspace .pp-tile small{color:var(--bp-muted);font-weight:600}
+.paypal-workspace .pp-envelope dt{color:var(--bp-muted)}
+.paypal-workspace .pp-confirm{border-color:var(--bp-primary);border-radius:14px;background:#faf6fd}
+.pp-table-wrap{overflow-x:auto}
+.paypal-workspace .pp-table{min-width:560px}
+.paypal-workspace .pp-table th{color:var(--bp-primary);background:#f0e8f7;padding:10px}
+.paypal-workspace .pp-table td{padding:10px;border-bottom-color:var(--bp-line)}
+@media(max-width:700px){.pp-ws-header{flex-direction:column;align-items:flex-start}.paypal-workspace .pp-card{padding:14px}.paypal-workspace .pp-envelope{grid-template-columns:1fr;gap:2px}.paypal-workspace .pp-envelope dt{margin-top:8px}}

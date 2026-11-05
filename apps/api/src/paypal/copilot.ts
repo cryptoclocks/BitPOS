@@ -204,7 +204,7 @@ export async function paypalMerchantRequest(merchant:string,actor:string,role:st
   if(p==='/api/paypal/copilot/rules'&&method==='POST')return rules(merchant,actor,role,input);
   if(p==='/api/paypal/copilot/runs'&&method==='GET')return tenant(merchant,async db=>({runs:(await db.query('SELECT id,intent,kind,state,model,envelope_id AS "envelopeId",started_at AS "startedAt" FROM paypal_agent_runs WHERE merchant_id=$1 ORDER BY started_at DESC LIMIT 10',[merchant])).rows}));
   // Recent campaigns, so a draft or a live offer can be reopened (and stopped) after a reload.
-  if(p==='/api/paypal/copilot/envelopes'&&method==='GET')return tenant(merchant,async db=>({envelopes:(await db.query(`SELECT e.id,e.state,e.max_units AS "maxUnits",e.discount_percent AS "discountPercent",e.ends_at AS "endsAt",e.created_at AS "createdAt",p.name AS "productNameTh",p.name_en AS "productName"
+  if(p==='/api/paypal/copilot/envelopes'&&method==='GET')return tenant(merchant,async db=>({envelopes:(await db.query(`SELECT e.id,e.state,e.max_units AS "maxUnits",e.discount_percent AS "discountPercent",e.ends_at AS "endsAt",e.created_at AS "createdAt",p.name AS "productNameTh",p.name_en AS "productName",p.image_url AS "imageUrl"
    FROM paypal_campaign_envelopes e LEFT JOIN products p ON p.merchant_id=e.merchant_id AND p.id=e.product_id WHERE e.merchant_id=$1 ORDER BY e.created_at DESC LIMIT 10`,[merchant])).rows}));
   if((m=p.match(/^\/api\/paypal\/copilot\/runs\/([0-9a-f-]{36})$/))&&method==='GET')return runView(merchant,uuid.parse(m[1]));
   if((m=p.match(/^\/api\/paypal\/copilot\/envelopes\/([0-9a-f-]{36})(?:\/(approve|publish|stop))?$/))){
