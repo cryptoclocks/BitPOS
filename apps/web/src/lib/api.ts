@@ -5,8 +5,8 @@ export class ApiError extends Error {
 export function errorMessage(error:unknown):string{
   const messages:Record<string,string>={
     WALLET_CONFLICT:'A different wallet is linked to this bill. Ask the cafe team for help.',
-    DEVICE_BUSY:'POSClock is in use. Close its current bill first.',
-    DEVICE_OFFLINE:'POSClock is reconnecting. Please wait.',
+    DEVICE_BUSY:'BitPOS Mini is in use. Close its current bill first.',
+    DEVICE_OFFLINE:'BitPOS Mini is reconnecting. Please wait.',
     ORDER_NOT_RELEASABLE:'This payment is still being checked. Please wait before closing.',
     PAYMENT_PENDING:'A payment is in progress. Please do not pay again.',
     QUOTE_EXPIRED:'This bill has expired. Review your order again.',
@@ -14,7 +14,7 @@ export function errorMessage(error:unknown):string{
     PRICE_VERSION_CHANGED:'Prices changed. Review your order again.',
     QUOTE_CHANGED:'Your bill changed. Review your order again.',
     ASSIGNMENT_CHANGED:'The table connection changed. Review your order again.',
-    PAIRING_CHANGED:'The POSClock connection changed. Refresh and review again.',
+    PAIRING_CHANGED:'The BitPOS Mini connection changed. Refresh and review again.',
     TABLE_OCCUPANCY_CHANGED:'This table visit has ended. Keep any saved bill; start a new visit only after its status is known. / รอบโต๊ะนี้สิ้นสุดแล้ว เก็บบิลเดิมไว้ และเริ่มรอบใหม่เมื่อทราบผลบิลแล้ว',
     TABLE_JOIN_CONFIRMATION_REQUIRED:'This table is in use. Refresh its status, then explicitly join and review. / โต๊ะนี้มีผู้ใช้อยู่ รีเฟรชสถานะ แล้วกดยืนยันร่วมโต๊ะและตรวจบิล',
     TABLE_CLEAR_BLOCKED:'A bill or payment is still unresolved. Reconcile it before clearing this table. / ยังมีบิลหรือผลชำระที่ไม่แน่ชัด กรุณาตรวจสอบก่อนเคลียร์โต๊ะ',
@@ -28,8 +28,8 @@ export function errorMessage(error:unknown):string{
   };
   const messagesTh:Record<string,string>={
     WALLET_CONFLICT:'บิลนี้ผูกกับกระเป๋าอื่นอยู่ กรุณาแจ้งทีมร้าน',
-    DEVICE_BUSY:'POSClock กำลังใช้งานอยู่ กรุณาปิดบิลปัจจุบันก่อน',
-    DEVICE_OFFLINE:'POSClock กำลังเชื่อมต่อใหม่ กรุณารอสักครู่',
+    DEVICE_BUSY:'BitPOS Mini กำลังใช้งานอยู่ กรุณาปิดบิลปัจจุบันก่อน',
+    DEVICE_OFFLINE:'BitPOS Mini กำลังเชื่อมต่อใหม่ กรุณารอสักครู่',
     ORDER_NOT_RELEASABLE:'กำลังตรวจสอบการชำระเงิน กรุณารอก่อนปิดบิล',
     PAYMENT_PENDING:'มีการชำระเงินที่กำลังดำเนินการ กรุณาอย่าจ่ายซ้ำ',
     QUOTE_EXPIRED:'บิลนี้หมดอายุแล้ว กรุณาตรวจรายการอีกครั้ง',
@@ -37,7 +37,7 @@ export function errorMessage(error:unknown):string{
     PRICE_VERSION_CHANGED:'ราคามีการเปลี่ยนแปลง กรุณาตรวจรายการอีกครั้ง',
     QUOTE_CHANGED:'บิลของคุณเปลี่ยนไป กรุณาตรวจรายการอีกครั้ง',
     ASSIGNMENT_CHANGED:'การเชื่อมต่อโต๊ะเปลี่ยนไป กรุณาตรวจรายการอีกครั้ง',
-    PAIRING_CHANGED:'การเชื่อมต่อ POSClock เปลี่ยนไป กรุณารีเฟรชแล้วตรวจอีกครั้ง',
+    PAIRING_CHANGED:'การเชื่อมต่อ BitPOS Mini เปลี่ยนไป กรุณารีเฟรชแล้วตรวจอีกครั้ง',
     STOCK_UNAVAILABLE:'มีสินค้าที่หมดแล้ว กรุณาแก้ตะกร้า',
     ORDER_NOT_PAYABLE:'บิลนี้ชำระเงินไม่ได้ กรุณาแจ้งทีมร้าน',
     RESOURCE_NOT_FOUND:'ลิงก์นี้ใช้ไม่ได้แล้ว กรุณาแจ้งทีมร้าน',

@@ -321,8 +321,8 @@ export default async function promotionFloorBrowser(page, origin, screenshotDire
   await close();
   await page.getByRole('button', { name: 'Settings', exact: true }).click();
   const settings = page.getByRole('region', { name: 'Device and table registry', exact: true });
-  await settings.locator('.floor-node[aria-label="Move POSClock: FIXTURE available"]').waitFor();
-  assert.equal(await settings.locator('.floor-node[aria-label="Move POSClock: FIXTURE available"]').evaluate(node => node.style.left), '43%', 'Settings reads the identical saved floor layout');
+  await settings.locator('.floor-node[aria-label="Move BitPOS Mini: FIXTURE available"]').waitFor();
+  assert.equal(await settings.locator('.floor-node[aria-label="Move BitPOS Mini: FIXTURE available"]').evaluate(node => node.style.left), '43%', 'Settings reads the identical saved floor layout');
   assert.equal(await settings.locator('.floor-node[aria-label="Move table: FIXTURE table 1"]').evaluate(node => node.style.top), '36%');
   await page.unroute('**/api/**');
   return { origin: 'actual_hydrated_browser_http_fixture', realProvider: false, physicalAndroid: false, physicalACK: false, canonicalProjectionOnly: true, exactDeriveReplay: true, explicitDraftScopes: ['this_table', 'all_campaign_devices'], tablePublicationDeviceIds: [id(10)], exactClearReplay: true, sharedLayout: true, screenshots, viewports: [1365, 820, 390], languages: ['en', 'th'] };
