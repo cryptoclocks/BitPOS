@@ -4,8 +4,13 @@ import { formatMoney, lineTotal } from '../lib/money';
 import { denominationLabel, settlementLabel } from '../lib/payment-assets';
 import ConfiguredBillLines,{ConfiguredBillBreakdown} from './ConfiguredBillLines';
 
-export function SettlementTrust({ settlement,language='en' }: { settlement: Settlement;language?:'th'|'en' }) {
+// PayPal AI Hackathon work (see paypal-hackathon/PROVENANCE.md): a PayPal shop's bills are paid in USD through PayPal.
+// The frozen quote still carries the core's hidden settlement anchor, which must never be shown as the payment.
+export const PayPalShopContext=React.createContext(false);
+export function SettlementTrust({ settlement,language='en',paypal }: { settlement: Settlement;language?:'th'|'en';paypal?:boolean }) {
   const t=(th:string,en:string)=>language==='th'?th:en,policy=settlement.denominationPolicy;
+  const paypalShop=React.useContext(PayPalShopContext);
+  if(paypal??paypalShop)return <section className="notice trust" aria-label={t('ข้อมูลการชำระเงิน','Payment information')}><strong>PayPal Sandbox · USD · {t('เงินทดสอบ','test money')}</strong><p>{t('การอนุมัติใน PayPal ยังไม่ถือว่าจ่ายแล้ว เซิร์ฟเวอร์ของร้านตรวจยอด สกุลเงิน และผู้รับเงินกับ PayPal ก่อน','Approving in PayPal is not proof of payment: the shop’s server checks amount, currency and payee with PayPal first.')}</p></section>;
   return <section className="notice trust" aria-label={t('ข้อมูลยืนยันสินทรัพย์ชำระ','Settlement trust')}><strong>{formatMoney(settlement)} · {settlementLabel(settlement)} · {t('โทเคนทดสอบ ไม่ใช่เงินที่แลกคืนได้','test tokens, not redeemable money')}</strong><p>{settlement.network} · {t('ร้านสนับสนุนค่าธรรมเนียมเครือข่าย โดยเครือข่ายยังมีค่าธรรมเนียม','Merchant-funded network fee sponsor (network fees still exist).')}</p><p>{language==='en'?denominationLabel(settlement):policy?`${policy.id} · หน่วยดิบ = หน่วยย่อยบิล × ${policy.numerator}/${policy.denominator} (อัตราหน่วยจำนวนเต็ม ไม่ใช่อัตราแลกเปลี่ยนตลาด)`:'อัตราหน่วยเดิมที่ตรึงไว้'}</p><dl>{settlement.assetId && <><dt>{t('รหัสสินทรัพย์','Asset ID')}</dt><dd className="mono">{settlement.assetId}</dd></>}<dt>{t('มินต์โทเคน','Mint')}</dt><dd className="mono">{settlement.mint}</dd><dt>{t('โปรแกรมโทเคน','Token program')}</dt><dd className="mono">{settlement.tokenProgram}</dd><dt>{t('แฮชเครือข่ายเริ่มต้น','Genesis')}</dt><dd className="mono">{settlement.genesisHash}</dd><dt>{t('ผู้รับชำระ','Recipient')}</dt><dd className="mono">{settlement.recipient}</dd></dl></section>;
 }
 export function FrozenRouting({ authority,language='en' }: { authority: OrderView['authority'];language?:'th'|'en' }) {
@@ -20,7 +25,8 @@ function FrozenDelivery({order,language}:{order:OrderView;language:'en'|'th'}){
     {destination.fixture&&<small className="delivery-fixture">{text('ข้อมูลทดสอบ · ที่อยู่และค่าธรรมเนียมจำลอง','FIXTURE · synthetic destination and fees')}</small>}
   </section>;
 }
-export default function OrderBill({ order, language = 'en', publicView = false, customer = false, children }: { order: OrderView; language?: 'en' | 'th'; publicView?: boolean; customer?: boolean; children?:React.ReactNode }) {
+export default function OrderBill({ order, language = 'en', publicView = false, customer = false, children, paypal }: { order: OrderView; language?: 'en' | 'th'; publicView?: boolean; customer?: boolean; children?:React.ReactNode; paypal?:boolean }) {
+  const paypalContext = React.useContext(PayPalShopContext), paypalShop = paypal ?? paypalContext;
   if (customer) return <section aria-label="Your order">{order.configuredFood?<><ConfiguredBillLines snapshot={order.configuredFood} language={language} className="checkout-lines"/><ConfiguredBillBreakdown snapshot={order.configuredFood} language={language}/></>:<ul className="checkout-lines">{order.pricing.lines.map(line => <li key={line.productId}><span><span className="checkout-quantity">{line.qty} ×</span> {language === 'th' ? line.name : line.nameEn || line.name}</span><strong>{formatMoney(lineTotal(line))}</strong></li>)}</ul>}</section>;
   const text=(th:string,en:string)=>language==='th'?th:en;
   const status = order.closureReason === 'canceled' ? text('ยกเลิกแล้ว','Canceled') : ({
@@ -35,10 +41,10 @@ export default function OrderBill({ order, language = 'en', publicView = false, 
     {order.configuredFood?<><ConfiguredBillLines snapshot={order.configuredFood} language={language}/><ConfiguredBillBreakdown snapshot={order.configuredFood} language={language}/></>:<ul className="bill">{order.pricing.lines.map(line => <li key={line.productId}><span><span className="bill-inline-quantity">{line.qty} × </span>{language === 'th' ? line.name : line.nameEn || line.name}<small> · {formatMoney(line.unitPrice)} {text('ต่อชิ้น','each')}</small></span><span className="bill-column-quantity" hidden>{line.qty}</span><strong>{formatMoney(lineTotal(line))}</strong></li>)}</ul>}
     <div className="total"><span>{text('ยอดรวมบิล','Bill total')}</span><strong>{formatMoney(order.pricing.total)}</strong></div>
   </>;
-  const amount=<div className="total settlement-total"><span>{order.status==='PAID'?text('ชำระแล้ว','Amount paid'):text('ยอดชำระ','Payment amount')}</span><strong>{formatMoney(order.settlement)}</strong></div>;
+  const amount=<div className="total settlement-total"><span>{order.status==='PAID'?text('ชำระแล้ว','Amount paid'):text('ยอดชำระ','Payment amount')}</span><strong>{formatMoney(paypalShop?order.pricing.total:order.settlement)}</strong></div>;
   const destination=!publicView&&<FrozenDelivery order={order} language={language}/>;
   const secondary=<>
-    <p className="bill-network">{text('โทเคนทดสอบ Devnet','Devnet test tokens')} · {settlementLabel(order.settlement)} · {text('ร้านออกค่าธรรมเนียมเครือข่าย','Network fee covered by the store')}</p>
+    {paypalShop?<p className="bill-network">PayPal Sandbox · USD · {text('เงินทดสอบ','test money')}</p>:<p className="bill-network">{text('โทเคนทดสอบ Devnet','Devnet test tokens')} · {settlementLabel(order.settlement)} · {text('ร้านออกค่าธรรมเนียมเครือข่าย','Network fee covered by the store')}</p>}
     {!publicView&&order.delivery&&<details className="bill-details"><summary>{text('ผู้รับและค่าจัดส่งที่ยืนยันแล้ว','Frozen recipient and delivery charges')}</summary>
       <p>{order.delivery.recipientName} · {order.delivery.phone}</p>
       <dl><dt>{text('ค่าจัดส่ง','Delivery fee')}</dt><dd>{formatMoney(order.delivery.deliveryFee)}</dd><dt>{text('ค่าบริการ','Service fee')}</dt><dd>{formatMoney(order.delivery.serviceFee)}</dd></dl>
@@ -47,7 +53,7 @@ export default function OrderBill({ order, language = 'en', publicView = false, 
     <details className="bill-details"><summary>{text('รายละเอียดธุรกรรม','Payment details')}</summary>
       <p className="mono">{text('ออเดอร์','Order')}: {order.id}</p>
       {!publicView && <FrozenRouting authority={order.authority} language={language} />}
-      <SettlementTrust settlement={order.settlement} language={language} />
+      <SettlementTrust settlement={order.settlement} language={language} paypal={paypalShop} />
     </details>
   </>;
   return <section aria-label="Order bill" className={children?'order-bill-workspace':undefined}>

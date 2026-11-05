@@ -51,7 +51,7 @@ function OfferWorkspace({ product, token, language, onSaved, onClose }: Props) {
   }, [path, token, reload]);
   let current = ''; let previewError = '';
   if (view && draft.value) {
-    try { const base = view.effective.basePrice; if (!base || (base.currency !== 'USD' && base.currency !== 'USDG')) throw new Error('USD/USDG setup required.'); current = discountedMinor(base.amountMinor, discountFromDraft(draft, base.currency, base.decimals)); }
+    try { const base = view.effective.basePrice; if (!base || (base.currency !== 'USD' && base.currency !== 'USDG')) throw new Error('Set menu prices first.'); current = discountedMinor(base.amountMinor, discountFromDraft(draft, base.currency, base.decimals)); }
     catch (caught) { previewError = readableError(caught); }
   }
   async function save(disable: boolean) {

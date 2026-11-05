@@ -24,7 +24,7 @@ export function discountedMinor(basePriceMinor: string, discount: Discount): str
 }
 export function offerCommand(view: OfferView, draft: OfferDraft, now: number) {
   const base = view.effective.basePrice;
-  if (!base || (base.currency !== 'USD' && base.currency !== 'USDG')) throw new Error('Configure an active USD/USDG price version first.');
+  if (!base || (base.currency !== 'USD' && base.currency !== 'USDG')) throw new Error('Set menu prices first.');
   const discount = discountFromDraft(draft, base.currency,base.decimals);
   const expiry = Date.parse(draft.expiresAt);
   if (!Number.isFinite(expiry) || expiry <= now) throw new Error('Choose a future offer expiry.');

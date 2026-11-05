@@ -2,6 +2,7 @@
 
 - Hosted since 31 Oct on project `bitpos-paypal` (front 3103, API 3104, worker, web 4361): `https://paypal-pos.cashlessthailand.com`, `https://paypal-pay.cashlessthailand.com`; migrations 400–405 in the ledger; webhook registered and checked with the simulator (`paypal-hackathon/evidence/oci-deploy-2026-10-31.md`).
 - 5 Nov polish, deployed and opened on the live site: Copilot workspace in the app's look, expired drafts, single register auto-selected, device name BitPOS Mini, English pages without Thai, PayPal wording in price settings and Guide, wallet-only table options hidden for PayPal shops.
+- Bills in a PayPal shop show USD and PayPal instead of the hidden USDG quote anchor (checked locally on a real unpaid bill: order center, pay page, terminal, table review, because the hosted shop has no online screen). Customer pages follow the browser language.
 - Verified: 49 tests (PayPal, demo origin, table authority), 0 skipped. Root typecheck still reports pre-existing errors outside this work (`catalog-edit.ts`, `backend-product-images.test.ts`, `tools/runtime/*` playwright imports).
 - Not verified live: a real table order and PayPal payment on the hosted site. It needs a BitPOS Mini provisioned for the PayPal shop (table orders refuse `DEVICE_OFFLINE` without one); which board to use is still the owner's decision. Nothing pushed.
 

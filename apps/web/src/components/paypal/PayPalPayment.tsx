@@ -5,6 +5,7 @@ import React, {useCallback, useEffect, useRef, useState} from 'react';
 import type {OrderView} from '../../../../../packages/contracts/src/index';
 import {api, errorMessage} from '../../lib/api';
 import {formatMoney} from '../../lib/money';
+import {initialLanguage} from '../../lib/customer-language';
 import {latestOrder} from '../../lib/fulfillment';
 import {paypalSession, inAppBrowser, type PayPalSession} from '../../lib/paypal-sdk';
 import OrderBill from '../OrderBill';
@@ -25,7 +26,7 @@ export default function PayPalPayment({accessToken}:{accessToken:string}){
  const session=useRef<PayPalSession|null>(null);const currentOrderId=useRef<string|null>(null);const base=`/pay/${encodeURIComponent(accessToken)}`;
  const text=(th:string,en:string)=>language==='th'?th:en;
  const setLanguage=(next:'th'|'en')=>{setLanguageState(next);try{localStorage.setItem('bitpos.pay.language',next);}catch{/* this visit only */}};
- useEffect(()=>{try{if(localStorage.getItem('bitpos.pay.language')==='en')setLanguageState('en');}catch{/* default Thai */}},[]);
+ useEffect(()=>{setLanguageState(initialLanguage());},[]);
 
  const refresh=useCallback(async()=>{
   const [s,o]=await Promise.all([api<PayPalStatus>(`${base}/paypal`),api<OrderView>(base)]);

@@ -34,7 +34,7 @@ export default function PayPalTerminal({accessToken}:{accessToken:string}){
    {paid?<p className="pp-terminal-paid" role="status">✓ {status.checkout.captureId?`capture …${status.checkout.captureId.slice(-6)}`:''}</p>
     :!status.enabled?<p className="error" role="status">PayPal is not available for this bill · ตอนนี้จ่ายด้วย PayPal ไม่ได้</p>
    :qr&&!order?.status.match(/EXPIRED|RECOVERY/)&&<img className="pp-terminal-qr" src={qr} width={280} height={280} alt="QR: pay this bill with PayPal"/>}
-   {order&&<OrderBill order={order} publicView/>}
+   {order&&<OrderBill order={order} publicView paypal/>}
    {error&&<p className="error" role="alert">{error}</p>}
    <p className="pp-caption">Test money only · เงินทดสอบ ไม่มีการตัดเงินจริง</p>
   </section>

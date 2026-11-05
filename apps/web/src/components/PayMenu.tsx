@@ -1,4 +1,5 @@
 import {useEffect,useRef,useState} from 'react';
+import {initialLanguage} from '../lib/customer-language';
 import {api,ApiError,errorMessage} from '../lib/api';
 import {displayProduct,watchMenu,type Menu,type MenuWatcher} from '../lib/menu';
 import {formatMoney} from '../lib/money';
@@ -11,7 +12,7 @@ import '../styles/table-menu.css';
  * untouched; opening a table menu is a separate, explicit navigation. */
 export default function PayMenu({accessToken}:{accessToken:string}){
  const [language,setLanguageState]=useState<'en'|'th'>('th'),setLanguage=(next:'en'|'th')=>{setLanguageState(next);try{localStorage.setItem('bitpos.pay.language',next);}catch{/* keep the choice for this visit only */}},[menu,setMenu]=useState<Menu>(),[valid,setValid]=useState(false),[tableUrl,setTableUrl]=useState<string|null>(null),[search,setSearch]=useState('');
- useEffect(()=>{try{if(localStorage.getItem('bitpos.pay.language')==='en')setLanguageState('en');}catch{/* default stays Thai */}},[]);
+ useEffect(()=>{setLanguageState(initialLanguage());},[]);
  const [failure,setFailure]=useState<{kind:'denied'|'unavailable'|'transient';detail:string}>(),[refreshing,setRefreshing]=useState(false);
  const watcher=useRef<MenuWatcher|undefined>(undefined);
  const billUrl=`/pay/${encodeURIComponent(accessToken)}`,th=language==='th',copy=(en:string,thai:string)=>th?thai:en;
