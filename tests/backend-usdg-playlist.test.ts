@@ -75,7 +75,8 @@ test('authenticated USDG playlist and attached reconnect snapshots reach the pro
   host=spawn(binary,[f.b.id],{env:{...process.env,ASAN_OPTIONS:'detect_leaks=0'},stdio:['pipe','pipe','pipe']});
   host.on('error',()=>fail(Error('Production consumer host failed to start')));host.on('exit',code=>{if(code!==0&&code!==null)fail(Error('Production consumer host exited with code '+code));});
   createInterface({input:host.stderr}).on('line',line=>{if(line.startsWith('{')){const value=JSON.parse(line);traces.push(value);if(value.resync)fail(Error('Production consumer rejected an authenticated USDG frame'));observations.emit('change');}});
-  createInterface({input:host.stdout}).on('line',line=>{if(!line.startsWith('{'))return;const value=JSON.parse(line) as Record<string,unknown>;sent.push(value);if(socket?.readyState!==WebSocket.OPEN){fail(Error('Host command has no authenticated socket'));return;}socket.send(line);observations.emit('change');});
+  createInterface({input:host.stdout}).on('line',line=>{if(!line.startsWith('{'))return;const value=JSON.parse(line) as Record<string,unknown>;sent.push(value);if(!socket)return; // an ACK the host emits after the test intentionally disconnected is dropped, exactly as a real device drops frames on a closed link
+  if(socket.readyState!==WebSocket.OPEN){fail(Error('Host command has no authenticated socket'));return;}socket.send(line);observations.emit('change');});
   await eventually(()=>!!financial());const first=await connect();
   const approved=await f.approve(await f.generate({minimumUnitMinor:'1000000'}));await f.publish(approved);await f.reconcile();
   const activeFrame=(frame:Frame)=>playlist(frame)?.items.some(item=>item.campaignId===approved.id)===true;

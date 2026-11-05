@@ -16,7 +16,7 @@ test('batch snapshot and draft enforce scope and exact replay over HTTP',integra
  JOIN bitpos.platform_role_scopes sc ON sc.merchant_id=m.id JOIN bitpos.platform_staff_role_grants g ON g.id=sc.grant_id
  WHERE m.name='DELIVERY060 ROLLBACK FIXTURE' AND g.role='dispatcher' AND g.revoked_at IS NULL AND g.expires_at>clock_timestamp()
  ORDER BY s.created_at DESC LIMIT 1`)).rows[0];
- await precondition(Boolean(fixture),'run the disposable joined race fixture first');
+ await precondition(Boolean(fixture),'run the disposable joined race fixture first (its dispatcher grant is short-lived: re-run --race-food if it has expired)');
  const token=randomBytes(32).toString('base64url'),session=randomUUID();
  const draftFixture=(await db.query(`SELECT c.actor_account_id,c.request,c.response FROM bitpos.food_batch_draft_commands c
  JOIN bitpos.merchants m ON m.id=(c.request->>0)::uuid WHERE m.name='DELIVERY060 ROLLBACK FIXTURE'
