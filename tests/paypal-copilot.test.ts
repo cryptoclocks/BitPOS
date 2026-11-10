@@ -193,3 +193,13 @@ test('U-AG: reasoning text is not mistaken for a question; ask_owner asks one (g
   assert.deepEqual([asked.state,asked.question,asked.envelopeId],['NEEDS_INPUT','Which product should be on offer?',null]);
  }finally{s.copilot.setCopilotModel(undefined);await s.close();}
 });
+
+test('U-AG: a dedicated Copilot Gemini key is used on its own quota; without it the shared BITPOS_AI_* configuration is used',integration,async()=>{
+ const {copilotConfiguration}=await import('../apps/api/src/paypal/agent');
+ const shared={BITPOS_AI_PROVIDER_URL:'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions',BITPOS_AI_API_KEY:'shared-key-aaaaaaaaaaaaaaaaaaaa',BITPOS_AI_MODEL:'gemini-2.5-flash-lite'};
+ assert.deepEqual(copilotConfiguration(shared),{key:'shared-key-aaaaaaaaaaaaaaaaaaaa',model:'gemini-2.5-flash-lite',dedicated:false});
+ assert.deepEqual(copilotConfiguration({...shared,BITPOS_PAYPAL_GEMINI_API_KEY:' own_key-bbbbbbbbbbbbbbbbbbbbbb '}),{key:'own_key-bbbbbbbbbbbbbbbbbbbbbb',model:'gemini-2.5-flash-lite',dedicated:true});
+ assert.equal(copilotConfiguration({BITPOS_PAYPAL_GEMINI_API_KEY:'own_key-bbbbbbbbbbbbbbbbbbbbbb',BITPOS_PAYPAL_GEMINI_MODEL:'gemini-3.5-flash-lite'}).model,'gemini-3.5-flash-lite');
+ assert.throws(()=>copilotConfiguration({BITPOS_PAYPAL_GEMINI_API_KEY:'has spaces in the middle of it'}),/CONFIGURATION_REQUIRED/);
+ assert.throws(()=>copilotConfiguration({}),/CONFIGURATION_REQUIRED/);
+});

@@ -15,10 +15,22 @@ export class AgentFailure extends Error {constructor(readonly code:string){super
 
 const MAX_MODEL_CALLS=6,MAX_RUNS_PER_DAY=40;
 
-/** Gemini generateContent with function declarations, using the existing BITPOS_AI_* configuration (Gemini only). */
+/** Café Copilot's Gemini credential. A dedicated key (BITPOS_PAYPAL_GEMINI_API_KEY, PayPal env only) gives the hosted
+ * Copilot its own Google quota, so judges are not blocked by the shared 20/day BitPOS free-tier pool; without it the
+ * existing BITPOS_AI_* configuration and that shared pool are used. The key is only sent as x-goog-api-key, never logged. */
+export function copilotConfiguration(env:NodeJS.ProcessEnv=process.env):{key:string;model:string;dedicated:boolean}{
+ const own=env.BITPOS_PAYPAL_GEMINI_API_KEY?.trim();
+ if(own){
+  const model=env.BITPOS_PAYPAL_GEMINI_MODEL?.trim()||env.BITPOS_AI_MODEL||'gemini-2.5-flash-lite';
+  if(!/^[A-Za-z0-9_-]{20,200}$/.test(own)||!/^gemini-[a-z0-9.-]+$/.test(model))throw new AgentFailure('CONFIGURATION_REQUIRED');
+  return {key:own,model,dedicated:true};
+ }
+ const c=coffeeConfiguration(env);return {...c,dedicated:false};
+}
+/** Gemini generateContent with function declarations (Gemini only). */
 export function geminiModel(fetchImpl:typeof fetch=fetch):AgentModel{
  return async({system,contents})=>{
-  let c;try{c=coffeeConfiguration();}catch{throw new AgentFailure('CONFIGURATION_REQUIRED');}
+  let c;try{c=copilotConfiguration();}catch{throw new AgentFailure('CONFIGURATION_REQUIRED');}
   let r:Response;
   try{r=await fetchImpl(`https://generativelanguage.googleapis.com/v1beta/models/${c.model}:generateContent`,{method:'POST',redirect:'error',signal:AbortSignal.timeout(20000),
    headers:{'Content-Type':'application/json','x-goog-api-key':c.key},
@@ -61,7 +73,9 @@ export interface RunResult {runId:string;state:'DRAFTED'|'NEEDS_INPUT'|'FAILED';
 export async function runCopilot(input:{merchant:string;actor:string;role:string;intent:string;language:'th'|'en'},injected?:AgentModel,now:()=>Date=()=>new Date()):Promise<RunResult>{
  const model=injected??geminiModel();
  // Without a usable Gemini configuration the first model call fails CONFIGURATION_REQUIRED; don't spend a shared admission on it.
- const configured=!!injected||(()=>{try{coffeeConfiguration();return true;}catch{return false;}})();
+ const own=(()=>{try{return copilotConfiguration();}catch{return null;}})();const configured=!!injected||!!own;
+ // A dedicated Copilot key has its own Google quota: only the per-shop MAX_RUNS_PER_DAY applies, not the shared pool.
+ const shared=!injected&&configured&&!own?.dedicated;
  if(!['owner','manager'].includes(input.role))throw new AgentFailure('ROLE_REQUIRED');
  const intent=input.intent.trim();if(intent.length<3||intent.length>600)throw new AgentFailure('INVALID_INTENT');
  const runId=randomUUID();
@@ -71,7 +85,7 @@ export async function runCopilot(input:{merchant:string;actor:string;role:string
   const n=(await db.query("SELECT count(*)::int AS n FROM paypal_agent_runs WHERE merchant_id=$1 AND kind='model' AND started_at>clock_timestamp()-interval '1 day'",[input.merchant])).rows[0].n as number;
   if(n>=MAX_RUNS_PER_DAY)return 'DAILY_LIMIT';
   // Same Gemini free-tier budget as the promotion generator and the table Copilot (migration 029): one admission per run.
-  if(!injected&&configured&&!await reserveAiFree(db,input.merchant,runId,'copilot',null,createHash('sha256').update(intent).digest('hex')))return 'AI_FREE_LIMIT';
+  if(shared&&!await reserveAiFree(db,input.merchant,runId,'copilot',null,createHash('sha256').update(intent).digest('hex')))return 'AI_FREE_LIMIT';
   await db.query("INSERT INTO paypal_agent_runs(merchant_id,id,actor,intent,language,kind) VALUES($1,$2,$3,$4,$5,'model')",[input.merchant,runId,input.actor,intent,input.language]);
   return null;
  });
