@@ -104,6 +104,23 @@ export OCI_HOST=ubuntu@<host> OCI_SSH_KEY=<path to key>
     - `pay.` and `meta-pay.` still answer 200.
     - Record the results in `paypal-hackathon/evidence/`.
 
+## Simulated screens for the hosted demo (since 11 Nov 2026)
+
+No Mini is plugged in for the hosted demo, so the compose service `sim-screen` (`tools/paypal/sim-screen.ts`) connects as the shop's two screen devices. The owner approved this on 11 Nov 2026 as a clearly labelled simulated screen.
+- The devices are renamed **"Terminal Table 2 (simulated)"** and **"Counter screen (simulated)"**.
+- It speaks the firmware's device protocol: CONFIG → CAPABILITIES (none), render ACK for order/snapshot/cart/catalog frames, a heartbeat every 30 s.
+- It sends `ORDER_DISMISS` for a PAID or EXPIRED bill after 20 s, so the table is free for the next judge. The server re-checks that dismissing is safe.
+- It declares no promotion or pickup capability, so screen delivery of offers stays `UNSUPPORTED`, honestly. The offer price still applies to table orders.
+- It never touches money: a bill is PAID only after PayPal capture and server verification.
+
+Issue the two credentials into private files on the host (the tokens are never shown), then restart only this service:
+
+```bash
+ssh -i "$OCI_SSH_KEY" "$OCI_HOST" 'set -e; umask 077; mkdir -p ~/bitpos-private/paypal/sim-screen; X="docker compose -p bitpos-paypal -f /home/ubuntu/bitpos-paypal/compose.yaml exec -T -e BITPOS_PAYPAL_SEED_TARGET=oci api node --import tsx tools/paypal/device-credential.ts"; $X "Terminal Table 2" --simulated > ~/bitpos-private/paypal/sim-screen/table2.json; $X "Counter screen" --simulated > ~/bitpos-private/paypal/sim-screen/counter.json; docker compose -p bitpos-paypal -f ~/bitpos-paypal/compose.yaml restart sim-screen'
+```
+
+**When a real Mini takes over:** stop `sim-screen` and issue the Mini's credential without `--simulated`, as in the steps below. That revokes the simulated credential and renames the device back.
+
 ## BitPOS Mini for the PayPal shop (needed before judges can order at a table)
 
 Table and counter orders are routed to the shop's screen. The API refuses a bill while that screen is offline (`DEVICE_OFFLINE`), so the hosted shop needs a real Mini. The decision is to use a real Mini.

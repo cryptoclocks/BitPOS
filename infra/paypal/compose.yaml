@@ -61,3 +61,19 @@ services:
       BITPOS_WEB_API_ORIGIN: http://127.0.0.1:3104
     volumes: ["/home/ubuntu/bitpos-paypal/web:/app/paypal-web:ro"]
     mem_limit: 384m
+  # SIMULATED table and counter screens (tools/paypal/sim-screen.ts): no BitPOS Mini is plugged in for the hosted demo,
+  # and table orders are refused while the table's screen is offline. It connects as the demo shop's two screen
+  # devices (labelled "(simulated)"), acknowledges what a screen would render and clears paid bills; it never touches
+  # money. Credentials: private JSON files issued by tools/paypal/device-credential.ts --simulated (mode 600). Stop
+  # this service and issue a new credential without --simulated when a real Mini takes over.
+  sim-screen:
+    <<: *paypal
+    working_dir: /app/paypal-src
+    command: ["node", "--import", "tsx", "tools/paypal/sim-screen.ts"]
+    environment:
+      BITPOS_SIM_SCREEN_API: ws://127.0.0.1:3104
+      BITPOS_SIM_SCREEN_FILES: /run/sim/table2.json,/run/sim/counter.json
+    volumes:
+      - /home/ubuntu/bitpos-paypal/src:/app/paypal-src:ro
+      - /home/ubuntu/bitpos-private/paypal/sim-screen:/run/sim:ro
+    mem_limit: 128m

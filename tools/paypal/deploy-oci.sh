@@ -35,7 +35,7 @@ PUBLIC_URL="$POS_ORIGIN" pnpm exec astro build --root apps/web --outDir "$TMP/we
 
 step "pack"
 SRC=(apps/api/src apps/worker/src packages/contracts/src packages/domain/src packages/openapi
-     tools/paypal/server.ts tools/paypal/worker.ts tools/paypal/oci-preflight.ts tools/paypal/seed-demo.ts tools/paypal/device-credential.ts tools/paypal/front.ts
+     tools/paypal/server.ts tools/paypal/worker.ts tools/paypal/oci-preflight.ts tools/paypal/seed-demo.ts tools/paypal/device-credential.ts tools/paypal/front.ts tools/paypal/sim-screen.ts
      tsconfig.json package.json)
 for p in "${SRC[@]}"; do [ -e "$p" ] || { echo "missing $p" >&2; exit 1; }; done
 COPYFILE_DISABLE=1 tar --exclude node_modules --exclude '*.test.ts' --no-xattrs -czf "$TMP/src.tgz" "${SRC[@]}" 2>/dev/null \
@@ -83,6 +83,8 @@ else bad "missing $ENVF"; fi
 DL=~/bitpos-private/paypal/demo-login-paypal.json
 # compose bind-mounts this file; if it were missing, docker would create a directory in its place.
 [ -f "$DL" ] && [ "$(stat -c %a "$DL")" = 600 ] && ok "demo-login-paypal.json present (mode 600)" || bad "missing $DL (run tools/paypal/create-demo-staff.sh on the host)"
+SIMD=~/bitpos-private/paypal/sim-screen
+for f in table2 counter; do [ -f "$SIMD/$f.json" ] && [ "$(stat -c %a "$SIMD/$f.json")" = 600 ] && ok "simulated screen credential $f.json (mode 600)" || echo "note: $SIMD/$f.json missing; the sim-screen service waits for it (see DEPLOY_OCI.md, simulated screen)"; done
 m=$(grep -E '^BITPOS_AI_MODEL=' ~/bitpos-private/runtime.env | cut -d= -f2-); echo "info: runtime AI model: ${m:-not configured} (Café Copilot and its copy use this configuration)"
 for c in bitpos-runtime-api-1 bitpos-runtime-worker-1 bitpos-runtime-web-1 bitpos-meta-meta-1 bitpos-staging-db-1; do
   s=$(docker inspect -f '{{.State.Status}}' "$c" 2>/dev/null || echo missing); echo "info: $c $s"; done

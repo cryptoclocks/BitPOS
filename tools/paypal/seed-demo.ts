@@ -58,8 +58,8 @@ async function shop(){
  const one=async(sql:string,args:unknown[])=>(await tenant(SHOP,d=>d.query(sql,args))).rows[0] as {id:string}|undefined;
  for(const label of ['Table 1','Table 2'])if(!await one('SELECT id FROM merchant_tables WHERE merchant_id=$1 AND label=$2',[SHOP,label]))await reg('/api/tables','POST',{label});
  const t2=(await one("SELECT id FROM merchant_tables WHERE merchant_id=$1 AND label='Table 2'",[SHOP]))!;
- const terminal=await one("SELECT id FROM devices WHERE merchant_id=$1 AND label='Terminal Table 2'",[SHOP])??await reg('/api/devices','POST',{label:'Terminal Table 2',tableId:t2.id});
- const counter=await one("SELECT id FROM devices WHERE merchant_id=$1 AND label='Counter screen'",[SHOP])??await reg('/api/devices','POST',{label:'Counter screen'});
+ const terminal=await one("SELECT id FROM devices WHERE merchant_id=$1 AND label IN ('Terminal Table 2','Terminal Table 2 (simulated)')",[SHOP])??await reg('/api/devices','POST',{label:'Terminal Table 2',tableId:t2.id});
+ const counter=await one("SELECT id FROM devices WHERE merchant_id=$1 AND label IN ('Counter screen','Counter screen (simulated)')",[SHOP])??await reg('/api/devices','POST',{label:'Counter screen'});
  let register=await one("SELECT id FROM registers WHERE merchant_id=$1 AND label='Counter'",[SHOP]);
  if(!register){register=await reg('/api/registers','POST',{label:'Counter'});await reg('/api/registers/'+register!.id+'/pairing','PUT',{deviceId:counter.id,expectedPairingGeneration:'1'});}
  // The core schema needs an enabled payment asset as every quote's anchor; customers of this shop only see PayPal.
