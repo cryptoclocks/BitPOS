@@ -24,3 +24,20 @@ The owner approved deploying before the Meta deadline. Times are ICT.
 
 Not done yet:
 - BitPOS Mini for the shop. Until it is online, table orders are refused with `DEVICE_OFFLINE`, so no hosted PayPal payment has been made yet.
+
+## 11 Nov 2026 — simulated screens (commit dac74646)
+
+The organizer's note said the entry did not appear to use the PayPal developer platform. One cause: judges could not pay on the hosted demo, because table bills need an online screen and no Mini was plugged in. The owner approved a clearly labelled simulated screen.
+
+- `deploy-oci.sh --apply`: preflight passed. The new service `bitpos-paypal-sim-screen-1` started, health was 404/200/400 as expected, and other stacks were unchanged.
+- The credentials were issued with `device-credential.ts --simulated` into `~/bitpos-private/paypal/sim-screen/{table2,counter}.json` (mode 600, folder 700). The tokens were never displayed. The devices are now labelled "Terminal Table 2 (simulated)" and "Counter screen (simulated)".
+- The database shows both devices online and idle.
+- **Hosted table run, built-in browser:**
+  - opened the Table 2 link on `paypal-pay.cashlessthailand.com`;
+  - added a croissant, reviewed and confirmed;
+  - the PayPal pay page appeared: "PayPal Sandbox — test money only", **Pay with PayPal · USD 4.50**.
+  - The PayPal popup approval needs a person with a Sandbox buyer account.
+- **Local fixture run of the same path:**
+  - the simulator ACKed the new bill (`AWAITING_WALLET v1`);
+  - a test-only PAID update (the same method as `tests/backend-device.test.ts`) produced `PAID v2`;
+  - the simulator sent `ORDER_DISMISS` 5 s later (20 s on OCI), the server accepted it, and the screen returned to `idle` while staying online.

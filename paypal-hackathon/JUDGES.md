@@ -11,8 +11,9 @@
 |---|---|
 | Merchant POS | `https://paypal-pos.cashlessthailand.com` (hosted since 31 Oct 2026) |
 | Sign-in | **Quick sign-in** buttons on the login page: **Owner**, **Manager**, **Staff** (no password needed) |
-| Customer table link | in the Devpost **Testing instructions** (opens the table menu of "Table 2") |
-| PayPal buyer | your own PayPal **Sandbox** personal account, or the sandbox buyer given in the testing instructions |
+| Customer table link | https://paypal-pay.cashlessthailand.com/table/yxrYvMgnTEUp6rudweVNqxC-45Ans1jGqhMbAtBsZOk (the table menu of "Table 2", as its QR code would open it) |
+| PayPal buyer | your own PayPal **Sandbox** personal account (free at developer.paypal.com), or the sandbox buyer given in the Devpost testing instructions |
+| Table screen | **simulated** on the hosted demo: "Terminal Table 2 (simulated)" stands in for a BitPOS Mini (see §6) |
 
 1. **Owner: ask Copilot.**
    - Press **Owner** under quick sign-in, then open **PayPal · Copilot**.
@@ -147,6 +148,6 @@ New code:
 
 - **Sandbox only.** Live mode is refused in code.
 - **The demo merchant is a US sandbox business.** The Thai sandbox merchant was declined by PayPal at approval ("to comply with international regulations").
-- **Screens.** Table orders need the shop's screen (a BitPOS Mini) to be online. If the Mini is offline, the table menu refuses new bills (`DEVICE_OFFLINE`) instead of taking an order nobody sees.
+- **Screens are simulated on the hosted demo.** Table orders need the shop's screen (a BitPOS Mini) to be online; with no screen the table menu refuses new bills (`DEVICE_OFFLINE`) instead of taking an order nobody sees. No Mini is plugged in for the hosted demo, so `tools/paypal/sim-screen.ts` connects as the two screens, labelled **"(simulated)"**. It acknowledges frames the way the firmware does and clears a paid bill after 20 s so the next judge can order. It never touches money: PAID still comes only from PayPal capture plus server verification. It renders no offers, so **Send to all screens** reports them `UNSUPPORTED`; the offer price still applies at the table.
 - **AI quota.** Café Copilot shares a small daily Gemini free-tier quota with the other BitPOS AI features. When it is used up, the rules form still works.
 - **Hidden quote anchor.** The core schema prices every order against a Solana test asset. The PayPal shop keeps it hidden as a quote anchor; customers of this shop only see PayPal.

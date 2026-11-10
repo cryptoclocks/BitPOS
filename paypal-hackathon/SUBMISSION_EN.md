@@ -19,7 +19,7 @@ PayPal Orders v2 API · PayPal JavaScript SDK v6 · PayPal Webhooks · PayPal Sa
 ## Try it out (links)
 
 - Hosted merchant POS (PayPal Sandbox): https://paypal-pos.cashlessthailand.com
-- Customer pages (pay / table menu): https://paypal-pay.cashlessthailand.com
+- Customer table menu (Table 2): https://paypal-pay.cashlessthailand.com/table/yxrYvMgnTEUp6rudweVNqxC-45Ans1jGqhMbAtBsZOk
 - Source code (entry branch): https://github.com/cryptoclocks/BitPOS/tree/hackathon/paypal-2026
 - Judge guide: https://github.com/cryptoclocks/BitPOS/blob/hackathon/paypal-2026/paypal-hackathon/JUDGES.md
 
@@ -124,7 +124,7 @@ Small cafés end the day with surplus pastries and drinks. Owners know they shou
 1. Open https://paypal-pos.cashlessthailand.com and press **Owner** under *Quick sign-in*. No password is needed.
 2. Open **PayPal · Copilot** and press **Draft with Copilot** on an example request. You will see each AI tool step and the server-computed price. Press **Approve** to approve the draft, then send it to the screens.
 3. Open the **Ledger** tab and **Settings → Payment account** to see the PayPal Sandbox payee and webhook status.
-4. **Customer payment:** the table menu needs the shop's table screen (a BitPOS Mini) to be online to accept a bill. Pay with a PayPal **Sandbox** personal account (create one free at developer.paypal.com). Everything is test money.
+4. **Customer: order at the table and pay.** Open https://paypal-pay.cashlessthailand.com/table/yxrYvMgnTEUp6rudweVNqxC-45Ans1jGqhMbAtBsZOk, add an item, press **Confirm order & pay**, then **Pay with PayPal** and approve with a PayPal **Sandbox** personal account (create one free at developer.paypal.com). The page shows paid only after the server captures and verifies the payment. Everything is test money. The table's screen on the hosted demo is a **simulated** BitPOS Mini (labelled "simulated"); it never handles money.
 5. Full guide, code map and evidence: `paypal-hackathon/JUDGES.md` on the entry branch.
 
 ## Video

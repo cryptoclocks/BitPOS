@@ -110,6 +110,8 @@ docker image inspect bitpos-paypal-base:pinned >/dev/null 2>&1 || { docker tag b
 before=$(docker ps --format '{{.Names}} {{.Status}}' | grep -v '^bitpos-paypal-' | sort)
 rm -rf src.old web.old; [ -d src ] && mv src src.old; [ -d web ] && mv web web.old
 mv preflight/src src; mv preflight/web web
+# sim-screen bind-mounts this folder; created here (mode 700, owned by this user) so docker never creates it as root.
+install -d -m 700 ~/bitpos-private/paypal/sim-screen
 docker compose -p bitpos-paypal -f compose.yaml up -d >/dev/null
 docker compose -p bitpos-paypal -f compose.yaml restart >/dev/null
 health(){ a=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3104/api/pay/xxxxxxxxxxxxxxxxxxxxxxxx/paypal || true)
