@@ -1,68 +1,137 @@
-# BitPOS Café Copilot — PayPal submission draft
+# BitPOS Café Copilot — Devpost submission text (final)
 
-Prepared 12 October 2026. **Planning draft. The PayPal and AI features below are intended scope, not completed functionality. Do not submit this document as implementation evidence.**
+Updated 11 November 2026 for the organizer's note that the entry did not appear to use the PayPal developer platform and an AI model. Every claim below is backed by code on branch `hackathon/paypal-2026` and the files in `paypal-hackathon/evidence/`. Paste each section into the matching Devpost field.
 
-## Proposed title and tagline
+---
 
-**BitPOS Café Copilot**  
-Sell today's surplus with a bounded AI agent and verified PayPal payments.
+## Project name
 
-## Proposed story
+BitPOS Café Copilot — AI offers, PayPal checkout
 
-The proposed problem is specific: a café owner wants to sell a limited quantity of remaining stock before a chosen time, while retaining control over discounts, inventory and payment. Discovery with merchants must validate that this problem matters before the entry claims demand.
+## Tagline (≤ 200 characters)
 
-For example, a merchant might ask: “Help sell the eight remaining croissants by 4 pm, with no more than a 10% discount.” This is an illustrative fixture, not an observed merchant result. A real model would read authorized stock and policy tools and propose a draft within a quantity, time and discount envelope. The server validates the draft, and the merchant reviews it and explicitly chooses a display before publishing. A customer scans the QR, orders and approves a PayPal Sandbox checkout. The backend verifies the capture before committing payment, inventory and a durable display event. An evidence trace connects the approved intent, quote, capture and display acknowledgment. Campaign results are calculated from verified payments; paid, collected and refunded counts remain distinct.
+A café POS where a Gemini AI agent drafts bounded offers for surplus stock and customers pay with PayPal (Orders v2 + JS SDK v6, Sandbox), verified on the server.
 
-Existing BitPOS provides the POS, table ordering, device-routing and Solana devnet foundations. The proposed extension adds PayPal processing, typed AI tools, a merchant-approved campaign envelope and verified outcomes. The physical BitPOS Mini is an optional customer display; a working browser terminal must give judges a path without special hardware. The entry must explain its demonstrated difference from existing merchant AI and surplus-food products rather than claiming either category is new.
+## Built with
 
-No sales uplift, waste reduction, production PayPal readiness or live-money operation is claimed. Planned formative tests compare manual/rule-based and AI-assisted offer creation and customer checkout, with sample sizes and failures disclosed. An internal readiness score or usability completion target is not a probability of winning. Rewrite the story in completed tense only for features that pass acceptance before submission.
+PayPal Orders v2 API · PayPal JavaScript SDK v6 · PayPal Webhooks · PayPal Sandbox · Google Gemini API (function calling) · TypeScript · Node.js · PostgreSQL · Astro · React · Docker · Cloudflare Tunnel · Oracle Cloud · ESP32-S3 (BitPOS Mini)
 
-## Fields to complete with evidence
+## Try it out (links)
 
-| Field | Required content before submission |
-|---|---|
-| What we built | Exact accepted features; remove unfinished promises |
-| How we built it | Actual PayPal APIs/SDK, AI provider/model and role, database/outbox and display path |
-| Prior work and significant updates | Inherited foundations, shared work, new commits during the submission period, prior competition disclosure |
-| Challenges | Actual failures and resolutions, with test evidence |
-| Impact | Specific café problem; distinguish observed field trial from proposed business benefit |
-| Tools and AI disclosure | In-product model usage plus development assistance; do not substitute coding assistance for product AI |
-| Repository | Public repository plus exact entry tag/commit and root license |
-| Demo and testing | Tested URL or complete fresh setup/run guide, evaluator access method, sandbox buyer instructions |
-| Video | Publicly visible YouTube URL, under three minutes, English narration/captions |
+- Hosted merchant POS (PayPal Sandbox): https://paypal-pos.cashlessthailand.com
+- Customer pages (pay / table menu): https://paypal-pay.cashlessthailand.com
+- Source code (entry branch): https://github.com/cryptoclocks/BitPOS/tree/hackathon/paypal-2026
+- Judge guide: https://github.com/cryptoclocks/BitPOS/blob/hackathon/paypal-2026/paypal-hackathon/JUDGES.md
 
-## Proposed 2:50 video
+---
 
-| Time | What to show |
-|---|---|
-| 0:00–0:15 | The time-limited stock problem and the merchant's quantity/discount intent |
-| 0:15–0:45 | Real model/tool trace, bounded draft, server checks and merchant review |
-| 0:45–1:05 | Explicit target selection, display/menu QR and the approved envelope |
-| 1:05–1:45 | Customer order, PayPal Sandbox approval, backend-verified capture and matching receipt |
-| 1:45–2:10 | Correct Mini paid display and pickup; label any browser simulator footage |
-| 2:10–2:30 | Verified campaign outcome, duplicate/recovery result and one measured usability finding if available |
-| 2:30–2:50 | What is reused versus new, platform/AI stack, repo and judge access |
+## About the project (story)
 
-Use actual functioning footage, not conceptual animations presented as proof. Re-record if the final flow differs. Do not promise PayPal response time or physical audio deduplication beyond observed evidence. Show Sandbox prominently, hide private account details, and use media/brands/music only with appropriate rights.
+### Inspiration
 
-## Readiness checklist
+Small cafés end the day with surplus pastries and drinks. Owners know they should run a quick offer, but they have no time to work out a safe discount, update prices and take payment, and handing an AI the power to change prices or move money is not acceptable. We wanted an AI that does the analysis and drafting, while the owner approves and PayPal handles the payment, with the server checking every fact.
 
-- [ ] Every human entrant's eligibility, team representative, account access and prior-event obligations checked.
-- [ ] Joined the hackathon and completed all current Devpost form fields; a repository push is not a submission.
-- [ ] Meaningful PayPal Sandbox and in-product AI features work end to end.
-- [ ] Canonical pricing, capture verification, webhook authentication, durable recovery and duplicate handling pass focused tests.
-- [ ] Real model/provider/budget approved and documented; fixtures/fallbacks explicitly labeled.
-- [ ] Quantity/time/discount caps and stock reservations hold across concurrent orders/campaigns; approval changes require review.
-- [ ] Merchant discovery and formative manual/rules/AI comparison documented, including sample sizes, failures and limitations.
-- [ ] Product comparison supports the specific differentiation claim; no “world first” or unsupported revenue/waste-reduction claim.
-- [ ] Evidence supports every claimed hardware/browser feature; firmware version and entry build pinned.
-- [ ] Public source contains required assets, complete English setup/run/test instructions and visible open-source license.
-- [ ] Fresh evaluator run succeeds with the documented sandbox and AI access method. Public documentation contains no secrets.
-- [ ] Inherited material, shared competition work, AI assistance and significant new changes disclosed in the submission itself.
-- [ ] English text/video/test instructions and translations cover all submitted materials.
-- [ ] YouTube video publicly visible and under 3:00; images/music/people/third-party rights verified.
-- [ ] Judge access remains free and functional through **15 December 2026, 23:00 Asia/Bangkok**.
-- [ ] Latest official rules and form checked; entry commit/tag and evidence frozen before the deadline.
-- [ ] Actual submission receipt/status recorded privately after the submitter submits.
+### What it does
 
-Official requirements: [Rules](https://paypalaihackathon.devpost.com/rules), [Overview](https://paypalaihackathon.devpost.com/), [FAQ](https://paypalaihackathon.devpost.com/details/faqs). Internal target: 11 November 2026, 18:00 Asia/Bangkok. Official deadline: **13 November 2026, 03:00 Asia/Bangkok**.
+1. **The owner asks in plain words** (English or Thai): *"Sell the 8 croissants left before 4pm, at most 10% off."*
+2. **Café Copilot**, a Google Gemini agent with function calling, uses six server tools:
+   - `read_merchant_limits`, `read_catalog_stock` and `read_recent_sales` to read the facts;
+   - `validate_campaign`, where the **server** computes the offer price and checks stock, the shop limits and the limits the owner typed;
+   - `save_campaign_draft` to save a **draft**;
+   - `ask_owner` when the request is unclear.
+
+   The agent has no tool to publish, charge or refund. Every model call and tool result is stored and shown as a trace.
+3. **The owner reviews and approves** the draft, then sends it to the shop's screens.
+4. **The customer orders at the table** at the offer price and **pays with PayPal** (JavaScript SDK v6 popup, PayPal Sandbox).
+5. **The server captures the order and verifies** the order id, `custom_id`, `invoice_id`, payee, currency, exact amount and the single final capture with PayPal before the bill is PAID. Webhooks (signature-verified) and a reconcile worker settle anything the customer's browser misses.
+6. **The owner sees the results**:
+   - units sold against the approved cap;
+   - PayPal gross, fee and net from verified captures;
+   - an evidence timeline for each order, from the intent and AI tool calls through approval, PayPal capture and settlement.
+
+### How we built it
+
+- **PayPal developer platform (Sandbox):**
+  - Orders v2 REST: create, capture and get, with OAuth client credentials and a `PayPal-Request-Id` per operation so retries never create a second order or capture.
+  - JS SDK v6 (`createPayPalOneTimePaymentSession`) on the customer pay page.
+  - Webhooks (`CHECKOUT.ORDER.APPROVED`, `PAYMENT.CAPTURE.*`) with offline signature verification and a durable inbox.
+  - The Sandbox business account is the payee.
+- **AI:**
+  - Google Gemini `generateContent` with function declarations, function-calling mode ANY, at most 6 model calls per run and a daily cap.
+  - The shop's existing Gemini promotion generator writes the offer's headline and copy.
+  - Owner limits are parsed by the server as a second ceiling.
+  - Tests use a scripted model; real Gemini runs are logged in `evidence/ai-calls.md`.
+- **Money safety in the database (PostgreSQL):**
+  - Integer cents throughout.
+  - One live checkout per bill, settlement in one transaction, late or duplicate payments kept for review instead of dropped.
+  - The approved unit cap is enforced by a trigger, so it holds under concurrent orders.
+- **Stack:**
+  - TypeScript on Node.js, an Astro + React web app, a worker for reconcile and webhooks.
+  - Deployed with Docker on Oracle Cloud behind a Cloudflare tunnel.
+  - 43 automated PayPal tests.
+
+### Challenges we ran into
+
+- **Thai sandbox merchant:** a Thailand sandbox business account was declined at buyer approval ("to comply with international regulations"), so the demo shop uses a US Sandbox business account.
+- **Outcomes that are unknown, not failed:** a timeout during capture can still mean money moved. Such checkouts stay "checking" and keep the bill protected until PayPal answers. We also had to separate temporary refusals (another capture in flight) from permanent ones.
+- **A smaller model on the hosted demo:** it sometimes replied with an empty turn or with reasoning text instead of a tool call. Switching function calling to mode ANY and adding an `ask_owner` tool made it reliable.
+- **Limits the owner actually types:** phrases such as "12 iced lattes", "ลด 10%", "by 15%" and "10 เปอร์เซ็นต์" all needed parsing, and "by 15%" must never be read as 3 pm.
+
+### Accomplishments that we're proud of
+
+- **A real PayPal Sandbox payment, end to end in the browser:**
+  1. Copilot (real Gemini) drafts the offer.
+  2. The owner approves and publishes it.
+  3. The customer orders at the table at the offer price.
+  4. PayPal popup.
+  5. The server captures: COMPLETED, USD 3.83, fee 0.62, net 3.21.
+  6. The bill is SETTLED and the offer's unit is consumed.
+
+  Recorded in `evidence/browser-e2e.md`.
+- **An AI that cannot overspend:** the model only proposes. The server computes prices, enforces limits, and the database caps units.
+- **Hosted:** the deployment has quick sign-in for judges and a registered, signature-verified PayPal webhook.
+
+### What we learned
+
+- Proof of payment must come from PayPal on the server, never from the browser callback.
+- Idempotency keys plus a durable state machine make retries and crashes safe.
+- The best place for an AI agent in commerce is analysis and drafting, with people approving and PayPal moving the money.
+
+### What's next for BitPOS Café Copilot
+
+- PayPal refunds from the owner screen.
+- More payment methods eligible through the JS SDK.
+- Multi-product offers.
+- Live mode after a security review.
+- Copilot explaining campaign results in plain words from verified numbers.
+
+---
+
+## Prior work and what is new (disclosure)
+
+- BitPOS existed before this hackathon: a café POS with table QR ordering, a promotion approval flow, BitPOS Mini screens and Solana devnet payments.
+- **New for this hackathon, from 31 October 2026:**
+  - all PayPal integration: `apps/api/src/paypal/`, `apps/web/src/components/paypal/`, migrations `400`–`405`;
+  - Café Copilot (the Gemini agent, tools, limits, traces);
+  - the hosted PayPal edition;
+  - the tests in `tests/paypal-*`.
+- Every new file and every changed existing file is listed in `paypal-hackathon/PROVENANCE.md`.
+- **AI used in the product:** Google Gemini (function calling) for Café Copilot, and the existing Gemini promotion copy generator.
+- **AI used to develop it:** coding assistants (Claude Code, Codex). These are separate from the product's AI.
+
+## Testing instructions (for judges)
+
+1. Open https://paypal-pos.cashlessthailand.com and press **Owner** under *Quick sign-in*. No password is needed.
+2. Open **PayPal · Copilot** and press **Draft with Copilot** on an example request. You will see each AI tool step and the server-computed price. Press **Approve** to approve the draft, then send it to the screens.
+3. Open the **Ledger** tab and **Settings → Payment account** to see the PayPal Sandbox payee and webhook status.
+4. **Customer payment:** the table menu needs the shop's table screen (a BitPOS Mini) to be online to accept a bill. Pay with a PayPal **Sandbox** personal account (create one free at developer.paypal.com). Everything is test money.
+5. Full guide, code map and evidence: `paypal-hackathon/JUDGES.md` on the entry branch.
+
+## Video
+
+Public YouTube, under 3 minutes, English narration, showing the real flow:
+- the Copilot draft and its tool trace;
+- owner approval;
+- the table offer;
+- the PayPal Sandbox popup and the verified capture;
+- the results and evidence.
