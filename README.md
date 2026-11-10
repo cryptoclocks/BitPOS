@@ -1,3 +1,24 @@
+# BitPOS — PayPal AI Hackathon entry: Café Copilot + PayPal Checkout
+
+> **This branch (`hackathon/paypal-2026`) is the PayPal AI Hackathon entry.** It is built on the **PayPal developer platform in the free PayPal Sandbox** and uses an **AI model (Google Gemini, function calling)** inside the product. Everything PayPal and Café Copilot was built from 31 Oct 2026; the BitPOS POS underneath existed before (see [provenance](paypal-hackathon/PROVENANCE.md)).
+
+**What it does.** A café owner types what they want to sell, for example *"Sell the 8 croissants left before 4pm, at most 10% off"*. **Café Copilot** (Gemini with six server-side tools) reads stock, sales and shop limits, validates a time-limited offer whose price the server computes, and saves a **draft only**. The owner approves it, the offer appears on the shop's table menu, and customers **pay with PayPal**. The order is marked paid only after the server **captures and verifies the payment with PayPal**.
+
+| PayPal developer platform (Sandbox) | AI in the product |
+|---|---|
+| **Orders v2 REST API**: create, capture, get; OAuth client credentials; a `PayPal-Request-Id` per operation for idempotent retries ([`client.ts`](apps/api/src/paypal/client.ts), [`checkout.ts`](apps/api/src/paypal/checkout.ts)) | **Google Gemini** `generateContent` with **function calling** (mode `ANY`), at most 6 calls per run, every call and tool result stored as a trace ([`agent.ts`](apps/api/src/paypal/agent.ts)) |
+| **JS SDK v6** one-time payment session (`web-sdk/v6/core`, `createPayPalOneTimePaymentSession`) on the customer pay page ([`PayPalPayment.tsx`](apps/web/src/components/paypal/PayPalPayment.tsx)) | Tools: `read_catalog_stock`, `read_recent_sales`, `read_merchant_limits`, `validate_campaign`, `save_campaign_draft`, `ask_owner`; none can publish, charge or refund ([`agent-tools.ts`](apps/api/src/paypal/agent-tools.ts)) |
+| Server-side **verification** of order id, purchase unit, `custom_id`, `invoice_id`, payee, currency, amount, a single final capture and the gross amount before PAID ([`verify.ts`](apps/api/src/paypal/verify.ts)) | Owner limits typed in Thai or English (units, percent, end time) are parsed by the server as a second ceiling; prices come from the server, never from the model |
+| **Webhooks** with offline signature verification, a durable inbox and re-fetching the order from PayPal ([`webhook.ts`](apps/api/src/paypal/webhook.ts)); reconcile worker for unknown outcomes | The approved limits are enforced by the database (unit cap reserved per order) ([`404_paypal_campaign.sql`](supabase/migrations/404_paypal_campaign.sql)) |
+
+**Try it (hosted, PayPal Sandbox, test money only):** merchant POS **https://paypal-pos.cashlessthailand.com** — press **Owner** under *Quick sign-in*, then open **PayPal · Copilot**. Step-by-step guide for judges: **[paypal-hackathon/JUDGES.md](paypal-hackathon/JUDGES.md)**.
+
+**Evidence:** a real Sandbox capture end to end in the browser ([browser-e2e.md](paypal-hackathon/evidence/browser-e2e.md)), every real Gemini call ([ai-calls.md](paypal-hackathon/evidence/ai-calls.md)), the hosted deployment and webhook check ([oci-deploy-2026-10-31.md](paypal-hackathon/evidence/oci-deploy-2026-10-31.md)), and 43 PayPal tests (`tests/paypal-*.test.ts`).
+
+---
+
+*The rest of this README describes the original BitPOS (Solana devnet edition) that this entry builds on.*
+
 # BitPOS
 
 **Cafe checkout that connects a Solana payment to a physical BitPOS Mini.**
