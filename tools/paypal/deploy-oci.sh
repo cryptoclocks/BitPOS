@@ -35,7 +35,7 @@ PUBLIC_URL="$POS_ORIGIN" pnpm exec astro build --root apps/web --outDir "$TMP/we
 
 step "pack"
 SRC=(apps/api/src apps/worker/src packages/contracts/src packages/domain/src packages/openapi
-     tools/paypal/server.ts tools/paypal/worker.ts tools/paypal/oci-preflight.ts tools/paypal/seed-demo.ts tools/paypal/device-credential.ts tools/paypal/front.ts tools/paypal/sim-screen.ts
+     tools/paypal/server.ts tools/paypal/worker.ts tools/paypal/oci-preflight.ts tools/paypal/seed-demo.ts tools/paypal/device-credential.ts tools/paypal/front.ts tools/paypal/sim-screen.ts tools/paypal/site
      tsconfig.json package.json)
 for p in "${SRC[@]}"; do [ -e "$p" ] || { echo "missing $p" >&2; exit 1; }; done
 COPYFILE_DISABLE=1 tar --exclude node_modules --exclude '*.test.ts' --no-xattrs -czf "$TMP/src.tgz" "${SRC[@]}" 2>/dev/null \
