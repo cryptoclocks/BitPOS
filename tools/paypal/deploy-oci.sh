@@ -88,7 +88,7 @@ for f in table2 counter; do [ -f "$SIMD/$f.json" ] && [ "$(stat -c %a "$SIMD/$f.
 m=$(grep -E '^BITPOS_AI_MODEL=' ~/bitpos-private/runtime.env | cut -d= -f2-); echo "info: runtime AI model: ${m:-not configured} (Café Copilot and its copy use this configuration)"
 for c in bitpos-runtime-api-1 bitpos-runtime-worker-1 bitpos-runtime-web-1 bitpos-meta-meta-1 bitpos-staging-db-1; do
   s=$(docker inspect -f '{{.State.Status}}' "$c" 2>/dev/null || echo missing); echo "info: $c $s"; done
-for n in 400_paypal_merchant 401_paypal_ledger 402_paypal_settlement 403_paypal_webhooks 404_paypal_campaign 405_paypal_agent_trace; do
+for n in 400_paypal_merchant 401_paypal_ledger 402_paypal_settlement 403_paypal_webhooks 404_paypal_campaign 405_paypal_agent_trace 406_paypal_messenger; do
   docker exec bitpos-staging-db-1 psql -U postgres -Atc "SELECT 1 FROM public.bitpos_migrations WHERE name='$n.sql'" | grep -q 1 && ok "migration $n" || bad "migration $n not applied (tools/paypal/migrate-oci.sh)"; done
 if [ -n "$IMG" ]; then
   out=$(docker run --rm --network none -u 1001:1001 -v ~/bitpos-paypal/preflight/src:/app/paypal-src:ro -v ~/bitpos-paypal/preflight/web:/app/paypal-web:ro -w /app/paypal-src "$IMG" \
