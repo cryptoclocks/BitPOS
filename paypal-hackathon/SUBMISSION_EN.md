@@ -10,7 +10,7 @@ BitPOS Café Copilot — AI offers, PayPal checkout
 
 ## Tagline (≤ 200 characters)
 
-A café POS where a Gemini AI agent drafts bounded offers for surplus stock and customers pay with PayPal (Orders v2 + JS SDK v6, Sandbox), verified on the server.
+A café POS where an AI agent drafts bounded offers for surplus stock and customers order at the table or in Messenger and pay with PayPal (Orders v2 + JS SDK v6, Sandbox), verified on the server.
 
 ## Built with
 
@@ -42,7 +42,7 @@ Small cafés end the day with surplus pastries and drinks. Owners know they shou
 
    The agent has no tool to publish, charge or refund. Every model call and tool result is stored and shown as a trace.
 3. **The owner reviews and approves** the draft, then sends it to the shop's screens.
-4. **The customer orders at the table** at the offer price and **pays with PayPal** (JavaScript SDK v6 popup, PayPal Sandbox).
+4. **The customer orders at the table or in Messenger** at the offer price and **pays with PayPal** (JavaScript SDK v6 popup, PayPal Sandbox). In Messenger, the shop's AI turns a message into a cart from the real menu and replies with a "Pay with PayPal" button; signature-verified Meta webhooks, deduplicated messages.
 5. **The server captures the order and verifies** the order id, `custom_id`, `invoice_id`, payee, currency, exact amount and the single final capture with PayPal before the bill is PAID. Webhooks (signature-verified) and a reconcile worker settle anything the customer's browser misses.
 6. **The owner sees the results**:
    - units sold against the approved cap;
@@ -89,6 +89,7 @@ Small cafés end the day with surplus pastries and drinks. Owners know they shou
 
   Recorded in `evidence/browser-e2e.md`.
 - **An AI that cannot overspend:** the model only proposes. The server computes prices, enforces limits, and the database caps units.
+- **Hosted, end to end with Messenger (11 Nov):** a guest ordered in Messenger ("two iced lattes and a croissant"); the shop's AI built the cart from the real menu; the server priced a Table 2 bill (USD 13.05) and replied with a "Pay with PayPal" button; the PayPal Sandbox capture COMPLETED (fee 1.14, net 11.91), the server verified it, the bill became PAID, and a "Paid with PayPal ✓" reply arrived in Messenger. Recorded in `evidence/oci-deploy-2026-10-31.md`.
 - **Hosted:** the deployment has quick sign-in for judges and a registered, signature-verified PayPal webhook.
 
 ### What we learned
@@ -129,7 +130,7 @@ Small cafés end the day with surplus pastries and drinks. Owners know they shou
 
 ## Video
 
-Public YouTube, under 3 minutes, English narration, showing the real flow:
+Public YouTube (https://youtu.be/1mEyzOGLQao, 2:48), under 3 minutes, English narration, showing the real flow:
 - the Copilot draft and its tool trace;
 - owner approval;
 - the table offer;
