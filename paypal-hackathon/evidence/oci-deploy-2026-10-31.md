@@ -41,3 +41,29 @@ The organizer's note said the entry did not appear to use the PayPal developer p
   - the simulator ACKed the new bill (`AWAITING_WALLET v1`);
   - a test-only PAID update (the same method as `tests/backend-device.test.ts`) produced `PAID v2`;
   - the simulator sent `ORDER_DISMISS` 5 s later (20 s on OCI), the server accepted it, and the screen returned to `idle` while staying online.
+
+## 11 Nov 2026 — incident: playlist flip-flop on the shared database (found, stopped, fixed)
+
+**What happened.**
+- At 21:29 UTC on 10 Nov an approved Copilot offer was sent to "all screens" while the simulated Table 2 screen was connected.
+- The shared `bitpos-runtime` worker (customer origin `pay.cashlessthailand.com`) and the PayPal API (`paypal-pay.cashlessthailand.com`) both rebuilt that screen's promotion playlist. The menu link and image URL carry the origin, so each process saw the other's playlist as changed.
+- Each pass bumped the generation and emitted a new CONFIG, about 70 per minute.
+- The server then dropped the socket roughly every minute (1008 Resynchronize). Every reconnect copies all of the device's outbox events into `device_event_deliveries` as `superseded`.
+- By 03:40 UTC on 11 Nov this had produced 12,268 outbox events and **13.9 million delivery rows (~4 GB)** for that one demo device. The host disk was at 97%.
+
+**Response.**
+- 03:41 UTC: the `sim-screen` service was stopped and growth stopped. No other stack was touched.
+- With the owner's go-ahead, only the `superseded` delivery rows of that demo device were deleted (13.39 M rows; `rendered`/`sent` rows and every outbox event kept), followed by a plain `VACUUM (ANALYZE)` with no table lock.
+- Disk usage is unchanged (97%). Postgres reuses the freed space, so the table does not grow further.
+
+**Fix (commit dd993272).**
+- `BITPOS_SHARED_PLAYLIST_ORIGIN=https://pay.cashlessthailand.com` in the private PayPal env: the PayPal API builds playlists with the shared worker's origin, so both agree. Unset means unchanged behaviour.
+- `sim-screen` declares the firmware's promotion capabilities once per connection and ACKs promotion frames.
+- `sim-screen` has a circuit breaker: more than 6 CONFIGs per minute, or more than 15 connections in 30 minutes, pauses that screen for 10 minutes.
+
+**Verification.**
+- Locally the flip reproduced and the breaker tripped.
+- On OCI after the fix, with the offer sent to both screens: both report RENDERED, and Table 2's playlist generation moved once (20922 → 20923).
+- Over the next 30 minutes: 7 CONFIGs, versus about 2,100 per hour before, and no disconnects other than the deploy restart.
+
+**Known limit.** With a real Mini, offer QR links in the playlist open `pay.cashlessthailand.com`. A full fix needs the shared worker to use per-shop origins, which is outside this entry.
