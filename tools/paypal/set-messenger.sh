@@ -11,7 +11,9 @@ set -euo pipefail
 [ -t 0 ] || { echo "run this in a terminal (credentials are read from hidden prompts)" >&2; exit 1; }
 read -rs -p "Facebook Page access token (hidden): " PAGE; echo
 read -rs -p "Meta App secret (hidden): " SECRET; echo
-PAGE=$(printf '%s' "$PAGE" | tr -d '[:space:]'); SECRET=$(printf '%s' "$SECRET" | tr -d '[:space:]')
+# Terminals wrap pasted text in bracketed-paste escapes (ESC[200~ … ESC[201~): strip them, then keep token characters only.
+strip(){ printf '%s' "$1" | sed $'s/\e\\[20[01]~//g' | tr -cd 'A-Za-z0-9'; }
+PAGE=$(strip "$PAGE"); SECRET=$(strip "$SECRET" | tr 'A-F' 'a-f')
 [[ "$PAGE" =~ ^[A-Za-z0-9]{40,400}$ ]] || { echo "that does not look like a Page access token; nothing changed" >&2; exit 1; }
 [[ "$SECRET" =~ ^[0-9a-f]{32}$ ]] || { echo "that does not look like an App secret (32 hex characters); nothing changed" >&2; exit 1; }
 TMP=$(mktemp); trap 'rm -f "$TMP"' EXIT
