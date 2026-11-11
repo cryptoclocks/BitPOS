@@ -102,7 +102,8 @@
 - **Real sandbox and real model runs** (`evidence/`):
   - the Sandbox spike;
   - real Gemini runs (`ai-calls.md`), with every call listed;
-  - a full browser run, Copilot draft → approve → table order → PayPal popup → SETTLED (`browser-e2e.md`).
+  - a full browser run, Copilot draft → approve → table order → PayPal popup → SETTLED (`browser-e2e.md`);
+  - on the hosted demo, a Messenger order paid with PayPal Sandbox end to end: capture COMPLETED, bill PAID, "Paid ✓" reply in Messenger (`oci-deploy-2026-10-31.md`, 11 Nov).
 - **Code review:** three review rounds on the PayPal code. Every finding was fixed, and the bugs got regression tests (commit history).
 
 ## 4. Run it locally (optional)

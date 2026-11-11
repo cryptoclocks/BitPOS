@@ -27,9 +27,8 @@
   - a real message from the app admin produced a Table 2 bill for USD 13.05 (2 Iced Latte + Croissant at the offer price);
   - the menu reply and the "Pay with PayPal" card arrived in Messenger.
 
-**Not yet verified live**
-- The "paid" Messenger reply after a real Sandbox capture (covered by `tests/paypal-messenger.test.ts`).
-- A real hosted PayPal payment (the owner chose not to pay for the video cut).
+**Live end to end**
+- 07:01–07:02 UTC: Messenger order → Table 2 bill USD 13.05 → PayPal Sandbox capture COMPLETED (fee 1.14, net 11.91) → bill PAID, 1 settlement, 2 verified webhooks → "Paid ✓" reply in Messenger.
 
 **Next**
 - Optional live paid test.

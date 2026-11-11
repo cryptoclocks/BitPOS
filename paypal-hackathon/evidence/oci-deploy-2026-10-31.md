@@ -75,3 +75,18 @@ The organizer's note said the entry did not appear to use the PayPal developer p
 - Live endpoint checks: handshake returned 200 with the challenge, a wrong verify token 403, an unsigned POST 401.
 - **Real message from the app admin in Messenger.** The server received 2 messages and created one Table 2 bill: USD 13.05 (2 Iced Latte at 4.50, plus Croissant at the −10% offer price 4.05), status awaiting payment. The menu reply and the "Pay with PayPal" card arrived in Messenger (confirmed by the owner).
 - Not yet live-tested: the "paid" reply after a real Sandbox capture. It is covered by `tests/paypal-messenger.test.ts`.
+
+## 11 Nov 2026 07:01–07:02 UTC — real PayPal Sandbox payment from a Messenger order (hosted, end to end)
+
+| Step | Server record |
+|---|---|
+| Messenger message from the app admin → bill | 07:01:39, Table 2, USD 13.05 (2 Iced Latte + Croissant at the −10% offer price) |
+| Card | "Pay with PayPal" button with the payment window shown, opening the hosted pay page |
+| PayPal | Buyer approved in the JS SDK v6 popup with a Sandbox personal account. Capture **COMPLETED**: gross 13.05, fee 1.14, net 11.91 USD |
+| Verification and settlement | Checkout CAPTURED; bill **PAID** at 07:02:07; exactly 1 settlement |
+| Webhooks | 2 signature-verified PayPal events recorded for this bill |
+| Messenger paid reply | Sent at 07:02:08 ("Paid with PayPal ✓ … Table 2"); the sender id was erased afterwards |
+
+- An earlier chat bill (06:53) expired before payment. The 5-minute quote window refused it (`ORDER_NOT_PAYABLE`), as designed.
+- The card now shows "pay within N min".
+- Everything above is Sandbox test money.
