@@ -14,8 +14,8 @@ read -rs -p "Meta App secret (hidden): " SECRET; echo
 # Terminals wrap pasted text in bracketed-paste escapes (ESC[200~ … ESC[201~): strip them, then keep token characters only.
 strip(){ printf '%s' "$1" | sed $'s/\e\\[20[01]~//g' | tr -cd 'A-Za-z0-9'; }
 PAGE=$(strip "$PAGE"); SECRET=$(strip "$SECRET" | tr 'A-F' 'a-f')
-[[ "$PAGE" =~ ^[A-Za-z0-9]{40,400}$ ]] || { echo "that does not look like a Page access token; nothing changed" >&2; exit 1; }
-[[ "$SECRET" =~ ^[0-9a-f]{32}$ ]] || { echo "that does not look like an App secret (32 hex characters); nothing changed" >&2; exit 1; }
+[[ "$PAGE" =~ ^EAA[A-Za-z0-9]+$ && ${#PAGE} -ge 40 && ${#PAGE} -le 1000 ]] || { echo "that does not look like a Page access token (got ${#PAGE} token characters, starting \"${PAGE:0:3}\"; expected EAA…); nothing changed" >&2; exit 1; }
+[[ "$SECRET" =~ ^[0-9a-f]{32}$ ]] || { echo "that does not look like an App secret (got ${#SECRET} characters, expected 32 hex); nothing changed" >&2; exit 1; }
 TMP=$(mktemp); trap 'rm -f "$TMP"' EXIT
 cat > "$TMP" <<'REMOTE'
 set -euo pipefail; umask 077

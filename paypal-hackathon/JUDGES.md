@@ -36,6 +36,12 @@
    - **Evidence**: the order's timeline from intent → AI tools → approval → screen → quote → PayPal order → capture → settlement.
    - **Ledger**: every PayPal payment and what verified it.
 
+6. **Optional: order in Messenger.** Write to the Facebook Page **Bitpos PayPal Café**, for example *"two iced lattes and a croissant"*.
+   - The shop's AI builds the cart from the real menu.
+   - The server prices it as a Table 2 bill and replies with a **Pay with PayPal** button that opens the same verified pay page.
+   - After the capture is verified, it replies "Paid with PayPal ✓".
+   - The Meta app is in development mode, so Messenger answers only accounts added as app testers. Send us your Facebook account in the Devpost message thread and we will add you. The code and tests are in `apps/api/src/paypal/messenger.ts` and `tests/paypal-messenger.test.ts`.
+
 ## 2. What to look for
 
 **PayPal (Orders v2, intent CAPTURE, JS SDK v6)**

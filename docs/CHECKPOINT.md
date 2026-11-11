@@ -1,3 +1,41 @@
+## PayPal hackathon — eligibility fixes, simulated screens, Messenger ordering, video v3 — 11 November 2026
+
+**Done**
+- Organizer's eligibility note answered:
+  - code pushed to `hackathon/paypal-2026`;
+  - Devpost text rewritten (Orders v2, JS SDK v6, webhooks, Gemini);
+  - submission status Submitted 5/5 with video v3: https://youtu.be/1mEyzOGLQao.
+- Hosted demo:
+  - labelled simulated table and counter screens (`tools/paypal/sim-screen.ts`), so judges can order at Table 2 and reach PayPal;
+  - Café Copilot on its own Gemini key (`BITPOS_PAYPAL_GEMINI_*`, model `gemini-3.5-flash-lite`).
+- Incident on the shared DB:
+  - cause: the PayPal API and the runtime worker rebuilt the same playlist with different origins, which flooded CONFIG and left 13.9 M superseded delivery rows;
+  - response: the service was stopped and only those rows were deleted (owner's go-ahead), then a plain VACUUM;
+  - fix: `BITPOS_SHARED_PLAYLIST_ORIGIN` plus a simulator circuit breaker;
+  - details in `paypal-hackathon/evidence/oci-deploy-2026-10-31.md`.
+- Messenger ordering for the PayPal shop:
+  - `apps/api/src/paypal/messenger.ts`, migration 406 (applied on OCI after a fresh backup);
+  - signature-verified webhook; the existing table ordering assistant builds the cart; normal table quote and order;
+  - replies with a "Pay with PayPal" card (the existing verified pay page) and sends one "paid" reply after verified capture.
+  - Page "Bitpos PayPal Café" (Page id 1421097247754174) and Meta app 3137631596441858 (development mode). Credentials are only in the private env on the host.
+
+**Validation**
+- PayPal suites 46/46, run sequentially (`--test-concurrency=1`; parallel runs share the fixture DB).
+- Promotion and device suites 27/27.
+- Live Messenger webhook:
+  - handshake 200, wrong verify token 403, unsigned POST 401;
+  - a real message from the app admin produced a Table 2 bill for USD 13.05 (2 Iced Latte + Croissant at the offer price);
+  - the menu reply and the "Pay with PayPal" card arrived in Messenger.
+
+**Not yet verified live**
+- The "paid" Messenger reply after a real Sandbox capture (covered by `tests/paypal-messenger.test.ts`).
+- A real hosted PayPal payment (the owner chose not to pay for the video cut).
+
+**Next**
+- Optional live paid test.
+- Rotate the Gemini key that appeared in a terminal transcript.
+- Judges can use Messenger only if they are added as app testers (development mode).
+
 ## PayPal hackathon — hosted on OCI, POS polish — 5 November 2026
 
 - Hosted since 31 Oct on project `bitpos-paypal` (front 3103, API 3104, worker, web 4361): `https://paypal-pos.cashlessthailand.com`, `https://paypal-pay.cashlessthailand.com`; migrations 400–405 in the ledger; webhook registered and checked with the simulator (`paypal-hackathon/evidence/oci-deploy-2026-10-31.md`).

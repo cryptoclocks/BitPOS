@@ -67,3 +67,11 @@ The organizer's note said the entry did not appear to use the PayPal developer p
 - Over the next 30 minutes: 7 CONFIGs, versus about 2,100 per hour before, and no disconnects other than the deploy restart.
 
 **Known limit.** With a real Mini, offer QR links in the playlist open `pay.cashlessthailand.com`. A full fix needs the shared worker to use per-shop origins, which is outside this entry.
+
+## 11 Nov 2026 — Messenger ordering, live
+
+- Migration 406 was applied on OCI after a fresh backup (`bitpos-20261111T054731Z.dump`, 111 MB, archive list verified). Deploy health was good and other stacks were unchanged.
+- Credentials were sent from the owner's clipboard straight into the private env (mode 600) and never displayed. The first token and secret had been pasted into a chat, so they were replaced before use.
+- Live endpoint checks: handshake returned 200 with the challenge, a wrong verify token 403, an unsigned POST 401.
+- **Real message from the app admin in Messenger.** The server received 2 messages and created one Table 2 bill: USD 13.05 (2 Iced Latte at 4.50, plus Croissant at the −10% offer price 4.05), status awaiting payment. The menu reply and the "Pay with PayPal" card arrived in Messenger (confirmed by the owner).
+- Not yet live-tested: the "paid" reply after a real Sandbox capture. It is covered by `tests/paypal-messenger.test.ts`.
