@@ -2,6 +2,7 @@
 // Front door of the hosted PayPal edition on 127.0.0.1:3103, where the existing Cloudflare tunnel already sends
 // paypal-pos.<domain> and paypal-pay.<domain>. Routes by path only:
 //   POST /paypal/webhooks           → API   (raw body streamed unchanged: PayPal signs these exact bytes)
+//   /paypal/messenger/webhook       → API   (Messenger ordering; Meta signs the raw body too)
 //   /api/demo-session               → API   (quick sign-in checks the browser's Origin, which the web proxy drops)
 //   WebSocket upgrade /api/device   → API   (BitPOS Mini; Authorization header passed through)
 //   everything else                 → web   (pages; the web proxies its allow-listed /api routes to the API)
@@ -16,7 +17,7 @@ const pathOf=(url:string|undefined)=>{try{return new URL(url??'/','http://front'
 
 const server=http.createServer((req,res)=>{
  const path=pathOf(req.url);
- const port=path==='/paypal/webhooks'||path==='/api/demo-session'?API:WEB;
+ const port=path==='/paypal/webhooks'||path==='/paypal/messenger/webhook'||path==='/api/demo-session'?API:WEB;
  const upstream=http.request({host:'127.0.0.1',port,method:req.method,path:req.url,headers:req.headers},r=>{res.writeHead(r.statusCode??502,r.headers);r.pipe(res);});
  upstream.on('error',()=>{if(!res.headersSent)res.writeHead(502,{'content-type':'application/json'});res.end('{"error":"UPSTREAM_UNAVAILABLE"}');});
  req.pipe(upstream);

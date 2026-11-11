@@ -6,11 +6,13 @@
 //   POST /api/pay/:token/paypal/capture  {paypalOrderId} after the buyer approved in PayPal
 //   POST /api/pay/:token/paypal/cancel   {paypalOrderId} the buyer closed PayPal
 //   POST /paypal/webhooks                PayPal notifications (signature-verified, see webhook.ts)
+//   GET|POST /paypal/messenger/webhook   Messenger ordering (signature-verified, see messenger.ts)
 import type {IncomingMessage,ServerResponse} from 'node:http';
 import {z} from 'zod';
 import {RequestError} from '../authority';
 import {PayPalRouteError,paypalStatus,createPayPalOrder,capturePayPalOrder,cancelPayPalOrder} from './checkout';
 import {servePayPalWebhook} from './webhook';
+import {serveMessengerWebhook} from './messenger';
 
 const ROUTE=/^\/api\/pay\/([A-Za-z0-9_-]{20,128})\/paypal(?:\/(orders|capture|cancel))?$/;
 const orderBody=z.object({paypalOrderId:z.string().regex(/^[A-Z0-9]{10,30}$/)}).strict();
@@ -23,6 +25,7 @@ async function readJson(req:IncomingMessage,limit=1024):Promise<unknown>{
 
 export async function servePayPal(req:IncomingMessage,res:ServerResponse):Promise<boolean>{
  if(await servePayPalWebhook(req,res))return true;
+ if(await serveMessengerWebhook(req,res))return true;
  const url=new URL(req.url??'/','http://localhost');const m=url.pathname.match(ROUTE);
  if(!m)return false;
  try{

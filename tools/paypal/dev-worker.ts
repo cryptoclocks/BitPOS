@@ -19,6 +19,7 @@ const {expireUnpaidOrders}=await import('../../apps/api/src/order-closure');
 const {tickPromotions,tickPromotionJobs}=await import('../../apps/worker/src/promotions');
 const {paypalDeps}=await import('../../apps/api/src/paypal/checkout');
 const {tickPayPal}=await import('../../apps/api/src/paypal/reconcile');
+const {notifyPaidMessenger}=await import('../../apps/api/src/paypal/messenger');
 const {runWorkerLanes}=await import('../../apps/worker/src/lanes');
 const controller=new AbortController();process.on('SIGINT',()=>controller.abort());process.on('SIGTERM',()=>controller.abort());
 console.log(`PayPal preview worker: AI ${process.env.BITPOS_AI_MODEL??'not configured'} · PayPal ${paypalDeps()?'sandbox configured':'not configured'}`);
@@ -26,5 +27,5 @@ let last=0;
 await runWorkerLanes([
  {tick:()=>tickPromotionJobs(controller.signal),unavailable:'Promotion generation unavailable'},
  {tick:tickPromotions,unavailable:'Promotion delivery unavailable'},
- {tick:async()=>{if(Date.now()-last<5000)return;last=Date.now();await tenant(SHOP,d=>expireUnpaidOrders(d,SHOP));const d=paypalDeps();if(d)await tickPayPal(d);},unavailable:'PayPal reconcile unavailable'}
+ {tick:async()=>{if(Date.now()-last<5000)return;last=Date.now();await tenant(SHOP,d=>expireUnpaidOrders(d,SHOP));const d=paypalDeps();if(d)await tickPayPal(d);await notifyPaidMessenger();},unavailable:'PayPal reconcile unavailable'}
 ],controller.signal);

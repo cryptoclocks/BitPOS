@@ -5,10 +5,11 @@
 import {paypalDeps} from '../../apps/api/src/paypal/checkout';
 import {tickPayPal} from '../../apps/api/src/paypal/reconcile';
 import {runWorkerLanes} from '../../apps/worker/src/lanes';
+import {notifyPaidMessenger} from '../../apps/api/src/paypal/messenger';
 
 const deps=paypalDeps();
 if(!deps)throw Error('PayPal Sandbox is not configured (PAYPAL_* in the private PayPal env)');
 const controller=new AbortController();process.on('SIGINT',()=>controller.abort());process.on('SIGTERM',()=>controller.abort());
 console.log(`PayPal worker · webhook ${deps.config.webhookId?'configured':'not configured'}`);
 let last=0;
-await runWorkerLanes([{tick:async()=>{if(Date.now()-last<5000)return;last=Date.now();await tickPayPal(deps);},unavailable:'PayPal reconcile unavailable; durable state retained'}],controller.signal);
+await runWorkerLanes([{tick:async()=>{if(Date.now()-last<5000)return;last=Date.now();await tickPayPal(deps);await notifyPaidMessenger();},unavailable:'PayPal reconcile unavailable; durable state retained'}],controller.signal);
