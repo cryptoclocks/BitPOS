@@ -5,6 +5,11 @@ import type {DevicePromotionPlaylist,PlaylistPromotion,PlaylistCampaignTarget} f
 import {hash} from '../../../packages/domain/src/index';
 import {promotionPrice} from '../../../packages/domain/src/promotions';
 import {customerOrigin} from './config';
+// PayPal AI Hackathon (2026-11-11): the PayPal edition shares the database with the bitpos-runtime worker, which also
+// rebuilds every shop's playlist with ITS customer origin. Different origins in menuUrl/image made the two processes
+// overwrite each other forever (generation bump -> CONFIG flood). BITPOS_SHARED_PLAYLIST_ORIGIN (https origin) lets an
+// edition build playlists with the shared worker's origin so both agree; unset = unchanged behaviour.
+const playlistOrigin=(()=>{const v=process.env.BITPOS_SHARED_PLAYLIST_ORIGIN;if(!v)return customerOrigin;const u=new URL(v);if(u.protocol!=='https:'||u.pathname!=='/'||u.search||u.hash)throw Error('BITPOS_SHARED_PLAYLIST_ORIGIN must be an https origin');return u.origin;})();
 import {promotionImage} from './promotion-assets';
 import {effectiveCatalog} from './catalog';
 import {streamEvent} from './orders';
@@ -84,9 +89,9 @@ export async function currentPromotionPlaylist(db:pg.PoolClient,merchant:string,
   if(t.audience==='daily'&&!t.table_local&&(localProducts.has(r.productId)||localPrice&&BigInt(price.amountMinor)>BigInt(localPrice.amountMinor)))continue;
   if(t.audience==='daily'&&daily>=(d.extended_playlist?3:2)||t.audience==='personal'&&personal>=1)continue;
   if(t.audience==='daily'){daily++;if(t.table_local)localProducts.add(r.productId);}else personal++;
-  const menuUrl=d.entry_token?customerOrigin+'/table/'+d.entry_token:null;
+  const menuUrl=d.entry_token?playlistOrigin+'/table/'+d.entry_token:null;
   const startsAt=new Date(t.audience==='personal'?Math.max(new Date(t.starts_at).getTime(),new Date(t.created_at).getTime()):new Date(t.starts_at).getTime()).toISOString();
-  items.push({targetId:t.id,campaignId:t.campaign_id,campaignVersion:t.campaign_version,audience:t.audience,productId:r.productId,headline:r.headline,copy:r.copy,unitPrice:price,basePrice:r.snapshot.basePrice,...(r.snapshot.bundle?{bundle:true,discountLabel:r.snapshot.bundle.discountLabel}:{}),discountPercent:r.discountPercent,startsAt,expiresAt:new Date(expiry).toISOString(),image:await promotionImage(db,merchant,t.asset_token),menuUrl});
+  items.push({targetId:t.id,campaignId:t.campaign_id,campaignVersion:t.campaign_version,audience:t.audience,productId:r.productId,headline:r.headline,copy:r.copy,unitPrice:price,basePrice:r.snapshot.basePrice,...(r.snapshot.bundle?{bundle:true,discountLabel:r.snapshot.bundle.discountLabel}:{}),discountPercent:r.discountPercent,startsAt,expiresAt:new Date(expiry).toISOString(),image:await promotionImage(db,merchant,t.asset_token,playlistOrigin),menuUrl});
  }
  items.sort((a,b)=>a.audience===b.audience?0:a.audience==='daily'?-1:1);
  const fence={assignment:String(d.assignment_generation),auth:String(d.auth_generation),screen:d.screen_generation,table:d.table_id,occupancy:d.occupancy_generation??null,items};const digest=hash(JSON.stringify(fence));

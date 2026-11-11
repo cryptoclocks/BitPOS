@@ -12,7 +12,7 @@ import {customerOrigin} from './config';
 import {pool,tenant} from './db';
 import {fail} from './authority';
 const rendered=z.object({image:z.string().max(149336),preview:z.string().max(699052),sourceSha256:z.string().regex(/^[a-f0-9]{64}$/),sha256:z.string().regex(/^[a-f0-9]{64}$/)}).strict();
-export function promotionMediaUrl(token:string,preview=false){return new URL('/api/promotions/media/'+token+(preview?'/preview.png':'/image.rgb565'),customerOrigin).href;}
+export function promotionMediaUrl(token:string,preview=false,origin:string=customerOrigin){return new URL('/api/promotions/media/'+token+(preview?'/preview.png':'/image.rgb565'),origin).href;}
 export async function renderPromotionAsset(db:pg.PoolClient,merchant:string,imageUrl:string|null,headline:string,copy:string,discountPercent:number,price:Money,menuUrl?:string,bundle?:import('../../../packages/contracts/src/bundle-promotions').BundleSnapshot){
  if(new URL(customerOrigin).protocol!=='https:')return {token:null,blocker:'HTTPS_MEDIA_ORIGIN_REQUIRED'};
  if(!imageUrl||!/^\/images\/menu\/[a-z0-9-]{1,40}\.jpg$/.test(imageUrl))return {token:null,blocker:'LICENSED_PRODUCT_PHOTO_REQUIRED'};
@@ -26,10 +26,10 @@ export async function renderPromotionAsset(db:pg.PoolClient,merchant:string,imag
   const token=randomBytes(32).toString('base64url');await db.query('INSERT INTO promotion_assets(merchant_id,token,image,preview,sha256,source_sha256) VALUES($1,$2,$3,$4,$5,$6)',[merchant,token,image,preview,result.sha256,result.sourceSha256]);return {token,blocker:null};
  }catch{return {token:null,blocker:'PROMOTION_RENDERER_OR_LICENSED_PHOTO_UNAVAILABLE'};}
 }
-export async function promotionImage(db:pg.PoolClient,merchant:string,token:string|null):Promise<PromotionImage|null>{
+export async function promotionImage(db:pg.PoolClient,merchant:string,token:string|null,origin:string=customerOrigin):Promise<PromotionImage|null>{
  if(!token)return null;
  const row=(await db.query('SELECT sha256 FROM promotion_assets WHERE merchant_id=$1 AND token=$2',[merchant,token])).rows[0];if(!row)return null;
- return {url:promotionMediaUrl(token),sha256:row.sha256,bytes:112000,width:280,height:200,format:'rgb565le'};
+ return {url:promotionMediaUrl(token,false,origin),sha256:row.sha256,bytes:112000,width:280,height:200,format:'rgb565le'};
 }
 export async function validatePromotionAssetFresh(db:pg.PoolClient,merchant:string,token:string|null,imageUrl:string|null,bundle?:import('../../../packages/contracts/src/bundle-promotions').BundleSnapshot){
  if(!token)return; // Published image:null remains an explicit truthful fallback.

@@ -3,8 +3,11 @@
 // demo shop's screen device so judges can place a table order and pay with PayPal Sandbox while no physical Mini is
 // plugged in (table orders are refused with DEVICE_OFFLINE when the table's screen is offline).
 // It speaks the same device protocol as the firmware (device/firmware/main/bitpos_table_runtime.inc):
-//   CONFIG -> CAPABILITIES (none: it renders no promotion or pickup notice, so those stay UNSUPPORTED, honestly)
-//   ORDER / SNAPSHOT / CART / CATALOG -> ACK rendered (what a screen does once the frame is on the display)
+//   first CONFIG of a connection -> CAPABILITIES once, the promotion capabilities of firmware 0.3.x (no pickup notice)
+//   ORDER / SNAPSHOT / CART / CATALOG / PROMOTION / PROMOTION_PLAYLIST -> ACK rendered (what a screen does once the
+//   frame is on the display), so a published offer settles as it does on a real Mini instead of being re-planned
+// Circuit breaker (after the 10-11 Nov 2026 runaway, see evidence/oci-deploy-2026-10-31.md): more than 6 CONFIG frames
+// in a minute, or more than 15 connections in 30 minutes, closes the socket and pauses this screen for 10 minutes.
 //   HEARTBEAT every 30 s (the presence lease is 60 s)
 //   a settled or closed bill that the server marks canDismiss -> ORDER_DISMISS after a short delay, so the table is
 //   free for the next judge (a person presses "Done" on a real Mini).
@@ -39,8 +42,12 @@ function run(file:string){
  // Deployed before its credential is issued: wait for the private file instead of crash-looping the container.
  if(!existsSync(file)){console.log(`${new Date().toISOString()} sim-screen waiting for ${file}`);setTimeout(()=>run(file),30000);return;}
  const {token,terminal}=tokenOf(file);const name=terminal.slice(0,8);
- let attempt=0;
+ let attempt=0;const connects:number[]=[];let pausedUntil=0;
  const connect=()=>{
+  const now=Date.now();if(now<pausedUntil){setTimeout(connect,pausedUntil-now);return;}
+  connects.push(now);while(connects.length&&connects[0]<now-30*60000)connects.shift();
+  if(connects.length>15){pausedUntil=now+10*60000;connects.length=0;log(name,'circuit breaker: too many connections, pausing 10 min');setTimeout(connect,10*60000);return;}
+  const configs:number[]=[];let declared=false;
   const ws=new WebSocket(`${API}/api/device`,{headers:{Authorization:'Bearer '+token}});
   let generation='',beat:NodeJS.Timeout|undefined,dismiss:NodeJS.Timeout|undefined,dismissKey='';
   const send=(c:Record<string,unknown>)=>{if(generation&&ws.readyState===WebSocket.OPEN)ws.send(JSON.stringify({schemaVersion:2,requestId:randomUUID(),connectionGeneration:generation,...c}));};
@@ -60,17 +67,19 @@ function run(file:string){
    let f:Frame;try{f=JSON.parse(raw.toString());}catch{return;}
    if(f.type==='COMMAND_RESULT'){if(f.result&&!f.result.ok)log(name,`command refused: ${f.result.error?.code??'unknown'}`);return;}
    if(f.type==='CONFIG'){
+    const t=Date.now();configs.push(t);while(configs.length&&configs[0]<t-60000)configs.shift();
+    if(configs.length>6){pausedUntil=t+10*60000;log(name,'circuit breaker: CONFIG flood, pausing 10 min');ws.close(1000);return;}
     generation=String(f.payload?.connectionGeneration??f.connectionGeneration??'');
-    send({type:'CAPABILITIES',capabilities:[]});
-    clearInterval(beat);beat=setInterval(()=>send({type:'HEARTBEAT',sessionId:null}),HEARTBEAT_MS);
+    if(!declared){declared=true;send({type:'CAPABILITIES',capabilities:['promotion_v1','promotion_playlist_v1','promotion_playlist_v2','promotion_bundle_v1']});
+     clearInterval(beat);beat=setInterval(()=>send({type:'HEARTBEAT',sessionId:null}),HEARTBEAT_MS);log(name,'configured');}
     if(f.eventId)ack(f,null);
-    log(name,'configured');return;
+    return;
    }
    if(!f.eventId||!f.deviceSeq||!f.screenGeneration)return;
-   // Promotion and pickup notices are never acknowledged: this simulator declared no capability for them.
+   // Pickup notices are never acknowledged: this simulator declared no pickup capability.
    if(f.type==='ORDER'){const o=f.payload as Order;ack(f,o);plan(o,f.screenGeneration);log(name,`order ${o.id.slice(0,8)} ${o.status} v${o.version}`);return;}
    if(f.type==='SNAPSHOT'){const s=f.payload?.screen;const o=s?.kind==='order'?{...s.order,canDismiss:!!s.canDismiss} as Order:null;ack(f,o);plan(o,f.screenGeneration);return;}
-   if(f.type==='CART'||f.type==='CATALOG')ack(f,null);
+   if(f.type==='CART'||f.type==='CATALOG'||f.type==='PROMOTION'||f.type==='PROMOTION_PLAYLIST')ack(f,null);
   });
   const retry=(why:string)=>{clearInterval(beat);clearTimeout(dismiss);generation='';const wait=Math.min(30000,1000*2**Math.min(attempt++,5));log(name,`${why}; reconnect in ${wait/1000}s`);setTimeout(connect,wait);};
   ws.on('close',code=>retry(`closed ${code}`));
