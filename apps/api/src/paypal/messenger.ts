@@ -80,13 +80,14 @@ export async function handleOrderText(c:MessengerConfig,to:string,text:string):P
  const q=await tableRequest(`${base(c)}/visit/${visit.visitToken}/quotes`,'POST',{items,collection:'table',confirmJoin:true}) as {quote:{id:string;priceVersion:string;total:{amountMinor:string;decimals:number;currency:string}}};
  const o=await tableRequest(`${base(c)}/visit/${visit.visitToken}/orders`,'POST',{quoteId:q.quote.id,priceVersion:q.quote.priceVersion,idempotencyKey:randomUUID()}) as {order:{id:string}};
  const merchant=(await pool.query('SELECT bitpos.resolve_table_entry($1) AS merchant',[c.entry])).rows[0].merchant as string;
- const token=(await tenant(merchant,db=>db.query('SELECT access_token FROM orders WHERE merchant_id=$1 AND id=$2',[merchant,o.order.id]))).rows[0].access_token as string;
+ const row=(await tenant(merchant,db=>db.query('SELECT access_token,quote_expires_at FROM orders WHERE merchant_id=$1 AND id=$2',[merchant,o.order.id]))).rows[0] as {access_token:string;quote_expires_at:Date};const token=row.access_token;
+ const minutes=Math.max(1,Math.round((new Date(row.quote_expires_at).getTime()-Date.now())/60000));
  await pool.query('SELECT bitpos.paypal_messenger_remember($1,$2,$3,$4)',[merchant,o.order.id,to,m.tableLabel]);
  const count=items.reduce((n,i)=>n+i.qty,0),total=money(q.quote.total);
  const lines=items.map(i=>{const p=products.find(p=>p.id===i.productId)!;return `${p.nameEn} × ${i.qty}`;}).join(' · ');
  const first=products.find(p=>p.id===items[0].productId);
  await send(c)(to,{attachment:{type:'template',payload:{template_type:'generic',elements:[{
-  title:`Cart · ${count} item${count===1?'':'s'} · ${total}`.slice(0,80),subtitle:`${lines} · ${m.tableLabel}`.slice(0,80),
+  title:`Cart · ${count} item${count===1?'':'s'} · ${total}`.slice(0,80),subtitle:`${lines} · ${m.tableLabel} · pay within ${minutes} min`.slice(0,80),
   ...(first?.imageUrl&&/^\/images\/menu\/[a-z0-9-]+\.jpg$/.test(first.imageUrl)?{image_url:customerOrigin+first.imageUrl}:{}),
   buttons:[{type:'web_url',url:`${customerOrigin}/pay/${token}`,title:'Pay with PayPal'}]}]}}});
  return o.order.id;

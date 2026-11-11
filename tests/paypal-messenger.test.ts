@@ -45,7 +45,7 @@ test('I-MSG: a Messenger message becomes a PayPal-payable table bill; paid reply
   assert.equal((await post(msg(id('1'),'two coffees please'))).status,200);await until(1);
   const card=sent[0].message.attachment.payload.elements[0];
   assert.equal(sent[0].to,'1234567890');assert.match(card.title,/^Cart · 2 items · USD /);
-  assert.equal(card.buttons[0].title,'Pay with PayPal');const token=card.buttons[0].url.split('/pay/')[1];
+  assert.equal(card.buttons[0].title,'Pay with PayPal');assert.match(card.subtitle,/pay within \d+ min$/,'the payment window is shown');const token=card.buttons[0].url.split('/pay/')[1];
   const bill=(await f.tenant(f.merchant,db=>db.query('SELECT id,status FROM orders WHERE merchant_id=$1 AND access_token=$2',[f.merchant,token]))).rows[0];
   assert.equal(bill.status,'AWAITING_WALLET','a priced, unpaid bill routed like any table order');
   assert.equal((await post(msg(id('1'),'two coffees please'))).status,200);await delay(200);
