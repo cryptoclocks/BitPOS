@@ -39,7 +39,7 @@
 2. ชื่อหัวหน้าทีมที่จะแสดงในฟอร์ม
 3. อีเมลติดต่อที่จะใช้ส่งงาน
 4. จำนวนคนในทีม: `1` หรือ `2 - 4`
-5. Track ที่ส่ง (ผมเสนอ: Real-World Money อย่างเดียว หรือเพิ่ม AI Security & Defense ถ้าส่วนพยานและ AI เสร็จ)
+5. Track ที่ส่ง (ติ๊กได้หลายอัน แต่ละ track มีรางวัลแยก) ผมเสนอ 4 อัน: **Real-World Money**, **AI Security & Defense**, **Autonomous Business**, **Open Innovation** · เพิ่ม **Privacy & Private AI** ได้ถ้าทำงานที่ 8 แล้วผมเรียกโมเดลจริงพร้อมตรวจลายเซ็นสำเร็จ
 6. ยอมรับประโยคนี้หรือไม่: *"I agree that the organizers may use these details to review our submission and contact us about this hackathon."*
 
 **เสร็จเมื่อ:** ตอบครบ 6 ข้อ

@@ -1,0 +1,12 @@
+---
+// NEAR HACKATHON work (2026-11-14). See near-hackathon/PROVENANCE.md.
+// Simulated BitPOS Mini for the NEAR edition: a labelled browser screen that speaks the same device protocol as the
+// firmware. Its connection key arrives in the URL fragment, which is never sent to this server.
+import NearTerminal from '../../components/near/NearTerminal';
+export const prerender = false;
+const deviceId = Astro.params.deviceId!;
+if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(deviceId)) return new Response('Not found', { status: 404 });
+Astro.response.headers.set('Cache-Control', 'no-store');
+Astro.response.headers.set('Referrer-Policy', 'no-referrer');
+---
+<!doctype html><html lang="en"><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><meta name="robots" content="noindex" /><title>BitPOS Mini · simulated screen (NEAR testnet)</title></head><body><NearTerminal deviceId={deviceId} client:only="react" /></body></html>

@@ -64,9 +64,11 @@ New code lives only in `contracts/near-bills/`, `apps/api/src/near/`, `apps/web/
 | `apps/api/src/table-ordering.ts` | Table entry payload adds `nearShop`. |
 | `apps/worker/src/index.ts` | Adds the NEAR reconcile lane when NEAR is configured. |
 | `apps/web/src/lib/api-routes.ts` | Allow-lists the NEAR routes in the web proxy. |
-| `apps/web/src/components/Pos.tsx`, `apps/web/src/pages/pay/[accessToken].astro` and related web files | NEAR tab and NEAR pay page wiring (listed in the web commit message). |
+| `apps/web/src/components/Pos.tsx` | "NEAR · Living Bill" sidebar entry and tab, shown only for a NEAR shop; footer says "NEAR testnet" for it. |
+| `apps/web/src/components/OrderBill.tsx`, `TableMenu.tsx` | A NEAR shop's counter bill and table page show the USD total and a NEAR testnet notice instead of the Solana settlement wording. |
+| `apps/web/src/pages/pay/[accessToken].astro` | Renders `NearPayment`, which falls through to the unchanged `Payment` for shops without NEAR. |
 | `device/firmware/{CMakeLists.txt,main/CMakeLists.txt,main/main.c,README.md}` | `BITPOS_PRODUCT=near` build branch, three new sources (empty unless the product is selected), the `bitpos_near_main()` hook, a README section. The standard product builds unchanged (verified by a full build). |
-| `package.json`, `pnpm-lock.yaml` | `near-api-js` 7.5.3, `borsh` 2 and the wallet connector. |
+| `package.json`, `pnpm-lock.yaml` | Adds `near-api-js` 7.5.3, `borsh` 2, `@hot-labs/near-connect` 0.12.0. Ten dependencies that were specified as `latest` are pinned to the exact versions the baseline lockfile already used (adding a package had silently moved `@astrojs/react` to a version that broke the dev server). |
 | SQL function `bitpos.unpaid_order_safe` (from migration 055) | Rebuilt in `501_near_ledger.sql`: base body unchanged, plus "not safe while the contract holds the money"; keeps the PayPal edition's clauses when that edition shares the database. |
 | SQL trigger on `payment_attempts` | `near_block_solana_attempt`: one order, one payment channel. |
 

@@ -98,7 +98,38 @@ pnpm exec tsx tools/near/dev-api.ts &             # API on 127.0.0.1:3001 (+ NEA
 pnpm dev:web                                      # web on http://127.0.0.1:4321
 ```
 
-<!-- UI-STEPS -->
+Then, in a browser (every step below was run this way on 14 Nov 2026 against NEAR testnet):
+
+1. **Sign in.** Open `http://127.0.0.1:4321`, press **Owner** under Quick sign-in. See the sidebar entry
+   **NEAR · Living Bill**; open it. *Overview* shows the shop's NEAR accounts and today's money by role.
+2. **Make a bill.** `pnpm exec tsx tools/near/seed-demo.ts order 0 1 1` prints a `/pay/…` link (a Latte and an
+   Americano, 8.50). Open it. See the total and **Open my bill on NEAR**.
+3. **Open it on chain.** Press the button. After a few seconds see **Pay exactly 8.50 tUSD**, a link "Bill on
+   chain", and *Where your money goes*: owner 6.035, tax reserve 0.595, the barista on shift 0.85, the supplier
+   invoice 1.02 (they add up to 8.50).
+4. **Pay.** Press **Demo wallet (testnet) · alice**. See **Paid**, every line ticked, and *Proof on NEAR* with the
+   payment transaction. Open it in the explorer: one transfer in, four out.
+5. **See the effects.** In the POS: *Ledger* lists the bill with its links and **Export CSV**; *Team & shifts*
+   shows the barista's earnings grew; *Suppliers* shows the invoice's funded amount grew; *Evidence* shows the
+   timeline (bill opened → payment relayed → settled).
+6. **Witness mode.** *Devices & witness* → create a "Simulated screen in a browser" → **Open simulated screen** (a
+   new tab; it makes its own key and registers the public half) → back in the POS press **Make witness**. Make a
+   new bill (step 2), open and pay it. See the pay page say **Paid into the bill · Waiting for the café's screen
+   to confirm** with a countdown, the simulated screen show **PAID** with "chain says: Escrow", then "Witness
+   signature: sent" and "chain says: Settled", and the pay page turn to **Paid** with a *Witness* transaction link.
+7. **No witness.** Close the simulated screen tab, make and pay another bill. When the countdown ends (120 s by
+   default; set *Witness time before refund* to 30 in *Split recipe* to shorten it) see **Your money came back**
+   with the refund transaction. The order stays unpaid and **Open a new bill on NEAR** is offered.
+8. **Other tabs.** *Split recipe* previews a 5.00 bill as you change the percentages. *Café CFO* → **Ask the CFO**
+   shows a proposal, the facts the model saw and the options the server offered; without a NEAR AI key it says
+   "Sample · no model called". Only **Approve** changes the recipe. On the pay page, *Pay from another chain
+   (preview)* shows live NEAR Intents quotes labelled "Mainnet preview · not executed".
+9. **Roles.** Sign in as **Staff**: the same tabs are readable, but recipe, invoices, devices, refunds and the CFO
+   are refused by the server (`ROLE_REQUIRED`).
+
+Not exercised in a browser by us: paying with a third-party wallet (Meteor/Intear) through **Connect NEAR wallet**
+— the code path is there (delegate action → relay, or direct transaction → lookup) but only the demo wallets were
+used.
 
 ## What to look for in the code
 

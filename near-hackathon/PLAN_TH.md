@@ -62,7 +62,7 @@
 
 เอเจนต์สั่งและจ่ายเองผ่าน MCP (ต่อยอดจาก Meta) · จ่ายซัพพลายเออร์ข้ามเชนด้วย Chain Signatures · อนุมัติหลายเจ้าของด้วย SputnikDAO · gas key สำหรับเครื่อง · mainnet
 
-**Track ที่ส่ง:** `realworld` เป็นหลัก · เพิ่ม `security` ได้ถ้า C และ J เสร็จจริง
+**Track ที่ส่ง (ปรับ 14 พ.ย. หลังของเสร็จ):** `realworld`, `security`, `business`, `open` · เพิ่ม `privacy` เมื่อ Café CFO เรียก NEAR AI Cloud จริงและตรวจลายเซ็นผ่านแล้วเท่านั้น
 
 ## 5. Stack
 
