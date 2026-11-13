@@ -38,7 +38,7 @@ export async function demoCredentials(req:http.IncomingMessage,input:unknown){
  hits=CASE WHEN demo_login_buckets.window_start<clock_timestamp()-interval '1 minute' THEN 1 ELSE demo_login_buckets.hits+1 END
  WHERE demo_login_buckets.window_start<clock_timestamp()-interval '1 minute' OR demo_login_buckets.hits<12 RETURNING hits`,[bucket]);
  if(!permitted.rowCount)fail('AUTH_REQUIRED',429);
- const path='local/private/demo-login.json';const stat=fs.lstatSync(path);if(!stat.isFile()||stat.isSymbolicLink()||(stat.mode&0o077)!==0)fail('AUTH_REQUIRED',503);
+ const path=process.env.BITPOS_DEMO_LOGIN_FILE??'local/private/demo-login.json';// hosted: a private file mounted read-onlyconst stat=fs.lstatSync(path);if(!stat.isFile()||stat.isSymbolicLink()||(stat.mode&0o077)!==0)fail('AUTH_REQUIRED',503);
  const credentials=z.array(z.object({email:z.string().email(),password:z.string().min(1),role:z.string()})).parse(JSON.parse(fs.readFileSync(path,'utf8')));
  const near=nearDemo();const email=(near?NEAR_DEMO.emails:{owner:'owner@bitpos.test',manager:'manager@bitpos.test',staff:'staff@bitpos.test'})[role];const selected=credentials.find(c=>c.email===email&&c.role===role);if(!selected)fail('AUTH_REQUIRED',503);
  return {credentials:{email:selected.email,password:selected.password,merchantId:near?NEAR_DEMO.merchant:MERCHANT_A},role};
