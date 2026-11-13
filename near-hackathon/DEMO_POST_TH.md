@@ -69,5 +69,5 @@ In witness mode the money waits in the contract until the BitPOS Mini at the tab
 
 How NEAR fits: Rust contract with NEP-141 receiver semantics and batched promise payouts; on-chain ed25519_verify for the hardware witness; NEP-366 meta transactions; function-call access keys so the POS server can open bills but cannot move the shop's money; named sub-accounts for staff and suppliers; a global contract for the test token; NEAR Intents 1Click as a labelled dry-quote preview of paying from other chains; NEAR AI Cloud for a reviewable "Café CFO" suggestion with response-signature verification.
 
-Status: deployed on NEAR testnet (bills.bitpos-near.testnet). 14 contract tests, 25 API tests, real end-to-end runs on testnet with transaction links in the repository. Firmware for the device builds and passes host tests but has not been run on hardware; a simulated screen in the browser runs the same protocol.
+Status: deployed on NEAR testnet (bills.bitpos-near.testnet). 14 contract tests, 25 API tests, real end-to-end runs on testnet with transaction links in the repository. Firmware for the device runs on the real board (boots, makes its own key, on-chip signature self-test passes); its network witness path is so far verified with a simulated screen in the browser that runs the same protocol.
 ```

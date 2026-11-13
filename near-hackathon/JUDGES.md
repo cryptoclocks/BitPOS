@@ -155,9 +155,11 @@ under a `near` name was built for this hackathon. `git diff --stat near-hackatho
 
 - **Testnet only.** Mainnet is refused in code and in the schema.
 - **NEAR Intents is a preview.** Dry quotes show real mainnet prices; no cross-chain payment is executed.
-- **Firmware not run on hardware.** The `near` firmware builds and its crypto/parser pass host tests, and its
-  signature vector is accepted by the contract's unit test — but it has not been flashed to a BitPOS Mini. The
-  simulated screen in the browser runs the same protocol, including its own chain check and signature.
+- **Firmware: boot and self-test only on hardware.** The `near` firmware passes host tests and its signature vector
+  is accepted by the contract's unit test. On 14 Nov it was installed on a BitPOS Mini: it boots, creates its own key
+  and the on-chip ed25519 self-test passes ([evidence](evidence/mini-flash-2026-11-14.md)). Provisioning, WiFi and a
+  witness `device_ack` from the board have not been run yet; the simulated screen in the browser runs that protocol,
+  including its own chain check and signature.
 - **Café CFO verification is partial.** We verify the response signature and that its signer is named in the
   attestation report fetched before the call. We do not verify the TEE hardware quote inside that report.
   Without an API key the CFO runs in a labelled sample mode and calls no model.

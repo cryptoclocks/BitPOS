@@ -56,13 +56,13 @@ the standard product: physical access to the flash exposes the seed.
 `NEAR_DEMO <setup|idle|qr|checking|paid|refunded|offline>` (sample data, marked DEMO, signs nothing), `NEAR_SHOT`,
 `NEAR_LANG en|th`.
 
-**Installing.** Not performed. Use the documented OTA-slot procedure rather than `idf.py flash`: write
-`build-near/bitpos_terminal_near.bin` to the second app slot with `otatool.py write_ota_partition --slot 1` and select it
-with `switch_ota_partition --slot 1`, after naming the test device, checking its serial port and MAC and saving a
-backup; the standard firmware stays in slot 0. There is no OTA server for this product yet.
+**Installing.** Done once on 14 Nov 2026 on the test board (MAC 14:c1:9f:4e:62:48) after a private full-flash backup:
+the binary was written to app1 (0x210000), byte-verified, and OTA data selects slot 1; app0 (standard firmware), NVS and
+FAT were not written. See `near-hackathon/evidence/mini-flash-2026-11-14.md`. Roll back with `switch_ota_partition --slot 0`.
 
-**Verified / not verified.** Host test passes and the binary builds and fits the 2 MB slot. Nothing has run on real
-hardware: screens, WiFi, TLS to an RPC node, the flush-gated signature, sound and timing on the ESP32-S3 are unverified.
+**Verified / not verified.** Host test passes; on the real board the product boots, creates its device key and
+`NEAR_SELFTEST` passes (RFC 8032 vector and device-key sign/verify). Not yet run on hardware: provisioning, WiFi, TLS to
+an RPC node, the flush-gated witness signature and a testnet `device_ack` (they need a public HTTPS origin).
 
 ## Runtime
 ### Post-submission payment assets — source, physical verification pending
