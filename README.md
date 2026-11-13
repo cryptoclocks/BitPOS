@@ -6,6 +6,8 @@
 > unchanged). **Only the NEAR integration on this branch was built for NEAR HACKATHON**; it is judged on its own.
 > What is new: [near-hackathon/PROVENANCE.md](near-hackathon/PROVENANCE.md) · `git diff --stat near-hackathon-baseline..HEAD`
 
+**Live demo (NEAR testnet, test money):** [near.cashlessthailand.com](https://near.cashlessthailand.com) (overview and video) · [near-pos.cashlessthailand.com](https://near-pos.cashlessthailand.com) (café POS: press **Owner** under Quick sign-in, then **NEAR · Living Bill**) · customer pages open on `near-pay.cashlessthailand.com` from a bill (POS → Menu → register *Counter* → add an item → *Create order* → *Open payment*).
+
 **What it does.** A café bill becomes an entry in a NEAR contract. The customer pays it once, without holding NEAR
 (the café's relayer pays the gas). In the same transaction the contract pays everyone: the owner, a tax reserve,
 the staff on shift and a supplier invoice that collects itself. Anything that is not exactly the bill — wrong

@@ -71,5 +71,5 @@ AI spending pass: a customer lets an AI agent pay for them for 30 min, 1 hour, 1
 
 NEAR used: Rust contract (NEP-141 receiver, batched payouts, ed25519_verify), NEP-366 meta transactions, function-call keys (a cashier key that cannot move money, an agent key limited to pass_pay), named sub-accounts, a global contract for the test token, NEAR Intents 1Click as a dry-quote preview, NEAR AI Cloud for a reviewable Café CFO.
 
-Status: live on NEAR testnet (bills.bitpos-near.testnet); 23 contract tests, 28 API tests and real end-to-end testnet runs with links in the repository. The new BitPOS Mini firmware boots on the device and passes its on-chip signature self-test.
+Status: live on NEAR testnet (bills.bitpos-near.testnet), hosted demo at near.cashlessthailand.com; 23 contract tests, 28 API tests and real end-to-end testnet runs with links in the repository. The new BitPOS Mini firmware boots on the device and passes its on-chip signature self-test.
 ```

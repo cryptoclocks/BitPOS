@@ -38,6 +38,20 @@ those payments are a side effect of the sale itself, and each one has a transact
 | Function-call key for an AI agent + contract-held pass | **AI spending pass**: a customer funds a pass for 30 min, 1 hour, 1 day, 1 week or 1 month with a cap and a per-bill limit; the agent's key can call `pass_pay` only. Refunds of bills it paid go to the customer, never the agent; closing or expiry returns the rest |
 | NEAR AI Cloud | Café CFO: picks one recipe option from a server-built list; the response signature is verified against the attestation report fetched before the call |
 
+## Try the hosted demo (no setup)
+
+1. Open [near-pos.cashlessthailand.com](https://near-pos.cashlessthailand.com), press **Owner** under *Quick sign-in*, open **NEAR · Living Bill**.
+2. **Menu** → choose register **Counter** → add a Latte → **View cart** → **Review order** → **Create order** → **Open payment**
+   (opens `near-pay.cashlessthailand.com/pay/…`).
+3. **Open my bill on NEAR** → see *Pay exactly 5.00 tUSD* and *Where your money goes*.
+4. Pay with **Demo wallet (testnet) · alice**, or open **Let an AI agent pay (time-limited pass)**, pick a length, **Give the AI a pass**,
+   then **Let the AI agent pay this bill**. See **Paid**, four ticked payouts and the transaction links.
+5. Back in the POS: *Ledger*, *Team & shifts*, *Suppliers* and *Evidence* show the bill.
+
+Run on 14 Nov 2026 against NEAR testnet (AI pass, 30 minutes → paid 5.00 → split 3.55 / 0.35 / 0.50 / 0.60). The table and counter
+screens on the hosted demo are simulated (no BitPOS Mini is connected to it); everything else is the same code as this branch.
+Hosting: compose project `bitpos-near` on the shared BitPOS host (`infra/near/compose.yaml`, `tools/near/deploy-oci.sh`).
+
 ## Live on testnet (read-only checks, no setup)
 
 | | |
