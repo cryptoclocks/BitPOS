@@ -1,0 +1,342 @@
+<!-- NEAR HACKATHON work (2026-11-14). See near-hackathon/PROVENANCE.md. -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#0B0F1A">
+<title>BitPOS Living Bill — NEAR edition</title>
+<meta name="description" content="A café bill that is a NEAR contract: the guest pays once, and the owner, the barista on shift, the tax reserve and the supplier are paid in the same transaction.">
+<link rel="canonical" href="https://near.cashlessthailand.com/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="BitPOS Living Bill — NEAR edition">
+<meta property="og:description" content="One payment. Everyone gets paid. A café bill that is a NEAR contract.">
+<meta property="og:url" content="https://near.cashlessthailand.com/">
+<meta property="og:image" content="https://near.cashlessthailand.com/assets/img/visual-paid-split.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="preload" href="assets/fonts/Montserrat-VF.ttf" as="font" type="font/ttf" crossorigin>
+<link rel="stylesheet" href="style.css">
+<script src="app.js" defer></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<svg class="svg-defs" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs>
+<symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14m-6-6 6 6-6 6"/></symbol>
+<symbol id="i-sound" viewBox="0 0 24 24"><path d="M4 9h4l5-5v16l-5-5H4zm13-2a7 7 0 0 1 0 10m3-13a11 11 0 0 1 0 16"/></symbol>
+<symbol id="i-mute" viewBox="0 0 24 24"><path d="M4 9h4l5-5v16l-5-5H4zm12 0 6 6m0-6-6 6"/></symbol>
+<symbol id="i-wallet" viewBox="0 0 24 24"><path d="M20 7H5a2 2 0 0 1 0-4h12v4M4 7v13h16V7m-5 5h6v4h-6z"/></symbol>
+<symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+<symbol id="i-tax" viewBox="0 0 24 24"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2zM9 8h6M9 12h6M9 16h3"/></symbol>
+<symbol id="i-truck" viewBox="0 0 24 24"><path d="M3 6h11v10H3zm11 4h4l3 3v3h-7M7 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4m10 0a2 2 0 1 0 0-4 2 2 0 0 0 0 4"/></symbol>
+<symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
+<symbol id="i-cup" viewBox="0 0 24 24"><path d="M4 9h12v8a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4zm12 1h2a3 3 0 1 1 0 6h-2M7 2v3m5-3v3"/></symbol>
+<symbol id="i-ledger" viewBox="0 0 24 24"><path d="M4 4h16v16H4zM4 9h16M4 14h16M9 4v16"/></symbol>
+<symbol id="i-spark" viewBox="0 0 24 24"><path d="m12 3 2.6 6.4L21 12l-6.4 2.6L12 21l-2.6-6.4L3 12l6.4-2.6z"/></symbol>
+<symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6zm-3 9 2 2 4-4"/></symbol>
+</defs></svg>
+
+<div class="scroll-progress" aria-hidden="true"></div>
+
+<header class="header">
+  <a href="#top" class="brand" aria-label="BitPOS Living Bill, back to top"><img src="assets/img/logo.webp" alt="BitPOS" width="1600" height="533"><span class="brand-tag">NEAR edition</span></a>
+  <nav class="desktop-nav" aria-label="Main">
+    <a href="#bill">The bill</a>
+    <a href="#how">How it works</a>
+    <a href="#ai-pass">AI pass</a>
+    <a href="#mini">BitPOS Mini</a>
+    <a href="#proof">Proof</a>
+    <a href="https://github.com/cryptoclocks/BitPOS/tree/hackathon/near-2026" target="_blank" rel="noopener noreferrer">Code <span aria-hidden="true">↗</span></a>
+  </nav>
+  <div class="nav-actions">
+    <a class="nav-btn nav-btn-solid" href="https://near-pos.cashlessthailand.com" target="_blank" rel="noopener noreferrer">POS demo <span aria-hidden="true">↗</span></a>
+    <a class="nav-btn" href="https://near-pay.cashlessthailand.com" target="_blank" rel="noopener noreferrer">Customer demo <span aria-hidden="true">↗</span></a>
+    <button class="menu-toggle" type="button" aria-label="Open navigation" aria-expanded="false" aria-controls="mobile-nav"><span></span><span></span></button>
+  </div>
+</header>
+<nav id="mobile-nav" class="mobile-nav" aria-label="Mobile" hidden>
+  <a href="#bill">The bill</a>
+  <a href="#how">How it works</a>
+  <a href="#ai-pass">AI pass</a>
+  <a href="#mini">BitPOS Mini</a>
+  <a href="#proof">Proof</a>
+  <a href="https://github.com/cryptoclocks/BitPOS/tree/hackathon/near-2026" target="_blank" rel="noopener noreferrer">Code ↗</a>
+  <a href="https://near-pos.cashlessthailand.com" target="_blank" rel="noopener noreferrer">POS demo ↗</a>
+  <a href="https://near-pay.cashlessthailand.com" target="_blank" rel="noopener noreferrer">Customer demo ↗</a>
+</nav>
+
+<main id="main">
+
+<!-- HERO -->
+<section class="hero" id="top" aria-labelledby="hero-title">
+  <div class="aurora" aria-hidden="true"></div>
+  <div class="grid-bg" aria-hidden="true"></div>
+  <div class="hero-copy">
+    <div class="eyebrow"><span class="status-dot"></span>NEAR HACKATHON · Real-World Money</div>
+    <h1 id="hero-title"><span>One payment.</span><span class="accent">Everyone gets paid.</span></h1>
+    <p class="hero-lede">A café bill that is a NEAR contract: the guest pays once, and the owner, the barista on shift, the tax reserve and the supplier are paid in the same transaction.</p>
+    <div class="hero-actions">
+      <a class="button button-green" href="https://near-pos.cashlessthailand.com" target="_blank" rel="noopener noreferrer">POS demo <span aria-hidden="true">↗</span></a>
+      <a class="button button-outline" href="https://near-pay.cashlessthailand.com" target="_blank" rel="noopener noreferrer">Customer demo <span aria-hidden="true">↗</span></a>
+    </div>
+    <p class="hero-note">NEAR testnet · test money only · no real money</p>
+  </div>
+  <div class="hero-media">
+    <div class="media-caption"><span><span class="rec-dot" aria-hidden="true"></span>THE LIVING BILL FILM</span><span>ENGLISH · NEAR TESTNET</span></div>
+    <div class="player">
+      <video id="hero-video" playsinline muted loop preload="metadata" poster="assets/img/visual-paid-split.jpg" aria-label="BitPOS Living Bill film: one café payment split to owner, barista, tax reserve and supplier on NEAR testnet">
+        <source src="assets/video/living-bill-en.mp4" type="video/mp4">
+      </video>
+      <div class="player-controls">
+        <button type="button" class="ctl ctl-play" aria-pressed="false" aria-label="Play video"><span class="ctl-label">Play</span></button>
+        <button type="button" class="ctl ctl-sound" aria-pressed="false" aria-label="Unmute video"><svg class="ico-mute"><use href="#i-mute"/></svg><svg class="ico-sound"><use href="#i-sound"/></svg><span class="ctl-label">Sound off</span></button>
+      </div>
+    </div>
+  </div>
+  <a class="scroll-cue" href="#bill"><span>SCROLL</span><span class="scroll-line" aria-hidden="true"></span></a>
+</section>
+
+<div class="marquee" aria-hidden="true"><div class="marquee-track">
+  <span>ONE PAYMENT</span><b>✳</b><span>EVERYONE GETS PAID</span><b>✳</b><span>ALL OR NONE</span><b>✳</b><span>NEAR TESTNET</span><b>✳</b>
+  <span>ONE PAYMENT</span><b>✳</b><span>EVERYONE GETS PAID</span><b>✳</b><span>ALL OR NONE</span><b>✳</b><span>NEAR TESTNET</span><b>✳</b>
+</div></div>
+
+<!-- 01 PROBLEM -->
+<section class="section" id="bill" aria-labelledby="problem-title">
+  <div class="section-top reveal"><span class="eyebrow">01 — THE PROBLEM</span><span class="section-index">ONE SALE · MANY PEOPLE TO PAY</span></div>
+  <div class="section-heading reveal">
+    <h2 id="problem-title">The sale takes seconds.<br><span class="green-text">Paying everyone takes days.</span></h2>
+    <p>Cafés pay tips, tax and suppliers by hand, days after the sale, from one mixed balance.</p>
+  </div>
+  <div class="card-grid four">
+    <article class="card reveal"><span class="card-icon"><svg><use href="#i-wallet"/></svg></span><span class="card-num">01</span><h3>One mixed balance</h3><p>Sales, tips, tax and supplier money all land in the same account, and someone has to untangle it later.</p></article>
+    <article class="card reveal"><span class="card-icon"><svg><use href="#i-clock"/></svg></span><span class="card-num">02</span><h3>Staff wait for payday</h3><p>The barista who made the drink sees their share days or weeks after the guest paid.</p></article>
+    <article class="card reveal"><span class="card-icon"><svg><use href="#i-tax"/></svg></span><span class="card-num">03</span><h3>Tax money gets spent</h3><p>Tax sits in the same balance as everything else, so it is easy to spend before it is due.</p></article>
+    <article class="card reveal"><span class="card-icon"><svg><use href="#i-truck"/></svg></span><span class="card-num">04</span><h3>Suppliers chase invoices</h3><p>The milk supplier waits on a manual transfer instead of being paid as the cups are sold.</p></article>
+  </div>
+</section>
+
+<!-- 02 HOW IT WORKS -->
+<section class="section section-alt" id="how" aria-labelledby="how-title">
+  <div class="section-inner">
+    <div class="section-top reveal"><span class="eyebrow">02 — HOW IT WORKS</span><span class="section-index">THE LIVING BILL</span></div>
+    <div class="section-heading reveal">
+      <h2 id="how-title">The bill is the contract.<br><span class="green-text">The contract pays everyone.</span></h2>
+      <p>Four steps, from the counter to every payee, in one NEAR transaction.</p>
+    </div>
+    <div class="how-grid">
+      <ol class="steps">
+        <li class="step reveal"><span class="step-num">01</span><div><h3>POS opens the bill on NEAR</h3><p>The price comes from the café's own server, not from the guest's phone.</p></div></li>
+        <li class="step reveal"><span class="step-num">02</span><div><h3>Guest pays exactly, gasless</h3><p>A NEAR meta transaction: the café's relayer pays the gas, only for exactly this bill.</p></div></li>
+        <li class="step reveal"><span class="step-num">03</span><div><h3>Contract pays everyone in one batch</h3><p>Owner, barista, tax reserve and supplier are paid together. All or none.</p></div></li>
+        <li class="step reveal"><span class="step-num">04</span><div><h3>Anything else bounces back</h3><p>Anything that is not exactly the bill is returned to the sender by itself.</p></div></li>
+      </ol>
+      <figure class="split-card reveal" aria-labelledby="split-cap">
+        <div class="split-head"><span class="eyebrow">REAL SPLIT · NEAR TESTNET</span><strong>5.00 <small>tUSD in</small></strong></div>
+        <div class="split-bar" aria-hidden="true"><span style="--w:71%" class="c-owner"></span><span style="--w:10%" class="c-barista"></span><span style="--w:7%" class="c-tax"></span><span style="--w:12%" class="c-supplier"></span></div>
+        <ul class="split-list">
+          <li><i class="c-owner" aria-hidden="true"></i><span>Owner</span><b>3.55</b></li>
+          <li><i class="c-barista" aria-hidden="true"></i><span>Barista on shift</span><b>0.50</b></li>
+          <li><i class="c-tax" aria-hidden="true"></i><span>Tax reserve</span><b>0.35</b></li>
+          <li><i class="c-supplier" aria-hidden="true"></i><span>Milk supplier</span><b>0.60</b></li>
+        </ul>
+        <figcaption id="split-cap">One payment in, four payouts out, in the same transaction. tUSD is a test token on NEAR testnet.
+          <a class="tx-link" href="https://testnet.nearblocks.io/txns/AZBjrRxtFupDW2Driq7w6ynEwiLE7EBuLDNkjBhwNHGG" target="_blank" rel="noopener noreferrer">View the transaction on NearBlocks <span aria-hidden="true">↗</span></a>
+        </figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<!-- 03 PROOF OF SERVE -->
+<section class="section" id="witness" aria-labelledby="witness-title">
+  <div class="section-top reveal"><span class="eyebrow">03 — PROOF OF SERVE</span><span class="section-index">WITNESS MODE</span></div>
+  <div class="split-layout">
+    <div class="reveal">
+      <h2 id="witness-title">Paid means<br><span class="green-text">the table saw PAID.</span></h2>
+      <p class="lede">In witness mode the money waits in escrow until the BitPOS Mini at the table signs that it showed PAID.</p>
+      <ul class="check-list">
+        <li><svg><use href="#i-check"/></svg><span>The table screen signs a receipt that it displayed PAID for this bill.</span></li>
+        <li><svg><use href="#i-check"/></svg><span>The contract verifies the ed25519 signature on chain before anyone is paid.</span></li>
+        <li><svg><use href="#i-check"/></svg><span>No signature in time: the money is refunded to the payer.</span></li>
+      </ul>
+      <div class="tx-row">
+        <a class="tx-chip" href="https://testnet.nearblocks.io/txns/DVJMGYTKwfJXc9o2TXJkksWXv8ZdUJySyabEGef6N81a" target="_blank" rel="noopener noreferrer"><b>device_ack</b><span>signed, verified, paid out ↗</span></a>
+        <a class="tx-chip" href="https://testnet.nearblocks.io/txns/GU4iWXzn7KzNGEMbkzL8dNgLNr5WK6Smymf5CUrqsjjs" target="_blank" rel="noopener noreferrer"><b>refund</b><span>no signature in time ↗</span></a>
+      </div>
+      <p class="honest"><b>Honest note:</b> the testnet witness runs used the browser's simulated screen running the same protocol. The BitPOS Mini firmware boots on the device and passes its on-chip signature self-test.</p>
+    </div>
+    <figure class="photo reveal">
+      <img src="assets/img/visual-witness-check.jpg" width="1600" height="900" loading="lazy" alt="Product visualization: a BitPOS Mini on a café table showing a Checking NEAR screen next to a coffee and pastry">
+      <figcaption>Product visualization · witness check on the table screen</figcaption>
+    </figure>
+  </div>
+</section>
+
+<!-- 04 AI PASS -->
+<section class="section section-alt" id="ai-pass" aria-labelledby="pass-title">
+  <div class="section-inner">
+    <div class="section-top reveal"><span class="eyebrow"><span class="new-pill">NEW</span>04 — AI SPENDING PASS</span><span class="section-index">LIVE ON TESTNET</span></div>
+    <div class="split-layout">
+      <div class="reveal">
+        <h2 id="pass-title">Let an AI agent pay.<br><span class="green-text">On your terms.</span></h2>
+        <p class="lede">A guest lets an AI agent pay at the café for a set time, with a spending cap and a per-bill limit.</p>
+        <div class="durations" aria-label="Pass durations"><span>30 min</span><span>1 hour</span><span>1 day</span><span>1 week</span><span>1 month</span></div>
+        <ul class="check-list">
+          <li><svg><use href="#i-shield"/></svg><span>The agent's key can only call <code>pass_pay</code>. It cannot move money anywhere else.</span></li>
+          <li><svg><use href="#i-shield"/></svg><span>Not served in time, or refunded: the money goes back to the guest, never to the agent.</span></li>
+          <li><svg><use href="#i-shield"/></svg><span>Closing the pass, or letting it expire, returns the rest to the guest.</span></li>
+        </ul>
+      </div>
+      <div class="evidence reveal">
+        <div class="evidence-head"><span class="eyebrow">END-TO-END RUN · NEAR TESTNET</span><span class="ok-pill"><svg><use href="#i-check"/></svg>all assertions passed</span></div>
+        <p class="evidence-sub">Pass: 1 hour, cap 20, per bill 10. Agent key: function-call key limited to <code>pass_pay</code>.</p>
+        <ol class="tx-list">
+          <li><a href="https://testnet.nearblocks.io/txns/6fFD1BHdihT8mBDfiz3Buu74AVQuoQRuKsjRg2tU9JTJ" target="_blank" rel="noopener noreferrer"><span>Guest creates the pass</span><i aria-hidden="true">↗</i></a></li>
+          <li><a href="https://testnet.nearblocks.io/txns/Bz2d9gpEksZnCYV3YuNxGUtpQhHnKJK1Dx1LEmxLuEtQ" target="_blank" rel="noopener noreferrer"><span>Café opens bill A</span><i aria-hidden="true">↗</i></a></li>
+          <li><a href="https://testnet.nearblocks.io/txns/4Y6n14WrTz26MqfUmHgqMQoNNdfWkLmSrCoqY582xmaU" target="_blank" rel="noopener noreferrer"><span>Agent pays bill A from the pass, split settles</span><i aria-hidden="true">↗</i></a></li>
+          <li><a href="https://testnet.nearblocks.io/txns/7kJNoTUX3XLs6hAfP4wRXzbdUkP2NubYYpich3Jjgb8b" target="_blank" rel="noopener noreferrer"><span>Café opens witness bill B (30 s window)</span><i aria-hidden="true">↗</i></a></li>
+          <li><a href="https://testnet.nearblocks.io/txns/3FGdHVQjhn3CSVqQN33XAV5UfnUTy27JvvSnShVEhakz" target="_blank" rel="noopener noreferrer"><span>Agent pays bill B from the pass</span><i aria-hidden="true">↗</i></a></li>
+          <li><a href="https://testnet.nearblocks.io/txns/CtKPPqAsg2zrtQcVxJFSRjxQFZwj4g7o8J4R7Y1B8cDW" target="_blank" rel="noopener noreferrer"><span>Not served in time: bill B refunded</span><i aria-hidden="true">↗</i></a></li>
+          <li><a href="https://testnet.nearblocks.io/txns/7efKcZedJf8B3PKAVKrcFCfNtGB4k5muynz2UgRaSGNr" target="_blank" rel="noopener noreferrer"><span>Guest closes the pass, rest returned</span><i aria-hidden="true">↗</i></a></li>
+          <li><a href="https://testnet.nearblocks.io/txns/81TxaWaQ1v5kDeXbZgim7emsZozsFriaPyUUFqFxhgD3" target="_blank" rel="noopener noreferrer"><span>Café opens bill C</span><i aria-hidden="true">↗</i></a></li>
+          <li><a href="https://testnet.nearblocks.io/txns/EFoZcRqaqbQQANhsp6mmUnXEtZSrhJ3oFyi41vs9z4Cu" target="_blank" rel="noopener noreferrer"><span>Café voids bill C</span><i aria-hidden="true">↗</i></a></li>
+        </ol>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 05 FOR THE CAFE -->
+<section class="section" id="cafe" aria-labelledby="cafe-title">
+  <div class="section-top reveal"><span class="eyebrow">05 — FOR THE CAFÉ</span><span class="section-index">BEYOND CHECKOUT</span></div>
+  <div class="section-heading reveal">
+    <h2 id="cafe-title">Every sale settles itself.<br><span class="green-text">The books keep up.</span></h2>
+    <p>What changes for the owner when the bill pays everyone.</p>
+  </div>
+  <div class="card-grid five">
+    <article class="card reveal"><span class="card-icon"><svg><use href="#i-cup"/></svg></span><h3>Payroll by the cup</h3><p>The barista on shift gets their share of every bill, the moment it is paid.</p></article>
+    <article class="card reveal"><span class="card-icon"><svg><use href="#i-truck"/></svg></span><h3>Suppliers that collect themselves</h3><p>An invoice takes its cut from each bill until it is paid off.</p></article>
+    <article class="card reveal"><span class="card-icon"><svg><use href="#i-tax"/></svg></span><h3>Tax set aside on every sale</h3><p>The tax share goes to its own reserve account in the same transaction.</p></article>
+    <article class="card reveal"><span class="card-icon"><svg><use href="#i-ledger"/></svg></span><h3>A ledger you can check</h3><p>A transaction link on every line, and a CSV export.</p></article>
+    <article class="card reveal"><span class="card-icon"><svg><use href="#i-spark"/></svg></span><h3>Café CFO proposals</h3><p>Suggested split changes that the owner approves or dismisses. <span class="tag">sample mode in this build</span></p></article>
+  </div>
+</section>
+
+<!-- 06 MINI -->
+<section class="section section-alt" id="mini" aria-labelledby="mini-title">
+  <div class="section-inner">
+    <div class="section-top reveal"><span class="eyebrow">06 — MEET BITPOS MINI</span><span class="section-index">THE TABLE SCREEN AS WITNESS</span></div>
+    <div class="section-heading reveal">
+      <h2 id="mini-title">A small screen<br><span class="green-text">that signs what it shows.</span></h2>
+      <p>BitPOS Mini sits on the table. Guests scan to pay, and in witness mode it signs that it showed PAID. Its device key is made on the device itself.</p>
+    </div>
+    <div class="mini-grid">
+      <figure class="photo reveal">
+        <img src="assets/img/visual-scan-at-table.jpg" width="1448" height="1086" loading="lazy" alt="Product visualization: a guest scans the QR code on a BitPOS Mini at a café table with a phone">
+        <figcaption>Product visualization · scan at the table</figcaption>
+      </figure>
+      <figure class="photo reveal">
+        <img src="assets/img/visual-witness-check.jpg" width="1600" height="900" loading="lazy" alt="Product visualization: BitPOS Mini showing a Checking NEAR witness screen">
+        <figcaption>Product visualization · witness check</figcaption>
+      </figure>
+    </div>
+    <div class="spec-row reveal">
+      <div><b>Witness</b><span>Signs that PAID was displayed</span></div>
+      <div><b>Device key</b><span>Made on the device</span></div>
+      <div><b>On chain</b><span>ed25519 signature verified by the contract</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- SCREENS -->
+<section class="section" id="screens" aria-labelledby="screens-title">
+  <div class="section-top reveal"><span class="eyebrow">SCREENS</span><span class="section-index">REAL SCREENS · RUNNING APP · NEAR TESTNET</span></div>
+  <div class="section-heading reveal">
+    <h2 id="screens-title">The real app.<br><span class="green-text">Running on testnet.</span></h2>
+    <p>Screens captured from the running app on NEAR testnet. Select any screen to view it larger.</p>
+  </div>
+  <h3 class="gallery-label reveal">Guest checkout</h3>
+  <div class="gallery gallery-phone">
+    <button type="button" class="shot reveal" data-full="assets/img/screen-pay-where-money-goes.jpg" data-caption="Before paying: where your money goes"><img src="assets/img/screen-pay-where-money-goes.jpg" width="744" height="1344" loading="lazy" alt="Guest checkout showing pay exactly 5.00 tUSD and the split to owner, tax reserve, barista and supplier"><span>Before paying: where your money goes</span></button>
+    <button type="button" class="shot reveal" data-full="assets/img/screen-pay-paid-split.jpg" data-caption="Paid: the split, with proof on NEAR"><img src="assets/img/screen-pay-paid-split.jpg" width="744" height="1344" loading="lazy" alt="Guest paid screen showing each payee checked and links to the payment on NEAR"><span>Paid: the split, with proof on NEAR</span></button>
+    <button type="button" class="shot reveal" data-full="assets/img/screen-pay-ai-pass.jpg" data-caption="AI spending pass: let an agent pay this bill"><img src="assets/img/screen-pay-ai-pass.jpg" width="744" height="1560" loading="lazy" alt="Guest checkout with an AI spending pass showing balance left, cap, per-bill limit and time remaining"><span>AI spending pass: let an agent pay this bill</span></button>
+  </div>
+  <h3 class="gallery-label reveal">Café POS</h3>
+  <div class="gallery gallery-desk">
+    <button type="button" class="shot reveal" data-full="assets/img/screen-pos-overview.jpg" data-caption="Overview: where today's money went"><img src="assets/img/screen-pos-overview.jpg" width="1600" height="1000" loading="lazy" alt="POS overview with sales, paid to team, tax reserve and supplier totals"><span>Overview: where today's money went</span></button>
+    <button type="button" class="shot reveal" data-full="assets/img/screen-pos-recipe.jpg" data-caption="Split recipe: how each bill is split"><img src="assets/img/screen-pos-recipe.jpg" width="1600" height="1000" loading="lazy" alt="Split recipe settings with tax reserve, staff tips, witness screen and a preview of a 5.00 tUSD bill"><span>Split recipe: how each bill is split</span></button>
+    <button type="button" class="shot reveal" data-full="assets/img/screen-pos-team.jpg" data-caption="Team and shifts: payroll by the cup"><img src="assets/img/screen-pos-team.jpg" width="1600" height="1000" loading="lazy" alt="Team and shifts screen listing baristas with on-shift status and tips paid today"><span>Team and shifts: payroll by the cup</span></button>
+    <button type="button" class="shot reveal" data-full="assets/img/screen-pos-suppliers.jpg" data-caption="Suppliers: invoices that collect themselves"><img src="assets/img/screen-pos-suppliers.jpg" width="1600" height="1000" loading="lazy" alt="Suppliers screen showing a milk supplier invoice collecting a share of every bill"><span>Suppliers: invoices that collect themselves</span></button>
+    <button type="button" class="shot reveal" data-full="assets/img/screen-pos-ledger.jpg" data-caption="Ledger: a transaction link on every line, CSV export"><img src="assets/img/screen-pos-ledger.jpg" width="1600" height="1000" loading="lazy" alt="Ledger listing every bill with status, split and transaction links, plus an Export CSV button"><span>Ledger: a transaction link on every line, CSV export</span></button>
+    <button type="button" class="shot reveal" data-full="assets/img/screen-pos-evidence.jpg" data-caption="Evidence: the timeline of a bill"><img src="assets/img/screen-pos-evidence.jpg" width="1600" height="1000" loading="lazy" alt="Evidence timeline of one bill: opened in the contract, payment relayed, split paid to everyone"><span>Evidence: the timeline of a bill</span></button>
+    <button type="button" class="shot reveal" data-full="assets/img/screen-pos-devices.jpg" data-caption="Devices and witness screens"><img src="assets/img/screen-pos-devices.jpg" width="1600" height="1000" loading="lazy" alt="Devices and witness screen registration, including a simulated screen in a browser"><span>Devices and witness screens</span></button>
+    <button type="button" class="shot reveal" data-full="assets/img/screen-pos-cfo.jpg" data-caption="Café CFO: a proposal the owner approves (sample mode)"><img src="assets/img/screen-pos-cfo.jpg" width="1600" height="1000" loading="lazy" alt="Café CFO screen with a sample-mode proposal and approve or dismiss buttons"><span>Café CFO: a proposal the owner approves (sample mode)</span></button>
+  </div>
+</section>
+
+<dialog class="lightbox" aria-label="Expanded screen">
+  <div class="lightbox-bar"><span class="lightbox-caption">Screen</span><button type="button" class="lightbox-close" aria-label="Close expanded screen">Close ×</button></div>
+  <img class="lightbox-img" src="assets/img/screen-pos-overview.jpg" alt="">
+  <p>Real screen from the running app · NEAR testnet · test money only</p>
+</dialog>
+
+<!-- BUILT WITH NEAR -->
+<section class="section section-alt" id="built" aria-labelledby="built-title">
+  <div class="section-inner">
+    <div class="section-top reveal"><span class="eyebrow">BUILT WITH NEAR</span><span class="section-index">WHAT IS UNDER THE BILL</span></div>
+    <div class="section-heading reveal"><h2 id="built-title">NEAR primitives,<br><span class="green-text">doing café work.</span></h2></div>
+    <div class="tech-grid">
+      <article class="tech reveal"><h3>Rust contract</h3><p>NEP-141 receiver, batched payouts, <code>ed25519_verify</code>.</p></article>
+      <article class="tech reveal"><h3>NEP-366 meta transactions</h3><p>Gasless for the guest; the café's relayer pays gas only for exactly this bill.</p></article>
+      <article class="tech reveal"><h3>Function-call access keys</h3><p>The cashier key cannot move money. The AI agent key is limited to <code>pass_pay</code>.</p></article>
+      <article class="tech reveal"><h3>Named sub-accounts</h3><p>Readable accounts for the café, the tax reserve, staff and suppliers.</p></article>
+      <article class="tech reveal"><h3>Global contract</h3><p>Used for the test token.</p></article>
+      <article class="tech reveal"><h3>NEAR Intents 1Click</h3><p>Dry-quote preview only. Nothing executed.</p></article>
+      <article class="tech reveal"><h3>NEAR AI Cloud</h3><p>Powers Café CFO. Sample mode in this build.</p></article>
+    </div>
+  </div>
+</section>
+
+<!-- PROOF -->
+<section class="section" id="proof" aria-labelledby="proof-title">
+  <div class="section-top reveal"><span class="eyebrow"><span class="status-dot"></span>PROOF · LIVE ON TESTNET</span><span class="section-index">CHECK IT YOURSELF</span></div>
+  <div class="section-heading reveal"><h2 id="proof-title">Don't take our word.<br><span class="green-text">Open the chain.</span></h2></div>
+  <div class="proof-grid">
+    <a class="proof-card proof-wide reveal" href="https://testnet.nearblocks.io/address/bills.bitpos-near.testnet" target="_blank" rel="noopener noreferrer"><span class="eyebrow">CONTRACT</span><b class="mono">bills.bitpos-near.testnet</b><span>View on NearBlocks ↗</span></a>
+    <div class="proof-card reveal"><span class="big">23</span><span>contract tests</span></div>
+    <div class="proof-card reveal"><span class="big">28</span><span>API tests</span></div>
+  </div>
+  <h3 class="gallery-label reveal">Real end-to-end testnet runs</h3>
+  <ul class="run-list reveal">
+    <li><a href="https://testnet.nearblocks.io/txns/AZBjrRxtFupDW2Driq7w6ynEwiLE7EBuLDNkjBhwNHGG" target="_blank" rel="noopener noreferrer"><span>Living Bill: 5.00 tUSD split to four payees</span><i aria-hidden="true">↗</i></a></li>
+    <li><a href="https://testnet.nearblocks.io/txns/DVJMGYTKwfJXc9o2TXJkksWXv8ZdUJySyabEGef6N81a" target="_blank" rel="noopener noreferrer"><span>Witness: device_ack verified, paid out</span><i aria-hidden="true">↗</i></a></li>
+    <li><a href="https://testnet.nearblocks.io/txns/GU4iWXzn7KzNGEMbkzL8dNgLNr5WK6Smymf5CUrqsjjs" target="_blank" rel="noopener noreferrer"><span>Witness: no signature in time, refunded</span><i aria-hidden="true">↗</i></a></li>
+    <li><a href="https://testnet.nearblocks.io/txns/4Y6n14WrTz26MqfUmHgqMQoNNdfWkLmSrCoqY582xmaU" target="_blank" rel="noopener noreferrer"><span>AI pass: agent pays a bill from the pass</span><i aria-hidden="true">↗</i></a></li>
+    <li><a href="https://testnet.nearblocks.io/txns/CtKPPqAsg2zrtQcVxJFSRjxQFZwj4g7o8J4R7Y1B8cDW" target="_blank" rel="noopener noreferrer"><span>AI pass: not served in time, refunded to the guest</span><i aria-hidden="true">↗</i></a></li>
+    <li><a href="https://testnet.nearblocks.io/txns/7efKcZedJf8B3PKAVKrcFCfNtGB4k5muynz2UgRaSGNr" target="_blank" rel="noopener noreferrer"><span>AI pass: closed, rest returned</span><i aria-hidden="true">↗</i></a></li>
+  </ul>
+</section>
+
+<!-- CTA -->
+<section class="cta" id="try" aria-labelledby="cta-title">
+  <div class="cta-orbits" aria-hidden="true"></div>
+  <span class="eyebrow">TRY IT</span>
+  <h2 id="cta-title" class="reveal">One payment.<br><span class="accent">Everyone gets paid.</span></h2>
+  <div class="cta-buttons">
+    <a class="button button-green" href="https://near-pos.cashlessthailand.com" target="_blank" rel="noopener noreferrer">POS demo <span aria-hidden="true">↗</span></a>
+    <a class="button button-outline" href="https://near-pay.cashlessthailand.com" target="_blank" rel="noopener noreferrer">Customer demo <span aria-hidden="true">↗</span></a>
+    <a class="button button-outline" href="https://github.com/cryptoclocks/BitPOS/tree/hackathon/near-2026" target="_blank" rel="noopener noreferrer">Code <span aria-hidden="true">↗</span></a>
+  </div>
+  <p class="cta-note">NEAR testnet · test money only · no real money</p>
+</section>
+
+</main>
+
+<footer class="footer">
+  <a href="#top" class="brand" aria-label="BitPOS Living Bill, back to top"><img src="assets/img/logo.webp" alt="BitPOS" width="1600" height="533"></a>
+  <p><b>BitPOS Living Bill</b> · built for NEAR HACKATHON by Natthapong Suwanjit · Apache-2.0 source · BitPOS is an existing café POS first built on Solana devnet; this NEAR rail was built for NEAR HACKATHON.</p>
+</footer>
+</body>
+</html>

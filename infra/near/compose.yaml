@@ -1,0 +1,67 @@
+# NEAR HACKATHON work (2026-11-14). See near-hackathon/PROVENANCE.md. Adapted from infra/paypal/compose.yaml.
+# The NEAR edition on the OCI host, as its own compose project beside bitpos-runtime, bitpos-meta and bitpos-paypal.
+# It reuses the runtime image without building a new one: the image is pinned once under its own tag
+# (bitpos-near-base:pinned) and the NEAR source and the prebuilt web are mounted read-only; modules resolve from the
+# image's /app/node_modules. Everything listens on 127.0.0.1 only. The Cloudflare tunnel sends near.<domain>
+# (presentation site), near-pos.<domain> (merchant POS) and near-pay.<domain> (customer pay pages) to the front on
+# 3105, which routes by host and path (tools/near/front.ts) to the API on 3106 and the web on 4381.
+# Env: the existing private runtime env (database, auth) plus the private NEAR env, which wins on overlap.
+# NEAR testnet keys (relayer, the shop's cashier key, the AI agent's pass_pay key, the two demo wallets and the test
+# token's faucet key) are mounted read-only from ~/bitpos-private/near/testnet. Testnet only; the API refuses mainnet.
+# Deploy with tools/near/deploy-oci.sh; never `down` other projects, never prune, never --remove-orphans.
+name: bitpos-near
+x-near: &near
+  image: bitpos-near-base:pinned
+  network_mode: host
+  restart: unless-stopped
+  user: "1001:1001"
+  logging:
+    driver: json-file
+    options: {max-size: "10m", max-file: "3"}
+services:
+  front:
+    <<: *near
+    working_dir: /app/near-src
+    command: ["node", "--import", "tsx", "tools/near/front.ts"]
+    environment: {BITPOS_NEAR_FRONT_PORT: "3105", BITPOS_NEAR_API_PORT: "3106", BITPOS_NEAR_WEB_PORT: "4381"}
+    volumes: ["/home/ubuntu/bitpos-near/src:/app/near-src:ro"]
+    mem_limit: 128m
+  api:
+    <<: *near
+    working_dir: /app/near-src
+    command: ["node", "--import", "tsx", "tools/near/server.ts"]
+    env_file:
+      - /home/ubuntu/bitpos-private/runtime.env
+      - /home/ubuntu/bitpos-private/near/near.env
+    environment: {BITPOS_NEAR_API_PORT: "3106", BITPOS_DEMO_LOGIN_FILE: /run/near/demo-login.json, NEAR_PRIVATE_DIR: /run/near/testnet}
+    volumes:
+      - /home/ubuntu/bitpos-near/src:/app/near-src:ro
+      - /home/ubuntu/bitpos-private/near/demo-login-near.json:/run/near/demo-login.json:ro
+      - /home/ubuntu/bitpos-private/near/testnet:/run/near/testnet:ro
+    mem_limit: 512m
+  web:
+    <<: *near
+    # No env file: the web holds no secrets; it only proxies its allow-listed /api routes to the NEAR API on 3106.
+    working_dir: /app/near-web
+    command: ["node", "server/entry.mjs"]
+    environment:
+      HOST: 127.0.0.1
+      PORT: "4381"
+      BITPOS_WEB_API_ORIGIN: http://127.0.0.1:3106
+    volumes: ["/home/ubuntu/bitpos-near/web:/app/near-web:ro"]
+    mem_limit: 384m
+  # SIMULATED counter and table screens (tools/near/sim-screen.ts, copied from the PayPal edition): no BitPOS Mini is
+  # plugged in for the hosted demo, and bills are only routed to a connected screen. It acknowledges what a screen
+  # would render and clears paid bills; it never touches money. Credentials: private JSON files issued by
+  # tools/near/device-credential.ts --simulated (mode 600).
+  sim-screen:
+    <<: *near
+    working_dir: /app/near-src
+    command: ["node", "--import", "tsx", "tools/near/sim-screen.ts"]
+    environment:
+      BITPOS_SIM_SCREEN_API: ws://127.0.0.1:3106
+      BITPOS_SIM_SCREEN_FILES: /run/sim/table2.json,/run/sim/counter.json
+    volumes:
+      - /home/ubuntu/bitpos-near/src:/app/near-src:ro
+      - /home/ubuntu/bitpos-private/near/sim-screen:/run/sim:ro
+    mem_limit: 128m
