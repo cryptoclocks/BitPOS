@@ -9,6 +9,7 @@
 
 | | |
 |---|---|
+| Project site | `https://paypal.cashlessthailand.com` (overview, video, flow and proof) |
 | Merchant POS | `https://paypal-pos.cashlessthailand.com` (hosted since 31 Oct 2026) |
 | Sign-in | **Quick sign-in** buttons on the login page: **Owner**, **Manager**, **Staff** (no password needed) |
 | Customer table link | https://paypal-pay.cashlessthailand.com/table/yxrYvMgnTEUp6rudweVNqxC-45Ans1jGqhMbAtBsZOk (the table menu of "Table 2", as its QR code would open it) |
