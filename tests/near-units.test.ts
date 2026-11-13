@@ -112,3 +112,23 @@ test('the witness signature made by the firmware C code verifies (fixed-seed vec
  const message=Buffer.from(witnessMessage('bills.bitpos-near.testnet','orbit.bitpos-near.testnet','b_host_test_0001'));
  assert.equal(ed25519.verify(Buffer.from(v.sig,'hex'),message,Buffer.from(v.pk,'hex')),true);
 });
+
+test('cross-chain preview: dry quotes only, no identity leaves the server, failures are shown not thrown',async()=>{
+ const {intentsPreview,setIntentsFetch,ONE_CLICK,ORIGINS}=await import('../apps/api/src/near/intents');
+ const sent:Record<string,unknown>[]=[];
+ setIntentsFetch(async(url,init)=>{assert.equal(url,ONE_CLICK);const body=JSON.parse(init.body);sent.push(body);
+  if(body.originAsset.includes('eth-'))return {ok:false,status:400,json:async()=>({message:'Temporary swap limits: minimum swap amount is $100'})};
+  if(body.originAsset.includes('arb-'))throw new Error('network');
+  return {ok:true,status:200,json:async()=>({quote:{amountInFormatted:'5.05553',amountOutFormatted:'5.0',timeEstimate:35,depositAddress:'must-not-be-used'}})};});
+ try{
+  const preview=await intentsPreview('pay-in',5_000_000n);
+  assert.equal(preview.label,'Mainnet preview · not executed');assert.equal(preview.amount,'5.00');assert.equal(preview.quotes.length,ORIGINS.length);
+  assert.deepEqual(preview.quotes[0],{id:'base-usdc',chain:'Base',symbol:'USDC',amountIn:'5.05553',amountOut:'5.0',seconds:35,issue:null});
+  assert.equal(preview.quotes.find(q=>q.id==='eth-usdc')!.issue,'Temporary swap limits: minimum swap amount is $100');assert.equal(preview.quotes.find(q=>q.id==='arb-usdc')!.issue,'QUOTE_UNAVAILABLE');
+  assert.ok(sent.every(b=>b.dry===true&&b.swapType==='EXACT_OUTPUT'&&b.amount==='5000000'),'every request is a dry quote for the exact bill amount');
+  assert.ok(!JSON.stringify(sent).includes('bitpos')&&!JSON.stringify(sent).includes('testnet'),'no shop or account identity in the request');
+  assert.ok(!JSON.stringify(preview).includes('must-not-be-used'),'a deposit address is never passed on');
+  const before=sent.length;await intentsPreview('pay-in',5_000_000n);assert.equal(sent.length,before,'cached for a minute');
+  const home=await intentsPreview('send-home',12_500_000n);assert.equal(home.direction,'send-home');assert.ok(sent.slice(before).every(b=>b.swapType==='EXACT_INPUT'&&b.dry===true));
+ }finally{setIntentsFetch(null);}
+});

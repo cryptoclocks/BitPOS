@@ -8,6 +8,7 @@
 //   POST /api/pay/:token/near/demo-pay    {wallet} a labelled testnet demo wallet pays
 //   POST /api/pay/:token/near/reclaim     send an unwitnessed payment back to the payer after the window
 //   POST /api/pay/:token/near/faucet      {account} testnet demo tokens for a visitor's own wallet
+//   GET  /api/pay/:token/near/crosschain  mainnet PREVIEW (dry quotes): this bill paid from another chain's stablecoin
 //   GET  /near/device/state?d=&l=         POST /near/device/register?d=   POST /near/device/ack?d=
 //   (the same three also under /api/near-device/ so a browser screen can reach them through the web proxy)
 import type {IncomingMessage,ServerResponse} from 'node:http';
@@ -16,10 +17,11 @@ import {RequestError} from '../authority';
 import {isAccountId} from './chain';
 import {NearRouteError,createNearBill,demoPay,nearDeps,nearStatus,reclaimBill,relayPayment,submittedPayment} from './bills';
 import {deviceAck,deviceRegister,deviceState} from './device';
+import {intentsEnabled,intentsPreview} from './intents';
 import {pool,tenant} from '../db';
 import {settingsOf} from './bills';
 
-const PAY=/^\/api\/pay\/([A-Za-z0-9_-]{20,128})\/near(?:\/(bill|relay|submitted|demo-pay|reclaim|faucet))?$/;
+const PAY=/^\/api\/pay\/([A-Za-z0-9_-]{20,128})\/near(?:\/(bill|relay|submitted|demo-pay|reclaim|faucet|crosschain))?$/;
 const DEVICE=/^\/(?:near\/device|api\/near-device)\/(state|register|ack)$/;
 const account=z.string().refine(v=>isAccountId(v)&&v.endsWith('.testnet'));
 const relayBody=z.object({signedDelegate:z.string().regex(/^[A-Za-z0-9+/=]{100,6000}$/)}).strict();
@@ -66,6 +68,12 @@ export async function serveNear(req:IncomingMessage,res:ServerResponse):Promise<
   if(url.search)throw new NearRouteError(404,'RESOURCE_NOT_FOUND');
   const [,token,action]=pay!;
   if(!action){if(req.method!=='GET')throw new NearRouteError(405,'METHOD_NOT_ALLOWED');json(res,200,await nearStatus(token));return true;}
+  if(action==='crosschain'){
+   // Mainnet PREVIEW only (dry quotes): what a customer holding another chain's stablecoin would pay for this bill.
+   if(req.method!=='GET')throw new NearRouteError(405,'METHOD_NOT_ALLOWED');if(!intentsEnabled())throw new NearRouteError(404,'RESOURCE_NOT_FOUND');
+   const status=await nearStatus(token);if(!status.amount)throw new NearRouteError(409,'NEAR_AMOUNT_NOT_EXACT');
+   json(res,200,await intentsPreview('pay-in',BigInt(status.amount.units)));return true;
+  }
   if(req.method!=='POST')throw new NearRouteError(405,'METHOD_NOT_ALLOWED');
   const body=await readJson(req);
   if(action==='bill'){z.object({}).strict().parse(body);json(res,200,await createNearBill(token));}

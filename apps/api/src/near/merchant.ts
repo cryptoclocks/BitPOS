@@ -9,6 +9,8 @@ import {isAccountId} from './chain';
 import {NearRouteError,advanceBill,billView,billsBy,nearDeps,payoutsOf,record,settingsOf,LIVE,type BillRow,type NearDeps} from './bills';
 import {displayToUnits,unitsToDisplay} from './money';
 import {MAX_INVOICES,MAX_SHARE_BPS} from './recipe';
+import {intentsEnabled,intentsPreview} from './intents';
+import {cfoModel,cfoOptions,cleanReason,type CfoAnswer,type CfoFacts} from './cfo';
 
 type Role='owner'|'manager'|'staff';
 const refuse=(status:number,code:string):never=>{throw new NearRouteError(status,code);};
@@ -183,6 +185,56 @@ export async function nearMerchantRequest(merchant:string,userId:string,role:Rol
   }else if(!LIVE.includes(k.status))return billView(k,{status:''},await tenant(merchant,db=>payoutsOf(db,merchant,id)));
   const r=await advanceBill(merchant,id,need());
   return billView(r.k,r.order,r.payouts);
+ }
+ // ---- Café CFO: a reviewable AI suggestion for the recipe. The model never applies anything. ----
+ if(path==='cfo'&&method==='GET'){
+  const model=cfoModel();
+  const runs=await tenant(merchant,async db=>(await db.query<{id:string;status:string;mode:string;model:string|null;option_id:string;tax_bps:number;tips_bps:number;reason:string;proof:Record<string,unknown>;created_at:Date;decided_at:Date|null}>(
+   'SELECT id,status,mode,model,option_id,tax_bps,tips_bps,reason,proof,created_at,decided_at FROM near_cfo_runs WHERE merchant_id=$1 ORDER BY created_at DESC LIMIT 10',[merchant])).rows);
+  return {mode:model.name?'near_ai':'sample',model:model.name,runs:runs.map(r=>({id:r.id,status:r.status,mode:r.mode,model:r.model,option:r.option_id,taxBps:r.tax_bps,tipsBps:r.tips_bps,reason:r.reason,proof:r.proof,createdAt:r.created_at.toISOString(),decidedAt:r.decided_at?.toISOString()??null}))};
+ }
+ if(path==='cfo/runs'&&method==='POST'){
+  changeRole(role);empty.parse(input??{});const s=await shop();
+  const facts=await tenant(merchant,async db=>{
+   // The model is paid per call: at most ten suggestions a day per shop.
+   if(Number((await db.query<{n:string}>("SELECT count(*)::text AS n FROM near_cfo_runs WHERE merchant_id=$1 AND created_at>clock_timestamp()-interval '1 day'",[merchant])).rows[0].n)>=10)refuse(429,'NEAR_CFO_DAILY_LIMIT');
+   const sales=(await db.query<{bills:string;units:string;tips:string}>(`SELECT count(DISTINCT b.id)::text AS bills,coalesce(sum(p.amount_units),0)::text AS units,coalesce(sum(p.amount_units) FILTER(WHERE p.role='tips'),0)::text AS tips
+     FROM near_bills b JOIN near_payouts p ON p.merchant_id=b.merchant_id AND p.bill_id=b.id WHERE b.merchant_id=$1 AND b.status='SETTLED' AND b.updated_at>clock_timestamp()-interval '7 days'`,[merchant])).rows[0];
+   const staff=(await db.query<{n:string}>("SELECT count(*)::text AS n FROM near_recipients WHERE merchant_id=$1 AND kind='staff' AND active AND on_shift_since IS NOT NULL",[merchant])).rows[0];
+   const inv=(await db.query<{n:string;remaining:string;rate:string}>("SELECT count(*)::text AS n,coalesce(sum(total_units-funded_units),0)::text AS remaining,coalesce(sum(rate_bps),0)::text AS rate FROM near_supplier_invoices WHERE merchant_id=$1 AND status='OPEN'",[merchant])).rows[0];
+   return {paidBills7d:Number(sales.bills),sales7d:unitsToDisplay(sales.units),tips7d:unitsToDisplay(sales.tips),staffOnShift:Number(staff.n),openInvoices:Number(inv.n),invoicesRemaining:unitsToDisplay(inv.remaining),invoiceRateBps:Number(inv.rate),taxBps:s.tax_bps,tipsBps:s.tips_bps} satisfies CfoFacts;
+  });
+  const options=cfoOptions(facts);const model=cfoModel();
+  let answer:CfoAnswer;try{answer=await model.propose(facts,options);}catch(e){console.error('Cafe CFO model call failed',(e as Error).message);return refuse(503,'NEAR_CFO_UNAVAILABLE');}
+  // Whatever the model wrote, only an id from the server's own list is accepted, and the numbers come from that list.
+  const chosen=options.find(o=>o.id===answer.optionId)??options[0];
+  return tenant(merchant,async db=>{
+   const row=(await db.query<{id:string}>('INSERT INTO near_cfo_runs(merchant_id,mode,model,option_id,tax_bps,tips_bps,reason,options,facts,proof,created_by) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING id',
+    [merchant,answer.proof.mode,model.name,chosen.id,chosen.taxBps,chosen.tipsBps,cleanReason(answer.reason,chosen.id),JSON.stringify(options),JSON.stringify(facts),JSON.stringify(answer.proof),userId])).rows[0];
+   return {id:row.id,option:chosen.id,taxBps:chosen.taxBps,tipsBps:chosen.tipsBps,reason:cleanReason(answer.reason,chosen.id),proof:answer.proof,options,facts};
+  });
+ }
+ const decide=path.match(/^cfo\/runs\/([0-9a-f-]{36})\/(approve|dismiss)$/);
+ if(decide&&method==='POST'){
+  changeRole(role);empty.parse(input??{});
+  return tenant(merchant,async db=>{
+   const run=(await db.query<{status:string;tax_bps:number;tips_bps:number}>('SELECT status,tax_bps,tips_bps FROM near_cfo_runs WHERE merchant_id=$1 AND id=$2 FOR UPDATE',[merchant,decide[1]])).rows[0];
+   if(!run)refuse(404,'RESOURCE_NOT_FOUND');if(run!.status!=='PROPOSED')refuse(409,'NEAR_CFO_ALREADY_DECIDED');
+   if(decide[2]==='approve'){
+    // Re-checked against today's invoices: a suggestion made earlier may no longer fit.
+    const open=(await db.query<{rate:string}>("SELECT coalesce(sum(rate_bps),0)::text AS rate FROM near_supplier_invoices WHERE merchant_id=$1 AND status='OPEN'",[merchant])).rows[0];
+    if(run!.tax_bps+run!.tips_bps+Number(open.rate)>MAX_SHARE_BPS)refuse(409,'NEAR_RECIPE_INVALID');
+    await db.query('UPDATE near_merchant_settings SET tax_bps=$2,tips_bps=$3,updated_by=$4,updated_at=clock_timestamp() WHERE merchant_id=$1',[merchant,run!.tax_bps,run!.tips_bps,userId]);
+   }
+   await db.query('UPDATE near_cfo_runs SET status=$3,decided_by=$4,decided_at=clock_timestamp() WHERE merchant_id=$1 AND id=$2',[merchant,decide[1],decide[2]==='approve'?'APPROVED':'DISMISSED',userId]);
+   return {ok:true,status:decide[2]==='approve'?'APPROVED':'DISMISSED',recipe:decide[2]==='approve'?{taxBps:run!.tax_bps,tipsBps:run!.tips_bps}:null};
+  });
+ }
+ if(path==='remittance'&&method==='GET'){
+  // Mainnet PREVIEW only (dry quotes): what a staff member would receive when sending earnings to another chain.
+  if(!intentsEnabled())refuse(404,'RESOURCE_NOT_FOUND');
+  const units=displayToUnits(url.searchParams.get('amount')??'')??refuse(422,'INVALID_REQUEST');
+  return intentsPreview('send-home',units);
  }
  return refuse(404,'RESOURCE_NOT_FOUND');
 }

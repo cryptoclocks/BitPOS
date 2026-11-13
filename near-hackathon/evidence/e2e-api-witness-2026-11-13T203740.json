@@ -1,0 +1,68 @@
+{
+  "network": "testnet",
+  "mode": "witness",
+  "ran_at": "2026-11-13T20:37:40.038Z",
+  "result": "all assertions passed",
+  "order": "8ea634de-a3a3-43dd-90a2-86bd986c40ba",
+  "bill": "b2809ffe7fa834b7abb8c03166a6df2a6",
+  "contract": "bills.bitpos-near.testnet",
+  "total": "8.00 tUSD",
+  "payer": "alice.bitpos-near.testnet",
+  "payouts": [
+    {
+      "role": "owner",
+      "label": "Orbit Café",
+      "account": "orbit.bitpos-near.testnet",
+      "amount": "5.68",
+      "paid": true
+    },
+    {
+      "role": "tax",
+      "label": "Tax reserve",
+      "account": "tax.orbit.bitpos-near.testnet",
+      "amount": "0.56",
+      "paid": true
+    },
+    {
+      "role": "tips",
+      "label": "Mai (barista)",
+      "account": "mai.orbit.bitpos-near.testnet",
+      "amount": "0.80",
+      "paid": true
+    },
+    {
+      "role": "supplier",
+      "label": "Milk Farm Co. · INV-2026-1101",
+      "account": "milkfarm.bitpos-near.testnet",
+      "amount": "0.96",
+      "paid": true
+    }
+  ],
+  "tx": {
+    "open": "https://testnet.nearblocks.io/txns/7MuunLkngq3j5u5Wqc35pCPihE2yrzVg6uTLSdu5vYKk",
+    "pay": "https://testnet.nearblocks.io/txns/J4YbmD2FcCMo48ip12r1zneyLnGqG1tXz76pzbKyqMKK",
+    "witness": "https://testnet.nearblocks.io/txns/DRi7wrxpTGVkg1aqDyhmFMCCdt9bpnH9nUu2MBSgjUYc"
+  },
+  "timeline": [
+    {
+      "kind": "BILL_OPENED",
+      "url": "https://testnet.nearblocks.io/txns/7MuunLkngq3j5u5Wqc35pCPihE2yrzVg6uTLSdu5vYKk"
+    },
+    {
+      "kind": "PAYMENT_RELAYED",
+      "url": "https://testnet.nearblocks.io/txns/J4YbmD2FcCMo48ip12r1zneyLnGqG1tXz76pzbKyqMKK"
+    },
+    {
+      "kind": "PAID_ESCROW",
+      "url": "https://testnet.nearblocks.io/txns/J4YbmD2FcCMo48ip12r1zneyLnGqG1tXz76pzbKyqMKK"
+    },
+    {
+      "kind": "WITNESS_ACK",
+      "url": "https://testnet.nearblocks.io/txns/DRi7wrxpTGVkg1aqDyhmFMCCdt9bpnH9nUu2MBSgjUYc"
+    },
+    {
+      "kind": "SETTLED",
+      "url": "https://testnet.nearblocks.io/txns/DRi7wrxpTGVkg1aqDyhmFMCCdt9bpnH9nUu2MBSgjUYc"
+    }
+  ]
+}
