@@ -131,7 +131,7 @@ Then, in a browser (steps 1–8 were run this way on 14 Nov 2026 against NEAR te
    shows a proposal, the facts the model saw and the options the server offered; without a NEAR AI key it says
    "Sample · no model called". Only **Approve** changes the recipe. On the pay page, *Pay from another chain
    (preview)* shows live NEAR Intents quotes labelled "Mainnet preview · not executed".
-9. **Roles.** Sign in as **Staff**: the same tabs are readable, but recipe, invoices, devices, refunds and the CFO
+10. **Roles.** Sign in as **Staff**: the same tabs are readable, but recipe, invoices, devices, refunds and the CFO
    are refused by the server (`ROLE_REQUIRED`).
 
 Not exercised in a browser by us: paying with a third-party wallet (Meteor/Intear) through **Connect NEAR wallet**
