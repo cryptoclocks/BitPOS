@@ -1,0 +1,164 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="1000" viewBox="0 0 1440 1000">
+<title>NM-09</title>
+<rect id="background" x="0" y="0" width="1440" height="1000" fill="#F6F7F2"/>
+<g id="sidebar">
+<rect x="0" y="0" width="248" height="1000" fill="#0B1020"/>
+<g id="bitpos-mark">
+<rect x="24" y="24" width="36" height="36" rx="10.08" fill="#00B37E"/>
+<text x="42" y="49.92" font-family="Noto Sans Thai" font-size="22.32" font-weight="700" fill="#0B1020" text-anchor="middle">B</text>
+</g>
+<text x="72" y="40" font-family="Noto Sans Thai" font-size="16" font-weight="700" fill="#FFFFFF">BitPOS</text>
+<text x="72" y="58" font-family="Noto Sans Thai" font-size="12" font-weight="400" fill="#A9B3C6">Living Bill</text>
+<text x="24" y="112" font-family="Noto Sans Thai" font-size="11" font-weight="700" fill="#A9B3C6">ORBIT CAFÉ</text>
+<circle cx="36" cy="148" r="3.5" fill="#3A4563"/>
+<text x="54" y="153" font-family="Noto Sans Thai" font-size="14" font-weight="400" fill="#A9B3C6">Overview</text>
+<circle cx="36" cy="192" r="3.5" fill="#3A4563"/>
+<text x="54" y="197" font-family="Noto Sans Thai" font-size="14" font-weight="400" fill="#A9B3C6">Split recipe</text>
+<circle cx="36" cy="236" r="3.5" fill="#3A4563"/>
+<text x="54" y="241" font-family="Noto Sans Thai" font-size="14" font-weight="400" fill="#A9B3C6">Team &amp; shifts</text>
+<circle cx="36" cy="280" r="3.5" fill="#3A4563"/>
+<text x="54" y="285" font-family="Noto Sans Thai" font-size="14" font-weight="400" fill="#A9B3C6">Suppliers</text>
+<circle cx="36" cy="324" r="3.5" fill="#3A4563"/>
+<text x="54" y="329" font-family="Noto Sans Thai" font-size="14" font-weight="400" fill="#A9B3C6">Ledger</text>
+<circle cx="36" cy="368" r="3.5" fill="#3A4563"/>
+<text x="54" y="373" font-family="Noto Sans Thai" font-size="14" font-weight="400" fill="#A9B3C6">Devices &amp; witness</text>
+<rect x="12" y="392" width="224" height="40" rx="10" fill="#232C45"/>
+<rect x="12" y="402" width="4" height="20" rx="2" fill="#00B37E"/>
+<path d="M36 405 Q37.05 410.95 43 412 Q37.05 413.05 36 419 Q34.95 413.05 29 412 Q34.95 410.95 36 405 Z" fill="#B7A8FF"/>
+<text x="54" y="417" font-family="Noto Sans Thai" font-size="14" font-weight="600" fill="#FFFFFF">Café CFO</text>
+<circle cx="36" cy="456" r="3.5" fill="#3A4563"/>
+<text x="54" y="461" font-family="Noto Sans Thai" font-size="14" font-weight="400" fill="#A9B3C6">Setup</text>
+<rect x="16" y="880" width="216" height="96" rx="12" fill="#151C30" stroke="#232C45" stroke-width="1"/>
+<text x="32" y="906" font-family="Noto Sans Thai" font-size="12" font-weight="600" fill="#FFFFFF">Signed in as Owner</text>
+<text x="32" y="926" font-family="Noto Sans Thai" font-size="11" font-weight="400" fill="#A9B3C6">Keys the server holds can</text>
+<text x="32" y="942" font-family="Noto Sans Thai" font-size="11" font-weight="400" fill="#A9B3C6">open or void a bill — never</text>
+<text x="32" y="958" font-family="Noto Sans Thai" font-size="11" font-weight="400" fill="#A9B3C6">move the shop's money.</text>
+</g>
+<rect id="hotspot__NM-01" x="12" y="128" width="224" height="40" fill="#000000" fill-opacity="0"/>
+<rect id="hotspot__NM-02" x="12" y="172" width="224" height="40" fill="#000000" fill-opacity="0"/>
+<rect id="hotspot__NM-03" x="12" y="216" width="224" height="40" fill="#000000" fill-opacity="0"/>
+<rect id="hotspot__NM-04" x="12" y="260" width="224" height="40" fill="#000000" fill-opacity="0"/>
+<rect id="hotspot__NM-06" x="12" y="304" width="224" height="40" fill="#000000" fill-opacity="0"/>
+<rect id="hotspot__NM-08" x="12" y="348" width="224" height="40" fill="#000000" fill-opacity="0"/>
+<rect id="hotspot__NM-11" x="12" y="436" width="224" height="40" fill="#000000" fill-opacity="0"/>
+<g id="topbar">
+<text id="page-title" x="280" y="58" font-family="Noto Sans Thai" font-size="28" font-weight="700" fill="#0B1020">Café CFO</text>
+<text id="page-subtitle" x="280" y="84" font-family="Noto Sans Thai" font-size="14" font-weight="400" fill="#5E6B7A">An assistant that reads your ledger privately and proposes. It cannot move money or approve.</text>
+<g id="testnet-marker">
+<rect x="1300.52" y="30" width="107.48" height="24" rx="12" fill="#FFFFFF" stroke="#0B1020" stroke-width="1"/>
+<circle cx="1314.52" cy="42" r="4" fill="#F2A93B"/>
+<text x="1324.52" y="45.96" font-family="Noto Sans Thai" font-size="11" font-weight="700" fill="#0B1020">NEAR testnet</text>
+</g>
+<g id="account-chip">
+<rect x="1138.43" y="30" width="154.09" height="24" rx="12" fill="#EEF0EA"/>
+<text x="1148.43" y="45.96" font-family="Noto Sans Thai" font-size="11" font-weight="600" fill="#5E6B7A">orbit.bitpos-near.testnet</text>
+</g>
+</g>
+<text id="footer" x="1416" y="988" font-family="Noto Sans Thai" font-size="11" font-weight="400" fill="#5E6B7A" text-anchor="end">FigCraft concept · sample data · NEAR testnet</text>
+<rect id="cfo-card" x="280" y="112" width="720" height="828" rx="12" fill="#FFFFFF" stroke="#DDE2D8" stroke-width="1"/>
+<path d="M316 136 Q317.5 144.5 326 146 Q317.5 147.5 316 156 Q314.5 147.5 306 146 Q314.5 144.5 316 136 Z" fill="#6B4EFF"/>
+<text x="336" y="152" font-family="Noto Sans Thai" font-size="18" font-weight="700" fill="#0B1020">Ask about your money</text>
+<g id="question-chip">
+<rect x="304" y="176" width="237.96" height="32" rx="16" fill="#FFFFFF" stroke="#DDE2D8" stroke-width="1"/>
+<text x="316" y="196.32" font-family="Noto Sans Thai" font-size="12" font-weight="600" fill="#0B1020">Can I pay the milk invoice by Friday?</text>
+</g>
+<g id="question-chip-2">
+<rect x="549.96" y="176" width="158.52" height="32" rx="16" fill="#FFFFFF" stroke="#DDE2D8" stroke-width="1"/>
+<text x="561.96" y="196.32" font-family="Noto Sans Thai" font-size="12" font-weight="600" fill="#0B1020">Are tips fair this week?</text>
+</g>
+<g id="question-chip-3">
+<rect x="716.48" y="176" width="179.52" height="32" rx="16" fill="#FFFFFF" stroke="#DDE2D8" stroke-width="1"/>
+<text x="728.48" y="196.32" font-family="Noto Sans Thai" font-size="12" font-weight="600" fill="#0B1020">Is my tax reserve enough?</text>
+</g>
+<rect x="616" y="232" width="360" height="44" rx="16" fill="#0B1020"/>
+<text x="956" y="259" font-family="Noto Sans Thai" font-size="14" font-weight="600" fill="#FFFFFF" text-anchor="end">Can I pay the milk invoice by Friday?</text>
+<rect x="304" y="296" width="600" height="152" rx="16" fill="#EEEAFF"/>
+<text x="324" y="326" font-family="Noto Sans Thai" font-size="11" font-weight="700" fill="#4A2FD6">CAFÉ CFO</text>
+<text x="324" y="352" font-family="Noto Sans Thai" font-size="14" font-weight="400" fill="#0B1020"><tspan x="324" dy="0">Sales are steady and the milk invoice is close to its due date. Moving one step of the</tspan><tspan x="324" dy="22">owner share to supplier funding pays it early without touching tips or the tax</tspan><tspan x="324" dy="22">reserve.</tspan></text>
+<text x="324" y="432" font-family="Noto Sans Thai" font-size="12" font-weight="400" fill="#4A2FD6">The model writes no figures. The numbers below come from the server.</text>
+<rect x="304" y="464" width="672" height="132" rx="12" fill="#F6F7F2"/>
+<text x="324" y="494" font-family="Noto Sans Thai" font-size="13" font-weight="600" fill="#0B1020">Facts computed by the server from the ledger</text>
+<text x="324" y="548" font-family="Noto Sans Thai" font-size="24" font-weight="700" fill="#0B1020">38.40</text>
+<text x="324" y="572" font-family="Noto Sans Thai" font-size="12" font-weight="400" fill="#5E6B7A">tUSD still to fund</text>
+<text x="488" y="548" font-family="Noto Sans Thai" font-size="24" font-weight="700" fill="#0B1020">20 Nov</text>
+<text x="488" y="572" font-family="Noto Sans Thai" font-size="12" font-weight="400" fill="#5E6B7A">due date</text>
+<text x="652" y="548" font-family="Noto Sans Thai" font-size="24" font-weight="700" fill="#0B1020">17 Nov</text>
+<text x="652" y="572" font-family="Noto Sans Thai" font-size="12" font-weight="400" fill="#5E6B7A">funded at today's pace</text>
+<text x="816" y="548" font-family="Noto Sans Thai" font-size="24" font-weight="700" fill="#0B1020">15 Nov</text>
+<text x="816" y="572" font-family="Noto Sans Thai" font-size="12" font-weight="400" fill="#5E6B7A">funded with the proposal</text>
+<rect x="304" y="612" width="672" height="150" rx="12" fill="#FFFFFF" stroke="#6B4EFF" stroke-width="1"/>
+<text x="324" y="644" font-family="Noto Sans Thai" font-size="14" font-weight="700" fill="#0B1020">Proposal · preset "supplier-up-one"</text>
+<text x="324" y="672" font-family="Noto Sans Thai" font-size="13" font-weight="400" fill="#5E6B7A">Supplier funding</text>
+<text x="470" y="672" font-family="Noto Sans Thai" font-size="14" font-weight="700" fill="#0B1020">12% → 15%</text>
+<text x="610" y="672" font-family="Noto Sans Thai" font-size="13" font-weight="400" fill="#5E6B7A">Owner</text>
+<text x="670" y="672" font-family="Noto Sans Thai" font-size="14" font-weight="700" fill="#0B1020">71% → 68%</text>
+<text x="324" y="698" font-family="Noto Sans Thai" font-size="13" font-weight="400" fill="#5E6B7A">Tips and tax reserve stay as they are. Reverts by itself when the invoice is paid.</text>
+<g id="review-button">
+<rect x="324" y="714" width="161.26" height="40" rx="20" fill="#6B4EFF"/>
+<text x="404.63" y="739.04" font-family="Noto Sans Thai" font-size="14" font-weight="600" fill="#FFFFFF" text-anchor="middle">Review proposal</text>
+</g>
+<rect id="hotspot__NM-10" x="324" y="714" width="161.26" height="40" fill="#000000" fill-opacity="0"/>
+<text x="304" y="800" font-family="Noto Sans Thai" font-size="13" font-weight="600" fill="#0B1020">Proof for this answer</text>
+<g id="proof-chip">
+<rect x="304" y="814" width="254.12" height="26" rx="13" fill="#EEEAFF"/>
+<circle cx="320" cy="827" r="4" fill="#6B4EFF"/>
+<text x="330" y="831.32" font-family="Noto Sans Thai" font-size="12" font-weight="600" fill="#4A2FD6">Private inference · signature verified</text>
+</g>
+<text x="304" y="866" font-family="Noto Sans Thai" font-size="12" font-weight="400" fill="#5E6B7A">Model z-ai/glm-5.3-flash, run in a hardware enclave on NEAR AI Cloud</text>
+<text x="304" y="886" font-family="Noto Sans Thai" font-size="12" font-weight="400" fill="#5E6B7A">Request 3fa9…SAMPLE · Response b21c…SAMPLE · Signer 0x8E4c…SAMPLE matches the attested key</text>
+<text x="304" y="906" font-family="Noto Sans Thai" font-size="12" font-weight="400" fill="#5E6B7A">Saved with the proposal so anyone can re-check it later.</text>
+<rect id="limits-card" x="1016" y="112" width="392" height="500" rx="12" fill="#FFFFFF" stroke="#DDE2D8" stroke-width="1"/>
+<text x="1040" y="150" font-family="Noto Sans Thai" font-size="16" font-weight="700" fill="#0B1020">What the CFO can and cannot do</text>
+<text x="1040" y="186" font-family="Noto Sans Thai" font-size="13" font-weight="700" fill="#00704F">Can</text>
+<circle cx="1049" cy="208" r="9" fill="#E3F6EE"/>
+<path d="M1044.5 208 L1047.88 211.15 L1053.5 205.3" fill="none" stroke="#00704F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="1068" y="212" font-family="Noto Sans Thai" font-size="13" font-weight="400" fill="#0B1020">Read ledger totals inside the enclave</text>
+<circle cx="1049" cy="238" r="9" fill="#E3F6EE"/>
+<path d="M1044.5 238 L1047.88 241.15 L1053.5 235.3" fill="none" stroke="#00704F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="1068" y="242" font-family="Noto Sans Thai" font-size="13" font-weight="400" fill="#0B1020">Pick one preset from the server's list</text>
+<circle cx="1049" cy="268" r="9" fill="#E3F6EE"/>
+<path d="M1044.5 268 L1047.88 271.15 L1053.5 265.3" fill="none" stroke="#00704F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="1068" y="272" font-family="Noto Sans Thai" font-size="13" font-weight="400" fill="#0B1020">Write a short reason with no figures</text>
+<text x="1040" y="316" font-family="Noto Sans Thai" font-size="13" font-weight="700" fill="#C8443C">Cannot</text>
+<circle cx="1049" cy="338" r="9" fill="#FAE7E5"/>
+<line x1="1045" y1="338" x2="1053" y2="338" stroke="#C8443C" stroke-width="2" stroke-linecap="round"/>
+<text x="1068" y="342" font-family="Noto Sans Thai" font-size="13" font-weight="400" fill="#0B1020">Set a percentage or an amount</text>
+<circle cx="1049" cy="368" r="9" fill="#FAE7E5"/>
+<line x1="1045" y1="368" x2="1053" y2="368" stroke="#C8443C" stroke-width="2" stroke-linecap="round"/>
+<text x="1068" y="372" font-family="Noto Sans Thai" font-size="13" font-weight="400" fill="#0B1020">Approve its own proposal</text>
+<circle cx="1049" cy="398" r="9" fill="#FAE7E5"/>
+<line x1="1045" y1="398" x2="1053" y2="398" stroke="#C8443C" stroke-width="2" stroke-linecap="round"/>
+<text x="1068" y="402" font-family="Noto Sans Thai" font-size="13" font-weight="400" fill="#0B1020">Open bills or move money</text>
+<circle cx="1049" cy="428" r="9" fill="#FAE7E5"/>
+<line x1="1045" y1="428" x2="1053" y2="428" stroke="#C8443C" stroke-width="2" stroke-linecap="round"/>
+<text x="1068" y="432" font-family="Noto Sans Thai" font-size="13" font-weight="400" fill="#0B1020">See customer names or wallets</text>
+<rect x="1040" y="504" width="344" height="84" rx="12" fill="#F6F7F2"/>
+<circle cx="1059.95" cy="532" r="3.78" fill="none" stroke="#0B1020" stroke-width="1.8"/>
+<path d="M1063.73 532 H1072.1 V535.42 M1068.05 532 V534.7" fill="none" stroke="#0B1020" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="1084" y="536" font-family="Noto Sans Thai" font-size="13" font-weight="600" fill="#0B1020">Its NEAR key</text>
+<text x="1060" y="558" font-family="Noto Sans Thai" font-size="12" font-weight="600" fill="#0B1020">cfo.orbit.bitpos-near.testnet</text>
+<text x="1060" y="576" font-family="Noto Sans Thai" font-size="12" font-weight="400" fill="#5E6B7A">may call one method: propose</text>
+<rect id="history-card" x="1016" y="628" width="392" height="312" rx="12" fill="#FFFFFF" stroke="#DDE2D8" stroke-width="1"/>
+<text x="1040" y="666" font-family="Noto Sans Thai" font-size="16" font-weight="700" fill="#0B1020">Earlier proposals</text>
+<text x="1040" y="700" font-family="Noto Sans Thai" font-size="12" font-weight="600" fill="#5E6B7A">12 Nov</text>
+<text x="1100" y="700" font-family="Noto Sans Thai" font-size="13" font-weight="600" fill="#0B1020">Start funding the milk invoice</text>
+<g id="history-chip">
+<rect x="1100" y="710" width="123.71" height="22" rx="11" fill="#E3F6EE"/>
+<text x="1109" y="724.96" font-family="Noto Sans Thai" font-size="11" font-weight="600" fill="#00704F">Approved by owner</text>
+</g>
+<line x1="1040" y1="746" x2="1384" y2="746" stroke="#DDE2D8" stroke-width="1"/>
+<text x="1040" y="772" font-family="Noto Sans Thai" font-size="12" font-weight="600" fill="#5E6B7A">10 Nov</text>
+<text x="1100" y="772" font-family="Noto Sans Thai" font-size="13" font-weight="600" fill="#0B1020">Raise the tax reserve one step</text>
+<g id="history-chip-2">
+<rect x="1100" y="782" width="118.1" height="22" rx="11" fill="#EEF0EA"/>
+<text x="1109" y="796.96" font-family="Noto Sans Thai" font-size="11" font-weight="600" fill="#5E6B7A">Rejected by owner</text>
+</g>
+<line x1="1040" y1="818" x2="1384" y2="818" stroke="#DDE2D8" stroke-width="1"/>
+<text x="1040" y="844" font-family="Noto Sans Thai" font-size="12" font-weight="600" fill="#5E6B7A">08 Nov</text>
+<text x="1100" y="844" font-family="Noto Sans Thai" font-size="13" font-weight="600" fill="#0B1020">Stop funding the bean invoice</text>
+<g id="history-chip-3">
+<rect x="1100" y="854" width="175.74" height="22" rx="11" fill="#EEF0EA"/>
+<text x="1109" y="868.96" font-family="Noto Sans Thai" font-size="11" font-weight="600" fill="#5E6B7A">Applied by itself: invoice paid</text>
+</g>
+<line x1="1040" y1="890" x2="1384" y2="890" stroke="#DDE2D8" stroke-width="1"/>
+</svg>

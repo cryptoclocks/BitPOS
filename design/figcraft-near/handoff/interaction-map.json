@@ -1,0 +1,716 @@
+{
+ "edges": [
+  {
+   "from": "N00-flow-map",
+   "to": "NC-01"
+  },
+  {
+   "from": "N00-flow-map",
+   "to": "NC-02"
+  },
+  {
+   "from": "N00-flow-map",
+   "to": "NC-03"
+  },
+  {
+   "from": "N00-flow-map",
+   "to": "NC-04"
+  },
+  {
+   "from": "N00-flow-map",
+   "to": "NC-05"
+  },
+  {
+   "from": "N00-flow-map",
+   "to": "NC-06"
+  },
+  {
+   "from": "N00-flow-map",
+   "to": "NC-07"
+  },
+  {
+   "from": "N00-flow-map",
+   "to": "NC-08"
+  },
+  {
+   "from": "N00-flow-map",
+   "to": "ND-01"
+  },
+  {
+   "from": "N00-flow-map",
+   "to": "ND-02"
+  },
+  {
+   "from": "N00-flow-map",
+   "to": "ND-03"
+  },
+  {
+   "from": "N00-flow-map",
+   "to": "ND-04"
+  },
+  {
+   "from": "N00-flow-map",
+   "to": "ND-05"
+  },
+  {
+   "from": "N00-flow-map",
+   "to": "ND-06"
+  },
+  {
+   "from": "N00-flow-map",
+   "to": "ND-07"
+  },
+  {
+   "from": "N00-flow-map",
+   "to": "NM-01"
+  },
+  {
+   "from": "N00-flow-map",
+   "to": "NM-02"
+  },
+  {
+   "from": "N00-flow-map",
+   "to": "NM-03"
+  },
+  {
+   "from": "N00-flow-map",
+   "to": "NM-04"
+  },
+  {
+   "from": "N00-flow-map",
+   "to": "NM-05"
+  },
+  {
+   "from": "N00-flow-map",
+   "to": "NM-06"
+  },
+  {
+   "from": "N00-flow-map",
+   "to": "NM-07"
+  },
+  {
+   "from": "N00-flow-map",
+   "to": "NM-08"
+  },
+  {
+   "from": "N00-flow-map",
+   "to": "NM-09"
+  },
+  {
+   "from": "N00-flow-map",
+   "to": "NM-10"
+  },
+  {
+   "from": "N00-flow-map",
+   "to": "NM-11"
+  },
+  {
+   "from": "N00-flow-map",
+   "to": "NS-01"
+  },
+  {
+   "from": "N00-flow-map",
+   "to": "NS-02"
+  },
+  {
+   "from": "NM-01",
+   "to": "NM-02"
+  },
+  {
+   "from": "NM-01",
+   "to": "NM-03"
+  },
+  {
+   "from": "NM-01",
+   "to": "NM-04"
+  },
+  {
+   "from": "NM-01",
+   "to": "NM-05"
+  },
+  {
+   "from": "NM-01",
+   "to": "NM-06"
+  },
+  {
+   "from": "NM-01",
+   "to": "NM-07"
+  },
+  {
+   "from": "NM-01",
+   "to": "NM-08"
+  },
+  {
+   "from": "NM-01",
+   "to": "NM-09"
+  },
+  {
+   "from": "NM-01",
+   "to": "NM-10"
+  },
+  {
+   "from": "NM-01",
+   "to": "NM-11"
+  },
+  {
+   "from": "NM-02",
+   "to": "NM-01"
+  },
+  {
+   "from": "NM-02",
+   "to": "NM-03"
+  },
+  {
+   "from": "NM-02",
+   "to": "NM-04"
+  },
+  {
+   "from": "NM-02",
+   "to": "NM-06"
+  },
+  {
+   "from": "NM-02",
+   "to": "NM-08"
+  },
+  {
+   "from": "NM-02",
+   "to": "NM-09"
+  },
+  {
+   "from": "NM-02",
+   "to": "NM-11"
+  },
+  {
+   "from": "NM-03",
+   "to": "NM-01"
+  },
+  {
+   "from": "NM-03",
+   "to": "NM-02"
+  },
+  {
+   "from": "NM-03",
+   "to": "NM-04"
+  },
+  {
+   "from": "NM-03",
+   "to": "NM-06"
+  },
+  {
+   "from": "NM-03",
+   "to": "NM-08"
+  },
+  {
+   "from": "NM-03",
+   "to": "NM-09"
+  },
+  {
+   "from": "NM-03",
+   "to": "NM-11"
+  },
+  {
+   "from": "NM-03",
+   "to": "NS-01"
+  },
+  {
+   "from": "NM-04",
+   "to": "NM-01"
+  },
+  {
+   "from": "NM-04",
+   "to": "NM-02"
+  },
+  {
+   "from": "NM-04",
+   "to": "NM-03"
+  },
+  {
+   "from": "NM-04",
+   "to": "NM-05"
+  },
+  {
+   "from": "NM-04",
+   "to": "NM-06"
+  },
+  {
+   "from": "NM-04",
+   "to": "NM-08"
+  },
+  {
+   "from": "NM-04",
+   "to": "NM-09"
+  },
+  {
+   "from": "NM-04",
+   "to": "NM-11"
+  },
+  {
+   "from": "NM-05",
+   "to": "NM-01"
+  },
+  {
+   "from": "NM-05",
+   "to": "NM-02"
+  },
+  {
+   "from": "NM-05",
+   "to": "NM-03"
+  },
+  {
+   "from": "NM-05",
+   "to": "NM-04"
+  },
+  {
+   "from": "NM-05",
+   "to": "NM-06"
+  },
+  {
+   "from": "NM-05",
+   "to": "NM-07"
+  },
+  {
+   "from": "NM-05",
+   "to": "NM-08"
+  },
+  {
+   "from": "NM-05",
+   "to": "NM-09"
+  },
+  {
+   "from": "NM-05",
+   "to": "NM-11"
+  },
+  {
+   "from": "NM-06",
+   "to": "NM-01"
+  },
+  {
+   "from": "NM-06",
+   "to": "NM-02"
+  },
+  {
+   "from": "NM-06",
+   "to": "NM-03"
+  },
+  {
+   "from": "NM-06",
+   "to": "NM-04"
+  },
+  {
+   "from": "NM-06",
+   "to": "NM-07"
+  },
+  {
+   "from": "NM-06",
+   "to": "NM-08"
+  },
+  {
+   "from": "NM-06",
+   "to": "NM-09"
+  },
+  {
+   "from": "NM-06",
+   "to": "NM-11"
+  },
+  {
+   "from": "NM-07",
+   "to": "NM-01"
+  },
+  {
+   "from": "NM-07",
+   "to": "NM-02"
+  },
+  {
+   "from": "NM-07",
+   "to": "NM-03"
+  },
+  {
+   "from": "NM-07",
+   "to": "NM-04"
+  },
+  {
+   "from": "NM-07",
+   "to": "NM-06"
+  },
+  {
+   "from": "NM-07",
+   "to": "NM-08"
+  },
+  {
+   "from": "NM-07",
+   "to": "NM-09"
+  },
+  {
+   "from": "NM-07",
+   "to": "NM-11"
+  },
+  {
+   "from": "NM-08",
+   "to": "ND-01"
+  },
+  {
+   "from": "NM-08",
+   "to": "ND-02"
+  },
+  {
+   "from": "NM-08",
+   "to": "ND-03"
+  },
+  {
+   "from": "NM-08",
+   "to": "ND-04"
+  },
+  {
+   "from": "NM-08",
+   "to": "ND-05"
+  },
+  {
+   "from": "NM-08",
+   "to": "ND-06"
+  },
+  {
+   "from": "NM-08",
+   "to": "ND-07"
+  },
+  {
+   "from": "NM-08",
+   "to": "NM-01"
+  },
+  {
+   "from": "NM-08",
+   "to": "NM-02"
+  },
+  {
+   "from": "NM-08",
+   "to": "NM-03"
+  },
+  {
+   "from": "NM-08",
+   "to": "NM-04"
+  },
+  {
+   "from": "NM-08",
+   "to": "NM-06"
+  },
+  {
+   "from": "NM-08",
+   "to": "NM-09"
+  },
+  {
+   "from": "NM-08",
+   "to": "NM-11"
+  },
+  {
+   "from": "NM-09",
+   "to": "NM-01"
+  },
+  {
+   "from": "NM-09",
+   "to": "NM-02"
+  },
+  {
+   "from": "NM-09",
+   "to": "NM-03"
+  },
+  {
+   "from": "NM-09",
+   "to": "NM-04"
+  },
+  {
+   "from": "NM-09",
+   "to": "NM-06"
+  },
+  {
+   "from": "NM-09",
+   "to": "NM-08"
+  },
+  {
+   "from": "NM-09",
+   "to": "NM-10"
+  },
+  {
+   "from": "NM-09",
+   "to": "NM-11"
+  },
+  {
+   "from": "NM-10",
+   "to": "NM-01"
+  },
+  {
+   "from": "NM-10",
+   "to": "NM-02"
+  },
+  {
+   "from": "NM-10",
+   "to": "NM-03"
+  },
+  {
+   "from": "NM-10",
+   "to": "NM-04"
+  },
+  {
+   "from": "NM-10",
+   "to": "NM-06"
+  },
+  {
+   "from": "NM-10",
+   "to": "NM-08"
+  },
+  {
+   "from": "NM-10",
+   "to": "NM-09"
+  },
+  {
+   "from": "NM-10",
+   "to": "NM-11"
+  },
+  {
+   "from": "NM-11",
+   "to": "NM-01"
+  },
+  {
+   "from": "NM-11",
+   "to": "NM-02"
+  },
+  {
+   "from": "NM-11",
+   "to": "NM-03"
+  },
+  {
+   "from": "NM-11",
+   "to": "NM-04"
+  },
+  {
+   "from": "NM-11",
+   "to": "NM-06"
+  },
+  {
+   "from": "NM-11",
+   "to": "NM-08"
+  },
+  {
+   "from": "NM-11",
+   "to": "NM-09"
+  },
+  {
+   "from": "NC-01",
+   "to": "NC-02"
+  },
+  {
+   "from": "NC-02",
+   "to": "NC-01"
+  },
+  {
+   "from": "NC-02",
+   "to": "NC-02-th"
+  },
+  {
+   "from": "NC-02",
+   "to": "NC-03"
+  },
+  {
+   "from": "NC-02-th",
+   "to": "NC-01"
+  },
+  {
+   "from": "NC-02-th",
+   "to": "NC-02"
+  },
+  {
+   "from": "NC-02-th",
+   "to": "NC-03"
+  },
+  {
+   "from": "NC-03",
+   "to": "NC-02"
+  },
+  {
+   "from": "NC-03",
+   "to": "NC-04"
+  },
+  {
+   "from": "NC-03",
+   "to": "NC-08"
+  },
+  {
+   "from": "NC-04",
+   "to": "NC-03"
+  },
+  {
+   "from": "NC-04",
+   "to": "NC-05"
+  },
+  {
+   "from": "NC-04",
+   "to": "NC-07"
+  },
+  {
+   "from": "NC-05",
+   "to": "NC-04"
+  },
+  {
+   "from": "NC-05",
+   "to": "NC-05-th"
+  },
+  {
+   "from": "NC-05",
+   "to": "NC-06"
+  },
+  {
+   "from": "NC-05",
+   "to": "NC-07"
+  },
+  {
+   "from": "NC-05-th",
+   "to": "NC-04"
+  },
+  {
+   "from": "NC-05-th",
+   "to": "NC-05"
+  },
+  {
+   "from": "NC-05-th",
+   "to": "NC-06-th"
+  },
+  {
+   "from": "NC-05-th",
+   "to": "NC-07-th"
+  },
+  {
+   "from": "NC-06",
+   "to": "NC-01"
+  },
+  {
+   "from": "NC-06",
+   "to": "NC-06-th"
+  },
+  {
+   "from": "NC-06-th",
+   "to": "NC-01"
+  },
+  {
+   "from": "NC-06-th",
+   "to": "NC-06"
+  },
+  {
+   "from": "NC-07",
+   "to": "NC-02"
+  },
+  {
+   "from": "NC-07",
+   "to": "NC-07-th"
+  },
+  {
+   "from": "NC-07-th",
+   "to": "NC-02-th"
+  },
+  {
+   "from": "NC-07-th",
+   "to": "NC-07"
+  },
+  {
+   "from": "NC-08",
+   "to": "NC-03"
+  },
+  {
+   "from": "NS-01",
+   "to": "NM-03"
+  },
+  {
+   "from": "NS-01",
+   "to": "NS-02"
+  },
+  {
+   "from": "NS-02",
+   "to": "NS-01"
+  },
+  {
+   "from": "ND-01",
+   "to": "ND-02"
+  },
+  {
+   "from": "ND-02",
+   "to": "ND-02-th"
+  },
+  {
+   "from": "ND-02",
+   "to": "ND-03"
+  },
+  {
+   "from": "ND-02-th",
+   "to": "ND-02"
+  },
+  {
+   "from": "ND-02-th",
+   "to": "ND-03"
+  },
+  {
+   "from": "ND-03",
+   "to": "ND-04"
+  },
+  {
+   "from": "ND-03",
+   "to": "ND-05"
+  },
+  {
+   "from": "ND-04",
+   "to": "ND-01"
+  },
+  {
+   "from": "ND-04",
+   "to": "ND-04-th"
+  },
+  {
+   "from": "ND-04-th",
+   "to": "ND-01"
+  },
+  {
+   "from": "ND-04-th",
+   "to": "ND-04"
+  },
+  {
+   "from": "ND-05",
+   "to": "ND-01"
+  },
+  {
+   "from": "ND-06",
+   "to": "ND-01"
+  },
+  {
+   "from": "ND-07",
+   "to": "ND-01"
+  }
+ ],
+ "flows": [
+  {
+   "page": "00 · Flow",
+   "name": "Start here: flow map",
+   "start": "N00-flow-map",
+   "description": "Every screen of the NEAR edition, one click away."
+  },
+  {
+   "page": "10 · Merchant",
+   "name": "Merchant: Living Bill hub",
+   "start": "NM-01",
+   "description": "Overview → recipe → team → suppliers → ledger → devices → CFO."
+  },
+  {
+   "page": "20 · Customer",
+   "name": "Customer: pay a Living Bill",
+   "start": "NC-01",
+   "description": "Menu → bill → pay → witness → split receipt, or bounce."
+  },
+  {
+   "page": "30 · Staff",
+   "name": "Staff: payroll by the cup",
+   "start": "NS-01",
+   "description": "Earnings arrive per bill; send-home preview."
+  },
+  {
+   "page": "40 · BitPOS Mini",
+   "name": "Mini: witness loop",
+   "start": "ND-01",
+   "description": "Idle → QR → checking the chain → paid + split → idle."
+  }
+ ]
+}

@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="390" height="844" viewBox="0 0 390 844">
+<title>NC-05-th</title>
+<rect id="background" x="0" y="0" width="390" height="844" fill="#F6F7F2"/>
+<g id="status-bar">
+<text x="24" y="30" font-family="Noto Sans Thai" font-size="14" font-weight="600" fill="#0B1020">9:41</text>
+<rect x="340" y="19" width="24" height="12" rx="3" fill="none" stroke="#0B1020" stroke-width="1.2"/>
+<rect x="342" y="21" width="16" height="8" rx="1.5" fill="#0B1020"/>
+</g>
+<g id="header">
+<path id="back-chevron" d="M30 70 L22 78 L30 86" fill="none" stroke="#0B1020" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+<g id="bitpos-mark">
+<rect x="44" y="62" width="32" height="32" rx="8.96" fill="#0B1020"/>
+<text x="60" y="85.04" font-family="Noto Sans Thai" font-size="19.84" font-weight="700" fill="#FFFFFF" text-anchor="middle">B</text>
+</g>
+<text x="86" y="76" font-family="Noto Sans Thai" font-size="13" font-weight="600" fill="#0B1020">Orbit Café · Table 4</text>
+<text x="86" y="92" font-family="Noto Sans Thai" font-size="11" font-weight="400" fill="#5E6B7A">BitPOS Living Bill</text>
+<g id="testnet-marker">
+<rect x="266.52" y="66" width="107.48" height="24" rx="12" fill="#FFFFFF" stroke="#0B1020" stroke-width="1"/>
+<circle cx="280.52" cy="78" r="4" fill="#F2A93B"/>
+<text x="290.52" y="81.96" font-family="Noto Sans Thai" font-size="11" font-weight="700" fill="#0B1020">NEAR testnet</text>
+</g>
+</g>
+<rect id="hotspot__NC-04" x="12" y="58" width="28" height="40" fill="#000000" fill-opacity="0"/>
+<text id="footer" x="195" y="832" font-family="Noto Sans Thai" font-size="11" font-weight="400" fill="#5E6B7A" text-anchor="middle">FigCraft concept · sample data · NEAR testnet</text>
+<g id="language-toggle">
+<rect x="307.16" y="118" width="66.84" height="28" rx="14" fill="#FFFFFF" stroke="#DDE2D8" stroke-width="1"/>
+<text x="319.16" y="136.32" font-family="Noto Sans Thai" font-size="12" font-weight="600" fill="#0B1020">English</text>
+</g>
+<rect id="hotspot__NC-05" x="307.16" y="118" width="66.84" height="28" fill="#000000" fill-opacity="0"/>
+<circle id="countdown-track" cx="195" cy="236" r="62" fill="none" stroke="#FDF1DA" stroke-width="10"/>
+<path id="countdown-arc" d="M195 174 A62 62 0 1 1 158.42000000000002 185.78" fill="none" stroke="#F2A93B" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+<text id="countdown" x="195" y="248" font-family="Noto Sans Thai" font-size="34" font-weight="700" fill="#0B1020" text-anchor="middle">1:48</text>
+<text x="195" y="348" font-family="Noto Sans Thai" font-size="24" font-weight="700" fill="#0B1020" text-anchor="middle">ชำระเข้าบิลแล้ว</text>
+<text x="195" y="378" font-family="Noto Sans Thai" font-size="15" font-weight="400" fill="#5E6B7A" text-anchor="middle">กำลังรอจอของร้านยืนยัน</text>
+<g id="refund-chip">
+<rect x="100.72" y="396" width="188.55" height="30" rx="15" fill="#FDF1DA"/>
+<text x="114.72" y="415.68" font-family="Noto Sans Thai" font-size="13" font-weight="600" fill="#7A4E00">ถ้าไม่ยืนยัน เงินคืนเองใน 2:00</text>
+</g>
+<rect id="steps-card" x="16" y="452" width="358" height="212" rx="16" fill="#FFFFFF" stroke="#DDE2D8" stroke-width="1"/>
+<circle cx="44" cy="488" r="12" fill="#00B37E"/>
+<path d="M38 488 L42.5 492.2 L50 484.4" fill="none" stroke="#0B1020" stroke-width="2.16" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="68" y="490" font-family="Noto Sans Thai" font-size="14" font-weight="600" fill="#0B1020">การชำระเสร็จสมบูรณ์บน NEAR แล้ว</text>
+<text x="68" y="509" font-family="Noto Sans Thai" font-size="12" font-weight="600" fill="#00704F">9xQe…SAMPLE ↗</text>
+<circle cx="44" cy="550" r="11" fill="none" stroke="#FDF1DA" stroke-width="3.2"/>
+<path d="M44 539 A11 11 0 0 1 55 550" fill="none" stroke="#F2A93B" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="68" y="552" font-family="Noto Sans Thai" font-size="14" font-weight="600" fill="#0B1020">จอที่โต๊ะกำลังตรวจกับเชน</text>
+<text x="68" y="571" font-family="Noto Sans Thai" font-size="12" font-weight="400" fill="#5E6B7A">เครื่องถาม NEAR เอง ไม่ได้ถามเซิร์ฟเวอร์</text>
+<circle cx="44" cy="612" r="11" fill="none" stroke="#DDE2D8" stroke-width="2"/>
+<text x="68" y="614" font-family="Noto Sans Thai" font-size="14" font-weight="600" fill="#5E6B7A">แบ่งเงินให้ทุกคนในบิล</text>
+<text x="68" y="633" font-family="Noto Sans Thai" font-size="12" font-weight="400" fill="#5E6B7A">เกิดขึ้นทันทีที่เครื่องเซ็น</text>
+<rect id="hotspot__NC-06-th" x="16" y="452" width="358" height="212" fill="#000000" fill-opacity="0"/>
+<text x="195" y="708" font-family="Noto Sans Thai" font-size="13" font-weight="600" fill="#00704F" text-anchor="middle">เดโม: จอยืนยันแล้ว →</text>
+<rect id="hotspot__NC-06-th__2" x="129.98" y="688" width="130.04" height="32" fill="#000000" fill-opacity="0"/>
+<text x="195" y="752" font-family="Noto Sans Thai" font-size="13" font-weight="600" fill="#C8443C" text-anchor="middle">เดโม: จอไม่ยืนยันเลย →</text>
+<rect id="hotspot__NC-07-th" x="124.78" y="732" width="140.44" height="32" fill="#000000" fill-opacity="0"/>
+</svg>

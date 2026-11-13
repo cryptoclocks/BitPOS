@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="480" height="320" viewBox="0 0 480 320">
+<title>ND-01</title>
+<rect id="background" x="0" y="0" width="480" height="320" fill="#0B1020"/>
+<g id="mini-top">
+<g id="bitpos-mark">
+<rect x="14" y="10" width="22" height="22" rx="6.16" fill="#00B37E"/>
+<text x="25" y="25.84" font-family="Noto Sans Thai" font-size="13.64" font-weight="700" fill="#0B1020" text-anchor="middle">B</text>
+</g>
+<text x="44" y="26" font-family="Noto Sans Thai" font-size="13" font-weight="600" fill="#FFFFFF">BitPOS Mini · Table 4</text>
+<g id="testnet-marker">
+<rect x="358.52" y="9" width="107.48" height="24" rx="12" fill="#151C30" stroke="#3A4563" stroke-width="1"/>
+<circle cx="372.52" cy="21" r="4" fill="#F2A93B"/>
+<text x="382.52" y="24.96" font-family="Noto Sans Thai" font-size="11" font-weight="700" fill="#A9B3C6">NEAR testnet</text>
+</g>
+</g>
+<line id="mini-rule" x1="0" y1="42" x2="480" y2="42" stroke="#232C45" stroke-width="1"/>
+<text id="footer" x="466" y="311" font-family="Noto Sans Thai" font-size="9" font-weight="400" fill="#6F7B92" text-anchor="end">FigCraft concept · sample data</text>
+<path d="M32.8 84 H52 L48.8 104.8 H36 Z" fill="none" stroke="#00B37E" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M51.68 88 Q60.8 90.4 50.08 98.4" fill="none" stroke="#00B37E" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="24" y="152" font-family="Noto Sans Thai" font-size="38" font-weight="700" fill="#FFFFFF">Orbit Café</text>
+<text x="24" y="184" font-family="Noto Sans Thai" font-size="16" font-weight="400" fill="#A9B3C6">Scan to order from your seat</text>
+<g id="hint-chip">
+<rect x="24" y="206" width="259.84" height="26" rx="13" fill="#0E3B32"/>
+<text x="36" y="222.96" font-family="Noto Sans Thai" font-size="11" font-weight="600" fill="#5EE6B8">Pay with any NEAR wallet · no NEAR needed</text>
+</g>
+<g id="table-qr">
+<rect x="324" y="68" width="136" height="136" rx="6.4" fill="#FFFFFF"/>
+<path d="M399.2 76h4.8v4.8h-4.8zM375.2 80.8h4.8v4.8h-4.8zM380 80.8h4.8v4.8h-4.8zM384.8 80.8h4.8v4.8h-4.8zM399.2 80.8h4.8v4.8h-4.8zM380 85.6h4.8v4.8h-4.8zM384.8 85.6h4.8v4.8h-4.8zM394.4 85.6h4.8v4.8h-4.8zM399.2 85.6h4.8v4.8h-4.8zM404 85.6h4.8v4.8h-4.8zM408.8 85.6h4.8v4.8h-4.8zM375.2 90.4h4.8v4.8h-4.8zM408.8 90.4h4.8v4.8h-4.8zM389.6 95.2h4.8v4.8h-4.8zM394.4 95.2h4.8v4.8h-4.8zM399.2 95.2h4.8v4.8h-4.8zM404 95.2h4.8v4.8h-4.8zM370.4 100h4.8v4.8h-4.8zM380 100h4.8v4.8h-4.8zM394.4 100h4.8v4.8h-4.8zM399.2 100h4.8v4.8h-4.8zM375.2 104.8h4.8v4.8h-4.8zM380 104.8h4.8v4.8h-4.8zM394.4 104.8h4.8v4.8h-4.8zM399.2 104.8h4.8v4.8h-4.8zM404 104.8h4.8v4.8h-4.8zM375.2 109.6h4.8v4.8h-4.8zM380 109.6h4.8v4.8h-4.8zM384.8 109.6h4.8v4.8h-4.8zM389.6 109.6h4.8v4.8h-4.8zM399.2 109.6h4.8v4.8h-4.8zM408.8 109.6h4.8v4.8h-4.8zM332 114.4h4.8v4.8h-4.8zM341.6 114.4h4.8v4.8h-4.8zM351.2 114.4h4.8v4.8h-4.8zM356 114.4h4.8v4.8h-4.8zM360.8 114.4h4.8v4.8h-4.8zM365.6 114.4h4.8v4.8h-4.8zM380 114.4h4.8v4.8h-4.8zM389.6 114.4h4.8v4.8h-4.8zM394.4 114.4h4.8v4.8h-4.8zM408.8 114.4h4.8v4.8h-4.8zM418.4 114.4h4.8v4.8h-4.8zM423.2 114.4h4.8v4.8h-4.8zM432.8 114.4h4.8v4.8h-4.8zM437.6 114.4h4.8v4.8h-4.8zM442.4 114.4h4.8v4.8h-4.8zM447.2 114.4h4.8v4.8h-4.8zM336.8 119.2h4.8v4.8h-4.8zM346.4 119.2h4.8v4.8h-4.8zM375.2 119.2h4.8v4.8h-4.8zM380 119.2h4.8v4.8h-4.8zM394.4 119.2h4.8v4.8h-4.8zM399.2 119.2h4.8v4.8h-4.8zM413.6 119.2h4.8v4.8h-4.8zM432.8 119.2h4.8v4.8h-4.8zM437.6 119.2h4.8v4.8h-4.8zM442.4 119.2h4.8v4.8h-4.8zM332 124h4.8v4.8h-4.8zM341.6 124h4.8v4.8h-4.8zM356 124h4.8v4.8h-4.8zM360.8 124h4.8v4.8h-4.8zM370.4 124h4.8v4.8h-4.8zM375.2 124h4.8v4.8h-4.8zM394.4 124h4.8v4.8h-4.8zM404 124h4.8v4.8h-4.8zM408.8 124h4.8v4.8h-4.8zM413.6 124h4.8v4.8h-4.8zM418.4 124h4.8v4.8h-4.8zM423.2 124h4.8v4.8h-4.8zM428 124h4.8v4.8h-4.8zM432.8 124h4.8v4.8h-4.8zM442.4 124h4.8v4.8h-4.8zM447.2 124h4.8v4.8h-4.8zM356 128.8h4.8v4.8h-4.8zM360.8 128.8h4.8v4.8h-4.8zM365.6 128.8h4.8v4.8h-4.8zM384.8 128.8h4.8v4.8h-4.8zM404 128.8h4.8v4.8h-4.8zM413.6 128.8h4.8v4.8h-4.8zM332 133.6h4.8v4.8h-4.8zM351.2 133.6h4.8v4.8h-4.8zM375.2 133.6h4.8v4.8h-4.8zM389.6 133.6h4.8v4.8h-4.8zM413.6 133.6h4.8v4.8h-4.8zM428 133.6h4.8v4.8h-4.8zM437.6 133.6h4.8v4.8h-4.8zM447.2 133.6h4.8v4.8h-4.8zM341.6 138.4h4.8v4.8h-4.8zM365.6 138.4h4.8v4.8h-4.8zM370.4 138.4h4.8v4.8h-4.8zM375.2 138.4h4.8v4.8h-4.8zM384.8 138.4h4.8v4.8h-4.8zM389.6 138.4h4.8v4.8h-4.8zM404 138.4h4.8v4.8h-4.8zM413.6 138.4h4.8v4.8h-4.8zM423.2 138.4h4.8v4.8h-4.8zM428 138.4h4.8v4.8h-4.8zM447.2 138.4h4.8v4.8h-4.8zM336.8 143.2h4.8v4.8h-4.8zM341.6 143.2h4.8v4.8h-4.8zM370.4 143.2h4.8v4.8h-4.8zM375.2 143.2h4.8v4.8h-4.8zM384.8 143.2h4.8v4.8h-4.8zM389.6 143.2h4.8v4.8h-4.8zM394.4 143.2h4.8v4.8h-4.8zM408.8 143.2h4.8v4.8h-4.8zM428 143.2h4.8v4.8h-4.8zM432.8 143.2h4.8v4.8h-4.8zM442.4 143.2h4.8v4.8h-4.8zM336.8 148h4.8v4.8h-4.8zM346.4 148h4.8v4.8h-4.8zM351.2 148h4.8v4.8h-4.8zM360.8 148h4.8v4.8h-4.8zM370.4 148h4.8v4.8h-4.8zM375.2 148h4.8v4.8h-4.8zM380 148h4.8v4.8h-4.8zM389.6 148h4.8v4.8h-4.8zM418.4 148h4.8v4.8h-4.8zM428 148h4.8v4.8h-4.8zM432.8 148h4.8v4.8h-4.8zM447.2 148h4.8v4.8h-4.8zM332 152.8h4.8v4.8h-4.8zM336.8 152.8h4.8v4.8h-4.8zM360.8 152.8h4.8v4.8h-4.8zM375.2 152.8h4.8v4.8h-4.8zM389.6 152.8h4.8v4.8h-4.8zM408.8 152.8h4.8v4.8h-4.8zM442.4 152.8h4.8v4.8h-4.8zM384.8 157.6h4.8v4.8h-4.8zM413.6 157.6h4.8v4.8h-4.8zM428 157.6h4.8v4.8h-4.8zM432.8 157.6h4.8v4.8h-4.8zM437.6 157.6h4.8v4.8h-4.8zM375.2 162.4h4.8v4.8h-4.8zM384.8 162.4h4.8v4.8h-4.8zM394.4 162.4h4.8v4.8h-4.8zM399.2 162.4h4.8v4.8h-4.8zM408.8 162.4h4.8v4.8h-4.8zM413.6 162.4h4.8v4.8h-4.8zM370.4 167.2h4.8v4.8h-4.8zM375.2 167.2h4.8v4.8h-4.8zM384.8 167.2h4.8v4.8h-4.8zM413.6 167.2h4.8v4.8h-4.8zM418.4 167.2h4.8v4.8h-4.8zM432.8 167.2h4.8v4.8h-4.8zM375.2 172h4.8v4.8h-4.8zM394.4 172h4.8v4.8h-4.8zM408.8 172h4.8v4.8h-4.8zM432.8 172h4.8v4.8h-4.8zM442.4 172h4.8v4.8h-4.8zM375.2 176.8h4.8v4.8h-4.8zM384.8 176.8h4.8v4.8h-4.8zM389.6 176.8h4.8v4.8h-4.8zM408.8 176.8h4.8v4.8h-4.8zM413.6 176.8h4.8v4.8h-4.8zM428 176.8h4.8v4.8h-4.8zM437.6 176.8h4.8v4.8h-4.8zM442.4 176.8h4.8v4.8h-4.8zM447.2 176.8h4.8v4.8h-4.8zM375.2 181.6h4.8v4.8h-4.8zM380 181.6h4.8v4.8h-4.8zM389.6 181.6h4.8v4.8h-4.8zM399.2 181.6h4.8v4.8h-4.8zM408.8 181.6h4.8v4.8h-4.8zM413.6 181.6h4.8v4.8h-4.8zM423.2 181.6h4.8v4.8h-4.8zM428 181.6h4.8v4.8h-4.8zM432.8 181.6h4.8v4.8h-4.8zM442.4 181.6h4.8v4.8h-4.8zM447.2 181.6h4.8v4.8h-4.8zM399.2 186.4h4.8v4.8h-4.8zM418.4 186.4h4.8v4.8h-4.8zM423.2 186.4h4.8v4.8h-4.8zM432.8 186.4h4.8v4.8h-4.8zM447.2 186.4h4.8v4.8h-4.8zM370.4 191.2h4.8v4.8h-4.8zM380 191.2h4.8v4.8h-4.8zM384.8 191.2h4.8v4.8h-4.8zM394.4 191.2h4.8v4.8h-4.8zM404 191.2h4.8v4.8h-4.8zM408.8 191.2h4.8v4.8h-4.8zM418.4 191.2h4.8v4.8h-4.8zM423.2 191.2h4.8v4.8h-4.8zM442.4 191.2h4.8v4.8h-4.8z" fill="#0B1020"/>
+<rect x="332" y="76" width="33.6" height="33.6" fill="#0B1020"/>
+<rect x="336.8" y="80.8" width="24" height="24" fill="#FFFFFF"/>
+<rect x="341.6" y="85.6" width="14.4" height="14.4" fill="#0B1020"/>
+<rect x="418.4" y="76" width="33.6" height="33.6" fill="#0B1020"/>
+<rect x="423.2" y="80.8" width="24" height="24" fill="#FFFFFF"/>
+<rect x="428" y="85.6" width="14.4" height="14.4" fill="#0B1020"/>
+<rect x="332" y="162.4" width="33.6" height="33.6" fill="#0B1020"/>
+<rect x="336.8" y="167.2" width="24" height="24" fill="#FFFFFF"/>
+<rect x="341.6" y="172" width="14.4" height="14.4" fill="#0B1020"/>
+</g>
+<text x="392" y="226" font-family="Noto Sans Thai" font-size="12" font-weight="600" fill="#A9B3C6" text-anchor="middle">Table menu</text>
+<text x="24" y="292" font-family="Noto Sans Thai" font-size="11" font-weight="400" fill="#6F7B92">Tap the screen to wake a bill</text>
+<rect id="hotspot__ND-02" x="0" y="50" width="480" height="216" fill="#000000" fill-opacity="0"/>
+</svg>

@@ -62,6 +62,8 @@ export interface NearChain {
   /** Demo wallets only: signs a gasless payment with a testnet key held by the server. */
   signDemoPayment(customer: string, token: string, amount: bigint, msg: string): Promise<string>;
   hasKey(accountId: string, label?: string): boolean;
+  /** Testnet demo faucet: the test token's own account sends a small amount. Only for tokens whose key the server holds. */
+  faucet(token: string, accountId: string, amount: bigint): Promise<TxView>;
 }
 
 export const PAY_GAS = teraToGas('250');
@@ -133,7 +135,8 @@ export function realChain(settings: NearSettings): NearChain {
   }
   const call = (accountId: string, label: string, contractId: string, methodName: string, args: Record<string, unknown>, deposit = 0n, gas = CALL_GAS) =>
     serial(`${accountId}|${label}`, async () => txView(await signer(accountId, label).callFunctionRaw({ contractId, methodName, args, gas, deposit, waitUntil: 'FINAL' })));
-  const view = <T>(contractId: string, method: string, args: Record<string, unknown>) => rpc(provider => provider.callFunction({ contractId, method, args })) as Promise<T>;
+  // Views read finalized state only: an optimistic answer is never treated as a payment fact.
+  const view = <T>(contractId: string, method: string, args: Record<string, unknown>) => rpc(provider => provider.callFunction({ contractId, method, args, blockQuery: { finality: 'final' } })) as Promise<T>;
   const bills = settings.billsContract, relayer = settings.relayerAccount;
 
   return {
@@ -177,6 +180,7 @@ export function realChain(settings: NearSettings): NearChain {
       try { await rpc(provider => provider.viewAccount({ accountId })); return true; }
       catch (error) { if (/AccountDoesNotExist|UNKNOWN_ACCOUNT|does not exist/i.test(`${(error as Error)?.constructor?.name} ${(error as Error)?.message}`)) return false; throw error; }
     },
+    faucet: (token, accountId, amount) => call(token, '', token, 'ft_transfer', { receiver_id: accountId, amount: amount.toString(), memo: 'BitPOS demo faucet' }, 1n, teraToGas('30')),
     async signDemoPayment(customer, token, amount, msg) {
       const { signedDelegate } = await signer(customer).createSignedMetaTransaction({
         receiverId: token, blockHeightTtl: 120,

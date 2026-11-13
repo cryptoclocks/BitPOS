@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="390" height="844" viewBox="0 0 390 844">
+<title>NC-02</title>
+<rect id="background" x="0" y="0" width="390" height="844" fill="#F6F7F2"/>
+<g id="status-bar">
+<text x="24" y="30" font-family="Noto Sans Thai" font-size="14" font-weight="600" fill="#0B1020">9:41</text>
+<rect x="340" y="19" width="24" height="12" rx="3" fill="none" stroke="#0B1020" stroke-width="1.2"/>
+<rect x="342" y="21" width="16" height="8" rx="1.5" fill="#0B1020"/>
+</g>
+<g id="header">
+<path id="back-chevron" d="M30 70 L22 78 L30 86" fill="none" stroke="#0B1020" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+<g id="bitpos-mark">
+<rect x="44" y="62" width="32" height="32" rx="8.96" fill="#0B1020"/>
+<text x="60" y="85.04" font-family="Noto Sans Thai" font-size="19.84" font-weight="700" fill="#FFFFFF" text-anchor="middle">B</text>
+</g>
+<text x="86" y="76" font-family="Noto Sans Thai" font-size="13" font-weight="600" fill="#0B1020">Orbit Café · Table 4</text>
+<text x="86" y="92" font-family="Noto Sans Thai" font-size="11" font-weight="400" fill="#5E6B7A">BitPOS Living Bill</text>
+<g id="testnet-marker">
+<rect x="266.52" y="66" width="107.48" height="24" rx="12" fill="#FFFFFF" stroke="#0B1020" stroke-width="1"/>
+<circle cx="280.52" cy="78" r="4" fill="#F2A93B"/>
+<text x="290.52" y="81.96" font-family="Noto Sans Thai" font-size="11" font-weight="700" fill="#0B1020">NEAR testnet</text>
+</g>
+</g>
+<rect id="hotspot__NC-01" x="12" y="58" width="28" height="40" fill="#000000" fill-opacity="0"/>
+<text id="screen-title" x="16" y="140" font-family="Noto Sans Thai" font-size="22" font-weight="700" fill="#0B1020">Your bill</text>
+<text id="footer" x="195" y="832" font-family="Noto Sans Thai" font-size="11" font-weight="400" fill="#5E6B7A" text-anchor="middle">FigCraft concept · sample data · NEAR testnet</text>
+<g id="language-toggle">
+<rect x="330.8" y="118" width="43.2" height="28" rx="14" fill="#FFFFFF" stroke="#DDE2D8" stroke-width="1"/>
+<text x="342.8" y="136.32" font-family="Noto Sans Thai" font-size="12" font-weight="600" fill="#0B1020">ไทย</text>
+</g>
+<rect id="hotspot__NC-02-th" x="330.8" y="118" width="43.2" height="28" fill="#000000" fill-opacity="0"/>
+<rect id="bill-card" x="16" y="160" width="358" height="148" rx="16" fill="#FFFFFF" stroke="#DDE2D8" stroke-width="1"/>
+<text x="32" y="194" font-family="Noto Sans Thai" font-size="15" font-weight="400" fill="#0B1020">Iced latte</text>
+<text x="358" y="194" font-family="Noto Sans Thai" font-size="15" font-weight="600" fill="#0B1020" text-anchor="end">3.50</text>
+<text x="32" y="224" font-family="Noto Sans Thai" font-size="15" font-weight="400" fill="#0B1020">Butter croissant</text>
+<text x="358" y="224" font-family="Noto Sans Thai" font-size="15" font-weight="600" fill="#0B1020" text-anchor="end">1.50</text>
+<line x1="32" y1="244" x2="358" y2="244" stroke="#DDE2D8" stroke-width="1"/>
+<text x="32" y="278" font-family="Noto Sans Thai" font-size="15" font-weight="700" fill="#0B1020">Total</text>
+<text x="358" y="280" font-family="Noto Sans Thai" font-size="22" font-weight="700" fill="#0B1020" text-anchor="end">5.00 tUSD</text>
+<rect id="split-card" x="16" y="324" width="358" height="352" rx="16" fill="#FFFFFF" stroke="#DDE2D8" stroke-width="1"/>
+<text x="32" y="358" font-family="Noto Sans Thai" font-size="17" font-weight="700" fill="#0B1020">Where your money goes</text>
+<g id="split-bar">
+<rect x="32" y="376" width="225.07" height="18" rx="6" fill="#0B1020"/>
+<rect x="260.07" y="376" width="31.7" height="18" rx="6" fill="#00B37E"/>
+<rect x="294.77" y="376" width="22.19" height="18" rx="6" fill="#F2A93B"/>
+<rect x="319.96" y="376" width="38.04" height="18" rx="6" fill="#5E6B7A"/>
+</g>
+<rect x="32" y="419" width="12" height="12" rx="3" fill="#0B1020"/>
+<text x="54" y="430" font-family="Noto Sans Thai" font-size="14" font-weight="600" fill="#0B1020">Orbit Café (owner)</text>
+<text x="54" y="449" font-family="Noto Sans Thai" font-size="12" font-weight="400" fill="#5E6B7A">Keeps the café running</text>
+<text x="358" y="430" font-family="Noto Sans Thai" font-size="15" font-weight="700" fill="#0B1020" text-anchor="end">3.55</text>
+<rect x="32" y="471" width="12" height="12" rx="3" fill="#00B37E"/>
+<text x="54" y="482" font-family="Noto Sans Thai" font-size="14" font-weight="600" fill="#0B1020">Mai and Ton, on shift now</text>
+<text x="54" y="501" font-family="Noto Sans Thai" font-size="12" font-weight="400" fill="#5E6B7A">Tips and wage share</text>
+<text x="358" y="482" font-family="Noto Sans Thai" font-size="15" font-weight="700" fill="#0B1020" text-anchor="end">0.50</text>
+<rect x="32" y="523" width="12" height="12" rx="3" fill="#F2A93B"/>
+<text x="54" y="534" font-family="Noto Sans Thai" font-size="14" font-weight="600" fill="#0B1020">Tax reserve</text>
+<text x="54" y="553" font-family="Noto Sans Thai" font-size="12" font-weight="400" fill="#5E6B7A">Set aside automatically</text>
+<text x="358" y="534" font-family="Noto Sans Thai" font-size="15" font-weight="700" fill="#0B1020" text-anchor="end">0.35</text>
+<rect x="32" y="575" width="12" height="12" rx="3" fill="#5E6B7A"/>
+<text x="54" y="586" font-family="Noto Sans Thai" font-size="14" font-weight="600" fill="#0B1020">Milk Farm Co-op invoice</text>
+<text x="54" y="605" font-family="Noto Sans Thai" font-size="12" font-weight="400" fill="#5E6B7A">Pays the milk supplier</text>
+<text x="358" y="586" font-family="Noto Sans Thai" font-size="15" font-weight="700" fill="#0B1020" text-anchor="end">0.60</text>
+<line x1="32" y1="622" x2="358" y2="622" stroke="#DDE2D8" stroke-width="1"/>
+<text x="32" y="646" font-family="Noto Sans Thai" font-size="12" font-weight="400" fill="#5E6B7A"><tspan x="32" dy="0">Split by the bill's contract in the same second</tspan><tspan x="32" dy="17">you pay.</tspan></text>
+<g id="pay-button">
+<rect x="16" y="696" width="358" height="52" rx="26" fill="#00B37E"/>
+<text x="195" y="727.76" font-family="Noto Sans Thai" font-size="16" font-weight="600" fill="#0B1020" text-anchor="middle">Pay 5.00 tUSD</text>
+</g>
+<rect id="hotspot__NC-03" x="16" y="696" width="358" height="52" fill="#000000" fill-opacity="0"/>
+<path d="M43.05 767 L37.8 775.05 H41.65 L40.6 781 L46.2 772.6 H42.35 Z" fill="#00704F"/>
+<text x="56" y="779" font-family="Noto Sans Thai" font-size="12" font-weight="600" fill="#00704F">No NEAR needed · the café pays the network fee</text>
+</svg>

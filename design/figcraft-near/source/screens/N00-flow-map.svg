@@ -1,0 +1,260 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1000" viewBox="0 0 1600 1000">
+<title>N00-flow-map</title>
+<rect id="background" x="0" y="0" width="1600" height="1000" fill="#F6F7F2"/>
+<g id="bitpos-mark">
+<rect x="24" y="22" width="40" height="40" rx="11.2" fill="#0B1020"/>
+<text x="44" y="50.8" font-family="Noto Sans Thai" font-size="24.8" font-weight="700" fill="#FFFFFF" text-anchor="middle">B</text>
+</g>
+<text x="78" y="42" font-family="Noto Sans Thai" font-size="22" font-weight="700" fill="#0B1020">BitPOS Living Bill · NEAR edition</text>
+<text x="78" y="62" font-family="Noto Sans Thai" font-size="13" font-weight="400" fill="#5E6B7A">One coffee payment. Everyone is paid in the same second, once the table screen bears witness.</text>
+<g id="testnet-marker">
+<rect x="1468.52" y="30" width="107.48" height="24" rx="12" fill="#FFFFFF" stroke="#0B1020" stroke-width="1"/>
+<circle cx="1482.52" cy="42" r="4" fill="#F2A93B"/>
+<text x="1492.52" y="45.96" font-family="Noto Sans Thai" font-size="11" font-weight="700" fill="#0B1020">NEAR testnet</text>
+</g>
+<g id="hint-chip">
+<rect x="1251.72" y="30" width="194.28" height="24" rx="12" fill="#EEF0EA"/>
+<text x="1263.72" y="45.96" font-family="Noto Sans Thai" font-size="11" font-weight="600" fill="#5E6B7A">Click any box to open its screen</text>
+</g>
+<rect id="lane" x="24" y="88" width="1552" height="196" rx="16" fill="#FFFFFF" stroke="#DDE2D8" stroke-width="1"/>
+<text x="48" y="122" font-family="Noto Sans Thai" font-size="15" font-weight="700" fill="#0B1020">Customer phone</text>
+<text x="48" y="144" font-family="Noto Sans Thai" font-size="12" font-weight="400" fill="#5E6B7A">Order, see where the</text>
+<text x="48" y="161" font-family="Noto Sans Thai" font-size="12" font-weight="400" fill="#5E6B7A">money goes, pay without</text>
+<text x="48" y="178" font-family="Noto Sans Thai" font-size="12" font-weight="400" fill="#5E6B7A">holding NEAR.</text>
+<g id="node-NC-01">
+<rect x="216" y="108" width="190" height="64" rx="12" fill="#FFFFFF" stroke="#DDE2D8" stroke-width="1.5"/>
+<text x="230" y="134" font-family="Noto Sans Thai" font-size="13" font-weight="700" fill="#0B1020">NC-01</text>
+<text x="230" y="154" font-family="Noto Sans Thai" font-size="12" font-weight="400" fill="#5E6B7A">Table menu</text>
+</g>
+<rect id="hotspot__NC-01" x="216" y="108" width="190" height="64" fill="#000000" fill-opacity="0"/>
+<g id="node-NC-02">
+<rect x="438" y="108" width="190" height="64" rx="12" fill="#FFFFFF" stroke="#DDE2D8" stroke-width="1.5"/>
+<text x="452" y="134" font-family="Noto Sans Thai" font-size="13" font-weight="700" fill="#0B1020">NC-02</text>
+<text x="452" y="154" font-family="Noto Sans Thai" font-size="12" font-weight="400" fill="#5E6B7A">Bill + where money goes</text>
+</g>
+<rect id="hotspot__NC-02" x="438" y="108" width="190" height="64" fill="#000000" fill-opacity="0"/>
+<g id="node-NC-03">
+<rect x="660" y="108" width="190" height="64" rx="12" fill="#FFFFFF" stroke="#DDE2D8" stroke-width="1.5"/>
+<text x="674" y="134" font-family="Noto Sans Thai" font-size="13" font-weight="700" fill="#0B1020">NC-03</text>
+<text x="674" y="154" font-family="Noto Sans Thai" font-size="12" font-weight="400" fill="#5E6B7A">Choose how to pay</text>
+</g>
+<rect id="hotspot__NC-03" x="660" y="108" width="190" height="64" fill="#000000" fill-opacity="0"/>
+<g id="node-NC-04">
+<rect x="882" y="108" width="190" height="64" rx="12" fill="#FFFFFF" stroke="#DDE2D8" stroke-width="1.5"/>
+<text x="896" y="134" font-family="Noto Sans Thai" font-size="13" font-weight="700" fill="#0B1020">NC-04</text>
+<text x="896" y="154" font-family="Noto Sans Thai" font-size="12" font-weight="400" fill="#5E6B7A">Wallet approve (concept)</text>
+</g>
+<rect id="hotspot__NC-04" x="882" y="108" width="190" height="64" fill="#000000" fill-opacity="0"/>
+<g id="node-NC-05">
+<rect x="1104" y="108" width="190" height="64" rx="12" fill="#FDF1DA" stroke="#F2A93B" stroke-width="1.5"/>
+<text x="1118" y="134" font-family="Noto Sans Thai" font-size="13" font-weight="700" fill="#0B1020">NC-05</text>
+<text x="1118" y="154" font-family="Noto Sans Thai" font-size="12" font-weight="400" fill="#7A4E00">Waiting for the witness</text>
+</g>
+<rect id="hotspot__NC-05" x="1104" y="108" width="190" height="64" fill="#000000" fill-opacity="0"/>
+<g id="node-NC-06">
+<rect x="1326" y="108" width="190" height="64" rx="12" fill="#E3F6EE" stroke="#00B37E" stroke-width="1.5"/>
+<text x="1340" y="134" font-family="Noto Sans Thai" font-size="13" font-weight="700" fill="#0B1020">NC-06</text>
+<text x="1340" y="154" font-family="Noto Sans Thai" font-size="12" font-weight="400" fill="#00704F">Paid + split receipt</text>
+</g>
+<rect id="hotspot__NC-06" x="1326" y="108" width="190" height="64" fill="#000000" fill-opacity="0"/>
+<path d="M410 140 L434 140" fill="none" stroke="#0B1020" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M434 140 L427.7 143.04 L427.7 136.96 Z" fill="#0B1020"/>
+<path d="M632 140 L656 140" fill="none" stroke="#0B1020" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M656 140 L649.7 143.04 L649.7 136.96 Z" fill="#0B1020"/>
+<path d="M854 140 L878 140" fill="none" stroke="#0B1020" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M878 140 L871.7 143.04 L871.7 136.96 Z" fill="#0B1020"/>
+<path d="M1076 140 L1100 140" fill="none" stroke="#0B1020" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M1100 140 L1093.7 143.04 L1093.7 136.96 Z" fill="#0B1020"/>
+<path d="M1298 140 L1322 140" fill="none" stroke="#0B1020" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M1322 140 L1315.7 143.04 L1315.7 136.96 Z" fill="#0B1020"/>
+<g id="node-NC-08">
+<rect x="660" y="200" width="190" height="64" rx="12" fill="#FFFFFF" stroke="#DDE2D8" stroke-width="1.5"/>
+<text x="674" y="226" font-family="Noto Sans Thai" font-size="13" font-weight="700" fill="#0B1020">NC-08</text>
+<text x="674" y="246" font-family="Noto Sans Thai" font-size="12" font-weight="400" fill="#5E6B7A">Another chain (preview)</text>
+</g>
+<rect id="hotspot__NC-08" x="660" y="200" width="190" height="64" fill="#000000" fill-opacity="0"/>
+<path d="M755 174 L755 196" fill="none" stroke="#5E6B7A" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="4 4"/>
+<path d="M755 196 L752.39 190.6 L757.61 190.6 Z" fill="#5E6B7A"/>
+<g id="node-NC-07">
+<rect x="1104" y="200" width="190" height="64" rx="12" fill="#FAE7E5" stroke="#C8443C" stroke-width="1.5"/>
+<text x="1118" y="226" font-family="Noto Sans Thai" font-size="13" font-weight="700" fill="#0B1020">NC-07</text>
+<text x="1118" y="246" font-family="Noto Sans Thai" font-size="12" font-weight="400" fill="#C8443C">Money bounced back</text>
+</g>
+<rect id="hotspot__NC-07" x="1104" y="200" width="190" height="64" fill="#000000" fill-opacity="0"/>
+<path d="M1199 174 L1199 196" fill="none" stroke="#C8443C" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="4 4"/>
+<path d="M1199 196 L1196.39 190.6 L1201.61 190.6 Z" fill="#C8443C"/>
+<path d="M977 174 L977 232 L1100 232" fill="none" stroke="#C8443C" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="4 4"/>
+<path d="M1100 232 L1094.6 234.61 L1094.6 229.39 Z" fill="#C8443C"/>
+<rect id="lane-2" x="24" y="300" width="1552" height="112" rx="16" fill="#FFFFFF" stroke="#DDE2D8" stroke-width="1"/>
+<text x="48" y="334" font-family="Noto Sans Thai" font-size="15" font-weight="700" fill="#0B1020">BitPOS Mini</text>
+<text x="48" y="356" font-family="Noto Sans Thai" font-size="12" font-weight="400" fill="#5E6B7A">Reads the chain itself</text>
+<text x="48" y="373" font-family="Noto Sans Thai" font-size="12" font-weight="400" fill="#5E6B7A">and signs as witness.</text>
+<g id="node-ND-01">
+<rect x="216" y="324" width="164" height="64" rx="12" fill="#0B1020" stroke="#0B1020" stroke-width="1.5"/>
+<text x="230" y="350" font-family="Noto Sans Thai" font-size="13" font-weight="700" fill="#FFFFFF">ND-01</text>
+<text x="230" y="370" font-family="Noto Sans Thai" font-size="12" font-weight="400" fill="#A9B3C6">Idle</text>
+</g>
+<rect id="hotspot__ND-01" x="216" y="324" width="164" height="64" fill="#000000" fill-opacity="0"/>
+<g id="node-ND-02">
+<rect x="406" y="324" width="164" height="64" rx="12" fill="#0B1020" stroke="#0B1020" stroke-width="1.5"/>
+<text x="420" y="350" font-family="Noto Sans Thai" font-size="13" font-weight="700" fill="#FFFFFF">ND-02</text>
+<text x="420" y="370" font-family="Noto Sans Thai" font-size="12" font-weight="400" fill="#A9B3C6">Pay QR</text>
+</g>
+<rect id="hotspot__ND-02" x="406" y="324" width="164" height="64" fill="#000000" fill-opacity="0"/>
+<g id="node-ND-03">
+<rect x="596" y="324" width="164" height="64" rx="12" fill="#0B1020" stroke="#0B1020" stroke-width="1.5"/>
+<text x="610" y="350" font-family="Noto Sans Thai" font-size="13" font-weight="700" fill="#FFFFFF">ND-03</text>
+<text x="610" y="370" font-family="Noto Sans Thai" font-size="12" font-weight="400" fill="#A9B3C6">Checking the chain</text>
+</g>
+<rect id="hotspot__ND-03" x="596" y="324" width="164" height="64" fill="#000000" fill-opacity="0"/>
+<g id="node-ND-04">
+<rect x="786" y="324" width="164" height="64" rx="12" fill="#0B1020" stroke="#0B1020" stroke-width="1.5"/>
+<text x="800" y="350" font-family="Noto Sans Thai" font-size="13" font-weight="700" fill="#FFFFFF">ND-04</text>
+<text x="800" y="370" font-family="Noto Sans Thai" font-size="12" font-weight="400" fill="#A9B3C6">Paid + split</text>
+</g>
+<rect id="hotspot__ND-04" x="786" y="324" width="164" height="64" fill="#000000" fill-opacity="0"/>
+<g id="node-ND-05">
+<rect x="976" y="324" width="164" height="64" rx="12" fill="#0B1020" stroke="#0B1020" stroke-width="1.5"/>
+<text x="990" y="350" font-family="Noto Sans Thai" font-size="13" font-weight="700" fill="#FFFFFF">ND-05</text>
+<text x="990" y="370" font-family="Noto Sans Thai" font-size="12" font-weight="400" fill="#A9B3C6">Refunded</text>
+</g>
+<rect id="hotspot__ND-05" x="976" y="324" width="164" height="64" fill="#000000" fill-opacity="0"/>
+<g id="node-ND-06">
+<rect x="1166" y="324" width="164" height="64" rx="12" fill="#0B1020" stroke="#0B1020" stroke-width="1.5"/>
+<text x="1180" y="350" font-family="Noto Sans Thai" font-size="13" font-weight="700" fill="#FFFFFF">ND-06</text>
+<text x="1180" y="370" font-family="Noto Sans Thai" font-size="12" font-weight="400" fill="#A9B3C6">Offline</text>
+</g>
+<rect id="hotspot__ND-06" x="1166" y="324" width="164" height="64" fill="#000000" fill-opacity="0"/>
+<g id="node-ND-07">
+<rect x="1356" y="324" width="164" height="64" rx="12" fill="#0B1020" stroke="#0B1020" stroke-width="1.5"/>
+<text x="1370" y="350" font-family="Noto Sans Thai" font-size="13" font-weight="700" fill="#FFFFFF">ND-07</text>
+<text x="1370" y="370" font-family="Noto Sans Thai" font-size="12" font-weight="400" fill="#A9B3C6">Setup · device key</text>
+</g>
+<rect id="hotspot__ND-07" x="1356" y="324" width="164" height="64" fill="#000000" fill-opacity="0"/>
+<path d="M383 356 L403 356" fill="none" stroke="#0B1020" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M403 356 L397.6 358.61 L397.6 353.39 Z" fill="#0B1020"/>
+<path d="M573 356 L593 356" fill="none" stroke="#0B1020" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M593 356 L587.6 358.61 L587.6 353.39 Z" fill="#0B1020"/>
+<path d="M763 356 L783 356" fill="none" stroke="#0B1020" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M783 356 L777.6 358.61 L777.6 353.39 Z" fill="#0B1020"/>
+<rect id="lane-3" x="24" y="428" width="1552" height="204" rx="16" fill="#FFFFFF" stroke="#DDE2D8" stroke-width="1"/>
+<text x="48" y="462" font-family="Noto Sans Thai" font-size="15" font-weight="700" fill="#0B1020">Merchant POS</text>
+<text x="48" y="484" font-family="Noto Sans Thai" font-size="12" font-weight="400" fill="#5E6B7A">Set the recipe once.</text>
+<text x="48" y="501" font-family="Noto Sans Thai" font-size="12" font-weight="400" fill="#5E6B7A">Watch every bill split,</text>
+<text x="48" y="518" font-family="Noto Sans Thai" font-size="12" font-weight="400" fill="#5E6B7A">with proof.</text>
+<g id="node-NM-01">
+<rect x="216" y="448" width="190" height="64" rx="12" fill="#FFFFFF" stroke="#DDE2D8" stroke-width="1.5"/>
+<text x="230" y="474" font-family="Noto Sans Thai" font-size="13" font-weight="700" fill="#0B1020">NM-01</text>
+<text x="230" y="494" font-family="Noto Sans Thai" font-size="12" font-weight="400" fill="#5E6B7A">Overview</text>
+</g>
+<rect id="hotspot__NM-01" x="216" y="448" width="190" height="64" fill="#000000" fill-opacity="0"/>
+<g id="node-NM-02">
+<rect x="438" y="448" width="190" height="64" rx="12" fill="#FFFFFF" stroke="#DDE2D8" stroke-width="1.5"/>
+<text x="452" y="474" font-family="Noto Sans Thai" font-size="13" font-weight="700" fill="#0B1020">NM-02</text>
+<text x="452" y="494" font-family="Noto Sans Thai" font-size="12" font-weight="400" fill="#5E6B7A">Split recipe</text>
+</g>
+<rect id="hotspot__NM-02" x="438" y="448" width="190" height="64" fill="#000000" fill-opacity="0"/>
+<g id="node-NM-03">
+<rect x="660" y="448" width="190" height="64" rx="12" fill="#FFFFFF" stroke="#DDE2D8" stroke-width="1.5"/>
+<text x="674" y="474" font-family="Noto Sans Thai" font-size="13" font-weight="700" fill="#0B1020">NM-03</text>
+<text x="674" y="494" font-family="Noto Sans Thai" font-size="12" font-weight="400" fill="#5E6B7A">Team &amp; shifts</text>
+</g>
+<rect id="hotspot__NM-03" x="660" y="448" width="190" height="64" fill="#000000" fill-opacity="0"/>
+<g id="node-NM-04">
+<rect x="882" y="448" width="190" height="64" rx="12" fill="#FFFFFF" stroke="#DDE2D8" stroke-width="1.5"/>
+<text x="896" y="474" font-family="Noto Sans Thai" font-size="13" font-weight="700" fill="#0B1020">NM-04</text>
+<text x="896" y="494" font-family="Noto Sans Thai" font-size="12" font-weight="400" fill="#5E6B7A">Suppliers &amp; invoices</text>
+</g>
+<rect id="hotspot__NM-04" x="882" y="448" width="190" height="64" fill="#000000" fill-opacity="0"/>
+<g id="node-NM-05">
+<rect x="1104" y="448" width="190" height="64" rx="12" fill="#FFFFFF" stroke="#DDE2D8" stroke-width="1.5"/>
+<text x="1118" y="474" font-family="Noto Sans Thai" font-size="13" font-weight="700" fill="#0B1020">NM-05</text>
+<text x="1118" y="494" font-family="Noto Sans Thai" font-size="12" font-weight="400" fill="#5E6B7A">Invoice detail</text>
+</g>
+<rect id="hotspot__NM-05" x="1104" y="448" width="190" height="64" fill="#000000" fill-opacity="0"/>
+<g id="node-NM-06">
+<rect x="1326" y="448" width="190" height="64" rx="12" fill="#FFFFFF" stroke="#DDE2D8" stroke-width="1.5"/>
+<text x="1340" y="474" font-family="Noto Sans Thai" font-size="13" font-weight="700" fill="#0B1020">NM-06</text>
+<text x="1340" y="494" font-family="Noto Sans Thai" font-size="12" font-weight="400" fill="#5E6B7A">Ledger + CSV</text>
+</g>
+<rect id="hotspot__NM-06" x="1326" y="448" width="190" height="64" fill="#000000" fill-opacity="0"/>
+<g id="node-NM-07">
+<rect x="216" y="544" width="190" height="64" rx="12" fill="#FFFFFF" stroke="#DDE2D8" stroke-width="1.5"/>
+<text x="230" y="570" font-family="Noto Sans Thai" font-size="13" font-weight="700" fill="#0B1020">NM-07</text>
+<text x="230" y="590" font-family="Noto Sans Thai" font-size="12" font-weight="400" fill="#5E6B7A">Evidence timeline</text>
+</g>
+<rect id="hotspot__NM-07" x="216" y="544" width="190" height="64" fill="#000000" fill-opacity="0"/>
+<g id="node-NM-08">
+<rect x="438" y="544" width="190" height="64" rx="12" fill="#FFFFFF" stroke="#DDE2D8" stroke-width="1.5"/>
+<text x="452" y="570" font-family="Noto Sans Thai" font-size="13" font-weight="700" fill="#0B1020">NM-08</text>
+<text x="452" y="590" font-family="Noto Sans Thai" font-size="12" font-weight="400" fill="#5E6B7A">Devices &amp; witness</text>
+</g>
+<rect id="hotspot__NM-08" x="438" y="544" width="190" height="64" fill="#000000" fill-opacity="0"/>
+<g id="node-NM-09">
+<rect x="660" y="544" width="190" height="64" rx="12" fill="#EEEAFF" stroke="#6B4EFF" stroke-width="1.5"/>
+<text x="674" y="570" font-family="Noto Sans Thai" font-size="13" font-weight="700" fill="#0B1020">NM-09</text>
+<text x="674" y="590" font-family="Noto Sans Thai" font-size="12" font-weight="400" fill="#4A2FD6">Café CFO</text>
+</g>
+<rect id="hotspot__NM-09" x="660" y="544" width="190" height="64" fill="#000000" fill-opacity="0"/>
+<g id="node-NM-10">
+<rect x="882" y="544" width="190" height="64" rx="12" fill="#EEEAFF" stroke="#6B4EFF" stroke-width="1.5"/>
+<text x="896" y="570" font-family="Noto Sans Thai" font-size="13" font-weight="700" fill="#0B1020">NM-10</text>
+<text x="896" y="590" font-family="Noto Sans Thai" font-size="12" font-weight="400" fill="#4A2FD6">Review CFO proposal</text>
+</g>
+<rect id="hotspot__NM-10" x="882" y="544" width="190" height="64" fill="#000000" fill-opacity="0"/>
+<g id="node-NM-11">
+<rect x="1104" y="544" width="190" height="64" rx="12" fill="#FFFFFF" stroke="#DDE2D8" stroke-width="1.5"/>
+<text x="1118" y="570" font-family="Noto Sans Thai" font-size="13" font-weight="700" fill="#0B1020">NM-11</text>
+<text x="1118" y="590" font-family="Noto Sans Thai" font-size="12" font-weight="400" fill="#5E6B7A">Setup · least-power keys</text>
+</g>
+<rect id="hotspot__NM-11" x="1104" y="544" width="190" height="64" fill="#000000" fill-opacity="0"/>
+<path d="M1076 480 L1100 480" fill="none" stroke="#0B1020" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M1100 480 L1093.7 483.04 L1093.7 476.96 Z" fill="#0B1020"/>
+<path d="M854 576 L878 576" fill="none" stroke="#6B4EFF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M878 576 L871.7 579.04 L871.7 572.96 Z" fill="#6B4EFF"/>
+<rect id="lane-4" x="24" y="648" width="1552" height="112" rx="16" fill="#FFFFFF" stroke="#DDE2D8" stroke-width="1"/>
+<text x="48" y="682" font-family="Noto Sans Thai" font-size="15" font-weight="700" fill="#0B1020">Staff phone</text>
+<text x="48" y="704" font-family="Noto Sans Thai" font-size="12" font-weight="400" fill="#5E6B7A">Paid per cup, into</text>
+<text x="48" y="721" font-family="Noto Sans Thai" font-size="12" font-weight="400" fill="#5E6B7A">their own account.</text>
+<g id="node-NS-01">
+<rect x="216" y="672" width="190" height="64" rx="12" fill="#FFFFFF" stroke="#DDE2D8" stroke-width="1.5"/>
+<text x="230" y="698" font-family="Noto Sans Thai" font-size="13" font-weight="700" fill="#0B1020">NS-01</text>
+<text x="230" y="718" font-family="Noto Sans Thai" font-size="12" font-weight="400" fill="#5E6B7A">My earnings</text>
+</g>
+<rect id="hotspot__NS-01" x="216" y="672" width="190" height="64" fill="#000000" fill-opacity="0"/>
+<g id="node-NS-02">
+<rect x="438" y="672" width="190" height="64" rx="12" fill="#FFFFFF" stroke="#DDE2D8" stroke-width="1.5"/>
+<text x="452" y="698" font-family="Noto Sans Thai" font-size="13" font-weight="700" fill="#0B1020">NS-02</text>
+<text x="452" y="718" font-family="Noto Sans Thai" font-size="12" font-weight="400" fill="#5E6B7A">Send home (preview)</text>
+</g>
+<rect id="hotspot__NS-02" x="438" y="672" width="190" height="64" fill="#000000" fill-opacity="0"/>
+<path d="M410 704 L434 704" fill="none" stroke="#0B1020" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M434 704 L427.7 707.04 L427.7 700.96 Z" fill="#0B1020"/>
+<text x="668" y="698" font-family="Noto Sans Thai" font-size="13" font-weight="400" fill="#5E6B7A">Each bill pays whoever is clocked in, in the same receipt as the owner.</text>
+<text x="668" y="718" font-family="Noto Sans Thai" font-size="12" font-weight="400" fill="#5E6B7A">Opened from Team &amp; shifts (NM-03).</text>
+<rect id="track-band" x="24" y="776" width="1552" height="184" rx="16" fill="#0B1020"/>
+<text x="48" y="812" font-family="Noto Sans Thai" font-size="16" font-weight="700" fill="#FFFFFF">One bill covers the five words of the Real-World Money track</text>
+<g id="split-bar">
+<rect x="48" y="828" width="1061.45" height="8" rx="3" fill="#FFFFFF"/>
+<rect x="1112.45" y="828" width="149.5" height="8" rx="3" fill="#00B37E"/>
+<rect x="1264.95" y="828" width="104.65" height="8" rx="3" fill="#F2A93B"/>
+<rect x="1372.6" y="828" width="179.4" height="8" rx="3" fill="#8FA0BA"/>
+</g>
+<text x="48" y="874" font-family="Noto Sans Thai" font-size="15" font-weight="700" fill="#00B37E">Merchant payments</text>
+<text x="48" y="898" font-family="Noto Sans Thai" font-size="12" font-weight="400" fill="#A9B3C6">Exact-amount bill in a contract.</text>
+<text x="48" y="916" font-family="Noto Sans Thai" font-size="12" font-weight="400" fill="#A9B3C6">Wrong amount bounces back.</text>
+<text x="348.8" y="874" font-family="Noto Sans Thai" font-size="15" font-weight="700" fill="#00B37E">Payroll</text>
+<text x="348.8" y="898" font-family="Noto Sans Thai" font-size="12" font-weight="400" fill="#A9B3C6">Whoever is on shift is paid</text>
+<text x="348.8" y="916" font-family="Noto Sans Thai" font-size="12" font-weight="400" fill="#A9B3C6">from the next bill, at once.</text>
+<text x="649.6" y="874" font-family="Noto Sans Thai" font-size="15" font-weight="700" fill="#00B37E">Invoicing</text>
+<text x="649.6" y="898" font-family="Noto Sans Thai" font-size="12" font-weight="400" fill="#A9B3C6">Supplier invoices fund</text>
+<text x="649.6" y="916" font-family="Noto Sans Thai" font-size="12" font-weight="400" fill="#A9B3C6">themselves from every bill.</text>
+<text x="950.4" y="874" font-family="Noto Sans Thai" font-size="15" font-weight="700" fill="#00B37E">Remittances</text>
+<text x="950.4" y="898" font-family="Noto Sans Thai" font-size="12" font-weight="400" fill="#A9B3C6">Staff preview sending their</text>
+<text x="950.4" y="916" font-family="Noto Sans Thai" font-size="12" font-weight="400" fill="#A9B3C6">share home across chains.</text>
+<text x="1251.2" y="874" font-family="Noto Sans Thai" font-size="15" font-weight="700" fill="#00B37E">Stablecoin rails</text>
+<text x="1251.2" y="898" font-family="Noto Sans Thai" font-size="12" font-weight="400" fill="#A9B3C6">Gasless token payments with</text>
+<text x="1251.2" y="916" font-family="Noto Sans Thai" font-size="12" font-weight="400" fill="#A9B3C6">a hardware witness.</text>
+<text x="48" y="946" font-family="Noto Sans Thai" font-size="11" font-weight="400" fill="#8A96AD">Thai variants of NC-02, NC-05, NC-06, NC-07, ND-02 and ND-04 open from the language switch on each of those screens.</text>
+<text id="footer" x="1576" y="988" font-family="Noto Sans Thai" font-size="11" font-weight="400" fill="#5E6B7A" text-anchor="end">FigCraft concept · sample data · NEAR testnet</text>
+</svg>

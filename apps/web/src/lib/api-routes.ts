@@ -91,6 +91,15 @@ export const apiRoutes: [RegExp, readonly string[]][] = [
   [/^food\/returns\/[0-9a-f-]{36}\/receive$/, ['POST']],
   [/^orders\/[0-9a-f-]{36}\/delivery$/, ['GET']],
   [/^orders\/[0-9a-f-]{36}\/delivery\/pickup-proof$/, ['POST']],
+  // NEAR HACKATHON work: merchant NEAR hub (see near-hackathon/PROVENANCE.md).
+  [/^near\/(account|ledger|ledger\/export)$/, ['GET']],
+  [/^near\/(team|suppliers)$/, ['GET', 'POST']],
+  [/^near\/(recipe|invoices|devices)$/, ['POST']],
+  [/^near\/team\/[0-9a-f-]{36}\/shift$/, ['POST']],
+  [/^near\/invoices\/[0-9a-f-]{36}\/cancel$/, ['POST']],
+  [/^near\/devices\/[0-9a-f-]{36}\/deactivate$/, ['POST']],
+  [/^near\/bills\/[0-9a-f-]{36}\/(refund|retry|check)$/, ['POST']],
+  [/^near\/orders\/[0-9a-f-]{36}\/evidence$/, ['GET']],
   [/^promotions$/, ['GET']],
   [/^promotions\/generate$/, ['POST']],
   [/^promotions\/recipients$/, ['GET']],
@@ -108,5 +117,10 @@ export const apiRoutes: [RegExp, readonly string[]][] = [
   [/^pay\/[A-Za-z0-9_-]+\/(challenge|bind|attempt|submit|dismiss)$/, ['POST']],
   [/^pay\/[A-Za-z0-9_-]+\/customer\/(challenge|verify|session|use|revoke)$/, ['POST']],
   [/^pay\/[A-Za-z0-9_-]+\/x402$/, ['POST']],
+  // NEAR HACKATHON work: NEAR Living Bill checkout for a bill, and the witness screen protocol (see near-hackathon/PROVENANCE.md).
+  [/^pay\/[A-Za-z0-9_-]+\/near$/, ['GET']],
+  [/^pay\/[A-Za-z0-9_-]+\/near\/(bill|relay|submitted|demo-pay|reclaim|faucet)$/, ['POST']],
+  [/^near-device\/state$/, ['GET']],
+  [/^near-device\/(register|ack)$/, ['POST']],
   [/^x402\/supported$/, ['GET']],
 ];

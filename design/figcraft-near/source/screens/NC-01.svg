@@ -1,0 +1,91 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="390" height="844" viewBox="0 0 390 844">
+<title>NC-01</title>
+<rect id="background" x="0" y="0" width="390" height="844" fill="#F6F7F2"/>
+<g id="status-bar">
+<text x="24" y="30" font-family="Noto Sans Thai" font-size="14" font-weight="600" fill="#0B1020">9:41</text>
+<rect x="340" y="19" width="24" height="12" rx="3" fill="none" stroke="#0B1020" stroke-width="1.2"/>
+<rect x="342" y="21" width="16" height="8" rx="1.5" fill="#0B1020"/>
+</g>
+<g id="header">
+<g id="bitpos-mark">
+<rect x="16" y="62" width="32" height="32" rx="8.96" fill="#0B1020"/>
+<text x="32" y="85.04" font-family="Noto Sans Thai" font-size="19.84" font-weight="700" fill="#FFFFFF" text-anchor="middle">B</text>
+</g>
+<text x="58" y="76" font-family="Noto Sans Thai" font-size="13" font-weight="600" fill="#0B1020">Orbit Café · Table 4</text>
+<text x="58" y="92" font-family="Noto Sans Thai" font-size="11" font-weight="400" fill="#5E6B7A">BitPOS Living Bill</text>
+<g id="testnet-marker">
+<rect x="266.52" y="66" width="107.48" height="24" rx="12" fill="#FFFFFF" stroke="#0B1020" stroke-width="1"/>
+<circle cx="280.52" cy="78" r="4" fill="#F2A93B"/>
+<text x="290.52" y="81.96" font-family="Noto Sans Thai" font-size="11" font-weight="700" fill="#0B1020">NEAR testnet</text>
+</g>
+</g>
+<text id="screen-title" x="16" y="140" font-family="Noto Sans Thai" font-size="22" font-weight="700" fill="#0B1020">Menu</text>
+<text id="footer" x="195" y="832" font-family="Noto Sans Thai" font-size="11" font-weight="400" fill="#5E6B7A" text-anchor="middle">FigCraft concept · sample data · NEAR testnet</text>
+<g id="category-chip">
+<rect x="16" y="160" width="48.38" height="32" rx="16" fill="#0B1020"/>
+<text x="32" y="180.68" font-family="Noto Sans Thai" font-size="13" font-weight="600" fill="#FFFFFF">All</text>
+</g>
+<g id="category-chip-2">
+<rect x="72.38" y="160" width="73.6" height="32" rx="16" fill="#FFFFFF" stroke="#DDE2D8" stroke-width="1"/>
+<text x="88.38" y="180.68" font-family="Noto Sans Thai" font-size="13" font-weight="600" fill="#0B1020">Coffee</text>
+</g>
+<g id="category-chip-3">
+<rect x="153.98" y="160" width="76.59" height="32" rx="16" fill="#FFFFFF" stroke="#DDE2D8" stroke-width="1"/>
+<text x="169.98" y="180.68" font-family="Noto Sans Thai" font-size="13" font-weight="600" fill="#0B1020">Bakery</text>
+</g>
+<rect id="product-card" x="16" y="208" width="358" height="92" rx="16" fill="#FFFFFF" stroke="#DDE2D8" stroke-width="1"/>
+<rect x="28" y="220" width="68" height="68" rx="12" fill="#DCEFE7"/>
+<path d="M49.5 246.5 H67.5 L64.5 266 H52.5 Z" fill="none" stroke="#0B1020" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M67.2 250.25 Q75.75 252.5 65.7 260" fill="none" stroke="#0B1020" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="108" y="244" font-family="Noto Sans Thai" font-size="16" font-weight="600" fill="#0B1020">Iced latte</text>
+<text x="108" y="264" font-family="Noto Sans Thai" font-size="12" font-weight="400" fill="#5E6B7A">Double shot, fresh milk</text>
+<text x="108" y="286" font-family="Noto Sans Thai" font-size="14" font-weight="700" fill="#0B1020">3.50 tUSD</text>
+<g id="in-bill-chip">
+<rect x="301.06" y="222" width="56.94" height="22" rx="11" fill="#E3F6EE"/>
+<text x="310.06" y="236.96" font-family="Noto Sans Thai" font-size="11" font-weight="600" fill="#00704F">1 in bill</text>
+</g>
+<circle cx="338" cy="270" r="18" fill="#00B37E"/>
+<line x1="330" y1="270" x2="346" y2="270" stroke="#0B1020" stroke-width="2.4" stroke-linecap="round"/>
+<line x1="338" y1="262" x2="338" y2="278" stroke="#0B1020" stroke-width="2.4" stroke-linecap="round"/>
+<rect id="product-card-2" x="16" y="312" width="358" height="92" rx="16" fill="#FFFFFF" stroke="#DDE2D8" stroke-width="1"/>
+<rect x="28" y="324" width="68" height="68" rx="12" fill="#FBEBCB"/>
+<path d="M49.5 350.5 H67.5 L64.5 370 H52.5 Z" fill="none" stroke="#0B1020" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M67.2 354.25 Q75.75 356.5 65.7 364" fill="none" stroke="#0B1020" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="108" y="348" font-family="Noto Sans Thai" font-size="16" font-weight="600" fill="#0B1020">Butter croissant</text>
+<text x="108" y="368" font-family="Noto Sans Thai" font-size="12" font-weight="400" fill="#5E6B7A">Baked this morning</text>
+<text x="108" y="390" font-family="Noto Sans Thai" font-size="14" font-weight="700" fill="#0B1020">1.50 tUSD</text>
+<g id="in-bill-chip-2">
+<rect x="301.06" y="326" width="56.94" height="22" rx="11" fill="#E3F6EE"/>
+<text x="310.06" y="340.96" font-family="Noto Sans Thai" font-size="11" font-weight="600" fill="#00704F">1 in bill</text>
+</g>
+<circle cx="338" cy="374" r="18" fill="#00B37E"/>
+<line x1="330" y1="374" x2="346" y2="374" stroke="#0B1020" stroke-width="2.4" stroke-linecap="round"/>
+<line x1="338" y1="366" x2="338" y2="382" stroke="#0B1020" stroke-width="2.4" stroke-linecap="round"/>
+<rect id="product-card-3" x="16" y="416" width="358" height="92" rx="16" fill="#FFFFFF" stroke="#DDE2D8" stroke-width="1"/>
+<rect x="28" y="428" width="68" height="68" rx="12" fill="#E4E7EE"/>
+<path d="M49.5 454.5 H67.5 L64.5 474 H52.5 Z" fill="none" stroke="#0B1020" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M67.2 458.25 Q75.75 460.5 65.7 468" fill="none" stroke="#0B1020" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="108" y="452" font-family="Noto Sans Thai" font-size="16" font-weight="600" fill="#0B1020">Americano</text>
+<text x="108" y="472" font-family="Noto Sans Thai" font-size="12" font-weight="400" fill="#5E6B7A">Hot or iced</text>
+<text x="108" y="494" font-family="Noto Sans Thai" font-size="14" font-weight="700" fill="#0B1020">3.00 tUSD</text>
+<circle cx="338" cy="478" r="18" fill="#0B1020"/>
+<line x1="330" y1="478" x2="346" y2="478" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round"/>
+<line x1="338" y1="470" x2="338" y2="486" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round"/>
+<rect id="product-card-4" x="16" y="520" width="358" height="92" rx="16" fill="#FFFFFF" stroke="#DDE2D8" stroke-width="1"/>
+<rect x="28" y="532" width="68" height="68" rx="12" fill="#E3F1D9"/>
+<path d="M49.5 558.5 H67.5 L64.5 578 H52.5 Z" fill="none" stroke="#0B1020" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M67.2 562.25 Q75.75 564.5 65.7 572" fill="none" stroke="#0B1020" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="108" y="556" font-family="Noto Sans Thai" font-size="16" font-weight="600" fill="#0B1020">Matcha latte</text>
+<text x="108" y="576" font-family="Noto Sans Thai" font-size="12" font-weight="400" fill="#5E6B7A">Ceremonial grade</text>
+<text x="108" y="598" font-family="Noto Sans Thai" font-size="14" font-weight="700" fill="#0B1020">4.50 tUSD</text>
+<circle cx="338" cy="582" r="18" fill="#0B1020"/>
+<line x1="330" y1="582" x2="346" y2="582" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round"/>
+<line x1="338" y1="574" x2="338" y2="590" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round"/>
+<g id="cart-bar">
+<rect x="16" y="732" width="358" height="64" rx="32" fill="#0B1020"/>
+<text x="40" y="761" font-family="Noto Sans Thai" font-size="12" font-weight="400" fill="#A9B3C6">2 items</text>
+<text x="40" y="781" font-family="Noto Sans Thai" font-size="16" font-weight="700" fill="#FFFFFF">5.00 tUSD</text>
+<text x="350" y="770" font-family="Noto Sans Thai" font-size="15" font-weight="700" fill="#00B37E" text-anchor="end">View bill →</text>
+</g>
+<rect id="hotspot__NC-02" x="16" y="732" width="358" height="64" fill="#000000" fill-opacity="0"/>
+</svg>

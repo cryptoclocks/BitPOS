@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="480" height="320" viewBox="0 0 480 320">
+<title>ND-07</title>
+<rect id="background" x="0" y="0" width="480" height="320" fill="#0B1020"/>
+<g id="mini-top">
+<g id="bitpos-mark">
+<rect x="14" y="10" width="22" height="22" rx="6.16" fill="#00B37E"/>
+<text x="25" y="25.84" font-family="Noto Sans Thai" font-size="13.64" font-weight="700" fill="#0B1020" text-anchor="middle">B</text>
+</g>
+<text x="44" y="26" font-family="Noto Sans Thai" font-size="13" font-weight="600" fill="#FFFFFF">BitPOS Mini · not assigned</text>
+<g id="testnet-marker">
+<rect x="358.52" y="9" width="107.48" height="24" rx="12" fill="#151C30" stroke="#3A4563" stroke-width="1"/>
+<circle cx="372.52" cy="21" r="4" fill="#F2A93B"/>
+<text x="382.52" y="24.96" font-family="Noto Sans Thai" font-size="11" font-weight="700" fill="#A9B3C6">NEAR testnet</text>
+</g>
+</g>
+<line id="mini-rule" x1="0" y1="42" x2="480" y2="42" stroke="#232C45" stroke-width="1"/>
+<text id="footer" x="466" y="311" font-family="Noto Sans Thai" font-size="9" font-weight="400" fill="#6F7B92" text-anchor="end">FigCraft concept · sample data</text>
+<g id="key-qr">
+<rect x="18" y="56" width="170" height="170" rx="8" fill="#FFFFFF"/>
+<path d="M94 66h6v6h-6zM106 66h6v6h-6zM118 66h6v6h-6zM124 66h6v6h-6zM76 72h6v6h-6zM82 72h6v6h-6zM94 72h6v6h-6zM100 72h6v6h-6zM112 72h6v6h-6zM76 78h6v6h-6zM82 78h6v6h-6zM118 78h6v6h-6zM76 84h6v6h-6zM94 84h6v6h-6zM100 84h6v6h-6zM124 84h6v6h-6zM82 90h6v6h-6zM88 90h6v6h-6zM94 90h6v6h-6zM106 90h6v6h-6zM112 90h6v6h-6zM118 90h6v6h-6zM124 90h6v6h-6zM76 96h6v6h-6zM94 96h6v6h-6zM100 96h6v6h-6zM106 96h6v6h-6zM112 96h6v6h-6zM76 102h6v6h-6zM82 102h6v6h-6zM106 102h6v6h-6zM82 108h6v6h-6zM94 108h6v6h-6zM100 108h6v6h-6zM106 108h6v6h-6zM58 114h6v6h-6zM70 114h6v6h-6zM76 114h6v6h-6zM82 114h6v6h-6zM94 114h6v6h-6zM112 114h6v6h-6zM118 114h6v6h-6zM130 114h6v6h-6zM148 114h6v6h-6zM154 114h6v6h-6zM166 114h6v6h-6zM172 114h6v6h-6zM52 120h6v6h-6zM76 120h6v6h-6zM82 120h6v6h-6zM88 120h6v6h-6zM118 120h6v6h-6zM130 120h6v6h-6zM148 120h6v6h-6zM160 120h6v6h-6zM28 126h6v6h-6zM46 126h6v6h-6zM58 126h6v6h-6zM64 126h6v6h-6zM76 126h6v6h-6zM88 126h6v6h-6zM100 126h6v6h-6zM106 126h6v6h-6zM112 126h6v6h-6zM118 126h6v6h-6zM160 126h6v6h-6zM172 126h6v6h-6zM64 132h6v6h-6zM70 132h6v6h-6zM76 132h6v6h-6zM82 132h6v6h-6zM94 132h6v6h-6zM100 132h6v6h-6zM106 132h6v6h-6zM130 132h6v6h-6zM136 132h6v6h-6zM142 132h6v6h-6zM148 132h6v6h-6zM154 132h6v6h-6zM172 132h6v6h-6zM34 138h6v6h-6zM46 138h6v6h-6zM58 138h6v6h-6zM70 138h6v6h-6zM88 138h6v6h-6zM100 138h6v6h-6zM106 138h6v6h-6zM112 138h6v6h-6zM124 138h6v6h-6zM136 138h6v6h-6zM148 138h6v6h-6zM154 138h6v6h-6zM172 138h6v6h-6zM40 144h6v6h-6zM46 144h6v6h-6zM58 144h6v6h-6zM112 144h6v6h-6zM118 144h6v6h-6zM124 144h6v6h-6zM136 144h6v6h-6zM142 144h6v6h-6zM148 144h6v6h-6zM172 144h6v6h-6zM28 150h6v6h-6zM52 150h6v6h-6zM76 150h6v6h-6zM82 150h6v6h-6zM100 150h6v6h-6zM106 150h6v6h-6zM130 150h6v6h-6zM136 150h6v6h-6zM142 150h6v6h-6zM148 150h6v6h-6zM154 150h6v6h-6zM172 150h6v6h-6zM28 156h6v6h-6zM34 156h6v6h-6zM46 156h6v6h-6zM52 156h6v6h-6zM88 156h6v6h-6zM118 156h6v6h-6zM124 156h6v6h-6zM136 156h6v6h-6zM142 156h6v6h-6zM148 156h6v6h-6zM154 156h6v6h-6zM160 156h6v6h-6zM40 162h6v6h-6zM46 162h6v6h-6zM58 162h6v6h-6zM82 162h6v6h-6zM88 162h6v6h-6zM100 162h6v6h-6zM112 162h6v6h-6zM142 162h6v6h-6zM148 162h6v6h-6zM160 162h6v6h-6zM166 162h6v6h-6zM88 168h6v6h-6zM100 168h6v6h-6zM124 168h6v6h-6zM148 168h6v6h-6zM166 168h6v6h-6zM76 174h6v6h-6zM82 174h6v6h-6zM118 174h6v6h-6zM148 174h6v6h-6zM166 174h6v6h-6zM76 180h6v6h-6zM82 180h6v6h-6zM88 180h6v6h-6zM100 180h6v6h-6zM112 180h6v6h-6zM154 180h6v6h-6zM166 180h6v6h-6zM88 186h6v6h-6zM100 186h6v6h-6zM106 186h6v6h-6zM130 186h6v6h-6zM148 186h6v6h-6zM154 186h6v6h-6zM76 192h6v6h-6zM130 192h6v6h-6zM166 192h6v6h-6zM76 198h6v6h-6zM82 198h6v6h-6zM106 198h6v6h-6zM112 198h6v6h-6zM118 198h6v6h-6zM136 198h6v6h-6zM148 198h6v6h-6zM154 198h6v6h-6zM82 204h6v6h-6zM106 204h6v6h-6zM112 204h6v6h-6zM124 204h6v6h-6zM148 204h6v6h-6zM154 204h6v6h-6zM160 204h6v6h-6zM76 210h6v6h-6zM88 210h6v6h-6zM100 210h6v6h-6zM118 210h6v6h-6zM142 210h6v6h-6z" fill="#0B1020"/>
+<rect x="28" y="66" width="42" height="42" fill="#0B1020"/>
+<rect x="34" y="72" width="30" height="30" fill="#FFFFFF"/>
+<rect x="40" y="78" width="18" height="18" fill="#0B1020"/>
+<rect x="136" y="66" width="42" height="42" fill="#0B1020"/>
+<rect x="142" y="72" width="30" height="30" fill="#FFFFFF"/>
+<rect x="148" y="78" width="18" height="18" fill="#0B1020"/>
+<rect x="28" y="174" width="42" height="42" fill="#0B1020"/>
+<rect x="34" y="180" width="30" height="30" fill="#FFFFFF"/>
+<rect x="40" y="186" width="18" height="18" fill="#0B1020"/>
+</g>
+<text x="212" y="84" font-family="Noto Sans Thai" font-size="24" font-weight="700" fill="#FFFFFF">Set up this screen</text>
+<text x="212" y="116" font-family="Noto Sans Thai" font-size="11" font-weight="700" fill="#A9B3C6">WITNESS KEY</text>
+<circle cx="216.4" cy="138" r="3.36" fill="none" stroke="#00B37E" stroke-width="1.8"/>
+<path d="M219.76 138 H227.2 V141.04 M223.6 138 V140.4" fill="none" stroke="#00B37E" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="238" y="143" font-family="Noto Sans Thai" font-size="16" font-weight="700" fill="#00B37E">ed25519:7Hk3…9qPz</text>
+<text x="212" y="168" font-family="Noto Sans Thai" font-size="13" font-weight="400" fill="#A9B3C6">Made in this device.</text>
+<text x="212" y="186" font-family="Noto Sans Thai" font-size="13" font-weight="400" fill="#A9B3C6">The private half never leaves it.</text>
+<g id="firmware-chip">
+<rect x="212" y="204" width="132.46" height="24" rx="12" fill="#151C30" stroke="#3A4563" stroke-width="1"/>
+<text x="224" y="219.96" font-family="Noto Sans Thai" font-size="11" font-weight="600" fill="#A9B3C6">Firmware 0.5.0-near</text>
+</g>
+<text x="28" y="262" font-family="Noto Sans Thai" font-size="13" font-weight="600" fill="#FFFFFF">Scan this in Devices &amp; witness to register the screen.</text>
+<text x="28" y="292" font-family="Noto Sans Thai" font-size="11" font-weight="400" fill="#8A96AD">Tap when registered</text>
+<rect id="hotspot__ND-01" x="0" y="50" width="480" height="190" fill="#000000" fill-opacity="0"/>
+</svg>

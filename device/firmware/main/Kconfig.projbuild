@@ -1,0 +1,10 @@
+# NEAR HACKATHON work (2026-11-14). See near-hackathon/PROVENANCE.md.
+menu "BitPOS product"
+config BITPOS_PRODUCT_NEAR
+    bool "BitPOS Mini · NEAR product (bitpos_terminal_near)"
+    default n
+    help
+        Server-driven screens over HTTPS for bills on NEAR. The device reads the bill from a NEAR RPC node itself
+        and signs an Ed25519 witness message; the standard ordering WebSocket and Solana payment scenes are not
+        started. Build with BITPOS_PRODUCT=near (sdkconfig.near), see tools/firmware/build-near.sh.
+endmenu

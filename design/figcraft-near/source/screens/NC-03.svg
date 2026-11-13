@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="390" height="844" viewBox="0 0 390 844">
+<title>NC-03</title>
+<rect id="background" x="0" y="0" width="390" height="844" fill="#F6F7F2"/>
+<g id="status-bar">
+<text x="24" y="30" font-family="Noto Sans Thai" font-size="14" font-weight="600" fill="#0B1020">9:41</text>
+<rect x="340" y="19" width="24" height="12" rx="3" fill="none" stroke="#0B1020" stroke-width="1.2"/>
+<rect x="342" y="21" width="16" height="8" rx="1.5" fill="#0B1020"/>
+</g>
+<g id="header">
+<path id="back-chevron" d="M30 70 L22 78 L30 86" fill="none" stroke="#0B1020" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+<g id="bitpos-mark">
+<rect x="44" y="62" width="32" height="32" rx="8.96" fill="#0B1020"/>
+<text x="60" y="85.04" font-family="Noto Sans Thai" font-size="19.84" font-weight="700" fill="#FFFFFF" text-anchor="middle">B</text>
+</g>
+<text x="86" y="76" font-family="Noto Sans Thai" font-size="13" font-weight="600" fill="#0B1020">Orbit Café · Table 4</text>
+<text x="86" y="92" font-family="Noto Sans Thai" font-size="11" font-weight="400" fill="#5E6B7A">BitPOS Living Bill</text>
+<g id="testnet-marker">
+<rect x="266.52" y="66" width="107.48" height="24" rx="12" fill="#FFFFFF" stroke="#0B1020" stroke-width="1"/>
+<circle cx="280.52" cy="78" r="4" fill="#F2A93B"/>
+<text x="290.52" y="81.96" font-family="Noto Sans Thai" font-size="11" font-weight="700" fill="#0B1020">NEAR testnet</text>
+</g>
+</g>
+<rect id="hotspot__NC-02" x="12" y="58" width="28" height="40" fill="#000000" fill-opacity="0"/>
+<text id="screen-title" x="16" y="140" font-family="Noto Sans Thai" font-size="22" font-weight="700" fill="#0B1020">Choose how to pay</text>
+<text id="footer" x="195" y="832" font-family="Noto Sans Thai" font-size="11" font-weight="400" fill="#5E6B7A" text-anchor="middle">FigCraft concept · sample data · NEAR testnet</text>
+<rect id="pay-option" x="16" y="164" width="358" height="132" rx="16" fill="#FFFFFF" stroke="#DDE2D8" stroke-width="1"/>
+<circle cx="48" cy="202" r="20" fill="#EEF0EA"/>
+<path d="M49.35 193 L42.6 203.35 H47.55 L46.2 211 L53.4 200.2 H48.45 Z" fill="#0B1020"/>
+<text x="80" y="198" font-family="Noto Sans Thai" font-size="16" font-weight="700" fill="#0B1020">NEAR wallet</text>
+<g id="option-chip">
+<rect x="80" y="208" width="58.7" height="22" rx="11" fill="#E3F6EE"/>
+<text x="89" y="222.96" font-family="Noto Sans Thai" font-size="11" font-weight="600" fill="#00704F">Gasless</text>
+</g>
+<text x="80" y="256" font-family="Noto Sans Thai" font-size="12" font-weight="400" fill="#5E6B7A"><tspan x="80" dy="0">No NEAR needed · the café pays the</tspan><tspan x="80" dy="17">network fee. Meteor or Intear on testnet.</tspan></text>
+<path d="M346 222 l8 8 l-8 8" fill="none" stroke="#5E6B7A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<rect id="hotspot__NC-04" x="16" y="164" width="358" height="132" fill="#000000" fill-opacity="0"/>
+<rect id="pay-option-2" x="16" y="308" width="358" height="132" rx="16" fill="#FFFFFF" stroke="#DDE2D8" stroke-width="1"/>
+<circle cx="48" cy="346" r="20" fill="#EEF0EA"/>
+<circle cx="43.95" cy="346" r="3.78" fill="none" stroke="#0B1020" stroke-width="1.8"/>
+<path d="M47.73 346 H56.1 V349.42 M52.05 346 V348.7" fill="none" stroke="#0B1020" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="80" y="342" font-family="Noto Sans Thai" font-size="16" font-weight="700" fill="#0B1020">Demo wallet (testnet)</text>
+<g id="option-chip-2">
+<rect x="80" y="352" width="74.65" height="22" rx="11" fill="#FDF1DA"/>
+<text x="89" y="366.96" font-family="Noto Sans Thai" font-size="11" font-weight="600" fill="#7A4E00">For judges</text>
+</g>
+<text x="80" y="400" font-family="Noto Sans Thai" font-size="12" font-weight="400" fill="#5E6B7A"><tspan x="80" dy="0">A labelled test customer with test</tspan><tspan x="80" dy="17">money. Same contract, same checks.</tspan></text>
+<path d="M346 366 l8 8 l-8 8" fill="none" stroke="#5E6B7A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<rect id="hotspot__NC-04__2" x="16" y="308" width="358" height="132" fill="#000000" fill-opacity="0"/>
+<rect id="pay-option-3" x="16" y="452" width="358" height="132" rx="16" fill="#FFFFFF" stroke="#DDE2D8" stroke-width="1"/>
+<circle cx="48" cy="490" r="20" fill="#EEF0EA"/>
+<path d="M39.9 497.29 H51.24 A5.67 5.67 0 0 0 51.24 485.95 H39.9" fill="none" stroke="#0B1020" stroke-width="2.88" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M44.35 481.09 L39.49 485.95 L44.35 490.81" fill="none" stroke="#0B1020" stroke-width="2.88" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="80" y="486" font-family="Noto Sans Thai" font-size="16" font-weight="700" fill="#0B1020">Another chain</text>
+<g id="option-chip-3">
+<rect x="80" y="496" width="189.27" height="22" rx="11" fill="#EEF0EA"/>
+<text x="89" y="510.96" font-family="Noto Sans Thai" font-size="11" font-weight="600" fill="#5E6B7A">Mainnet preview · not executed</text>
+</g>
+<text x="80" y="544" font-family="Noto Sans Thai" font-size="12" font-weight="400" fill="#5E6B7A"><tspan x="80" dy="0">See what a Base, Solana or Tron</tspan><tspan x="80" dy="17">wallet would pay for this bill.</tspan></text>
+<path d="M346 510 l8 8 l-8 8" fill="none" stroke="#5E6B7A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<rect id="hotspot__NC-08" x="16" y="452" width="358" height="132" fill="#000000" fill-opacity="0"/>
+<rect x="16" y="600" width="358" height="92" rx="16" fill="#FDF1DA"/>
+<circle cx="42" cy="632" r="7.2" fill="none" stroke="#7A4E00" stroke-width="1.8"/>
+<path d="M42 627.95 V632 H45.15" fill="none" stroke="#7A4E00" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="60" y="637" font-family="Noto Sans Thai" font-size="14" font-weight="700" fill="#7A4E00">Pay the exact amount</text>
+<text x="34" y="660" font-family="Noto Sans Thai" font-size="12" font-weight="400" fill="#7A4E00"><tspan x="34" dy="0">Anything else bounces back to you by itself.</tspan><tspan x="34" dy="17">This bill expires in 4:32.</tspan></text>
+<line x1="16" y1="716" x2="374" y2="716" stroke="#DDE2D8" stroke-width="1"/>
+<text x="16" y="748" font-family="Noto Sans Thai" font-size="13" font-weight="600" fill="#5E6B7A">Bill B-7K2M9Q</text>
+<text x="374" y="750" font-family="Noto Sans Thai" font-size="20" font-weight="700" fill="#0B1020" text-anchor="end">5.00 tUSD</text>
+<text x="16" y="780" font-family="Noto Sans Thai" font-size="12" font-weight="400" fill="#5E6B7A">Paid to bills.bitpos-near.testnet</text>
+</svg>

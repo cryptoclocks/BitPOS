@@ -1,0 +1,205 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="1000" viewBox="0 0 1440 1000">
+<title>NM-08</title>
+<rect id="background" x="0" y="0" width="1440" height="1000" fill="#F6F7F2"/>
+<g id="sidebar">
+<rect x="0" y="0" width="248" height="1000" fill="#0B1020"/>
+<g id="bitpos-mark">
+<rect x="24" y="24" width="36" height="36" rx="10.08" fill="#00B37E"/>
+<text x="42" y="49.92" font-family="Noto Sans Thai" font-size="22.32" font-weight="700" fill="#0B1020" text-anchor="middle">B</text>
+</g>
+<text x="72" y="40" font-family="Noto Sans Thai" font-size="16" font-weight="700" fill="#FFFFFF">BitPOS</text>
+<text x="72" y="58" font-family="Noto Sans Thai" font-size="12" font-weight="400" fill="#A9B3C6">Living Bill</text>
+<text x="24" y="112" font-family="Noto Sans Thai" font-size="11" font-weight="700" fill="#A9B3C6">ORBIT CAFÉ</text>
+<circle cx="36" cy="148" r="3.5" fill="#3A4563"/>
+<text x="54" y="153" font-family="Noto Sans Thai" font-size="14" font-weight="400" fill="#A9B3C6">Overview</text>
+<circle cx="36" cy="192" r="3.5" fill="#3A4563"/>
+<text x="54" y="197" font-family="Noto Sans Thai" font-size="14" font-weight="400" fill="#A9B3C6">Split recipe</text>
+<circle cx="36" cy="236" r="3.5" fill="#3A4563"/>
+<text x="54" y="241" font-family="Noto Sans Thai" font-size="14" font-weight="400" fill="#A9B3C6">Team &amp; shifts</text>
+<circle cx="36" cy="280" r="3.5" fill="#3A4563"/>
+<text x="54" y="285" font-family="Noto Sans Thai" font-size="14" font-weight="400" fill="#A9B3C6">Suppliers</text>
+<circle cx="36" cy="324" r="3.5" fill="#3A4563"/>
+<text x="54" y="329" font-family="Noto Sans Thai" font-size="14" font-weight="400" fill="#A9B3C6">Ledger</text>
+<rect x="12" y="348" width="224" height="40" rx="10" fill="#232C45"/>
+<rect x="12" y="358" width="4" height="20" rx="2" fill="#00B37E"/>
+<circle cx="36" cy="368" r="3.5" fill="#00B37E"/>
+<text x="54" y="373" font-family="Noto Sans Thai" font-size="14" font-weight="600" fill="#FFFFFF">Devices &amp; witness</text>
+<path d="M36 405 Q37.05 410.95 43 412 Q37.05 413.05 36 419 Q34.95 413.05 29 412 Q34.95 410.95 36 405 Z" fill="#6B4EFF"/>
+<text x="54" y="417" font-family="Noto Sans Thai" font-size="14" font-weight="400" fill="#A9B3C6">Café CFO</text>
+<circle cx="36" cy="456" r="3.5" fill="#3A4563"/>
+<text x="54" y="461" font-family="Noto Sans Thai" font-size="14" font-weight="400" fill="#A9B3C6">Setup</text>
+<rect x="16" y="880" width="216" height="96" rx="12" fill="#151C30" stroke="#232C45" stroke-width="1"/>
+<text x="32" y="906" font-family="Noto Sans Thai" font-size="12" font-weight="600" fill="#FFFFFF">Signed in as Owner</text>
+<text x="32" y="926" font-family="Noto Sans Thai" font-size="11" font-weight="400" fill="#A9B3C6">Keys the server holds can</text>
+<text x="32" y="942" font-family="Noto Sans Thai" font-size="11" font-weight="400" fill="#A9B3C6">open or void a bill — never</text>
+<text x="32" y="958" font-family="Noto Sans Thai" font-size="11" font-weight="400" fill="#A9B3C6">move the shop's money.</text>
+</g>
+<rect id="hotspot__NM-01" x="12" y="128" width="224" height="40" fill="#000000" fill-opacity="0"/>
+<rect id="hotspot__NM-02" x="12" y="172" width="224" height="40" fill="#000000" fill-opacity="0"/>
+<rect id="hotspot__NM-03" x="12" y="216" width="224" height="40" fill="#000000" fill-opacity="0"/>
+<rect id="hotspot__NM-04" x="12" y="260" width="224" height="40" fill="#000000" fill-opacity="0"/>
+<rect id="hotspot__NM-06" x="12" y="304" width="224" height="40" fill="#000000" fill-opacity="0"/>
+<rect id="hotspot__NM-09" x="12" y="392" width="224" height="40" fill="#000000" fill-opacity="0"/>
+<rect id="hotspot__NM-11" x="12" y="436" width="224" height="40" fill="#000000" fill-opacity="0"/>
+<g id="topbar">
+<text id="page-title" x="280" y="58" font-family="Noto Sans Thai" font-size="28" font-weight="700" fill="#0B1020">Devices &amp; witness</text>
+<text id="page-subtitle" x="280" y="84" font-family="Noto Sans Thai" font-size="14" font-weight="400" fill="#5E6B7A">The table screen proves the café saw the payment. Without its signature, money goes back.</text>
+<g id="testnet-marker">
+<rect x="1300.52" y="30" width="107.48" height="24" rx="12" fill="#FFFFFF" stroke="#0B1020" stroke-width="1"/>
+<circle cx="1314.52" cy="42" r="4" fill="#F2A93B"/>
+<text x="1324.52" y="45.96" font-family="Noto Sans Thai" font-size="11" font-weight="700" fill="#0B1020">NEAR testnet</text>
+</g>
+<g id="account-chip">
+<rect x="1138.43" y="30" width="154.09" height="24" rx="12" fill="#EEF0EA"/>
+<text x="1148.43" y="45.96" font-family="Noto Sans Thai" font-size="11" font-weight="600" fill="#5E6B7A">orbit.bitpos-near.testnet</text>
+</g>
+</g>
+<text id="footer" x="1416" y="988" font-family="Noto Sans Thai" font-size="11" font-weight="400" fill="#5E6B7A" text-anchor="end">FigCraft concept · sample data · NEAR testnet</text>
+<rect id="device-card" x="280" y="112" width="560" height="520" rx="12" fill="#FFFFFF" stroke="#DDE2D8" stroke-width="1"/>
+<circle cx="332" cy="164" r="28" fill="#E3F6EE"/>
+<rect x="319" y="153.9" width="26" height="16.9" rx="3" fill="none" stroke="#00704F" stroke-width="2.2"/>
+<line x1="326.8" y1="175.35" x2="337.2" y2="175.35" stroke="#00704F" stroke-width="2.2" stroke-linecap="round"/>
+<text x="376" y="158" font-family="Noto Sans Thai" font-size="18" font-weight="700" fill="#0B1020">Mini-01 · Table 4</text>
+<text x="376" y="180" font-family="Noto Sans Thai" font-size="13" font-weight="400" fill="#5E6B7A">BitPOS Mini · firmware 0.5.0-near</text>
+<g id="online-chip">
+<rect x="738.76" y="148" width="77.24" height="26" rx="13" fill="#E3F6EE"/>
+<circle cx="754.76" cy="161" r="4" fill="#00B37E"/>
+<text x="764.76" y="165.32" font-family="Noto Sans Thai" font-size="12" font-weight="600" fill="#00704F">Online</text>
+</g>
+<rect x="304" y="212" width="512" height="96" rx="12" fill="#F6F7F2"/>
+<text x="324" y="240" font-family="Noto Sans Thai" font-size="12" font-weight="600" fill="#5E6B7A">Witness key</text>
+<text x="324" y="266" font-family="Noto Sans Thai" font-size="16" font-weight="700" fill="#0B1020">ed25519:7Hk3vTn2…SAMPLE…9qPz</text>
+<text x="324" y="290" font-family="Noto Sans Thai" font-size="12" font-weight="400" fill="#5E6B7A">Made inside the device. The private half never leaves it.</text>
+<text x="304" y="346" font-family="Noto Sans Thai" font-size="13" font-weight="700" fill="#00704F">Can</text>
+<circle cx="313" cy="368" r="9" fill="#E3F6EE"/>
+<path d="M308.5 368 L311.88 371.15 L317.5 365.3" fill="none" stroke="#00704F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="332" y="372" font-family="Noto Sans Thai" font-size="13" font-weight="400" fill="#0B1020">Sign "I showed PAID for this bill"</text>
+<circle cx="313" cy="398" r="9" fill="#E3F6EE"/>
+<path d="M308.5 398 L311.88 401.15 L317.5 395.3" fill="none" stroke="#00704F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="332" y="402" font-family="Noto Sans Thai" font-size="13" font-weight="400" fill="#0B1020">Read a bill's state from the chain</text>
+<text x="566" y="346" font-family="Noto Sans Thai" font-size="13" font-weight="700" fill="#C8443C">Cannot</text>
+<circle cx="575" cy="368" r="9" fill="#FAE7E5"/>
+<line x1="571" y1="368" x2="579" y2="368" stroke="#C8443C" stroke-width="2" stroke-linecap="round"/>
+<text x="594" y="372" font-family="Noto Sans Thai" font-size="13" font-weight="400" fill="#0B1020">Move or receive money</text>
+<circle cx="575" cy="398" r="9" fill="#FAE7E5"/>
+<line x1="571" y1="398" x2="579" y2="398" stroke="#C8443C" stroke-width="2" stroke-linecap="round"/>
+<text x="594" y="402" font-family="Noto Sans Thai" font-size="13" font-weight="400" fill="#0B1020">Open, change or void a bill</text>
+<circle cx="575" cy="428" r="9" fill="#FAE7E5"/>
+<line x1="571" y1="428" x2="579" y2="428" stroke="#C8443C" stroke-width="2" stroke-linecap="round"/>
+<text x="594" y="432" font-family="Noto Sans Thai" font-size="13" font-weight="400" fill="#0B1020">Sign for another shop's bills</text>
+<line x1="304" y1="476" x2="816" y2="476" stroke="#DDE2D8" stroke-width="1"/>
+<text x="304" y="510" font-family="Noto Sans Thai" font-size="14" font-weight="600" fill="#0B1020">Witness mode</text>
+<text x="304" y="530" font-family="Noto Sans Thai" font-size="12" font-weight="400" fill="#5E6B7A">Refund after 2:00 without a signature</text>
+<rect x="764" y="498" width="52" height="30" rx="15" fill="#00B37E"/>
+<circle cx="801" cy="513" r="11" fill="#FFFFFF"/>
+<g id="register-button">
+<rect x="304" y="564" width="230" height="44" rx="22" fill="#0B1020"/>
+<text x="419" y="591.04" font-family="Noto Sans Thai" font-size="14" font-weight="600" fill="#FFFFFF" text-anchor="middle">Register a new device</text>
+</g>
+<rect id="hotspot__ND-07" x="304" y="564" width="230" height="44" fill="#000000" fill-opacity="0"/>
+<text x="550" y="591" font-family="Noto Sans Thai" font-size="12" font-weight="400" fill="#5E6B7A">Opens the setup screen on the Mini</text>
+<rect id="stats-card" x="856" y="112" width="552" height="252" rx="12" fill="#FFFFFF" stroke="#DDE2D8" stroke-width="1"/>
+<text x="880" y="150" font-family="Noto Sans Thai" font-size="16" font-weight="700" fill="#0B1020">Today</text>
+<text x="880" y="208" font-family="Noto Sans Thai" font-size="28" font-weight="700" fill="#0B1020">36 / 36</text>
+<text x="880" y="232" font-family="Noto Sans Thai" font-size="12" font-weight="400" fill="#5E6B7A">bills witnessed</text>
+<text x="1048" y="208" font-family="Noto Sans Thai" font-size="28" font-weight="700" fill="#0B1020">1.8 s</text>
+<text x="1048" y="232" font-family="Noto Sans Thai" font-size="12" font-weight="400" fill="#5E6B7A">median, paid to signed</text>
+<text x="1216" y="208" font-family="Noto Sans Thai" font-size="28" font-weight="700" fill="#0B1020">1</text>
+<text x="1216" y="232" font-family="Noto Sans Thai" font-size="12" font-weight="400" fill="#5E6B7A">refund for no witness</text>
+<line x1="880" y1="262" x2="1384" y2="262" stroke="#DDE2D8" stroke-width="1"/>
+<text x="880" y="294" font-family="Noto Sans Thai" font-size="13" font-weight="600" fill="#0B1020">Why a signature and not a server flag</text>
+<text x="880" y="316" font-family="Noto Sans Thai" font-size="12" font-weight="400" fill="#5E6B7A">The contract checks the device's signature itself, so the</text>
+<text x="880" y="334" font-family="Noto Sans Thai" font-size="12" font-weight="400" fill="#5E6B7A">server cannot fake a witness to release money early.</text>
+<rect id="sim-card" x="856" y="380" width="552" height="252" rx="12" fill="#FFFFFF" stroke="#DDE2D8" stroke-width="1"/>
+<text x="880" y="418" font-family="Noto Sans Thai" font-size="16" font-weight="700" fill="#0B1020">Table screen states</text>
+<g id="sim-chip">
+<rect x="1193.46" y="400" width="190.54" height="24" rx="12" fill="#FDF1DA"/>
+<text x="1205.46" y="415.96" font-family="Noto Sans Thai" font-size="11" font-weight="600" fill="#7A4E00">Simulated on the hosted demo</text>
+</g>
+<text x="880" y="442" font-family="Noto Sans Thai" font-size="12" font-weight="400" fill="#5E6B7A">The same seven states run on the real BitPOS Mini.</text>
+<g id="thumb">
+<rect x="880" y="464" width="65.14" height="96" rx="8" fill="#0B1020"/>
+<path d="M904.17 502 H918.57 L916.17 517.6 H906.57 Z" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M918.33 505 Q925.17 506.8 917.13 512.8" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="912.57" y="552" font-family="Noto Sans Thai" font-size="10" font-weight="600" fill="#A9B3C6" text-anchor="middle">Idle</text>
+</g>
+<rect id="hotspot__ND-01" x="880" y="464" width="65.14" height="96" fill="#000000" fill-opacity="0"/>
+<g id="thumb-2">
+<rect x="953.14" y="464" width="65.14" height="96" rx="8" fill="#0B1020"/>
+<rect x="969.71" y="492" width="32" height="32" rx="3" fill="#FFFFFF"/>
+<rect x="973.71" y="496" width="8" height="8" fill="#0B1020"/>
+<rect x="989.71" y="496" width="8" height="8" fill="#0B1020"/>
+<rect x="973.71" y="512" width="8" height="8" fill="#0B1020"/>
+<rect x="989.71" y="512" width="4" height="4" fill="#0B1020"/>
+<text x="985.71" y="552" font-family="Noto Sans Thai" font-size="10" font-weight="600" fill="#A9B3C6" text-anchor="middle">QR</text>
+</g>
+<rect id="hotspot__ND-02" x="953.14" y="464" width="65.14" height="96" fill="#000000" fill-opacity="0"/>
+<g id="thumb-3">
+<rect x="1026.29" y="464" width="65.14" height="96" rx="8" fill="#0B1020"/>
+<circle cx="1058.86" cy="508" r="11" fill="none" stroke="#3A4563" stroke-width="3.2"/>
+<path d="M1058.86 497 A11 11 0 0 1 1069.86 508" fill="none" stroke="#F2A93B" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="1058.86" y="552" font-family="Noto Sans Thai" font-size="10" font-weight="600" fill="#A9B3C6" text-anchor="middle">Checking</text>
+</g>
+<rect id="hotspot__ND-03" x="1026.29" y="464" width="65.14" height="96" fill="#000000" fill-opacity="0"/>
+<g id="thumb-4">
+<rect x="1099.43" y="464" width="65.14" height="96" rx="8" fill="#0B1020"/>
+<circle cx="1132" cy="508" r="16" fill="#00B37E"/>
+<path d="M1124 508 L1130 513.6 L1140 503.2" fill="none" stroke="#0B1020" stroke-width="2.88" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="1132" y="552" font-family="Noto Sans Thai" font-size="10" font-weight="600" fill="#A9B3C6" text-anchor="middle">Paid</text>
+</g>
+<rect id="hotspot__ND-04" x="1099.43" y="464" width="65.14" height="96" fill="#000000" fill-opacity="0"/>
+<g id="thumb-5">
+<rect x="1172.57" y="464" width="65.14" height="96" rx="8" fill="#0B1020"/>
+<circle cx="1205.14" cy="508" r="16" fill="#C8443C"/>
+<path d="M1197.94 514.48 H1208.02 A5.04 5.04 0 0 0 1208.02 504.4 H1197.94" fill="none" stroke="#FFFFFF" stroke-width="2.56" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M1201.9 500.08 L1197.58 504.4 L1201.9 508.72" fill="none" stroke="#FFFFFF" stroke-width="2.56" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="1205.14" y="552" font-family="Noto Sans Thai" font-size="10" font-weight="600" fill="#A9B3C6" text-anchor="middle">Refunded</text>
+</g>
+<rect id="hotspot__ND-05" x="1172.57" y="464" width="65.14" height="96" fill="#000000" fill-opacity="0"/>
+<g id="thumb-6">
+<rect x="1245.71" y="464" width="65.14" height="96" rx="8" fill="#0B1020"/>
+<circle cx="1278.29" cy="508" r="14" fill="none" stroke="#A9B3C6" stroke-width="2" stroke-dasharray="4 4"/>
+<line x1="1273.29" y1="508" x2="1283.29" y2="508" stroke="#A9B3C6" stroke-width="2" stroke-linecap="round"/>
+<text x="1278.29" y="552" font-family="Noto Sans Thai" font-size="10" font-weight="600" fill="#A9B3C6" text-anchor="middle">Offline</text>
+</g>
+<rect id="hotspot__ND-06" x="1245.71" y="464" width="65.14" height="96" fill="#000000" fill-opacity="0"/>
+<g id="thumb-7">
+<rect x="1318.86" y="464" width="65.14" height="96" rx="8" fill="#0B1020"/>
+<circle cx="1346.03" cy="508" r="5.04" fill="none" stroke="#00B37E" stroke-width="1.8"/>
+<path d="M1351.07 508 H1362.23 V512.56 M1356.83 508 V511.6" fill="none" stroke="#00B37E" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="1351.43" y="552" font-family="Noto Sans Thai" font-size="10" font-weight="600" fill="#A9B3C6" text-anchor="middle">Setup</text>
+</g>
+<rect id="hotspot__ND-07__2" x="1318.86" y="464" width="65.14" height="96" fill="#000000" fill-opacity="0"/>
+<text x="880" y="600" font-family="Noto Sans Thai" font-size="12" font-weight="400" fill="#5E6B7A">Click a state to open its screen.</text>
+<rect id="flow-card" x="280" y="648" width="1128" height="292" rx="12" fill="#FFFFFF" stroke="#DDE2D8" stroke-width="1"/>
+<text x="304" y="686" font-family="Noto Sans Thai" font-size="16" font-weight="700" fill="#0B1020">How the witness works</text>
+<rect x="304" y="710" width="203.2" height="150" rx="12" fill="#F6F7F2"/>
+<circle cx="332" cy="740" r="14" fill="#0B1020"/>
+<text x="332" y="745" font-family="Noto Sans Thai" font-size="13" font-weight="700" fill="#FFFFFF" text-anchor="middle">1</text>
+<text x="320" y="782" font-family="Noto Sans Thai" font-size="14" font-weight="600" fill="#0B1020">Customer pays</text>
+<text x="320" y="804" font-family="Noto Sans Thai" font-size="12" font-weight="400" fill="#5E6B7A"><tspan x="320" dy="0">Exact amount lands in the bill.</tspan><tspan x="320" dy="17">State: Escrow.</tspan></text>
+<rect x="523.2" y="710" width="203.2" height="150" rx="12" fill="#F6F7F2"/>
+<circle cx="551.2" cy="740" r="14" fill="#0B1020"/>
+<text x="551.2" y="745" font-family="Noto Sans Thai" font-size="13" font-weight="700" fill="#FFFFFF" text-anchor="middle">2</text>
+<text x="539.2" y="782" font-family="Noto Sans Thai" font-size="14" font-weight="600" fill="#0B1020">Screen asks the chain</text>
+<text x="539.2" y="804" font-family="Noto Sans Thai" font-size="12" font-weight="400" fill="#5E6B7A"><tspan x="539.2" dy="0">The Mini calls a NEAR RPC</tspan><tspan x="539.2" dy="17">view itself. It does not trust</tspan><tspan x="539.2" dy="17">the server.</tspan></text>
+<rect x="742.4" y="710" width="203.2" height="150" rx="12" fill="#F6F7F2"/>
+<circle cx="770.4" cy="740" r="14" fill="#0B1020"/>
+<text x="770.4" y="745" font-family="Noto Sans Thai" font-size="13" font-weight="700" fill="#FFFFFF" text-anchor="middle">3</text>
+<text x="758.4" y="782" font-family="Noto Sans Thai" font-size="14" font-weight="600" fill="#0B1020">Screen shows PAID</text>
+<text x="758.4" y="804" font-family="Noto Sans Thai" font-size="12" font-weight="400" fill="#5E6B7A"><tspan x="758.4" dy="0">Only after the display has</tspan><tspan x="758.4" dy="17">really refreshed.</tspan></text>
+<rect x="961.6" y="710" width="203.2" height="150" rx="12" fill="#F6F7F2"/>
+<circle cx="989.6" cy="740" r="14" fill="#0B1020"/>
+<text x="989.6" y="745" font-family="Noto Sans Thai" font-size="13" font-weight="700" fill="#FFFFFF" text-anchor="middle">4</text>
+<text x="977.6" y="782" font-family="Noto Sans Thai" font-size="14" font-weight="600" fill="#0B1020">Screen signs</text>
+<text x="977.6" y="804" font-family="Noto Sans Thai" font-size="12" font-weight="400" fill="#5E6B7A"><tspan x="977.6" dy="0">ed25519 over the contract,</tspan><tspan x="977.6" dy="17">shop and bill id.</tspan></text>
+<rect x="1180.8" y="710" width="203.2" height="150" rx="12" fill="#F6F7F2"/>
+<circle cx="1208.8" cy="740" r="14" fill="#0B1020"/>
+<text x="1208.8" y="745" font-family="Noto Sans Thai" font-size="13" font-weight="700" fill="#FFFFFF" text-anchor="middle">5</text>
+<text x="1196.8" y="782" font-family="Noto Sans Thai" font-size="14" font-weight="600" fill="#0B1020">Contract releases</text>
+<text x="1196.8" y="804" font-family="Noto Sans Thai" font-size="12" font-weight="400" fill="#5E6B7A"><tspan x="1196.8" dy="0">Signature checked on chain,</tspan><tspan x="1196.8" dy="17">then the split is paid.</tspan></text>
+<rect x="304" y="876" width="1080" height="44" rx="12" fill="#FDF1DA"/>
+<circle cx="328" cy="898" r="6.4" fill="none" stroke="#7A4E00" stroke-width="1.8"/>
+<path d="M328 894.4 V898 H330.8" fill="none" stroke="#7A4E00" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="348" y="903" font-family="Noto Sans Thai" font-size="13" font-weight="600" fill="#7A4E00">No signature within 2:00? Anyone can call reclaim and the contract refunds the customer.</text>
+</svg>

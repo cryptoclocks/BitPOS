@@ -271,6 +271,11 @@ export async function settleAttempt(db:pg.PoolClient,attempt:AttemptRow,finalize
  const row=(await db.query<Record<string,unknown>>('SELECT (r.updated_order).*,r.details AS settlement_details FROM bitpos.settle_verified_attempt($1::uuid,$2::uuid,$3::uuid,$4::boolean) AS r',[attempt.merchant_id,attempt.order_id,attempt.id,finalized])).rows[0];
  if(finalized){await finalizeGrantAttempt(db,attempt,'finalized');await retireTerminalX402Settlements(db,attempt.merchant_id);}
  const occurredAt=finalized?verifiedAt:new Date().toISOString();
+ await publishSettlementRow(db,row,occurredAt);
+}
+// NEAR HACKATHON work: extracted unchanged so the NEAR settlement routine publishes through the same code (see near-hackathon/PROVENANCE.md).
+/** Shared by the Solana and NEAR settlement routines: both return (updated_order, details) in the same shape. */
+export async function publishSettlementRow(db:pg.PoolClient,row:Record<string,unknown>|undefined,occurredAt:string){
  if(!row)return;
  const updated=decodeSettlement(row);
  if(updated.authority_version===null)return;

@@ -1,0 +1,6 @@
+# NEAR HACKATHON work (2026-11-14). See near-hackathon/PROVENANCE.md.
+# Scratch renders and caches; everything else in this folder is reproducible output that is committed.
+build/
+__pycache__/
+reports/build-report.failed.json
+*.tmp

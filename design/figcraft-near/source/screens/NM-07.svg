@@ -1,0 +1,159 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="1000" viewBox="0 0 1440 1000">
+<title>NM-07</title>
+<rect id="background" x="0" y="0" width="1440" height="1000" fill="#F6F7F2"/>
+<g id="sidebar">
+<rect x="0" y="0" width="248" height="1000" fill="#0B1020"/>
+<g id="bitpos-mark">
+<rect x="24" y="24" width="36" height="36" rx="10.08" fill="#00B37E"/>
+<text x="42" y="49.92" font-family="Noto Sans Thai" font-size="22.32" font-weight="700" fill="#0B1020" text-anchor="middle">B</text>
+</g>
+<text x="72" y="40" font-family="Noto Sans Thai" font-size="16" font-weight="700" fill="#FFFFFF">BitPOS</text>
+<text x="72" y="58" font-family="Noto Sans Thai" font-size="12" font-weight="400" fill="#A9B3C6">Living Bill</text>
+<text x="24" y="112" font-family="Noto Sans Thai" font-size="11" font-weight="700" fill="#A9B3C6">ORBIT CAFÉ</text>
+<circle cx="36" cy="148" r="3.5" fill="#3A4563"/>
+<text x="54" y="153" font-family="Noto Sans Thai" font-size="14" font-weight="400" fill="#A9B3C6">Overview</text>
+<circle cx="36" cy="192" r="3.5" fill="#3A4563"/>
+<text x="54" y="197" font-family="Noto Sans Thai" font-size="14" font-weight="400" fill="#A9B3C6">Split recipe</text>
+<circle cx="36" cy="236" r="3.5" fill="#3A4563"/>
+<text x="54" y="241" font-family="Noto Sans Thai" font-size="14" font-weight="400" fill="#A9B3C6">Team &amp; shifts</text>
+<circle cx="36" cy="280" r="3.5" fill="#3A4563"/>
+<text x="54" y="285" font-family="Noto Sans Thai" font-size="14" font-weight="400" fill="#A9B3C6">Suppliers</text>
+<rect x="12" y="304" width="224" height="40" rx="10" fill="#232C45"/>
+<rect x="12" y="314" width="4" height="20" rx="2" fill="#00B37E"/>
+<circle cx="36" cy="324" r="3.5" fill="#00B37E"/>
+<text x="54" y="329" font-family="Noto Sans Thai" font-size="14" font-weight="600" fill="#FFFFFF">Ledger</text>
+<circle cx="36" cy="368" r="3.5" fill="#3A4563"/>
+<text x="54" y="373" font-family="Noto Sans Thai" font-size="14" font-weight="400" fill="#A9B3C6">Devices &amp; witness</text>
+<path d="M36 405 Q37.05 410.95 43 412 Q37.05 413.05 36 419 Q34.95 413.05 29 412 Q34.95 410.95 36 405 Z" fill="#6B4EFF"/>
+<text x="54" y="417" font-family="Noto Sans Thai" font-size="14" font-weight="400" fill="#A9B3C6">Café CFO</text>
+<circle cx="36" cy="456" r="3.5" fill="#3A4563"/>
+<text x="54" y="461" font-family="Noto Sans Thai" font-size="14" font-weight="400" fill="#A9B3C6">Setup</text>
+<rect x="16" y="880" width="216" height="96" rx="12" fill="#151C30" stroke="#232C45" stroke-width="1"/>
+<text x="32" y="906" font-family="Noto Sans Thai" font-size="12" font-weight="600" fill="#FFFFFF">Signed in as Owner</text>
+<text x="32" y="926" font-family="Noto Sans Thai" font-size="11" font-weight="400" fill="#A9B3C6">Keys the server holds can</text>
+<text x="32" y="942" font-family="Noto Sans Thai" font-size="11" font-weight="400" fill="#A9B3C6">open or void a bill — never</text>
+<text x="32" y="958" font-family="Noto Sans Thai" font-size="11" font-weight="400" fill="#A9B3C6">move the shop's money.</text>
+</g>
+<rect id="hotspot__NM-01" x="12" y="128" width="224" height="40" fill="#000000" fill-opacity="0"/>
+<rect id="hotspot__NM-02" x="12" y="172" width="224" height="40" fill="#000000" fill-opacity="0"/>
+<rect id="hotspot__NM-03" x="12" y="216" width="224" height="40" fill="#000000" fill-opacity="0"/>
+<rect id="hotspot__NM-04" x="12" y="260" width="224" height="40" fill="#000000" fill-opacity="0"/>
+<rect id="hotspot__NM-06" x="12" y="304" width="224" height="40" fill="#000000" fill-opacity="0"/>
+<rect id="hotspot__NM-08" x="12" y="348" width="224" height="40" fill="#000000" fill-opacity="0"/>
+<rect id="hotspot__NM-09" x="12" y="392" width="224" height="40" fill="#000000" fill-opacity="0"/>
+<rect id="hotspot__NM-11" x="12" y="436" width="224" height="40" fill="#000000" fill-opacity="0"/>
+<g id="topbar">
+<text id="page-title" x="280" y="58" font-family="Noto Sans Thai" font-size="28" font-weight="700" fill="#0B1020">Evidence · B-7K2M9Q</text>
+<text id="page-subtitle" x="280" y="84" font-family="Noto Sans Thai" font-size="14" font-weight="400" fill="#5E6B7A">5.00 tUSD · Table 4 · paid by alice.bitpos-near.testnet</text>
+<g id="testnet-marker">
+<rect x="1300.52" y="30" width="107.48" height="24" rx="12" fill="#FFFFFF" stroke="#0B1020" stroke-width="1"/>
+<circle cx="1314.52" cy="42" r="4" fill="#F2A93B"/>
+<text x="1324.52" y="45.96" font-family="Noto Sans Thai" font-size="11" font-weight="700" fill="#0B1020">NEAR testnet</text>
+</g>
+<g id="account-chip">
+<rect x="1138.43" y="30" width="154.09" height="24" rx="12" fill="#EEF0EA"/>
+<text x="1148.43" y="45.96" font-family="Noto Sans Thai" font-size="11" font-weight="600" fill="#5E6B7A">orbit.bitpos-near.testnet</text>
+</g>
+</g>
+<text id="footer" x="1416" y="988" font-family="Noto Sans Thai" font-size="11" font-weight="400" fill="#5E6B7A" text-anchor="end">FigCraft concept · sample data · NEAR testnet</text>
+<text x="280" y="124" font-family="Noto Sans Thai" font-size="13" font-weight="600" fill="#00704F">← Back to ledger</text>
+<rect id="hotspot__NM-06__2" x="276" y="106" width="115.9" height="28" fill="#000000" fill-opacity="0"/>
+<g id="state-chip">
+<rect x="430" y="106" width="65.64" height="26" rx="13" fill="#E3F6EE"/>
+<text x="442" y="123.32" font-family="Noto Sans Thai" font-size="12" font-weight="600" fill="#00704F">Settled</text>
+</g>
+<rect id="timeline-card" x="280" y="144" width="700" height="796" rx="12" fill="#FFFFFF" stroke="#DDE2D8" stroke-width="1"/>
+<text x="304" y="182" font-family="Noto Sans Thai" font-size="18" font-weight="700" fill="#0B1020">What happened, in order</text>
+<line x1="324" y1="236" x2="324" y2="332" stroke="#DDE2D8" stroke-width="2"/>
+<circle cx="324" cy="224" r="12" fill="#0B1020"/>
+<path d="M318.5 224 L322.62 227.85 L329.5 220.7" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="352" y="229" font-family="Noto Sans Thai" font-size="15" font-weight="600" fill="#0B1020">Server froze the quote</text>
+<text x="956" y="229" font-family="Noto Sans Thai" font-size="12" font-weight="600" fill="#5E6B7A" text-anchor="end">10:41:52</text>
+<text x="352" y="252" font-family="Noto Sans Thai" font-size="13" font-weight="400" fill="#5E6B7A">Cart priced on the server: 5.00 tUSD = 5,000,000 units. Quote Q-58213.</text>
+<line x1="324" y1="352" x2="324" y2="448" stroke="#DDE2D8" stroke-width="2"/>
+<circle cx="324" cy="340" r="12" fill="#0B1020"/>
+<path d="M318.5 340 L322.62 343.85 L329.5 336.7" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="352" y="345" font-family="Noto Sans Thai" font-size="15" font-weight="600" fill="#0B1020">Bill opened on chain</text>
+<text x="956" y="345" font-family="Noto Sans Thai" font-size="12" font-weight="600" fill="#5E6B7A" text-anchor="end">10:41:53</text>
+<text x="352" y="368" font-family="Noto Sans Thai" font-size="13" font-weight="400" fill="#5E6B7A">open_bill by the shop's cashier key: total, five payouts, expiry 10:46:53, witness key of Mini-01.</text>
+<text x="352" y="391" font-family="Noto Sans Thai" font-size="12" font-weight="600" fill="#00704F">1aBc…SAMPLE ↗</text>
+<line x1="324" y1="468" x2="324" y2="564" stroke="#DDE2D8" stroke-width="2"/>
+<circle cx="324" cy="456" r="12" fill="#00B37E"/>
+<path d="M318.5 456 L322.62 459.85 L329.5 452.7" fill="none" stroke="#0B1020" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="352" y="461" font-family="Noto Sans Thai" font-size="15" font-weight="600" fill="#0B1020">Customer paid, gasless</text>
+<text x="956" y="461" font-family="Noto Sans Thai" font-size="12" font-weight="600" fill="#5E6B7A" text-anchor="end">10:42:04</text>
+<text x="352" y="484" font-family="Noto Sans Thai" font-size="13" font-weight="400" fill="#5E6B7A"><tspan x="352" dy="0">ft_transfer_call of exactly 5.00 tUSD with the bill id. The café's relayer paid the fee. Status</tspan><tspan x="352" dy="19">FINAL.</tspan></text>
+<text x="352" y="526" font-family="Noto Sans Thai" font-size="12" font-weight="600" fill="#00704F">9xQe…SAMPLE ↗</text>
+<line x1="324" y1="584" x2="324" y2="680" stroke="#DDE2D8" stroke-width="2"/>
+<circle cx="324" cy="572" r="12" fill="#F2A93B"/>
+<circle cx="324" cy="572" r="5.6" fill="none" stroke="#0B1020" stroke-width="1.6"/>
+<path d="M324 568.85 V572 H326.45" fill="none" stroke="#0B1020" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="352" y="577" font-family="Noto Sans Thai" font-size="15" font-weight="600" fill="#0B1020">Held in the bill</text>
+<text x="956" y="577" font-family="Noto Sans Thai" font-size="12" font-weight="600" fill="#5E6B7A" text-anchor="end">10:42:04</text>
+<text x="352" y="600" font-family="Noto Sans Thai" font-size="13" font-weight="400" fill="#5E6B7A">Contract state Escrow. The money sits in the contract, not with the shop.</text>
+<line x1="324" y1="700" x2="324" y2="796" stroke="#DDE2D8" stroke-width="2"/>
+<circle cx="324" cy="688" r="12" fill="#00B37E"/>
+<path d="M318.5 688 L322.62 691.85 L329.5 684.7" fill="none" stroke="#0B1020" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="352" y="693" font-family="Noto Sans Thai" font-size="15" font-weight="600" fill="#0B1020">Table screen witnessed</text>
+<text x="956" y="693" font-family="Noto Sans Thai" font-size="12" font-weight="600" fill="#5E6B7A" text-anchor="end">10:42:07</text>
+<text x="352" y="716" font-family="Noto Sans Thai" font-size="13" font-weight="400" fill="#5E6B7A"><tspan x="352" dy="0">Mini-01 read the bill from the chain, showed PAID, then signed. The contract checked the</tspan><tspan x="352" dy="19">signature.</tspan></text>
+<text x="352" y="758" font-family="Noto Sans Thai" font-size="12" font-weight="600" fill="#00704F">6dWm…SAMPLE ↗</text>
+<circle cx="324" cy="804" r="12" fill="#00B37E"/>
+<path d="M318.5 804 L322.62 807.85 L329.5 800.7" fill="none" stroke="#0B1020" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="352" y="809" font-family="Noto Sans Thai" font-size="15" font-weight="600" fill="#0B1020">Split paid in one receipt</text>
+<text x="956" y="809" font-family="Noto Sans Thai" font-size="12" font-weight="600" fill="#5E6B7A" text-anchor="end">10:42:07</text>
+<text x="352" y="832" font-family="Noto Sans Thai" font-size="13" font-weight="400" fill="#5E6B7A">Five transfers in one batch. If any had failed, all would have reverted. State Settled.</text>
+<text x="352" y="855" font-family="Noto Sans Thai" font-size="12" font-weight="600" fill="#00704F">6dWm…SAMPLE ↗</text>
+<rect id="paid-card" x="996" y="144" width="412" height="372" rx="12" fill="#FFFFFF" stroke="#DDE2D8" stroke-width="1"/>
+<text x="1020" y="182" font-family="Noto Sans Thai" font-size="16" font-weight="700" fill="#0B1020">Who was paid</text>
+<g id="split-bar">
+<rect x="1020" y="200" width="252.05" height="16" rx="6" fill="#0B1020"/>
+<rect x="1275.05" y="200" width="35.5" height="16" rx="6" fill="#00B37E"/>
+<rect x="1313.55" y="200" width="24.85" height="16" rx="6" fill="#F2A93B"/>
+<rect x="1341.4" y="200" width="42.6" height="16" rx="6" fill="#5E6B7A"/>
+</g>
+<rect x="1020" y="239" width="12" height="12" rx="3" fill="#0B1020"/>
+<text x="1044" y="250" font-family="Noto Sans Thai" font-size="14" font-weight="600" fill="#0B1020">Orbit Café (owner)</text>
+<text x="1384" y="250" font-family="Noto Sans Thai" font-size="15" font-weight="700" fill="#0B1020" text-anchor="end">3.55</text>
+<rect x="1020" y="279" width="12" height="12" rx="3" fill="#00B37E"/>
+<text x="1044" y="290" font-family="Noto Sans Thai" font-size="14" font-weight="600" fill="#0B1020">Mai</text>
+<text x="1384" y="290" font-family="Noto Sans Thai" font-size="15" font-weight="700" fill="#0B1020" text-anchor="end">0.25</text>
+<rect x="1020" y="319" width="12" height="12" rx="3" fill="#00B37E"/>
+<text x="1044" y="330" font-family="Noto Sans Thai" font-size="14" font-weight="600" fill="#0B1020">Ton</text>
+<text x="1384" y="330" font-family="Noto Sans Thai" font-size="15" font-weight="700" fill="#0B1020" text-anchor="end">0.25</text>
+<rect x="1020" y="359" width="12" height="12" rx="3" fill="#F2A93B"/>
+<text x="1044" y="370" font-family="Noto Sans Thai" font-size="14" font-weight="600" fill="#0B1020">Tax reserve</text>
+<text x="1384" y="370" font-family="Noto Sans Thai" font-size="15" font-weight="700" fill="#0B1020" text-anchor="end">0.35</text>
+<rect x="1020" y="399" width="12" height="12" rx="3" fill="#5E6B7A"/>
+<text x="1044" y="410" font-family="Noto Sans Thai" font-size="14" font-weight="600" fill="#0B1020">Milk Farm Co-op</text>
+<text x="1384" y="410" font-family="Noto Sans Thai" font-size="15" font-weight="700" fill="#0B1020" text-anchor="end">0.60</text>
+<line x1="1020" y1="434" x2="1384" y2="434" stroke="#DDE2D8" stroke-width="1"/>
+<text x="1020" y="462" font-family="Noto Sans Thai" font-size="14" font-weight="700" fill="#0B1020">Total</text>
+<text x="1384" y="462" font-family="Noto Sans Thai" font-size="16" font-weight="700" fill="#0B1020" text-anchor="end">5.00 tUSD</text>
+<rect id="checks-card" x="996" y="532" width="412" height="408" rx="12" fill="#FFFFFF" stroke="#DDE2D8" stroke-width="1"/>
+<text x="1020" y="570" font-family="Noto Sans Thai" font-size="16" font-weight="700" fill="#0B1020">What the server checked before PAID</text>
+<circle cx="1032" cy="602" r="11" fill="#E3F6EE"/>
+<path d="M1026.5 602 L1030.62 605.85 L1037.5 598.7" fill="none" stroke="#00704F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="1054" y="606" font-family="Noto Sans Thai" font-size="13" font-weight="400" fill="#0B1020">Transaction reached FINAL, not just sent</text>
+<circle cx="1032" cy="636" r="11" fill="#E3F6EE"/>
+<path d="M1026.5 636 L1030.62 639.85 L1037.5 632.7" fill="none" stroke="#00704F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="1054" y="640" font-family="Noto Sans Thai" font-size="13" font-weight="400" fill="#0B1020">Token contract is the allowed tUSD</text>
+<circle cx="1032" cy="670" r="11" fill="#E3F6EE"/>
+<path d="M1026.5 670 L1030.62 673.85 L1037.5 666.7" fill="none" stroke="#00704F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="1054" y="674" font-family="Noto Sans Thai" font-size="13" font-weight="400" fill="#0B1020">Receiver is the bills contract</text>
+<circle cx="1032" cy="704" r="11" fill="#E3F6EE"/>
+<path d="M1026.5 704 L1030.62 707.85 L1037.5 700.7" fill="none" stroke="#00704F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="1054" y="708" font-family="Noto Sans Thai" font-size="13" font-weight="400" fill="#0B1020">Amount equals the frozen quote</text>
+<circle cx="1032" cy="738" r="11" fill="#E3F6EE"/>
+<path d="M1026.5 738 L1030.62 741.85 L1037.5 734.7" fill="none" stroke="#00704F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="1054" y="742" font-family="Noto Sans Thai" font-size="13" font-weight="400" fill="#0B1020">Bill id belongs to this order</text>
+<circle cx="1032" cy="772" r="11" fill="#E3F6EE"/>
+<path d="M1026.5 772 L1030.62 775.85 L1037.5 768.7" fill="none" stroke="#00704F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="1054" y="776" font-family="Noto Sans Thai" font-size="13" font-weight="400" fill="#0B1020">Contract view says Settled</text>
+<circle cx="1032" cy="806" r="11" fill="#E3F6EE"/>
+<path d="M1026.5 806 L1030.62 809.85 L1037.5 802.7" fill="none" stroke="#00704F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="1054" y="810" font-family="Noto Sans Thai" font-size="13" font-weight="400" fill="#0B1020">This transaction was not used before</text>
+<rect x="1020" y="848" width="364" height="64" rx="12" fill="#F6F7F2"/>
+<text x="1040" y="874" font-family="Noto Sans Thai" font-size="13" font-weight="600" fill="#0B1020">A wallet saying "sent" is not proof.</text>
+<text x="1040" y="894" font-family="Noto Sans Thai" font-size="13" font-weight="400" fill="#5E6B7A">Only the chain's final receipt is.</text>
+</svg>

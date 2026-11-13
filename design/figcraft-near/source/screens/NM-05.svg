@@ -1,0 +1,153 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="1000" viewBox="0 0 1440 1000">
+<title>NM-05</title>
+<rect id="background" x="0" y="0" width="1440" height="1000" fill="#F6F7F2"/>
+<g id="sidebar">
+<rect x="0" y="0" width="248" height="1000" fill="#0B1020"/>
+<g id="bitpos-mark">
+<rect x="24" y="24" width="36" height="36" rx="10.08" fill="#00B37E"/>
+<text x="42" y="49.92" font-family="Noto Sans Thai" font-size="22.32" font-weight="700" fill="#0B1020" text-anchor="middle">B</text>
+</g>
+<text x="72" y="40" font-family="Noto Sans Thai" font-size="16" font-weight="700" fill="#FFFFFF">BitPOS</text>
+<text x="72" y="58" font-family="Noto Sans Thai" font-size="12" font-weight="400" fill="#A9B3C6">Living Bill</text>
+<text x="24" y="112" font-family="Noto Sans Thai" font-size="11" font-weight="700" fill="#A9B3C6">ORBIT CAFÉ</text>
+<circle cx="36" cy="148" r="3.5" fill="#3A4563"/>
+<text x="54" y="153" font-family="Noto Sans Thai" font-size="14" font-weight="400" fill="#A9B3C6">Overview</text>
+<circle cx="36" cy="192" r="3.5" fill="#3A4563"/>
+<text x="54" y="197" font-family="Noto Sans Thai" font-size="14" font-weight="400" fill="#A9B3C6">Split recipe</text>
+<circle cx="36" cy="236" r="3.5" fill="#3A4563"/>
+<text x="54" y="241" font-family="Noto Sans Thai" font-size="14" font-weight="400" fill="#A9B3C6">Team &amp; shifts</text>
+<rect x="12" y="260" width="224" height="40" rx="10" fill="#232C45"/>
+<rect x="12" y="270" width="4" height="20" rx="2" fill="#00B37E"/>
+<circle cx="36" cy="280" r="3.5" fill="#00B37E"/>
+<text x="54" y="285" font-family="Noto Sans Thai" font-size="14" font-weight="600" fill="#FFFFFF">Suppliers</text>
+<circle cx="36" cy="324" r="3.5" fill="#3A4563"/>
+<text x="54" y="329" font-family="Noto Sans Thai" font-size="14" font-weight="400" fill="#A9B3C6">Ledger</text>
+<circle cx="36" cy="368" r="3.5" fill="#3A4563"/>
+<text x="54" y="373" font-family="Noto Sans Thai" font-size="14" font-weight="400" fill="#A9B3C6">Devices &amp; witness</text>
+<path d="M36 405 Q37.05 410.95 43 412 Q37.05 413.05 36 419 Q34.95 413.05 29 412 Q34.95 410.95 36 405 Z" fill="#6B4EFF"/>
+<text x="54" y="417" font-family="Noto Sans Thai" font-size="14" font-weight="400" fill="#A9B3C6">Café CFO</text>
+<circle cx="36" cy="456" r="3.5" fill="#3A4563"/>
+<text x="54" y="461" font-family="Noto Sans Thai" font-size="14" font-weight="400" fill="#A9B3C6">Setup</text>
+<rect x="16" y="880" width="216" height="96" rx="12" fill="#151C30" stroke="#232C45" stroke-width="1"/>
+<text x="32" y="906" font-family="Noto Sans Thai" font-size="12" font-weight="600" fill="#FFFFFF">Signed in as Owner</text>
+<text x="32" y="926" font-family="Noto Sans Thai" font-size="11" font-weight="400" fill="#A9B3C6">Keys the server holds can</text>
+<text x="32" y="942" font-family="Noto Sans Thai" font-size="11" font-weight="400" fill="#A9B3C6">open or void a bill — never</text>
+<text x="32" y="958" font-family="Noto Sans Thai" font-size="11" font-weight="400" fill="#A9B3C6">move the shop's money.</text>
+</g>
+<rect id="hotspot__NM-01" x="12" y="128" width="224" height="40" fill="#000000" fill-opacity="0"/>
+<rect id="hotspot__NM-02" x="12" y="172" width="224" height="40" fill="#000000" fill-opacity="0"/>
+<rect id="hotspot__NM-03" x="12" y="216" width="224" height="40" fill="#000000" fill-opacity="0"/>
+<rect id="hotspot__NM-04" x="12" y="260" width="224" height="40" fill="#000000" fill-opacity="0"/>
+<rect id="hotspot__NM-06" x="12" y="304" width="224" height="40" fill="#000000" fill-opacity="0"/>
+<rect id="hotspot__NM-08" x="12" y="348" width="224" height="40" fill="#000000" fill-opacity="0"/>
+<rect id="hotspot__NM-09" x="12" y="392" width="224" height="40" fill="#000000" fill-opacity="0"/>
+<rect id="hotspot__NM-11" x="12" y="436" width="224" height="40" fill="#000000" fill-opacity="0"/>
+<g id="topbar">
+<text id="page-title" x="280" y="58" font-family="Noto Sans Thai" font-size="28" font-weight="700" fill="#0B1020">Invoice INV-0042</text>
+<text id="page-subtitle" x="280" y="84" font-family="Noto Sans Thai" font-size="14" font-weight="400" fill="#5E6B7A">Milk Farm Co-op · milkfarm.bitpos-near.testnet</text>
+<g id="testnet-marker">
+<rect x="1300.52" y="30" width="107.48" height="24" rx="12" fill="#FFFFFF" stroke="#0B1020" stroke-width="1"/>
+<circle cx="1314.52" cy="42" r="4" fill="#F2A93B"/>
+<text x="1324.52" y="45.96" font-family="Noto Sans Thai" font-size="11" font-weight="700" fill="#0B1020">NEAR testnet</text>
+</g>
+<g id="account-chip">
+<rect x="1138.43" y="30" width="154.09" height="24" rx="12" fill="#EEF0EA"/>
+<text x="1148.43" y="45.96" font-family="Noto Sans Thai" font-size="11" font-weight="600" fill="#5E6B7A">orbit.bitpos-near.testnet</text>
+</g>
+</g>
+<text id="footer" x="1416" y="988" font-family="Noto Sans Thai" font-size="11" font-weight="400" fill="#5E6B7A" text-anchor="end">FigCraft concept · sample data · NEAR testnet</text>
+<text x="280" y="124" font-family="Noto Sans Thai" font-size="13" font-weight="600" fill="#00704F">← Back to suppliers</text>
+<rect id="hotspot__NM-04__2" x="276" y="106" width="133.45" height="28" fill="#000000" fill-opacity="0"/>
+<rect id="summary-card" x="280" y="144" width="420" height="796" rx="12" fill="#FFFFFF" stroke="#DDE2D8" stroke-width="1"/>
+<g id="state-chip">
+<rect x="304" y="168" width="83.04" height="26" rx="13" fill="#FDF1DA"/>
+<text x="316" y="185.32" font-family="Noto Sans Thai" font-size="12" font-weight="600" fill="#7A4E00">Collecting</text>
+</g>
+<text x="304" y="240" font-family="Noto Sans Thai" font-size="44" font-weight="700" fill="#0B1020">81.60</text>
+<text x="430" y="240" font-family="Noto Sans Thai" font-size="15" font-weight="600" fill="#5E6B7A">of 120.00 tUSD</text>
+<rect x="304" y="264" width="372" height="14" rx="7" fill="#EEF0EA"/>
+<rect x="304" y="264" width="252.96" height="14" rx="7" fill="#5E6B7A"/>
+<text x="304" y="304" font-family="Noto Sans Thai" font-size="13" font-weight="600" fill="#0B1020">68% funded</text>
+<text x="676" y="304" font-family="Noto Sans Thai" font-size="13" font-weight="600" fill="#5E6B7A" text-anchor="end">38.40 to go</text>
+<text x="304" y="350" font-family="Noto Sans Thai" font-size="12" font-weight="600" fill="#5E6B7A">Supplier</text>
+<text x="304" y="370" font-family="Noto Sans Thai" font-size="14" font-weight="600" fill="#0B1020">Milk Farm Co-op</text>
+<line x1="304" y1="386" x2="676" y2="386" stroke="#DDE2D8" stroke-width="1"/>
+<text x="304" y="408" font-family="Noto Sans Thai" font-size="12" font-weight="600" fill="#5E6B7A">Paid to</text>
+<text x="304" y="428" font-family="Noto Sans Thai" font-size="14" font-weight="600" fill="#0B1020">milkfarm.bitpos-near.testnet</text>
+<line x1="304" y1="444" x2="676" y2="444" stroke="#DDE2D8" stroke-width="1"/>
+<text x="304" y="466" font-family="Noto Sans Thai" font-size="12" font-weight="600" fill="#5E6B7A">Due</text>
+<text x="304" y="486" font-family="Noto Sans Thai" font-size="14" font-weight="600" fill="#0B1020">20 Nov 2026</text>
+<line x1="304" y1="502" x2="676" y2="502" stroke="#DDE2D8" stroke-width="1"/>
+<text x="304" y="524" font-family="Noto Sans Thai" font-size="12" font-weight="600" fill="#5E6B7A">Rate</text>
+<text x="304" y="544" font-family="Noto Sans Thai" font-size="14" font-weight="600" fill="#0B1020">12% of each paid bill</text>
+<line x1="304" y1="560" x2="676" y2="560" stroke="#DDE2D8" stroke-width="1"/>
+<text x="304" y="582" font-family="Noto Sans Thai" font-size="12" font-weight="600" fill="#5E6B7A">Started</text>
+<text x="304" y="602" font-family="Noto Sans Thai" font-size="14" font-weight="600" fill="#0B1020">11 Nov 2026 · 136 bills so far</text>
+<line x1="304" y1="618" x2="676" y2="618" stroke="#DDE2D8" stroke-width="1"/>
+<text x="304" y="640" font-family="Noto Sans Thai" font-size="12" font-weight="600" fill="#5E6B7A">Stops</text>
+<text x="304" y="660" font-family="Noto Sans Thai" font-size="14" font-weight="600" fill="#0B1020">By itself at 120.00</text>
+<line x1="304" y1="676" x2="676" y2="676" stroke="#DDE2D8" stroke-width="1"/>
+<rect x="304" y="704" width="372" height="92" rx="12" fill="#F6F7F2"/>
+<text x="324" y="734" font-family="Noto Sans Thai" font-size="13" font-weight="600" fill="#0B1020">At today's pace</text>
+<text x="324" y="756" font-family="Noto Sans Thai" font-size="13" font-weight="400" fill="#5E6B7A">Funded on 17 Nov, three days before</text>
+<text x="324" y="774" font-family="Noto Sans Thai" font-size="13" font-weight="400" fill="#5E6B7A">the due date.</text>
+<rect id="payouts-card" x="716" y="144" width="692" height="796" rx="12" fill="#FFFFFF" stroke="#DDE2D8" stroke-width="1"/>
+<text x="740" y="182" font-family="Noto Sans Thai" font-size="18" font-weight="700" fill="#0B1020">Shares that came from bills</text>
+<text x="740" y="206" font-family="Noto Sans Thai" font-size="13" font-weight="400" fill="#5E6B7A">Each line is one transfer inside a bill's own settlement receipt.</text>
+<g id="table">
+<rect x="740" y="228" width="644" height="36" rx="8" fill="#EEF0EA"/>
+<text x="754" y="250" font-family="Noto Sans Thai" font-size="12" font-weight="600" fill="#5E6B7A">Bill</text>
+<text x="902.16" y="250" font-family="Noto Sans Thai" font-size="12" font-weight="600" fill="#5E6B7A">Time</text>
+<text x="1111.21" y="250" font-family="Noto Sans Thai" font-size="12" font-weight="600" fill="#5E6B7A" text-anchor="end">To supplier</text>
+<text x="1139.21" y="250" font-family="Noto Sans Thai" font-size="12" font-weight="600" fill="#5E6B7A">Settlement transaction</text>
+<text x="754" y="296.68" font-family="Noto Sans Thai" font-size="13" font-weight="600" fill="#0B1020">B-7K2M9Q</text>
+<text x="902.16" y="296.68" font-family="Noto Sans Thai" font-size="13" font-weight="400" fill="#0B1020">10:42</text>
+<text x="1111.21" y="296.68" font-family="Noto Sans Thai" font-size="13" font-weight="700" fill="#0B1020" text-anchor="end">+0.60</text>
+<text x="1139.21" y="296.68" font-family="Noto Sans Thai" font-size="13" font-weight="600" fill="#00704F">9xQe…SAMPLE ↗</text>
+<line x1="740" y1="320" x2="1384" y2="320" stroke="#DDE2D8" stroke-width="1"/>
+<text x="754" y="352.68" font-family="Noto Sans Thai" font-size="13" font-weight="600" fill="#0B1020">B-7K2M8P</text>
+<text x="902.16" y="352.68" font-family="Noto Sans Thai" font-size="13" font-weight="400" fill="#0B1020">10:37</text>
+<text x="1111.21" y="352.68" font-family="Noto Sans Thai" font-size="13" font-weight="700" fill="#0B1020" text-anchor="end">+0.90</text>
+<text x="1139.21" y="352.68" font-family="Noto Sans Thai" font-size="13" font-weight="600" fill="#00704F">9xQe…SAMPLE ↗</text>
+<line x1="740" y1="376" x2="1384" y2="376" stroke="#DDE2D8" stroke-width="1"/>
+<text x="754" y="408.68" font-family="Noto Sans Thai" font-size="13" font-weight="600" fill="#0B1020">B-7K2M7N</text>
+<text x="902.16" y="408.68" font-family="Noto Sans Thai" font-size="13" font-weight="400" fill="#0B1020">10:31</text>
+<text x="1111.21" y="408.68" font-family="Noto Sans Thai" font-size="13" font-weight="700" fill="#0B1020" text-anchor="end">+0.60</text>
+<text x="1139.21" y="408.68" font-family="Noto Sans Thai" font-size="13" font-weight="600" fill="#00704F">9xQe…SAMPLE ↗</text>
+<line x1="740" y1="432" x2="1384" y2="432" stroke="#DDE2D8" stroke-width="1"/>
+<text x="754" y="464.68" font-family="Noto Sans Thai" font-size="13" font-weight="600" fill="#0B1020">B-7K2M6M</text>
+<text x="902.16" y="464.68" font-family="Noto Sans Thai" font-size="13" font-weight="400" fill="#0B1020">10:24</text>
+<text x="1111.21" y="464.68" font-family="Noto Sans Thai" font-size="13" font-weight="700" fill="#0B1020" text-anchor="end">+0.42</text>
+<text x="1139.21" y="464.68" font-family="Noto Sans Thai" font-size="13" font-weight="600" fill="#00704F">9xQe…SAMPLE ↗</text>
+<line x1="740" y1="488" x2="1384" y2="488" stroke="#DDE2D8" stroke-width="1"/>
+<text x="754" y="520.68" font-family="Noto Sans Thai" font-size="13" font-weight="600" fill="#0B1020">B-7K2M4J</text>
+<text x="902.16" y="520.68" font-family="Noto Sans Thai" font-size="13" font-weight="400" fill="#0B1020">10:02</text>
+<text x="1111.21" y="520.68" font-family="Noto Sans Thai" font-size="13" font-weight="700" fill="#0B1020" text-anchor="end">+0.60</text>
+<text x="1139.21" y="520.68" font-family="Noto Sans Thai" font-size="13" font-weight="600" fill="#00704F">9xQe…SAMPLE ↗</text>
+<line x1="740" y1="544" x2="1384" y2="544" stroke="#DDE2D8" stroke-width="1"/>
+<text x="754" y="576.68" font-family="Noto Sans Thai" font-size="13" font-weight="600" fill="#0B1020">B-7K2M3H</text>
+<text x="902.16" y="576.68" font-family="Noto Sans Thai" font-size="13" font-weight="400" fill="#0B1020">09:55</text>
+<text x="1111.21" y="576.68" font-family="Noto Sans Thai" font-size="13" font-weight="700" fill="#0B1020" text-anchor="end">+1.20</text>
+<text x="1139.21" y="576.68" font-family="Noto Sans Thai" font-size="13" font-weight="600" fill="#00704F">9xQe…SAMPLE ↗</text>
+<line x1="740" y1="600" x2="1384" y2="600" stroke="#DDE2D8" stroke-width="1"/>
+<text x="754" y="632.68" font-family="Noto Sans Thai" font-size="13" font-weight="600" fill="#0B1020">B-7K2M2G</text>
+<text x="902.16" y="632.68" font-family="Noto Sans Thai" font-size="13" font-weight="400" fill="#0B1020">09:48</text>
+<text x="1111.21" y="632.68" font-family="Noto Sans Thai" font-size="13" font-weight="700" fill="#0B1020" text-anchor="end">+0.60</text>
+<text x="1139.21" y="632.68" font-family="Noto Sans Thai" font-size="13" font-weight="600" fill="#00704F">9xQe…SAMPLE ↗</text>
+<line x1="740" y1="656" x2="1384" y2="656" stroke="#DDE2D8" stroke-width="1"/>
+<text x="754" y="688.68" font-family="Noto Sans Thai" font-size="13" font-weight="600" fill="#0B1020">B-7K2M1F</text>
+<text x="902.16" y="688.68" font-family="Noto Sans Thai" font-size="13" font-weight="400" fill="#0B1020">09:40</text>
+<text x="1111.21" y="688.68" font-family="Noto Sans Thai" font-size="13" font-weight="700" fill="#0B1020" text-anchor="end">+0.54</text>
+<text x="1139.21" y="688.68" font-family="Noto Sans Thai" font-size="13" font-weight="600" fill="#00704F">9xQe…SAMPLE ↗</text>
+<line x1="740" y1="712" x2="1384" y2="712" stroke="#DDE2D8" stroke-width="1"/>
+<text x="754" y="744.68" font-family="Noto Sans Thai" font-size="13" font-weight="600" fill="#0B1020">B-7K2M0E</text>
+<text x="902.16" y="744.68" font-family="Noto Sans Thai" font-size="13" font-weight="400" fill="#0B1020">09:31</text>
+<text x="1111.21" y="744.68" font-family="Noto Sans Thai" font-size="13" font-weight="700" fill="#0B1020" text-anchor="end">+0.60</text>
+<text x="1139.21" y="744.68" font-family="Noto Sans Thai" font-size="13" font-weight="600" fill="#00704F">9xQe…SAMPLE ↗</text>
+<line x1="740" y1="768" x2="1384" y2="768" stroke="#DDE2D8" stroke-width="1"/>
+</g>
+<rect id="hotspot__NM-07" x="740" y="264" width="644" height="56" fill="#000000" fill-opacity="0"/>
+<text x="740" y="804" font-family="Noto Sans Thai" font-size="12" font-weight="400" fill="#5E6B7A">Showing 9 of 136 · sample data</text>
+<text x="1384" y="804" font-family="Noto Sans Thai" font-size="13" font-weight="600" fill="#00704F" text-anchor="end">Evidence for B-7K2M9Q →</text>
+<rect id="hotspot__NM-07__2" x="1215.29" y="787" width="172.71" height="25" fill="#000000" fill-opacity="0"/>
+</svg>

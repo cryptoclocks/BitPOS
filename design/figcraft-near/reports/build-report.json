@@ -1,0 +1,114 @@
+{
+ "document": "BitPOS-NEAR-UI.figcraft",
+ "figcraft_cli": "figcraft-cli 0.6.0",
+ "warnings": [],
+ "frames": 35,
+ "pages": 5,
+ "nodes": 3009,
+ "frames_per_page": {
+  "00 · Flow": 1,
+  "10 · Merchant": 11,
+  "20 · Customer": 12,
+  "30 · Staff": 2,
+  "40 · BitPOS Mini": 9
+ },
+ "hotspots_wired": 189,
+ "links": 170,
+ "flows": 5,
+ "import_steps": 36,
+ "checks": {
+  "frames_match_plan": {
+   "pass": true,
+   "rule": "Every frame of PLAN_TH §8 (plus the 6 Thai variants) exists once, on its page, at its size.",
+   "failures": []
+  },
+  "no_dangling_links": {
+   "pass": true,
+   "rule": "Every prototype link and every flow start points at an existing top-level frame.",
+   "failures": []
+  },
+  "all_hotspots_wired": {
+   "pass": true,
+   "rule": "No SVG hotspot layer is left without a destination.",
+   "failures": []
+  },
+  "reachable_from_N00": {
+   "pass": true,
+   "rule": "Every frame can be reached from N00-flow-map by clicking prototype links.",
+   "failures": []
+  },
+  "no_dead_ends": {
+   "pass": true,
+   "rule": "Every frame has at least one outgoing link.",
+   "failures": []
+  },
+  "route_table_edges": {
+   "pass": true,
+   "rule": "Each \"entry → frame\" and \"frame → destination\" pair of the route table exists as a link.",
+   "failures": []
+  },
+  "no_conflicting_hotspots": {
+   "pass": true,
+   "rule": "No two click targets with different destinations overlap at all.",
+   "failures": []
+  },
+  "hotspots_inside_frame": {
+   "pass": true,
+   "rule": "Every click target lies inside its frame.",
+   "failures": []
+  },
+  "text_inside_frame": {
+   "pass": true,
+   "rule": "No text box crosses the edge of its frame.",
+   "failures": []
+  },
+  "children_inside_parent": {
+   "pass": true,
+   "rule": "Every layer lies inside its frame and inside the group that holds it.",
+   "failures": []
+  },
+  "markers_present": {
+   "pass": true,
+   "rule": "Every frame carries the \"NEAR testnet\" marker chip; NC-04 says \"concept\"; cross-chain previews say \"Mainnet preview · not executed\".",
+   "failures": []
+  },
+  "language_separation": {
+   "pass": true,
+   "rule": "English frames contain no Thai except the \"ไทย\" switch; -th frames are in Thai.",
+   "failures": []
+  },
+  "no_embedded_images": {
+   "pass": true,
+   "rule": "The document embeds no bitmap: every mark is our own vector or text.",
+   "failures": []
+  }
+ },
+ "checks_summary": {
+  "frames_match_plan": "pass",
+  "no_dangling_links": "pass",
+  "all_hotspots_wired": "pass",
+  "reachable_from_N00": "pass",
+  "no_dead_ends": "pass",
+  "route_table_edges": "pass",
+  "no_conflicting_hotspots": "pass",
+  "hotspots_inside_frame": "pass",
+  "text_inside_frame": "pass",
+  "children_inside_parent": "pass",
+  "markers_present": "pass",
+  "language_separation": "pass",
+  "no_embedded_images": "pass"
+ },
+ "all_checks_pass": true,
+ "sha256": "a9b59ceb272defb49d9491642d1f1b06f75ecf7c93c7970607075ad15cfa89ce",
+ "cli_can_open_output": true,
+ "checks_on_written_file_pass": true,
+ "previews": 35,
+ "previews_missing": [],
+ "contact_sheets": [
+  "reports/contact-00-Flow.png",
+  "reports/contact-10-Merchant.png",
+  "reports/contact-20-Customer.png",
+  "reports/contact-30-Staff.png",
+  "reports/contact-40-BitPOS-Mini.png"
+ ]
+}

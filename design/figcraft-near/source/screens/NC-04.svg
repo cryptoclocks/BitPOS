@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="390" height="844" viewBox="0 0 390 844">
+<title>NC-04</title>
+<rect id="background" x="0" y="0" width="390" height="844" fill="#F6F7F2"/>
+<g id="status-bar">
+<text x="24" y="30" font-family="Noto Sans Thai" font-size="14" font-weight="600" fill="#0B1020">9:41</text>
+<rect x="340" y="19" width="24" height="12" rx="3" fill="none" stroke="#0B1020" stroke-width="1.2"/>
+<rect x="342" y="21" width="16" height="8" rx="1.5" fill="#0B1020"/>
+</g>
+<g id="header">
+<path id="back-chevron" d="M30 70 L22 78 L30 86" fill="none" stroke="#0B1020" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+<g id="bitpos-mark">
+<rect x="44" y="62" width="32" height="32" rx="8.96" fill="#0B1020"/>
+<text x="60" y="85.04" font-family="Noto Sans Thai" font-size="19.84" font-weight="700" fill="#FFFFFF" text-anchor="middle">B</text>
+</g>
+<text x="86" y="76" font-family="Noto Sans Thai" font-size="13" font-weight="600" fill="#0B1020">Orbit Café · Table 4</text>
+<text x="86" y="92" font-family="Noto Sans Thai" font-size="11" font-weight="400" fill="#5E6B7A">BitPOS Living Bill</text>
+<g id="testnet-marker">
+<rect x="266.52" y="66" width="107.48" height="24" rx="12" fill="#FFFFFF" stroke="#0B1020" stroke-width="1"/>
+<circle cx="280.52" cy="78" r="4" fill="#F2A93B"/>
+<text x="290.52" y="81.96" font-family="Noto Sans Thai" font-size="11" font-weight="700" fill="#0B1020">NEAR testnet</text>
+</g>
+</g>
+<rect id="hotspot__NC-03" x="12" y="58" width="28" height="40" fill="#000000" fill-opacity="0"/>
+<text id="screen-title" x="16" y="140" font-family="Noto Sans Thai" font-size="22" font-weight="700" fill="#0B1020">Approve in your wallet</text>
+<text id="footer" x="195" y="832" font-family="Noto Sans Thai" font-size="11" font-weight="400" fill="#5E6B7A" text-anchor="middle">FigCraft concept · sample data · NEAR testnet</text>
+<g id="concept-chip">
+<rect x="302.96" y="118" width="71.04" height="28" rx="14" fill="#FDF1DA"/>
+<text x="314.96" y="136.32" font-family="Noto Sans Thai" font-size="12" font-weight="600" fill="#7A4E00">concept</text>
+</g>
+<rect id="wallet-sheet" x="16" y="164" width="358" height="440" rx="20" fill="#FFFFFF" stroke="#5E6B7A" stroke-width="2" stroke-dasharray="8 6"/>
+<text x="195" y="196" font-family="Noto Sans Thai" font-size="12" font-weight="700" fill="#5E6B7A" text-anchor="middle">Wallet window · concept</text>
+<text x="195" y="214" font-family="Noto Sans Thai" font-size="11" font-weight="400" fill="#5E6B7A" text-anchor="middle">Not a real wallet's screen. Drawn as a placeholder.</text>
+<line x1="32" y1="230" x2="358" y2="230" stroke="#DDE2D8" stroke-width="1"/>
+<text x="195" y="280" font-family="Noto Sans Thai" font-size="34" font-weight="700" fill="#0B1020" text-anchor="middle">5.00 tUSD</text>
+<text x="195" y="304" font-family="Noto Sans Thai" font-size="12" font-weight="400" fill="#5E6B7A" text-anchor="middle">exactly · nothing more is taken</text>
+<text x="40" y="348" font-family="Noto Sans Thai" font-size="12" font-weight="600" fill="#5E6B7A">To</text>
+<text x="350" y="348" font-family="Noto Sans Thai" font-size="13" font-weight="600" fill="#0B1020" text-anchor="end">bills.bitpos-near.testnet</text>
+<line x1="40" y1="362" x2="350" y2="362" stroke="#DDE2D8" stroke-width="1"/>
+<text x="40" y="388" font-family="Noto Sans Thai" font-size="12" font-weight="600" fill="#5E6B7A">For</text>
+<text x="350" y="388" font-family="Noto Sans Thai" font-size="13" font-weight="600" fill="#0B1020" text-anchor="end">Bill B-7K2M9Q · Orbit Café</text>
+<line x1="40" y1="402" x2="350" y2="402" stroke="#DDE2D8" stroke-width="1"/>
+<text x="40" y="428" font-family="Noto Sans Thai" font-size="12" font-weight="600" fill="#5E6B7A">Network fee</text>
+<text x="350" y="428" font-family="Noto Sans Thai" font-size="13" font-weight="600" fill="#0B1020" text-anchor="end">Paid by Orbit Café</text>
+<line x1="40" y1="442" x2="350" y2="442" stroke="#DDE2D8" stroke-width="1"/>
+<text x="40" y="468" font-family="Noto Sans Thai" font-size="12" font-weight="600" fill="#5E6B7A">You need</text>
+<text x="350" y="468" font-family="Noto Sans Thai" font-size="13" font-weight="600" fill="#0B1020" text-anchor="end">No NEAR</text>
+<line x1="40" y1="482" x2="350" y2="482" stroke="#DDE2D8" stroke-width="1"/>
+<g id="approve-button">
+<rect x="40" y="516" width="196" height="52" rx="26" fill="#00B37E"/>
+<text x="138" y="547.76" font-family="Noto Sans Thai" font-size="16" font-weight="600" fill="#0B1020" text-anchor="middle">Approve</text>
+</g>
+<rect id="hotspot__NC-05" x="40" y="516" width="196" height="52" fill="#000000" fill-opacity="0"/>
+<g id="reject-button">
+<rect x="248" y="516" width="102" height="52" rx="26" fill="#FFFFFF" stroke="#DDE2D8" stroke-width="1.5"/>
+<text x="299" y="547.4" font-family="Noto Sans Thai" font-size="15" font-weight="600" fill="#0B1020" text-anchor="middle">Reject</text>
+</g>
+<rect id="hotspot__NC-03__2" x="248" y="516" width="102" height="52" fill="#000000" fill-opacity="0"/>
+<rect x="16" y="620" width="358" height="64" rx="16" fill="#E3F6EE"/>
+<path d="M42 642 L50 646 V652 Q50 659 42 662 Q34 659 34 652 V646 Z" fill="none" stroke="#00704F" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M38.8 652 L41.5 654.8 L45.6 649.8" fill="none" stroke="#00704F" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="62" y="647" font-family="Noto Sans Thai" font-size="12" font-weight="600" fill="#00704F"><tspan x="62" dy="0">You only sign. The café's relayer sends it,</tspan><tspan x="62" dy="17">and it can only send this one payment.</tspan></text>
+<text x="195" y="736" font-family="Noto Sans Thai" font-size="13" font-weight="600" fill="#C8443C" text-anchor="middle">Demo: send a wrong amount →</text>
+<rect id="hotspot__NC-07" x="88.31" y="716" width="213.37" height="32" fill="#000000" fill-opacity="0"/>
+<text x="195" y="760" font-family="Noto Sans Thai" font-size="11" font-weight="400" fill="#5E6B7A" text-anchor="middle">Shows the payment bouncing back</text>
+</svg>

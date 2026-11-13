@@ -1,0 +1,872 @@
+{
+ "document": "BitPOS-NEAR-UI.figcraft",
+ "start": "N00-flow-map",
+ "pages": [
+  "00 · Flow",
+  "10 · Merchant",
+  "20 · Customer",
+  "30 · Staff",
+  "40 · BitPOS Mini"
+ ],
+ "screens": [
+  {
+   "id": "N00-flow-map",
+   "node": 2,
+   "page": "00 · Flow",
+   "title": "Flow map of every screen",
+   "size": "1600x1000",
+   "language": "en",
+   "entry": [],
+   "destinations": [
+    "NM-01",
+    "NM-02",
+    "NM-03",
+    "NM-04",
+    "NM-05",
+    "NM-06",
+    "NM-07",
+    "NM-08",
+    "NM-09",
+    "NM-10",
+    "NM-11",
+    "NC-01",
+    "NC-02",
+    "NC-03",
+    "NC-04",
+    "NC-05",
+    "NC-06",
+    "NC-07",
+    "NC-08",
+    "NS-01",
+    "NS-02",
+    "ND-01",
+    "ND-02",
+    "ND-03",
+    "ND-04",
+    "ND-05",
+    "ND-06",
+    "ND-07"
+   ],
+   "all_links": [
+    "NC-01",
+    "NC-02",
+    "NC-03",
+    "NC-04",
+    "NC-05",
+    "NC-06",
+    "NC-07",
+    "NC-08",
+    "ND-01",
+    "ND-02",
+    "ND-03",
+    "ND-04",
+    "ND-05",
+    "ND-06",
+    "ND-07",
+    "NM-01",
+    "NM-02",
+    "NM-03",
+    "NM-04",
+    "NM-05",
+    "NM-06",
+    "NM-07",
+    "NM-08",
+    "NM-09",
+    "NM-10",
+    "NM-11",
+    "NS-01",
+    "NS-02"
+   ],
+   "runtime_route": "design only",
+   "preview": "previews/N00-flow-map.png"
+  },
+  {
+   "id": "NM-01",
+   "node": 228,
+   "page": "10 · Merchant",
+   "title": "Overview: accounts, balances, today's money flow",
+   "size": "1440x1000",
+   "language": "en",
+   "entry": [
+    "N00-flow-map"
+   ],
+   "destinations": [
+    "NM-02",
+    "NM-03",
+    "NM-04",
+    "NM-05",
+    "NM-06",
+    "NM-07",
+    "NM-08",
+    "NM-09",
+    "NM-10",
+    "NM-11"
+   ],
+   "all_links": [
+    "NM-02",
+    "NM-03",
+    "NM-04",
+    "NM-05",
+    "NM-06",
+    "NM-07",
+    "NM-08",
+    "NM-09",
+    "NM-10",
+    "NM-11"
+   ],
+   "runtime_route": "POS web app (near-pos) → tab \"NEAR · Living Bill\" → Overview",
+   "preview": "previews/NM-01.png"
+  },
+  {
+   "id": "NM-02",
+   "node": 396,
+   "page": "10 · Merchant",
+   "title": "Split recipe",
+   "size": "1440x1000",
+   "language": "en",
+   "entry": [
+    "NM-01"
+   ],
+   "destinations": [
+    "NM-01",
+    "NM-09"
+   ],
+   "all_links": [
+    "NM-01",
+    "NM-03",
+    "NM-04",
+    "NM-06",
+    "NM-08",
+    "NM-09",
+    "NM-11"
+   ],
+   "runtime_route": "POS web app (near-pos) → tab \"NEAR · Living Bill\" → Split recipe",
+   "preview": "previews/NM-02.png"
+  },
+  {
+   "id": "NM-03",
+   "node": 537,
+   "page": "10 · Merchant",
+   "title": "Team & shifts (payroll by the cup)",
+   "size": "1440x1000",
+   "language": "en",
+   "entry": [
+    "NM-01"
+   ],
+   "destinations": [
+    "NS-01"
+   ],
+   "all_links": [
+    "NM-01",
+    "NM-02",
+    "NM-04",
+    "NM-06",
+    "NM-08",
+    "NM-09",
+    "NM-11",
+    "NS-01"
+   ],
+   "runtime_route": "POS web app (near-pos) → tab \"NEAR · Living Bill\" → Team & shifts",
+   "preview": "previews/NM-03.png"
+  },
+  {
+   "id": "NM-04",
+   "node": 697,
+   "page": "10 · Merchant",
+   "title": "Suppliers & invoices",
+   "size": "1440x1000",
+   "language": "en",
+   "entry": [
+    "NM-01"
+   ],
+   "destinations": [
+    "NM-05"
+   ],
+   "all_links": [
+    "NM-01",
+    "NM-02",
+    "NM-03",
+    "NM-05",
+    "NM-06",
+    "NM-08",
+    "NM-09",
+    "NM-11"
+   ],
+   "runtime_route": "POS web app (near-pos) → tab \"NEAR · Living Bill\" → Suppliers",
+   "preview": "previews/NM-04.png"
+  },
+  {
+   "id": "NM-05",
+   "node": 813,
+   "page": "10 · Merchant",
+   "title": "Invoice detail",
+   "size": "1440x1000",
+   "language": "en",
+   "entry": [
+    "NM-04"
+   ],
+   "destinations": [
+    "NM-04",
+    "NM-07"
+   ],
+   "all_links": [
+    "NM-01",
+    "NM-02",
+    "NM-03",
+    "NM-04",
+    "NM-06",
+    "NM-07",
+    "NM-08",
+    "NM-09",
+    "NM-11"
+   ],
+   "runtime_route": "POS web app (near-pos) → tab \"NEAR · Living Bill\" → Suppliers → invoice",
+   "preview": "previews/NM-05.png"
+  },
+  {
+   "id": "NM-06",
+   "node": 957,
+   "page": "10 · Merchant",
+   "title": "Ledger of bills + CSV",
+   "size": "1440x1000",
+   "language": "en",
+   "entry": [
+    "NM-01"
+   ],
+   "destinations": [
+    "NM-07"
+   ],
+   "all_links": [
+    "NM-01",
+    "NM-02",
+    "NM-03",
+    "NM-04",
+    "NM-07",
+    "NM-08",
+    "NM-09",
+    "NM-11"
+   ],
+   "runtime_route": "POS web app (near-pos) → tab \"NEAR · Living Bill\" → Ledger",
+   "preview": "previews/NM-06.png"
+  },
+  {
+   "id": "NM-07",
+   "node": 1148,
+   "page": "10 · Merchant",
+   "title": "Evidence timeline of one bill",
+   "size": "1440x1000",
+   "language": "en",
+   "entry": [
+    "NM-06"
+   ],
+   "destinations": [
+    "NM-06"
+   ],
+   "all_links": [
+    "NM-01",
+    "NM-02",
+    "NM-03",
+    "NM-04",
+    "NM-06",
+    "NM-08",
+    "NM-09",
+    "NM-11"
+   ],
+   "runtime_route": "POS web app (near-pos) → tab \"NEAR · Living Bill\" → Ledger → bill",
+   "preview": "previews/NM-07.png"
+  },
+  {
+   "id": "NM-08",
+   "node": 1298,
+   "page": "10 · Merchant",
+   "title": "Devices & witness",
+   "size": "1440x1000",
+   "language": "en",
+   "entry": [
+    "NM-01"
+   ],
+   "destinations": [
+    "ND-07"
+   ],
+   "all_links": [
+    "ND-01",
+    "ND-02",
+    "ND-03",
+    "ND-04",
+    "ND-05",
+    "ND-06",
+    "ND-07",
+    "NM-01",
+    "NM-02",
+    "NM-03",
+    "NM-04",
+    "NM-06",
+    "NM-09",
+    "NM-11"
+   ],
+   "runtime_route": "POS web app (near-pos) → tab \"NEAR · Living Bill\" → Devices & witness",
+   "preview": "previews/NM-08.png"
+  },
+  {
+   "id": "NM-09",
+   "node": 1486,
+   "page": "10 · Merchant",
+   "title": "Café CFO",
+   "size": "1440x1000",
+   "language": "en",
+   "entry": [
+    "NM-01"
+   ],
+   "destinations": [
+    "NM-10"
+   ],
+   "all_links": [
+    "NM-01",
+    "NM-02",
+    "NM-03",
+    "NM-04",
+    "NM-06",
+    "NM-08",
+    "NM-10",
+    "NM-11"
+   ],
+   "runtime_route": "POS web app (near-pos) → tab \"NEAR · Living Bill\" → Café CFO",
+   "preview": "previews/NM-09.png"
+  },
+  {
+   "id": "NM-10",
+   "node": 1635,
+   "page": "10 · Merchant",
+   "title": "Review a CFO proposal",
+   "size": "1440x1000",
+   "language": "en",
+   "entry": [
+    "NM-09"
+   ],
+   "destinations": [
+    "NM-02"
+   ],
+   "all_links": [
+    "NM-01",
+    "NM-02",
+    "NM-03",
+    "NM-04",
+    "NM-06",
+    "NM-08",
+    "NM-09",
+    "NM-11"
+   ],
+   "runtime_route": "POS web app (near-pos) → tab \"NEAR · Living Bill\" → Café CFO → proposal",
+   "preview": "previews/NM-10.png"
+  },
+  {
+   "id": "NM-11",
+   "node": 1777,
+   "page": "10 · Merchant",
+   "title": "First-time setup",
+   "size": "1440x1000",
+   "language": "en",
+   "entry": [
+    "NM-01"
+   ],
+   "destinations": [
+    "NM-01"
+   ],
+   "all_links": [
+    "NM-01",
+    "NM-02",
+    "NM-03",
+    "NM-04",
+    "NM-06",
+    "NM-08",
+    "NM-09"
+   ],
+   "runtime_route": "POS web app (near-pos) → tab \"NEAR · Living Bill\" → Setup",
+   "preview": "previews/NM-11.png"
+  },
+  {
+   "id": "NC-01",
+   "node": 1905,
+   "page": "20 · Customer",
+   "title": "Table menu",
+   "size": "390x844",
+   "language": "en",
+   "entry": [
+    "N00-flow-map"
+   ],
+   "destinations": [
+    "NC-02"
+   ],
+   "all_links": [
+    "NC-02"
+   ],
+   "runtime_route": "near-pay /table/<token>",
+   "preview": "previews/NC-01.png"
+  },
+  {
+   "id": "NC-02",
+   "node": 1984,
+   "page": "20 · Customer",
+   "title": "Bill + where your money goes",
+   "size": "390x844",
+   "language": "en",
+   "entry": [
+    "NC-01"
+   ],
+   "destinations": [
+    "NC-03",
+    "NC-02-th"
+   ],
+   "all_links": [
+    "NC-01",
+    "NC-02-th",
+    "NC-03"
+   ],
+   "runtime_route": "near-pay /pay/<token>",
+   "preview": "previews/NC-02.png"
+  },
+  {
+   "id": "NC-02-th",
+   "node": 2047,
+   "page": "20 · Customer",
+   "title": "Bill + where your money goes (Thai)",
+   "size": "390x844",
+   "language": "th",
+   "entry": [
+    "NC-02"
+   ],
+   "destinations": [
+    "NC-03",
+    "NC-02"
+   ],
+   "all_links": [
+    "NC-01",
+    "NC-02",
+    "NC-03"
+   ],
+   "runtime_route": "near-pay /pay/<token> · lang=th",
+   "preview": "previews/NC-02-th.png"
+  },
+  {
+   "id": "NC-03",
+   "node": 2110,
+   "page": "20 · Customer",
+   "title": "Choose how to pay",
+   "size": "390x844",
+   "language": "en",
+   "entry": [
+    "NC-02"
+   ],
+   "destinations": [
+    "NC-04",
+    "NC-08"
+   ],
+   "all_links": [
+    "NC-02",
+    "NC-04",
+    "NC-08"
+   ],
+   "runtime_route": "near-pay /pay/<token> (method step)",
+   "preview": "previews/NC-03.png"
+  },
+  {
+   "id": "NC-04",
+   "node": 2171,
+   "page": "20 · Customer",
+   "title": "Approve in the wallet (concept)",
+   "size": "390x844",
+   "language": "en",
+   "entry": [
+    "NC-03"
+   ],
+   "destinations": [
+    "NC-05",
+    "NC-07"
+   ],
+   "all_links": [
+    "NC-03",
+    "NC-05",
+    "NC-07"
+   ],
+   "runtime_route": "wallet window (not ours) / demo wallet button",
+   "preview": "previews/NC-04.png"
+  },
+  {
+   "id": "NC-05",
+   "node": 2227,
+   "page": "20 · Customer",
+   "title": "Waiting for the table screen to witness",
+   "size": "390x844",
+   "language": "en",
+   "entry": [
+    "NC-04"
+   ],
+   "destinations": [
+    "NC-06",
+    "NC-07",
+    "NC-05-th"
+   ],
+   "all_links": [
+    "NC-04",
+    "NC-05-th",
+    "NC-06",
+    "NC-07"
+   ],
+   "runtime_route": "near-pay /pay/<token> (state ESCROW)",
+   "preview": "previews/NC-05.png"
+  },
+  {
+   "id": "NC-05-th",
+   "node": 2275,
+   "page": "20 · Customer",
+   "title": "Waiting for the table screen to witness (Thai)",
+   "size": "390x844",
+   "language": "th",
+   "entry": [
+    "NC-05"
+   ],
+   "destinations": [
+    "NC-06-th",
+    "NC-07-th",
+    "NC-05"
+   ],
+   "all_links": [
+    "NC-04",
+    "NC-05",
+    "NC-06-th",
+    "NC-07-th"
+   ],
+   "runtime_route": "near-pay /pay/<token> (state ESCROW) · lang=th",
+   "preview": "previews/NC-05-th.png"
+  },
+  {
+   "id": "NC-06",
+   "node": 2323,
+   "page": "20 · Customer",
+   "title": "Paid + split receipt",
+   "size": "390x844",
+   "language": "en",
+   "entry": [
+    "NC-05"
+   ],
+   "destinations": [
+    "NC-01",
+    "NC-06-th"
+   ],
+   "all_links": [
+    "NC-01",
+    "NC-06-th"
+   ],
+   "runtime_route": "near-pay /pay/<token> (state SETTLED)",
+   "preview": "previews/NC-06.png"
+  },
+  {
+   "id": "NC-06-th",
+   "node": 2377,
+   "page": "20 · Customer",
+   "title": "Paid + split receipt (Thai)",
+   "size": "390x844",
+   "language": "th",
+   "entry": [
+    "NC-06"
+   ],
+   "destinations": [
+    "NC-01",
+    "NC-06"
+   ],
+   "all_links": [
+    "NC-01",
+    "NC-06"
+   ],
+   "runtime_route": "near-pay /pay/<token> (state SETTLED) · lang=th",
+   "preview": "previews/NC-06-th.png"
+  },
+  {
+   "id": "NC-07",
+   "node": 2431,
+   "page": "20 · Customer",
+   "title": "Money bounced back",
+   "size": "390x844",
+   "language": "en",
+   "entry": [
+    "NC-04",
+    "NC-05"
+   ],
+   "destinations": [
+    "NC-02",
+    "NC-07-th"
+   ],
+   "all_links": [
+    "NC-02",
+    "NC-07-th"
+   ],
+   "runtime_route": "near-pay /pay/<token> (state BOUNCED / REFUNDED)",
+   "preview": "previews/NC-07.png"
+  },
+  {
+   "id": "NC-07-th",
+   "node": 2478,
+   "page": "20 · Customer",
+   "title": "Money bounced back (Thai)",
+   "size": "390x844",
+   "language": "th",
+   "entry": [
+    "NC-07"
+   ],
+   "destinations": [
+    "NC-02-th",
+    "NC-07"
+   ],
+   "all_links": [
+    "NC-02-th",
+    "NC-07"
+   ],
+   "runtime_route": "near-pay /pay/<token> (state BOUNCED / REFUNDED) · lang=th",
+   "preview": "previews/NC-07-th.png"
+  },
+  {
+   "id": "NC-08",
+   "node": 2525,
+   "page": "20 · Customer",
+   "title": "Pay from another chain (preview)",
+   "size": "390x844",
+   "language": "en",
+   "entry": [
+    "NC-03"
+   ],
+   "destinations": [
+    "NC-03"
+   ],
+   "all_links": [
+    "NC-03"
+   ],
+   "runtime_route": "near-pay /pay/<token> (1Click dry quote panel)",
+   "preview": "previews/NC-08.png"
+  },
+  {
+   "id": "NS-01",
+   "node": 2576,
+   "page": "30 · Staff",
+   "title": "My earnings",
+   "size": "390x844",
+   "language": "en",
+   "entry": [
+    "NM-03"
+   ],
+   "destinations": [
+    "NS-02"
+   ],
+   "all_links": [
+    "NM-03",
+    "NS-02"
+   ],
+   "runtime_route": "near-pay /near/staff/<token>",
+   "preview": "previews/NS-01.png"
+  },
+  {
+   "id": "NS-02",
+   "node": 2644,
+   "page": "30 · Staff",
+   "title": "Send money home (preview)",
+   "size": "390x844",
+   "language": "en",
+   "entry": [
+    "NS-01"
+   ],
+   "destinations": [
+    "NS-01"
+   ],
+   "all_links": [
+    "NS-01"
+   ],
+   "runtime_route": "near-pay /near/staff/<token> (1Click dry quote panel)",
+   "preview": "previews/NS-02.png"
+  },
+  {
+   "id": "ND-01",
+   "node": 2693,
+   "page": "40 · BitPOS Mini",
+   "title": "Mini: idle",
+   "size": "480x320",
+   "language": "en",
+   "entry": [
+    "NM-08",
+    "ND-04"
+   ],
+   "destinations": [
+    "ND-02"
+   ],
+   "all_links": [
+    "ND-02"
+   ],
+   "runtime_route": "firmware screen=idle · /terminal/<token>",
+   "preview": "previews/ND-01.png"
+  },
+  {
+   "id": "ND-02",
+   "node": 2728,
+   "page": "40 · BitPOS Mini",
+   "title": "Mini: pay QR",
+   "size": "480x320",
+   "language": "en",
+   "entry": [
+    "NM-08",
+    "ND-01"
+   ],
+   "destinations": [
+    "ND-03",
+    "ND-02-th"
+   ],
+   "all_links": [
+    "ND-02-th",
+    "ND-03"
+   ],
+   "runtime_route": "firmware screen=qr · /terminal/<token>",
+   "preview": "previews/ND-02.png"
+  },
+  {
+   "id": "ND-02-th",
+   "node": 2767,
+   "page": "40 · BitPOS Mini",
+   "title": "Mini: pay QR (Thai)",
+   "size": "480x320",
+   "language": "th",
+   "entry": [
+    "ND-02"
+   ],
+   "destinations": [
+    "ND-03",
+    "ND-02"
+   ],
+   "all_links": [
+    "ND-02",
+    "ND-03"
+   ],
+   "runtime_route": "firmware screen=qr · /terminal/<token> · lang=th",
+   "preview": "previews/ND-02-th.png"
+  },
+  {
+   "id": "ND-03",
+   "node": 2806,
+   "page": "40 · BitPOS Mini",
+   "title": "Mini: checking the chain",
+   "size": "480x320",
+   "language": "en",
+   "entry": [
+    "NM-08",
+    "ND-02"
+   ],
+   "destinations": [
+    "ND-04",
+    "ND-05"
+   ],
+   "all_links": [
+    "ND-04",
+    "ND-05"
+   ],
+   "runtime_route": "firmware screen=checking · /terminal/<token>",
+   "preview": "previews/ND-03.png"
+  },
+  {
+   "id": "ND-04",
+   "node": 2829,
+   "page": "40 · BitPOS Mini",
+   "title": "Mini: paid + split",
+   "size": "480x320",
+   "language": "en",
+   "entry": [
+    "NM-08",
+    "ND-03"
+   ],
+   "destinations": [
+    "ND-01",
+    "ND-04-th"
+   ],
+   "all_links": [
+    "ND-01",
+    "ND-04-th"
+   ],
+   "runtime_route": "firmware screen=paid · /terminal/<token>",
+   "preview": "previews/ND-04.png"
+  },
+  {
+   "id": "ND-04-th",
+   "node": 2874,
+   "page": "40 · BitPOS Mini",
+   "title": "Mini: paid + split (Thai)",
+   "size": "480x320",
+   "language": "th",
+   "entry": [
+    "ND-04"
+   ],
+   "destinations": [
+    "ND-01",
+    "ND-04"
+   ],
+   "all_links": [
+    "ND-01",
+    "ND-04"
+   ],
+   "runtime_route": "firmware screen=paid · /terminal/<token> · lang=th",
+   "preview": "previews/ND-04-th.png"
+  },
+  {
+   "id": "ND-05",
+   "node": 2919,
+   "page": "40 · BitPOS Mini",
+   "title": "Mini: refunded",
+   "size": "480x320",
+   "language": "en",
+   "entry": [
+    "NM-08",
+    "ND-03"
+   ],
+   "destinations": [
+    "ND-01"
+   ],
+   "all_links": [
+    "ND-01"
+   ],
+   "runtime_route": "firmware screen=refunded · /terminal/<token>",
+   "preview": "previews/ND-05.png"
+  },
+  {
+   "id": "ND-06",
+   "node": 2944,
+   "page": "40 · BitPOS Mini",
+   "title": "Mini: offline",
+   "size": "480x320",
+   "language": "en",
+   "entry": [
+    "NM-08"
+   ],
+   "destinations": [
+    "ND-01"
+   ],
+   "all_links": [
+    "ND-01"
+   ],
+   "runtime_route": "firmware screen=offline · /terminal/<token>",
+   "preview": "previews/ND-06.png"
+  },
+  {
+   "id": "ND-07",
+   "node": 2968,
+   "page": "40 · BitPOS Mini",
+   "title": "Mini: setup (device key)",
+   "size": "480x320",
+   "language": "en",
+   "entry": [
+    "NM-08"
+   ],
+   "destinations": [
+    "ND-01"
+   ],
+   "all_links": [
+    "ND-01"
+   ],
+   "runtime_route": "firmware screen=setup",
+   "preview": "previews/ND-07.png"
+  }
+ ]
+}

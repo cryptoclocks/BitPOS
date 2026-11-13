@@ -1,0 +1,96 @@
+{
+ "final_execution_status": "FINAL",
+ "status": {
+  "SuccessValue": ""
+ },
+ "transaction": {
+  "hash": "AjUpBfaxTaKZZeQSAStsnyAzZY3sb5uqrLagNuZ8AA5h",
+  "signer_id": "relayer.bitpos-near.testnet",
+  "receiver_id": "alice.bitpos-near.testnet"
+ },
+ "transaction_outcome": {
+  "outcome": {
+   "status": {
+    "SuccessReceiptId": "4NMkdNWqUkCJLTH4aPt4oYuWv7behGNzzFQrfAysZ1AU"
+   }
+  }
+ },
+ "receipts_outcome": [
+  {
+   "outcome": {
+    "executor_id": "alice.bitpos-near.testnet",
+    "logs": [],
+    "status": {
+     "SuccessValue": ""
+    }
+   }
+  },
+  {
+   "outcome": {
+    "executor_id": "tusd.bitpos-near.testnet",
+    "logs": [
+     "EVENT_JSON:{\"standard\":\"nep141\",\"version\":\"1.0.0\",\"event\":\"ft_transfer\",\"data\":[{\"old_owner_id\":\"alice.bitpos-near.testnet\",\"new_owner_id\":\"bills.bitpos-near.testnet\",\"amount\":\"5000000\"}]}"
+    ],
+    "status": {
+     "SuccessReceiptId": "HLifAaz5VkyNYDSqtQyjzQGofSR3mBc6dR7yqJxV2pKv"
+    }
+   }
+  },
+  {
+   "outcome": {
+    "executor_id": "bills.bitpos-near.testnet",
+    "logs": [
+     "EVENT_JSON:{\"standard\":\"bitpos-near\",\"version\":\"1.0.0\",\"event\":\"bill_paid\",\"data\":[{\"merchant\":\"orbit.bitpos-near.testnet\",\"bill_id\":\"e2e-69e51dfb-c\",\"token\":\"tusd.bitpos-near.testnet\",\"payer\":\"alice.bitpos-near.testnet\",\"amount\":\"5000000\",\"escrow\":true}]}"
+    ],
+    "status": {
+     "SuccessValue": "IjAi"
+    }
+   }
+  },
+  {
+   "outcome": {
+    "executor_id": "relayer.bitpos-near.testnet",
+    "logs": [],
+    "status": {
+     "SuccessValue": ""
+    }
+   }
+  },
+  {
+   "outcome": {
+    "executor_id": "tusd.bitpos-near.testnet",
+    "logs": [],
+    "status": {
+     "SuccessValue": "IjUwMDAwMDAi"
+    }
+   }
+  },
+  {
+   "outcome": {
+    "executor_id": "relayer.bitpos-near.testnet",
+    "logs": [],
+    "status": {
+     "SuccessValue": ""
+    }
+   }
+  },
+  {
+   "outcome": {
+    "executor_id": "relayer.bitpos-near.testnet",
+    "logs": [],
+    "status": {
+     "SuccessValue": ""
+    }
+   }
+  },
+  {
+   "outcome": {
+    "executor_id": "relayer.bitpos-near.testnet",
+    "logs": [],
+    "status": {
+     "SuccessValue": ""
+    }
+   }
+  }
+ ]
+}

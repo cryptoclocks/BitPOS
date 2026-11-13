@@ -12,6 +12,7 @@
 #include "bitpos_media.h"
 #include "bitpos_audio.h"
 #include "bitpos_probe.h"
+#include "bitpos_near.h" /* NEAR HACKATHON work: product hook in app_main */
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/queue.h"
@@ -1031,6 +1032,11 @@ void app_main(void) {
     ESP_ERROR_CHECK(nvs_flash_init_partition("bitpos_nvs"));
     ESP_ERROR_CHECK(nvs_open_from_partition("bitpos_nvs","state",NVS_READWRITE,&state_nvs));
     ESP_ERROR_CHECK(ccp_board_init());ESP_ERROR_CHECK(display_engine_start());
+#if CONFIG_BITPOS_PRODUCT_NEAR
+    /* NEAR HACKATHON work: the NEAR product runs its own screens and witness key (bitpos_near.c). */
+    bitpos_near_main();
+    return;
+#endif
     bitpos_probe_init(); /* Optional read-only pixels; before any app consumers. */
     touches=xQueueCreate(12,sizeof(touch_t));configASSERT(touches);
     /* JSON payloads are task-only, not DMA/ISR data; preserve internal RAM for WiFi. */

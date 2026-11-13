@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="390" height="844" viewBox="0 0 390 844">
+<title>NC-07</title>
+<rect id="background" x="0" y="0" width="390" height="844" fill="#F6F7F2"/>
+<g id="status-bar">
+<text x="24" y="30" font-family="Noto Sans Thai" font-size="14" font-weight="600" fill="#0B1020">9:41</text>
+<rect x="340" y="19" width="24" height="12" rx="3" fill="none" stroke="#0B1020" stroke-width="1.2"/>
+<rect x="342" y="21" width="16" height="8" rx="1.5" fill="#0B1020"/>
+</g>
+<g id="header">
+<g id="bitpos-mark">
+<rect x="16" y="62" width="32" height="32" rx="8.96" fill="#0B1020"/>
+<text x="32" y="85.04" font-family="Noto Sans Thai" font-size="19.84" font-weight="700" fill="#FFFFFF" text-anchor="middle">B</text>
+</g>
+<text x="58" y="76" font-family="Noto Sans Thai" font-size="13" font-weight="600" fill="#0B1020">Orbit Café · Table 4</text>
+<text x="58" y="92" font-family="Noto Sans Thai" font-size="11" font-weight="400" fill="#5E6B7A">BitPOS Living Bill</text>
+<g id="testnet-marker">
+<rect x="266.52" y="66" width="107.48" height="24" rx="12" fill="#FFFFFF" stroke="#0B1020" stroke-width="1"/>
+<circle cx="280.52" cy="78" r="4" fill="#F2A93B"/>
+<text x="290.52" y="81.96" font-family="Noto Sans Thai" font-size="11" font-weight="700" fill="#0B1020">NEAR testnet</text>
+</g>
+</g>
+<text id="footer" x="195" y="832" font-family="Noto Sans Thai" font-size="11" font-weight="400" fill="#5E6B7A" text-anchor="middle">FigCraft concept · sample data · NEAR testnet</text>
+<g id="language-toggle">
+<rect x="330.8" y="118" width="43.2" height="28" rx="14" fill="#FFFFFF" stroke="#DDE2D8" stroke-width="1"/>
+<text x="342.8" y="136.32" font-family="Noto Sans Thai" font-size="12" font-weight="600" fill="#0B1020">ไทย</text>
+</g>
+<rect id="hotspot__NC-07-th" x="330.8" y="118" width="43.2" height="28" fill="#000000" fill-opacity="0"/>
+<circle cx="195" cy="196" r="40" fill="#C8443C"/>
+<path d="M177 212.2 H202.2 A12.6 12.6 0 0 0 202.2 187 H177" fill="none" stroke="#FFFFFF" stroke-width="6.4" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M186.9 176.2 L176.1 187 L186.9 197.8" fill="none" stroke="#FFFFFF" stroke-width="6.4" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="195" y="280" font-family="Noto Sans Thai" font-size="24" font-weight="700" fill="#0B1020" text-anchor="middle">Your money came back</text>
+<text x="195" y="306" font-family="Noto Sans Thai" font-size="14" font-weight="400" fill="#5E6B7A" text-anchor="middle">Nothing was taken.</text>
+<rect id="reason-card" x="16" y="332" width="358" height="168" rx="16" fill="#FFFFFF" stroke="#DDE2D8" stroke-width="1"/>
+<text x="32" y="366" font-family="Noto Sans Thai" font-size="15" font-weight="700" fill="#0B1020">What happened</text>
+<text x="32" y="392" font-family="Noto Sans Thai" font-size="14" font-weight="600" fill="#C8443C">You sent 4.00 tUSD. The bill is 5.00 tUSD.</text>
+<text x="32" y="418" font-family="Noto Sans Thai" font-size="13" font-weight="400" fill="#5E6B7A"><tspan x="32" dy="0">The bill's contract refused it, and the token</tspan><tspan x="32" dy="19">returned 4.00 tUSD in the same transaction.</tspan></text>
+<text x="32" y="478" font-family="Noto Sans Thai" font-size="12" font-weight="600" fill="#00704F">8wQn…SAMPLE ↗</text>
+<rect id="rules-card" x="16" y="516" width="358" height="160" rx="16" fill="#FFFFFF" stroke="#DDE2D8" stroke-width="1"/>
+<text x="32" y="550" font-family="Noto Sans Thai" font-size="15" font-weight="700" fill="#0B1020">Money also returns by itself when</text>
+<path d="M33 586.1 H45.6 A6.3 6.3 0 0 0 45.6 573.5 H33" fill="none" stroke="#C8443C" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M37.95 568.1 L32.55 573.5 L37.95 578.9" fill="none" stroke="#C8443C" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="62" y="582" font-family="Noto Sans Thai" font-size="13" font-weight="400" fill="#0B1020">The bill has expired</text>
+<path d="M33 616.1 H45.6 A6.3 6.3 0 0 0 45.6 603.5 H33" fill="none" stroke="#C8443C" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M37.95 598.1 L32.55 603.5 L37.95 608.9" fill="none" stroke="#C8443C" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="62" y="612" font-family="Noto Sans Thai" font-size="13" font-weight="400" fill="#0B1020">The bill was already paid</text>
+<path d="M33 646.1 H45.6 A6.3 6.3 0 0 0 45.6 633.5 H33" fill="none" stroke="#C8443C" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M37.95 628.1 L32.55 633.5 L37.95 638.9" fill="none" stroke="#C8443C" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="62" y="642" font-family="Noto Sans Thai" font-size="13" font-weight="400" fill="#0B1020">The café's screen does not confirm in 2:00</text>
+<g id="bill-button">
+<rect x="16" y="700" width="358" height="52" rx="26" fill="#0B1020"/>
+<text x="195" y="731.4" font-family="Noto Sans Thai" font-size="15" font-weight="600" fill="#FFFFFF" text-anchor="middle">Back to the bill</text>
+</g>
+<rect id="hotspot__NC-02" x="16" y="700" width="358" height="52" fill="#000000" fill-opacity="0"/>
+<text x="195" y="780" font-family="Noto Sans Thai" font-size="12" font-weight="400" fill="#5E6B7A" text-anchor="middle">Test money on NEAR testnet</text>
+</svg>

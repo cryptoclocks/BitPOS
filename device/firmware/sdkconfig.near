@@ -1,0 +1,3 @@
+# NEAR HACKATHON work (2026-11-14). See near-hackathon/PROVENANCE.md.
+# BitPOS Mini NEAR product: layered on sdkconfig.defaults by tools/firmware/build-near.sh.
+CONFIG_BITPOS_PRODUCT_NEAR=y

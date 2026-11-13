@@ -1,0 +1,214 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="1000" viewBox="0 0 1440 1000">
+<title>NM-06</title>
+<rect id="background" x="0" y="0" width="1440" height="1000" fill="#F6F7F2"/>
+<g id="sidebar">
+<rect x="0" y="0" width="248" height="1000" fill="#0B1020"/>
+<g id="bitpos-mark">
+<rect x="24" y="24" width="36" height="36" rx="10.08" fill="#00B37E"/>
+<text x="42" y="49.92" font-family="Noto Sans Thai" font-size="22.32" font-weight="700" fill="#0B1020" text-anchor="middle">B</text>
+</g>
+<text x="72" y="40" font-family="Noto Sans Thai" font-size="16" font-weight="700" fill="#FFFFFF">BitPOS</text>
+<text x="72" y="58" font-family="Noto Sans Thai" font-size="12" font-weight="400" fill="#A9B3C6">Living Bill</text>
+<text x="24" y="112" font-family="Noto Sans Thai" font-size="11" font-weight="700" fill="#A9B3C6">ORBIT CAFÉ</text>
+<circle cx="36" cy="148" r="3.5" fill="#3A4563"/>
+<text x="54" y="153" font-family="Noto Sans Thai" font-size="14" font-weight="400" fill="#A9B3C6">Overview</text>
+<circle cx="36" cy="192" r="3.5" fill="#3A4563"/>
+<text x="54" y="197" font-family="Noto Sans Thai" font-size="14" font-weight="400" fill="#A9B3C6">Split recipe</text>
+<circle cx="36" cy="236" r="3.5" fill="#3A4563"/>
+<text x="54" y="241" font-family="Noto Sans Thai" font-size="14" font-weight="400" fill="#A9B3C6">Team &amp; shifts</text>
+<circle cx="36" cy="280" r="3.5" fill="#3A4563"/>
+<text x="54" y="285" font-family="Noto Sans Thai" font-size="14" font-weight="400" fill="#A9B3C6">Suppliers</text>
+<rect x="12" y="304" width="224" height="40" rx="10" fill="#232C45"/>
+<rect x="12" y="314" width="4" height="20" rx="2" fill="#00B37E"/>
+<circle cx="36" cy="324" r="3.5" fill="#00B37E"/>
+<text x="54" y="329" font-family="Noto Sans Thai" font-size="14" font-weight="600" fill="#FFFFFF">Ledger</text>
+<circle cx="36" cy="368" r="3.5" fill="#3A4563"/>
+<text x="54" y="373" font-family="Noto Sans Thai" font-size="14" font-weight="400" fill="#A9B3C6">Devices &amp; witness</text>
+<path d="M36 405 Q37.05 410.95 43 412 Q37.05 413.05 36 419 Q34.95 413.05 29 412 Q34.95 410.95 36 405 Z" fill="#6B4EFF"/>
+<text x="54" y="417" font-family="Noto Sans Thai" font-size="14" font-weight="400" fill="#A9B3C6">Café CFO</text>
+<circle cx="36" cy="456" r="3.5" fill="#3A4563"/>
+<text x="54" y="461" font-family="Noto Sans Thai" font-size="14" font-weight="400" fill="#A9B3C6">Setup</text>
+<rect x="16" y="880" width="216" height="96" rx="12" fill="#151C30" stroke="#232C45" stroke-width="1"/>
+<text x="32" y="906" font-family="Noto Sans Thai" font-size="12" font-weight="600" fill="#FFFFFF">Signed in as Owner</text>
+<text x="32" y="926" font-family="Noto Sans Thai" font-size="11" font-weight="400" fill="#A9B3C6">Keys the server holds can</text>
+<text x="32" y="942" font-family="Noto Sans Thai" font-size="11" font-weight="400" fill="#A9B3C6">open or void a bill — never</text>
+<text x="32" y="958" font-family="Noto Sans Thai" font-size="11" font-weight="400" fill="#A9B3C6">move the shop's money.</text>
+</g>
+<rect id="hotspot__NM-01" x="12" y="128" width="224" height="40" fill="#000000" fill-opacity="0"/>
+<rect id="hotspot__NM-02" x="12" y="172" width="224" height="40" fill="#000000" fill-opacity="0"/>
+<rect id="hotspot__NM-03" x="12" y="216" width="224" height="40" fill="#000000" fill-opacity="0"/>
+<rect id="hotspot__NM-04" x="12" y="260" width="224" height="40" fill="#000000" fill-opacity="0"/>
+<rect id="hotspot__NM-08" x="12" y="348" width="224" height="40" fill="#000000" fill-opacity="0"/>
+<rect id="hotspot__NM-09" x="12" y="392" width="224" height="40" fill="#000000" fill-opacity="0"/>
+<rect id="hotspot__NM-11" x="12" y="436" width="224" height="40" fill="#000000" fill-opacity="0"/>
+<g id="topbar">
+<text id="page-title" x="280" y="58" font-family="Noto Sans Thai" font-size="28" font-weight="700" fill="#0B1020">Ledger</text>
+<text id="page-subtitle" x="280" y="84" font-family="Noto Sans Thai" font-size="14" font-weight="400" fill="#5E6B7A">Every bill, what the chain says about it, and the proof.</text>
+<g id="testnet-marker">
+<rect x="1300.52" y="30" width="107.48" height="24" rx="12" fill="#FFFFFF" stroke="#0B1020" stroke-width="1"/>
+<circle cx="1314.52" cy="42" r="4" fill="#F2A93B"/>
+<text x="1324.52" y="45.96" font-family="Noto Sans Thai" font-size="11" font-weight="700" fill="#0B1020">NEAR testnet</text>
+</g>
+<g id="account-chip">
+<rect x="1138.43" y="30" width="154.09" height="24" rx="12" fill="#EEF0EA"/>
+<text x="1148.43" y="45.96" font-family="Noto Sans Thai" font-size="11" font-weight="600" fill="#5E6B7A">orbit.bitpos-near.testnet</text>
+</g>
+</g>
+<text id="footer" x="1416" y="988" font-family="Noto Sans Thai" font-size="11" font-weight="400" fill="#5E6B7A" text-anchor="end">FigCraft concept · sample data · NEAR testnet</text>
+<rect id="ledger-card" x="280" y="112" width="1128" height="828" rx="12" fill="#FFFFFF" stroke="#DDE2D8" stroke-width="1"/>
+<g id="filter-chip">
+<rect x="304" y="136" width="62.84" height="32" rx="16" fill="#0B1020"/>
+<text x="318" y="156.68" font-family="Noto Sans Thai" font-size="13" font-weight="600" fill="#FFFFFF">All 36</text>
+</g>
+<g id="filter-chip-2">
+<rect x="374.84" y="136" width="91.57" height="32" rx="16" fill="#FFFFFF" stroke="#DDE2D8" stroke-width="1"/>
+<text x="388.84" y="156.68" font-family="Noto Sans Thai" font-size="13" font-weight="600" fill="#0B1020">Settled 33</text>
+</g>
+<g id="filter-chip-3">
+<rect x="474.41" y="136" width="101.19" height="32" rx="16" fill="#FFFFFF" stroke="#DDE2D8" stroke-width="1"/>
+<text x="488.41" y="156.68" font-family="Noto Sans Thai" font-size="13" font-weight="600" fill="#0B1020">In escrow 1</text>
+</g>
+<g id="filter-chip-4">
+<rect x="583.6" y="136" width="95.08" height="32" rx="16" fill="#FFFFFF" stroke="#DDE2D8" stroke-width="1"/>
+<text x="597.6" y="156.68" font-family="Noto Sans Thai" font-size="13" font-weight="600" fill="#0B1020">Bounced 1</text>
+</g>
+<g id="filter-chip-5">
+<rect x="686.68" y="136" width="100.93" height="32" rx="16" fill="#FFFFFF" stroke="#DDE2D8" stroke-width="1"/>
+<text x="700.68" y="156.68" font-family="Noto Sans Thai" font-size="13" font-weight="600" fill="#0B1020">Refunded 1</text>
+</g>
+<g id="export-button">
+<rect x="1234" y="132" width="150" height="40" rx="20" fill="#FFFFFF" stroke="#DDE2D8" stroke-width="1.5"/>
+<text x="1309" y="157.04" font-family="Noto Sans Thai" font-size="14" font-weight="600" fill="#0B1020" text-anchor="middle">Export CSV</text>
+</g>
+<g id="table">
+<rect x="304" y="192" width="1080" height="36" rx="8" fill="#EEF0EA"/>
+<text x="318" y="214" font-family="Noto Sans Thai" font-size="12" font-weight="600" fill="#5E6B7A">Bill</text>
+<text x="438" y="214" font-family="Noto Sans Thai" font-size="12" font-weight="600" fill="#5E6B7A">Time</text>
+<text x="518" y="214" font-family="Noto Sans Thai" font-size="12" font-weight="600" fill="#5E6B7A">Table</text>
+<text x="670" y="214" font-family="Noto Sans Thai" font-size="12" font-weight="600" fill="#5E6B7A" text-anchor="end">Total tUSD</text>
+<text x="698" y="214" font-family="Noto Sans Thai" font-size="12" font-weight="600" fill="#5E6B7A">State</text>
+<text x="828" y="214" font-family="Noto Sans Thai" font-size="12" font-weight="600" fill="#5E6B7A">Witness</text>
+<text x="978" y="214" font-family="Noto Sans Thai" font-size="12" font-weight="600" fill="#5E6B7A">Paid by</text>
+<text x="1228" y="214" font-family="Noto Sans Thai" font-size="12" font-weight="600" fill="#5E6B7A">Payment transaction</text>
+<text x="318" y="262.68" font-family="Noto Sans Thai" font-size="13" font-weight="600" fill="#0B1020">B-7K2M9Q</text>
+<text x="438" y="262.68" font-family="Noto Sans Thai" font-size="13" font-weight="400" fill="#0B1020">10:42</text>
+<text x="518" y="262.68" font-family="Noto Sans Thai" font-size="13" font-weight="400" fill="#0B1020">T4</text>
+<text x="670" y="262.68" font-family="Noto Sans Thai" font-size="13" font-weight="700" fill="#0B1020" text-anchor="end">5.00</text>
+<g id="chip">
+<rect x="698" y="246" width="56.17" height="24" rx="12" fill="#E3F6EE"/>
+<text x="707" y="261.96" font-family="Noto Sans Thai" font-size="11" font-weight="600" fill="#00704F">Settled</text>
+</g>
+<text x="828" y="262.68" font-family="Noto Sans Thai" font-size="13" font-weight="400" fill="#0B1020">Mini-01 signed</text>
+<text x="978" y="262.68" font-family="Noto Sans Thai" font-size="13" font-weight="400" fill="#0B1020">alice.bitpos-near.testnet</text>
+<text x="1228" y="262.68" font-family="Noto Sans Thai" font-size="13" font-weight="600" fill="#00704F">9xQe…SAMPLE ↗</text>
+<line x1="304" y1="288" x2="1384" y2="288" stroke="#DDE2D8" stroke-width="1"/>
+<text x="318" y="322.68" font-family="Noto Sans Thai" font-size="13" font-weight="600" fill="#0B1020">B-7K2M8P</text>
+<text x="438" y="322.68" font-family="Noto Sans Thai" font-size="13" font-weight="400" fill="#0B1020">10:37</text>
+<text x="518" y="322.68" font-family="Noto Sans Thai" font-size="13" font-weight="400" fill="#0B1020">T2</text>
+<text x="670" y="322.68" font-family="Noto Sans Thai" font-size="13" font-weight="700" fill="#0B1020" text-anchor="end">7.50</text>
+<g id="chip-2">
+<rect x="698" y="306" width="56.17" height="24" rx="12" fill="#E3F6EE"/>
+<text x="707" y="321.96" font-family="Noto Sans Thai" font-size="11" font-weight="600" fill="#00704F">Settled</text>
+</g>
+<text x="828" y="322.68" font-family="Noto Sans Thai" font-size="13" font-weight="400" fill="#0B1020">Mini-02 signed</text>
+<text x="978" y="322.68" font-family="Noto Sans Thai" font-size="13" font-weight="400" fill="#0B1020">bob.bitpos-near.testnet</text>
+<text x="1228" y="322.68" font-family="Noto Sans Thai" font-size="13" font-weight="600" fill="#00704F">4mTz…SAMPLE ↗</text>
+<line x1="304" y1="348" x2="1384" y2="348" stroke="#DDE2D8" stroke-width="1"/>
+<text x="318" y="382.68" font-family="Noto Sans Thai" font-size="13" font-weight="600" fill="#0B1020">B-7K2M7N</text>
+<text x="438" y="382.68" font-family="Noto Sans Thai" font-size="13" font-weight="400" fill="#0B1020">10:31</text>
+<text x="518" y="382.68" font-family="Noto Sans Thai" font-size="13" font-weight="400" fill="#0B1020">T4</text>
+<text x="670" y="382.68" font-family="Noto Sans Thai" font-size="13" font-weight="700" fill="#0B1020" text-anchor="end">5.00</text>
+<g id="chip-3">
+<rect x="698" y="366" width="70.69" height="24" rx="12" fill="#FDF1DA"/>
+<text x="707" y="381.96" font-family="Noto Sans Thai" font-size="11" font-weight="600" fill="#7A4E00">In escrow</text>
+</g>
+<text x="828" y="382.68" font-family="Noto Sans Thai" font-size="13" font-weight="400" fill="#0B1020">Waiting 0:48</text>
+<text x="978" y="382.68" font-family="Noto Sans Thai" font-size="13" font-weight="400" fill="#0B1020">alice.bitpos-near.testnet</text>
+<text x="1228" y="382.68" font-family="Noto Sans Thai" font-size="13" font-weight="600" fill="#00704F">7pLa…SAMPLE ↗</text>
+<line x1="304" y1="408" x2="1384" y2="408" stroke="#DDE2D8" stroke-width="1"/>
+<text x="318" y="442.68" font-family="Noto Sans Thai" font-size="13" font-weight="600" fill="#0B1020">B-7K2M6M</text>
+<text x="438" y="442.68" font-family="Noto Sans Thai" font-size="13" font-weight="400" fill="#0B1020">10:24</text>
+<text x="518" y="442.68" font-family="Noto Sans Thai" font-size="13" font-weight="400" fill="#0B1020">T1</text>
+<text x="670" y="442.68" font-family="Noto Sans Thai" font-size="13" font-weight="700" fill="#0B1020" text-anchor="end">3.50</text>
+<g id="chip-4">
+<rect x="698" y="426" width="56.17" height="24" rx="12" fill="#E3F6EE"/>
+<text x="707" y="441.96" font-family="Noto Sans Thai" font-size="11" font-weight="600" fill="#00704F">Settled</text>
+</g>
+<text x="828" y="442.68" font-family="Noto Sans Thai" font-size="13" font-weight="400" fill="#0B1020">Mini-03 signed</text>
+<text x="978" y="442.68" font-family="Noto Sans Thai" font-size="13" font-weight="400" fill="#0B1020">dee.bitpos-near.testnet</text>
+<text x="1228" y="442.68" font-family="Noto Sans Thai" font-size="13" font-weight="600" fill="#00704F">2kVc…SAMPLE ↗</text>
+<line x1="304" y1="468" x2="1384" y2="468" stroke="#DDE2D8" stroke-width="1"/>
+<text x="318" y="502.68" font-family="Noto Sans Thai" font-size="13" font-weight="600" fill="#0B1020">B-7K2M6L</text>
+<text x="438" y="502.68" font-family="Noto Sans Thai" font-size="13" font-weight="400" fill="#0B1020">10:20</text>
+<text x="518" y="502.68" font-family="Noto Sans Thai" font-size="13" font-weight="400" fill="#0B1020">T1</text>
+<text x="670" y="502.68" font-family="Noto Sans Thai" font-size="13" font-weight="700" fill="#0B1020" text-anchor="end">3.50</text>
+<g id="chip-5">
+<rect x="698" y="486" width="65.52" height="24" rx="12" fill="#FAE7E5"/>
+<text x="707" y="501.96" font-family="Noto Sans Thai" font-size="11" font-weight="600" fill="#C8443C">Bounced</text>
+</g>
+<text x="828" y="502.68" font-family="Noto Sans Thai" font-size="13" font-weight="400" fill="#0B1020">Not needed</text>
+<text x="978" y="502.68" font-family="Noto Sans Thai" font-size="13" font-weight="400" fill="#0B1020">dee.bitpos-near.testnet</text>
+<text x="1228" y="502.68" font-family="Noto Sans Thai" font-size="13" font-weight="600" fill="#00704F">8wQn…SAMPLE ↗</text>
+<line x1="304" y1="528" x2="1384" y2="528" stroke="#DDE2D8" stroke-width="1"/>
+<text x="318" y="562.68" font-family="Noto Sans Thai" font-size="13" font-weight="600" fill="#0B1020">B-7K2M5K</text>
+<text x="438" y="562.68" font-family="Noto Sans Thai" font-size="13" font-weight="400" fill="#0B1020">10:11</text>
+<text x="518" y="562.68" font-family="Noto Sans Thai" font-size="13" font-weight="400" fill="#0B1020">T3</text>
+<text x="670" y="562.68" font-family="Noto Sans Thai" font-size="13" font-weight="700" fill="#0B1020" text-anchor="end">5.00</text>
+<g id="chip-6">
+<rect x="698" y="546" width="70.47" height="24" rx="12" fill="#FAE7E5"/>
+<text x="707" y="561.96" font-family="Noto Sans Thai" font-size="11" font-weight="600" fill="#C8443C">Refunded</text>
+</g>
+<text x="828" y="562.68" font-family="Noto Sans Thai" font-size="13" font-weight="400" fill="#0B1020">No signature</text>
+<text x="978" y="562.68" font-family="Noto Sans Thai" font-size="13" font-weight="400" fill="#0B1020">bob.bitpos-near.testnet</text>
+<text x="1228" y="562.68" font-family="Noto Sans Thai" font-size="13" font-weight="600" fill="#00704F">5hRd…SAMPLE ↗</text>
+<line x1="304" y1="588" x2="1384" y2="588" stroke="#DDE2D8" stroke-width="1"/>
+<text x="318" y="622.68" font-family="Noto Sans Thai" font-size="13" font-weight="600" fill="#0B1020">B-7K2M4J</text>
+<text x="438" y="622.68" font-family="Noto Sans Thai" font-size="13" font-weight="400" fill="#0B1020">10:02</text>
+<text x="518" y="622.68" font-family="Noto Sans Thai" font-size="13" font-weight="400" fill="#0B1020">T2</text>
+<text x="670" y="622.68" font-family="Noto Sans Thai" font-size="13" font-weight="700" fill="#0B1020" text-anchor="end">5.00</text>
+<g id="chip-7">
+<rect x="698" y="606" width="56.17" height="24" rx="12" fill="#E3F6EE"/>
+<text x="707" y="621.96" font-family="Noto Sans Thai" font-size="11" font-weight="600" fill="#00704F">Settled</text>
+</g>
+<text x="828" y="622.68" font-family="Noto Sans Thai" font-size="13" font-weight="400" fill="#0B1020">Mini-02 signed</text>
+<text x="978" y="622.68" font-family="Noto Sans Thai" font-size="13" font-weight="400" fill="#0B1020">alice.bitpos-near.testnet</text>
+<text x="1228" y="622.68" font-family="Noto Sans Thai" font-size="13" font-weight="600" fill="#00704F">3nBx…SAMPLE ↗</text>
+<line x1="304" y1="648" x2="1384" y2="648" stroke="#DDE2D8" stroke-width="1"/>
+<text x="318" y="682.68" font-family="Noto Sans Thai" font-size="13" font-weight="600" fill="#0B1020">B-7K2M3H</text>
+<text x="438" y="682.68" font-family="Noto Sans Thai" font-size="13" font-weight="400" fill="#0B1020">09:55</text>
+<text x="518" y="682.68" font-family="Noto Sans Thai" font-size="13" font-weight="400" fill="#0B1020">T4</text>
+<text x="670" y="682.68" font-family="Noto Sans Thai" font-size="13" font-weight="700" fill="#0B1020" text-anchor="end">10.00</text>
+<g id="chip-8">
+<rect x="698" y="666" width="56.17" height="24" rx="12" fill="#E3F6EE"/>
+<text x="707" y="681.96" font-family="Noto Sans Thai" font-size="11" font-weight="600" fill="#00704F">Settled</text>
+</g>
+<text x="828" y="682.68" font-family="Noto Sans Thai" font-size="13" font-weight="400" fill="#0B1020">Mini-01 signed</text>
+<text x="978" y="682.68" font-family="Noto Sans Thai" font-size="13" font-weight="400" fill="#0B1020">bob.bitpos-near.testnet</text>
+<text x="1228" y="682.68" font-family="Noto Sans Thai" font-size="13" font-weight="600" fill="#00704F">6yGf…SAMPLE ↗</text>
+<line x1="304" y1="708" x2="1384" y2="708" stroke="#DDE2D8" stroke-width="1"/>
+<text x="318" y="742.68" font-family="Noto Sans Thai" font-size="13" font-weight="600" fill="#0B1020">B-7K2M2G</text>
+<text x="438" y="742.68" font-family="Noto Sans Thai" font-size="13" font-weight="400" fill="#0B1020">09:48</text>
+<text x="518" y="742.68" font-family="Noto Sans Thai" font-size="13" font-weight="400" fill="#0B1020">T1</text>
+<text x="670" y="742.68" font-family="Noto Sans Thai" font-size="13" font-weight="700" fill="#0B1020" text-anchor="end">5.00</text>
+<g id="chip-9">
+<rect x="698" y="726" width="56.17" height="24" rx="12" fill="#E3F6EE"/>
+<text x="707" y="741.96" font-family="Noto Sans Thai" font-size="11" font-weight="600" fill="#00704F">Settled</text>
+</g>
+<text x="828" y="742.68" font-family="Noto Sans Thai" font-size="13" font-weight="400" fill="#0B1020">Mini-03 signed</text>
+<text x="978" y="742.68" font-family="Noto Sans Thai" font-size="13" font-weight="400" fill="#0B1020">alice.bitpos-near.testnet</text>
+<text x="1228" y="742.68" font-family="Noto Sans Thai" font-size="13" font-weight="600" fill="#00704F">1cJk…SAMPLE ↗</text>
+<line x1="304" y1="768" x2="1384" y2="768" stroke="#DDE2D8" stroke-width="1"/>
+</g>
+<rect id="hotspot__NM-07" x="304" y="228" width="1080" height="60" fill="#000000" fill-opacity="0"/>
+<rect x="304" y="788" width="1080" height="116" rx="12" fill="#F6F7F2"/>
+<text x="328" y="818" font-family="Noto Sans Thai" font-size="14" font-weight="700" fill="#0B1020">How to read the states</text>
+<text x="328" y="848" font-family="Noto Sans Thai" font-size="13" font-weight="700" fill="#0B1020">Settled</text>
+<text x="412" y="848" font-family="Noto Sans Thai" font-size="13" font-weight="400" fill="#5E6B7A">Paid, witnessed and split. Final.</text>
+<text x="868" y="848" font-family="Noto Sans Thai" font-size="13" font-weight="700" fill="#0B1020">In escrow</text>
+<text x="952" y="848" font-family="Noto Sans Thai" font-size="13" font-weight="400" fill="#5E6B7A">Paid. Waiting for the table screen to sign.</text>
+<text x="328" y="878" font-family="Noto Sans Thai" font-size="13" font-weight="700" fill="#0B1020">Bounced</text>
+<text x="412" y="878" font-family="Noto Sans Thai" font-size="13" font-weight="400" fill="#5E6B7A">Wrong amount or expired. Money returned in the same transaction.</text>
+<text x="868" y="878" font-family="Noto Sans Thai" font-size="13" font-weight="700" fill="#0B1020">Refunded</text>
+<text x="952" y="878" font-family="Noto Sans Thai" font-size="13" font-weight="400" fill="#5E6B7A">No witness within 2:00. The contract sent the money back.</text>
+<text x="304" y="926" font-family="Noto Sans Thai" font-size="12" font-weight="400" fill="#5E6B7A">Transaction links open the NEAR testnet explorer.</text>
+</svg>

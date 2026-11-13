@@ -16,6 +16,54 @@ This runs `idf.py -C device/firmware build`, not flash. Generated Sarabun 20px L
 npx --yes lv_font_conv@1.5.3 --font device/firmware/fonts/Sarabun-Regular.ttf --size 20 --bpp 4 --range 0x20-0x7e,0x0e00-0x0e7f --format lvgl --no-compress --lv-include lvgl.h --output device/firmware/main/bitpos_font_20.c
 ```
 
+## NEAR product (`bitpos_terminal_near`, 0.5.0-near)
+
+NEAR HACKATHON work (2026-11-14), see `near-hackathon/PROVENANCE.md`. A second product in this tree, selected at build
+time; the standard terminal above is unchanged (its build contains none of this code).
+
+```bash
+bash tools/firmware/near-host-test/run.sh   # Mac only: Ed25519 RFC 8032 vectors, encoders, bounded parser, Node cross-check
+bash tools/firmware/build-near.sh           # -> device/firmware/build-near/bitpos_terminal_near.bin (builds only, never flashes)
+```
+
+`BITPOS_PRODUCT=near` selects project name/version, the `sdkconfig.near` layer (`CONFIG_BITPOS_PRODUCT_NEAR=y`), the
+build directory `build-near/` and the hook in `app_main`. Sources: `main/bitpos_near.c` (runtime),
+`main/bitpos_near_core.c` (pure C: hex/base58/base64, witness message, RPC request, bounded `get_bill` parser) and
+`main/bitpos_near_ed25519.c` (Ed25519 + SHA-512 adapted from TweetNaCl 20140427, public domain). Settings use their own
+NVS namespace `bitpos_nvs/near`; only WiFi is read from `config`.
+
+**What the device verifies itself.** The server (`GET <url>/near/device/state`) chooses QR, idle, checking or
+refunded screens, but it cannot make the device show *paid*. For a bill being paid the device asks a NEAR RPC node
+(`query call_function get_bill`, finality `final`, HTTPS with the certificate bundle) and reads the answer with fixed
+limits (24 KB response, 4 KB bill JSON, depth 12). It shows paid only when the chain says `Escrow` with this device's
+public key as `witness_pk`, or `Settling`/`Settled`. In the `Escrow` case it waits until the paid frame was really
+flushed to the panel, signs `bitpos-near-ack:v1:<contract>:<merchant>:<bill_id>` with its Ed25519 key and posts
+`{"bill","sig","pk"}` (hex) to `POST <url>/near/device/ack?d=<uuid>`; the bill contract verifies the signature. A bill
+is witnessed once: after a 2xx answer its id is stored and never signed again. Retries back off 2-32 s.
+While the server answers `"register":true` (it has no public key for this device yet) the device stays on the setup
+screen and posts `{"pk":"<hex64>"}` to `POST <url>/near/device/register?d=<uuid>`; the first key wins and a 409
+("another key is already registered") is shown on the screen.
+RPC nodes are limited to a built-in testnet list (the server's `rpc` hint is honoured only if it is on that list);
+`NEAR_PIN` restricts the device to one contract account and, optionally, one RPC URL chosen by the owner.
+
+**Key.** A 32-byte seed from `esp_fill_random()` taken after `esp_wifi_start()` (true RNG while RF is on), stored in NVS
+`near/sk`, never printed or sent. `NEAR_STATUS` prints only the public key (64 hex and `ed25519:<base58>`); the setup
+screen shows it as a QR (`bitpos-near-device:v1:<device-uuid>:<pk-hex>`). The NVS partition is not encrypted, as for
+the standard product: physical access to the flash exposes the seed.
+
+**USB commands** (one line each): `NEAR_PROVISION <https-origin> <device-uuid> <device-key>`, `NEAR_PIN <contract>
+[<https-rpc>]` / `NEAR_PIN clear`, `NEAR_STATUS`, `NEAR_SELFTEST`, `NEAR_FORGET` (keeps the key) / `NEAR_FORGET key`,
+`NEAR_DEMO <setup|idle|qr|checking|paid|refunded|offline>` (sample data, marked DEMO, signs nothing), `NEAR_SHOT`,
+`NEAR_LANG en|th`.
+
+**Installing.** Not performed. Use the documented OTA-slot procedure rather than `idf.py flash`: write
+`build-near/bitpos_terminal_near.bin` to the second app slot with `otatool.py write_ota_partition --slot 1` and select it
+with `switch_ota_partition --slot 1`, after naming the test device, checking its serial port and MAC and saving a
+backup; the standard firmware stays in slot 0. There is no OTA server for this product yet.
+
+**Verified / not verified.** Host test passes and the binary builds and fits the 2 MB slot. Nothing has run on real
+hardware: screens, WiFi, TLS to an RPC node, the flush-gated signature, sound and timing on the ESP32-S3 are unverified.
+
 ## Runtime
 ### Post-submission payment assets — source, physical verification pending
 

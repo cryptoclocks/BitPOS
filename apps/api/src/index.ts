@@ -239,6 +239,8 @@ export async function handle(req:http.IncomingMessage){
  });}
  const token=req.headers.authorization?.match(/^Bearer (.+)$/)?.[1];if(!token)fail('AUTH_REQUIRED',401);
  const session=(await pool.query('SELECT s.*,m.role AS current_role FROM sessions s JOIN members m ON m.user_id=s.user_id AND m.merchant_id=s.merchant_id WHERE token_hash=$1 AND expires_at>now()',[hash(token)])).rows[0];if(!session)fail('AUTH_REQUIRED',401);const merchant=session.merchant_id;
+ // NEAR HACKATHON work: NEAR merchant routes manage their own transactions (no chain call inside one). See near-hackathon/PROVENANCE.md.
+ if(path.startsWith('/api/near/')){try{return await nearMerchantRequest(merchant,session.user_id,session.current_role,url,method??'GET',input);}catch(e){if(e instanceof NearRouteError)throw new RequestError(e.status,e.code as never,e.code);throw e;}}
  if(path==='/api/product-images'&&method==='POST'){const bytes=await readRaw(req,maxProductImageBytes);return tenant(merchant,db=>uploadProductImage(db,merchant,session.user_id,session.current_role,bytes));}
  return tenant(merchant,async db=>{
  const returned=await merchantFoodReturnRequest(db,url,method??'GET',input,session.current_role,hash(token));if(returned!==undefined)return returned;
@@ -308,5 +310,9 @@ export async function handle(req:http.IncomingMessage){
  });
 }
 import {foodRealtime,attachFoodRealtime} from './food-realtime';
-export const server=http.createServer(async(req,res)=>{try{if(await foodRealtime(req,res)||await foodChatImages(req,res)||await servePromotionMedia(req,res)||await serveProductImage(req,res)||await serveX402(req,res))return;const stream=(req.url??'').match(/^\/api\/pay\/([A-Za-z0-9_-]+)\/events$/);if(req.method==='GET'&&stream){await paymentStream(req,res,stream[1]);return;}const result=await handle(req);const created=req.method==='POST'&&/^\/api\/registers\/[^/]+\/orders$/.test(new URL(req.url??'/',config.PUBLIC_URL).pathname)&&!('replayed' in result&&result.replayed);res.writeHead(created?201:200,{'Content-Type':'application/json','Cache-Control':'no-store'});res.end(JSON.stringify(result));}catch(error){const e=errorView(error);res.writeHead(e.status,{'Content-Type':'application/json','Cache-Control':'no-store'});res.end(JSON.stringify({error:e.view}));}});
+// NEAR HACKATHON work: the NEAR Living Bill rail (see near-hackathon/PROVENANCE.md).
+import {serveNear} from './near/routes';
+import {nearMerchantRequest} from './near/merchant';
+import {NearRouteError} from './near/bills';
+export const server=http.createServer(async(req,res)=>{try{if(await foodRealtime(req,res)||await foodChatImages(req,res)||await servePromotionMedia(req,res)||await serveProductImage(req,res)||await serveX402(req,res)||await serveNear(req,res))return;const stream=(req.url??'').match(/^\/api\/pay\/([A-Za-z0-9_-]+)\/events$/);if(req.method==='GET'&&stream){await paymentStream(req,res,stream[1]);return;}const result=await handle(req);const created=req.method==='POST'&&/^\/api\/registers\/[^/]+\/orders$/.test(new URL(req.url??'/',config.PUBLIC_URL).pathname)&&!('replayed' in result&&result.replayed);res.writeHead(created?201:200,{'Content-Type':'application/json','Cache-Control':'no-store'});res.end(JSON.stringify(result));}catch(error){const e=errorView(error);res.writeHead(e.status,{'Content-Type':'application/json','Cache-Control':'no-store'});res.end(JSON.stringify({error:e.view}));}});
 attachDevices(server);attachFoodRealtime(server);if(process.argv[1]?.endsWith('/api/src/index.ts'))server.listen(3001,process.env.BITPOS_BIND_HOST==='127.0.0.1'?'127.0.0.1':'0.0.0.0');
