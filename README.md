@@ -17,6 +17,31 @@ with a spending cap and a per-bill limit. The pass is held by the contract; the 
 nothing else. If a bill it paid is not served in time or is refunded, the money goes back to the customer, never to
 the agent; closing the pass, or its expiry, returns the rest.
 
+### In pictures
+
+<p align="center"><img src="docs/near-images/visual-scan-at-table.jpg" width="900" alt="A guest scans the BitPOS Mini on a café table; the menu opens on the phone"></p>
+
+| | |
+|---|---|
+| <img src="docs/near-images/visual-paid-split.jpg" alt="The table screen shows PAID and the split it read from NEAR"> | <img src="docs/near-images/visual-witness-check.jpg" alt="The table screen checks NEAR before it signs the witness"> |
+| The table screen shows **PAID** and the split it read from the chain | Witness mode: the screen asks NEAR itself before it signs |
+
+<sub>The three photos above are product visualizations: BitPOS's AI café images with the English FigCraft screens of this edition placed on the device and phone. Everything below is a real screen from the running app on NEAR testnet (14 Nov 2026).</sub>
+
+| Customer: where the money goes | Customer: paid and split | Customer: AI spending pass |
+|---|---|---|
+| <img src="docs/near-images/screen-pay-where-money-goes.jpg" width="260" alt="Pay exactly 5.00 tUSD and who gets what"> | <img src="docs/near-images/screen-pay-paid-split.jpg" width="260" alt="Paid, every recipient ticked, proof links"> | <img src="docs/near-images/screen-pay-ai-pass.jpg" width="260" alt="AI pass with balance, time left and pay button"> |
+
+| Café: overview | Café: ledger with transaction links |
+|---|---|
+| <img src="docs/near-images/screen-pos-overview.jpg" alt="Today's money by role and the shop's NEAR accounts"> | <img src="docs/near-images/screen-pos-ledger.jpg" alt="Every bill with its split and NEAR transactions, Export CSV"> |
+| **Café: payroll by the cup** | **Café: evidence timeline** |
+| <img src="docs/near-images/screen-pos-team.jpg" alt="Staff on shift and what each earned today"> | <img src="docs/near-images/screen-pos-evidence.jpg" alt="Bill opened, payment relayed, split paid, each with a transaction"> |
+| **Café: suppliers that collect themselves** | **Café: split recipe** |
+| <img src="docs/near-images/screen-pos-suppliers.jpg" alt="Supplier invoices funded from every bill"> | <img src="docs/near-images/screen-pos-recipe.jpg" alt="Tax, tips and supplier shares of every bill"> |
+| **Café: devices and witness** | **Café: Café CFO (sample mode)** |
+| <img src="docs/near-images/screen-pos-devices.jpg" alt="Table screens and their witness keys"> | <img src="docs/near-images/screen-pos-cfo.jpg" alt="A reviewable proposal the owner approves or rejects"> |
+
 **Try it.**
 
 | Do | See |
