@@ -29,6 +29,13 @@ export function nearCode(error: unknown): string {
   return 'UNKNOWN';
 }
 const MESSAGES: Record<string, [string, string]> = {
+  NEAR_PASS_BILL_LIMIT: ['บิลนี้เกินวงเงินต่อบิลของสิทธิ์ AI', 'This bill is over the AI pass\'s per-bill limit'],
+  NEAR_PASS_BALANCE_LOW: ['ยอดในสิทธิ์ AI ไม่พอจ่ายบิลนี้', 'The AI pass does not have enough left for this bill'],
+  NEAR_PASS_EXPIRED: ['สิทธิ์ AI หมดเวลาแล้ว', 'The AI pass has expired'],
+  NEAR_PASS_CLOSED: ['สิทธิ์ AI ถูกปิดแล้ว', 'The AI pass was closed'],
+  NEAR_PASS_LIMIT_INVALID: ['วงเงินไม่ถูกต้อง (สูงสุด 50 และวงเงินต่อบิลต้องไม่เกินวงเงินรวม)', 'Check the limits: at most 50, and the per-bill limit cannot be above the cap'],
+  NEAR_PASS_NOT_FOUND: ['ไม่พบสิทธิ์ AI นี้', 'That AI pass was not found'],
+  NEAR_AI_PASS_UNAVAILABLE: ['ร้านนี้ยังไม่เปิดใช้สิทธิ์ AI', 'AI passes are not enabled for this café'],
   NEAR_UNAVAILABLE: ['ระบบ NEAR ยังไม่พร้อม ลองอีกครั้งในอีกสักครู่', 'NEAR is not reachable right now. Try again in a moment.'],
   NEAR_NOT_ENABLED: ['ร้านนี้ยังไม่ได้เปิดรับเงินผ่าน NEAR', 'This shop has not turned on NEAR payments.'],
   ORDER_NOT_PAYABLE: ['บิลนี้ชำระไม่ได้แล้ว กรุณาแจ้งทีมร้าน', 'This bill can no longer be paid. Ask the café team.'],

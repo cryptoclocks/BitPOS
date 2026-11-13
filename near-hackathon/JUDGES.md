@@ -35,6 +35,7 @@ those payments are a side effect of the sale itself, and each one has a transact
 | Named sub-accounts | `orbit.bitpos-near.testnet`, `mai.orbit…`, `tax.orbit…` on receipts instead of hex |
 | Global contracts | The tUSD demo token is NEAR's global FT contract, used as deployed |
 | NEAR Intents (1Click API) | **Preview only**: live dry quotes for paying the bill from Base/Solana/Arbitrum/Ethereum stablecoins. Intents has no testnet, so nothing is executed |
+| Function-call key for an AI agent + contract-held pass | **AI spending pass**: a customer funds a pass for 30 min, 1 hour, 1 day, 1 week or 1 month with a cap and a per-bill limit; the agent's key can call `pass_pay` only. Refunds of bills it paid go to the customer, never the agent; closing or expiry returns the rest |
 | NEAR AI Cloud | Café CFO: picks one recipe option from a server-built list; the response signature is verified against the attestation report fetched before the call |
 
 ## Live on testnet (read-only checks, no setup)
@@ -48,6 +49,7 @@ those payments are a side effect of the sale itself, and each one has a transact
 | 1 unit short → bounced | [transaction](https://testnet.nearblocks.io/txns/ijqwH8aghLYGyQfSvenBGdSjHs7TW5H4qXj8zk3Yjn4) |
 | Witness escrow → device signature → split | [paid into escrow](https://testnet.nearblocks.io/txns/AjUpBfaxTaKZZeQSAStsnyAzZY3sb5uqrLagNuZ8AA5h), [`device_ack`](https://testnet.nearblocks.io/txns/DVJMGYTKwfJXc9o2TXJkksWXv8ZdUJySyabEGef6N81a) |
 | No witness → refund after timeout | [`reclaim`](https://testnet.nearblocks.io/txns/GU4iWXzn7KzNGEMbkzL8dNgLNr5WK6Smymf5CUrqsjjs) |
+| AI spending pass | [pass created](https://testnet.nearblocks.io/txns/6fFD1BHdihT8mBDfiz3Buu74AVQuoQRuKsjRg2tU9JTJ), [agent pays a bill → four payouts](https://testnet.nearblocks.io/txns/4Y6n14WrTz26MqfUmHgqMQoNNdfWkLmSrCoqY582xmaU), [unserved witness bill refunded to the customer](https://testnet.nearblocks.io/txns/CtKPPqAsg2zrtQcVxJFSRjxQFZwj4g7o8J4R7Y1B8cDW), [owner closes the pass, rest returned](https://testnet.nearblocks.io/txns/7efKcZedJf8B3PKAVKrcFCfNtGB4k5muynz2UgRaSGNr); the agent is refused after close (`near-hackathon/evidence/e2e-pass-2026-11-13-dd1d7c7a.json`) |
 | Through the POS server code | `near-hackathon/evidence/e2e-api-*.json` (instant and witness mode, with links) |
 
 ```bash
@@ -69,12 +71,12 @@ set -a; . ./.env; set +a
 BITPOS_BACKEND_INTEGRATION=1 pnpm exec tsx --test --test-concurrency=1 tests/near-*.test.ts
 ```
 
-See: `pass 25`, `fail 0`. The unit tests check the verifier against real testnet transaction results
+See: `pass 28`, `fail 0`. The unit tests check the verifier against real testnet transaction results
 (`tests/fixtures/near-tx-*.json`); the integration tests run real bills through PostgreSQL as the application role,
 with an in-memory stand-in for the contract. No model or chain call is made.
 
 ```bash
-cd contracts/near-bills && cargo test              # optional, needs Rust: 14 contract tests
+cd contracts/near-bills && cargo test              # optional, needs Rust: 23 contract tests (9 for the AI pass)
 bash tools/firmware/near-host-test/run.sh          # optional: firmware crypto + parser, 69 checks
 ```
 
@@ -84,6 +86,7 @@ bash tools/firmware/near-host-test/run.sh          # optional: firmware crypto +
 pnpm exec tsx tools/near/accounts.ts root <your-name>.testnet    # free testnet account from the faucet; key saved in ~/.bitpos-near
 NEAR_ROOT=<your-name>.testnet pnpm exec tsx tools/near/setup.ts   # creates sub-accounts, deploys the contract + tUSD, registers the demo shop
 pnpm exec tsx tools/near/e2e-chain.ts                              # four real cases; prints explorer links
+pnpm exec tsx tools/near/e2e-pass.ts                               # AI spending pass: create, agent pays, refund to owner, close
 ```
 
 See: `ALL PASSED` and a new file in `near-hackathon/evidence/`. Case A pays four recipients in one transaction;
@@ -98,7 +101,7 @@ pnpm exec tsx tools/near/dev-api.ts &             # API on 127.0.0.1:3001 (+ NEA
 pnpm dev:web                                      # web on http://127.0.0.1:4321
 ```
 
-Then, in a browser (steps 1–8 were run this way on 14 Nov 2026 against NEAR testnet, except that the Export CSV button and the cross-chain panel were checked through the API, not clicked; step 9 is covered by the integration tests, and in the browser only the Staff sign-in and the visible NEAR tab were checked):
+Then, in a browser (steps 1–8 were run this way on 14 Nov 2026 against NEAR testnet, except that the Export CSV button and the cross-chain panel were checked through the API, not clicked; step 10 is covered by the integration tests, and in the browser only the Staff sign-in and the visible NEAR tab were checked):
 
 1. **Sign in.** Open `http://127.0.0.1:4321`, press **Owner** under Quick sign-in. See the sidebar entry
    **NEAR · Living Bill**; open it. *Overview* shows the shop's NEAR accounts and today's money by role.
@@ -120,7 +123,11 @@ Then, in a browser (steps 1–8 were run this way on 14 Nov 2026 against NEAR te
 7. **No witness.** Close the simulated screen tab, make and pay another bill. When the countdown ends (120 s by
    default; set *Witness time before refund* to 30 in *Split recipe* to shorten it) see **Your money came back**
    with the refund transaction. The order stays unpaid and **Open a new bill on NEAR** is offered.
-8. **Other tabs.** *Split recipe* previews a 5.00 bill as you change the percentages. *Café CFO* → **Ask the CFO**
+8. **AI spending pass.** Make a new bill (step 2) and open it. Under *Choose how to pay* open **Let an AI agent pay
+   (time-limited pass)**, pick a length (30 min … 1 month), keep cap 20 / per bill 10 and press **Give the AI a pass**.
+   See *Left on the pass 20.00* and *Ends in …*. Press **Let the AI agent pay this bill**: see **Paid**, the split, and
+   *Payer: alice…* (the customer, not the agent). Run on 14 Nov 2026 in the browser against testnet.
+9. **Other tabs.** *Split recipe* previews a 5.00 bill as you change the percentages. *Café CFO* → **Ask the CFO**
    shows a proposal, the facts the model saw and the options the server offered; without a NEAR AI key it says
    "Sample · no model called". Only **Approve** changes the recipe. On the pay page, *Pay from another chain
    (preview)* shows live NEAR Intents quotes labelled "Mainnet preview · not executed".

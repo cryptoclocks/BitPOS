@@ -250,3 +250,10 @@ main.near-terminal .near-terminal-facts dd{margin:0;overflow-wrap:anywhere;font-
 main.near-terminal .near-terminal-note{max-width:960px;color:var(--n-onmuted);font-size:.82rem;text-align:center}
 
 body:has(>main.near-pay),body:has(>main.near-terminal),body:has(main.near-terminal),body:has(main.near-pay){margin:0}
+/* AI spending pass (pay page) */
+main.near-pay .near-aipass-form,main.near-pay .near-aipass-live{display:grid;gap:10px;margin-top:10px}
+main.near-pay .near-aipass-ttls{flex-wrap:wrap;gap:8px}
+main.near-pay .near-aipass-ttls .near-button{width:auto;flex:1 1 30%;min-height:40px;padding:8px 10px;font-size:.85rem}
+main.near-pay .near-field{display:grid;gap:4px;flex:1;font-size:.8rem;font-weight:700;color:var(--n-muted,#5E6B7A)}
+main.near-pay .near-field input,main.near-pay .near-field select{font:inherit;font-size:1rem;font-weight:700;color:inherit;padding:10px 12px;border:1px solid var(--n-line,#DDE3EA);border-radius:12px;background:#fff;min-height:44px}
+main.near-pay .near-aipass-rules{margin:0;padding-left:18px;font-size:.8rem;line-height:1.4;color:var(--n-muted,#5E6B7A)}

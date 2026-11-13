@@ -8,6 +8,7 @@ import {api} from '../../lib/api';
 import {formatMoney} from '../../lib/money';
 import {LIVE_STATUSES, ROLE_COLOR, nearCode, nearMessage, roleLabel, shareOf, shortAccount, shortHash, txUrl, type BillView, type CrossChainPreview, type Lang, type NearStatus} from '../../lib/near-shared';
 import NearCrossChain from './NearCrossChain';
+import NearAiPass from './NearAiPass';
 import type {NearWalletSession} from '../../lib/near-wallet';
 import Payment from '../Payment';
 import '../../styles/near.css';
@@ -136,6 +137,7 @@ export default function NearPayment({accessToken}: {accessToken: string}) {
         {status.demoWallets.map(account => <button key={account} type="button" className="near-button near-button-outline" disabled={busy} onClick={() => void demoPay(account)}>{text('กระเป๋าเดโม (testnet)', 'Demo wallet (testnet)')} · {account.split('.')[0]}</button>)}
         <p className="near-hint">{text('กุญแจของกระเป๋าเดโมอยู่ที่เซิร์ฟเวอร์ของร้านเพื่อการทดสอบเท่านั้น มันเซ็นคำสั่งจ่ายแบบเดียวกับกระเป๋าจริง และสัญญาเป็นผู้ตัดสินเหมือนกัน', 'The demo wallet\'s key is held by the café\'s server for testing only. It signs the same payment a real wallet would, and the contract decides in the same way.')}</p>
       </div>}
+      <NearAiPass base={base} demoWallets={status.demoWallets} language={language} symbol={symbol} canPay={!busy && !!request} now={now} onBill={view => setStatus(current => current ? {...current, bill: view} : current)} />
       {cross && <details className="near-cross-panel"><summary>{text('จ่ายจากเชนอื่น (ดูตัวอย่าง)', 'Pay from another chain (preview)')}</summary><NearCrossChain preview={cross} language={language} symbol={symbol} /><button type="button" className="near-link" onClick={() => void loadCross()}>{text('เช็กราคาอีกครั้ง', 'Check prices again')}</button></details>}
     </section>
   </>;
