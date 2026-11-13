@@ -48,12 +48,18 @@ done
 mkdir "$TMP/scan" && tar -xzf "$TMP/src.tgz" -C "$TMP/scan" && tar -xzf "$TMP/web.tgz" -C "$TMP/scan"
 if grep -rEl 'AIza[0-9A-Za-z_-]{30,}|-----BEGIN [A-Z ]*PRIVATE KEY|ed25519:[1-9A-HJ-NP-Za-km-z]{80,}|"private_key"|sk_live_' "$TMP/scan" >/dev/null; then
   echo "refusing: an archive contains something that looks like a key" >&2; exit 1; fi
-echo "src $(du -h "$TMP/src.tgz" | cut -f1), web $(du -h "$TMP/web.tgz" | cut -f1)"
+# The runtime image has no NEAR libraries: vendor them (pure JavaScript, versions pinned in package.json) into
+# src/node_modules, which Node resolves before the image's /app/node_modules for files under /app/near-src.
+mkdir "$TMP/vendor" && node -e 'const p=require("./package.json").dependencies;const pick=["near-api-js","@noble/curves","borsh"];require("fs").writeFileSync(process.argv[1],JSON.stringify({name:"bitpos-near-vendor",private:true,dependencies:Object.fromEntries(pick.map(k=>[k,p[k]]))}))' "$TMP/vendor/package.json"
+(cd "$TMP/vendor" && npm install --omit=dev --ignore-scripts --no-audit --no-fund --no-package-lock --loglevel=error >/dev/null) || { echo "vendor install failed" >&2; exit 1; }
+COPYFILE_DISABLE=1 tar -C "$TMP/vendor" -czf "$TMP/vendor.tgz" node_modules
+echo "src $(du -h "$TMP/src.tgz" | cut -f1), web $(du -h "$TMP/web.tgz" | cut -f1), vendor $(du -h "$TMP/vendor.tgz" | cut -f1)"
 
 step "remote preflight (read-only)"
 "${SSH[@]}" 'mkdir -p ~/bitpos-near/preflight && rm -rf ~/bitpos-near/preflight/* && mkdir -p ~/bitpos-near/preflight/src ~/bitpos-near/preflight/web'
 "${SSH[@]}" 'tar -xzf - -C ~/bitpos-near/preflight/src 2>/dev/null' <"$TMP/src.tgz"
 "${SSH[@]}" 'tar -xzf - -C ~/bitpos-near/preflight/web 2>/dev/null' <"$TMP/web.tgz"
+"${SSH[@]}" 'tar -xzf - -C ~/bitpos-near/preflight/src 2>/dev/null' <"$TMP/vendor.tgz"
 "${SSH[@]}" 'bash -s' <<'REMOTE'
 set -uo pipefail
 fail=0; bad(){ echo "FAIL: $*"; fail=1; }; ok(){ echo "ok:   $*"; }
