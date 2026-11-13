@@ -1,3 +1,39 @@
+<!-- NEAR-EDITION -->
+# BitPOS Living Bill — NEAR HACKATHON edition
+
+> **Branch `hackathon/near-2026` · track Real-World Money · NEAR testnet (no real money).**
+> BitPOS is an existing café point of sale (first built on Solana devnet — that product's README follows below,
+> unchanged). **Only the NEAR integration on this branch was built for NEAR HACKATHON**; it is judged on its own.
+> What is new: [near-hackathon/PROVENANCE.md](near-hackathon/PROVENANCE.md) · `git diff --stat near-hackathon-baseline..HEAD`
+
+**What it does.** A café bill becomes an entry in a NEAR contract. The customer pays it once, without holding NEAR
+(the café's relayer pays the gas). In the same transaction the contract pays everyone: the owner, a tax reserve,
+the staff on shift and a supplier invoice that collects itself. Anything that is not exactly the bill — wrong
+amount, expired, paid twice — bounces back to the payer by itself. In witness mode the money waits in the contract
+until the device at the table signs that it showed "paid"; if it never does, the money goes back.
+
+**Try it.**
+
+| Do | See |
+|---|---|
+| Open a real payment on testnet: [one payment, four recipients](https://testnet.nearblocks.io/txns/AZBjrRxtFupDW2Driq7w6ynEwiLE7EBuLDNkjBhwNHGG) | 5.00 tUSD in; 3.55 / 0.50 / 0.35 / 0.60 out to owner, staff, tax, supplier |
+| `python3 -I tools/near/fixture-db.py up`, create `.env` from `near-hackathon/local.env.example`, then `BITPOS_BACKEND_INTEGRATION=1 pnpm exec tsx --test --test-concurrency=1 tests/near-*.test.ts` | `pass 25`, `fail 0` |
+| `cd contracts/near-bills && cargo test` | 14 contract tests pass |
+| `pnpm exec tsx tools/near/e2e-chain.ts` (with your own testnet accounts, see the guide) | four real cases on testnet, `ALL PASSED`, explorer links |
+
+Full steps, the code map and the honest list of limits: **[near-hackathon/JUDGES.md](near-hackathon/JUDGES.md)**.
+Plan (Thai): [near-hackathon/PLAN_TH.md](near-hackathon/PLAN_TH.md). Contract: [contracts/near-bills](contracts/near-bills/src/lib.rs).
+Deployed: `bills.bitpos-near.testnet` (see [near-deployment.json](near-hackathon/near-deployment.json)).
+
+**NEAR features used:** Rust contract with NEP-141 `ft_transfer_call`, batched promise payouts, on-chain
+`ed25519_verify` for a hardware witness, NEP-366 meta transactions, function-call access keys, named sub-accounts,
+global contracts, NEAR Intents 1Click (dry-quote preview only), NEAR AI Cloud with response-signature verification.
+
+**Libraries and services:** listed in [PROVENANCE.md](near-hackathon/PROVENANCE.md#third-party-code-and-services)
+and [docs/THIRD_PARTY_NOTICES.md](docs/THIRD_PARTY_NOTICES.md). Licence: Apache-2.0 ([LICENSE](LICENSE)).
+
+---
+
 # BitPOS
 
 **Cafe checkout that connects a Solana payment to a physical BitPOS Mini.**

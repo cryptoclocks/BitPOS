@@ -228,3 +228,45 @@ fn only_the_owner_allows_tokens() {
     ctx("orbit.test", T0);
     contract.set_token(acc("evil.test"), true);
 }
+
+/// The signature below was produced by the BitPOS Mini firmware's own C code (tools/firmware/near-host-test,
+/// fixed seed 00..1f). The contract must accept exactly what the device signs.
+#[test]
+fn the_firmware_signature_vector_releases_a_bill() {
+    let contract_account = acc("bills.bitpos-near.testnet");
+    let merchant = acc("orbit.bitpos-near.testnet");
+    let at = |predecessor: &str, at_ms: u64| {
+        testing_env!(VMContextBuilder::new()
+            .current_account_id(contract_account.clone())
+            .predecessor_account_id(acc(predecessor))
+            .block_timestamp(at_ms * 1_000_000)
+            .build());
+    };
+    at("owner.test", T0);
+    let mut contract = Contract::new(acc("owner.test"));
+    contract.set_token(acc("tusd.test"), true);
+    contract.set_merchant(merchant.clone(), true);
+    at("orbit.bitpos-near.testnet", T0);
+    contract.open_bill(
+        "b_host_test_0001".into(),
+        acc("tusd.test"),
+        U128(5_000_000),
+        payouts(),
+        U64(T0 + 300_000),
+        Some("03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8".into()),
+        U64(120_000),
+    );
+    at("tusd.test", T0 + 1_000);
+    let _ = contract.ft_on_transfer(
+        acc("alice.test"),
+        U128(5_000_000),
+        r#"{"m":"orbit.bitpos-near.testnet","b":"b_host_test_0001"}"#.into(),
+    );
+    at("relayer.test", T0 + 2_000);
+    let _ = contract.device_ack(
+        merchant.clone(),
+        "b_host_test_0001".into(),
+        "eb8e03ed0378b16870892469166d6f66f2768bc5f65c4028cb4d9286c754a5ace00789a657b5181714f18c623c46d3795a9859d82a5dafed3a3664d125564a04".into(),
+    );
+    assert_eq!(contract.get_bill(merchant, "b_host_test_0001".into()).unwrap().state, BillState::Settling);
+}

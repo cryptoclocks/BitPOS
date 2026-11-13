@@ -143,8 +143,9 @@ export async function createNearBill(token:string):Promise<BillView>{
   const witness=s.witness_device_id?(await db.query<{id:string;public_key_hex:string|null}>('SELECT id,public_key_hex FROM near_devices WHERE merchant_id=$1 AND id=$2 AND active',[merchant,s.witness_device_id])).rows[0]:undefined;
   if(s.witness_device_id&&!witness?.public_key_hex)refuse(409,'NEAR_WITNESS_NOT_READY');
   const id=randomUUID();
-  const k=(await db.query<BillRow>(`INSERT INTO near_bills(merchant_id,id,order_id,quote_id,order_version,chain_bill_id,contract,merchant_account,token_contract,amount_units,witness_device_id,witness_pk,witness_timeout_ms,expires_at)
-   VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING *`,[merchant,id,o.id,a!.quote_id,o.version,'b'+id.replaceAll('-',''),d.config.billsContract,s.near_account,s.token_contract,units.toString(),
+  // next_check_at: the reconcile worker leaves a freshly inserted row to this request for a few seconds.
+  const k=(await db.query<BillRow>(`INSERT INTO near_bills(merchant_id,id,order_id,quote_id,order_version,chain_bill_id,contract,merchant_account,token_contract,amount_units,witness_device_id,witness_pk,witness_timeout_ms,expires_at,next_check_at)
+   VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,clock_timestamp()+interval '15 seconds') RETURNING *`,[merchant,id,o.id,a!.quote_id,o.version,'b'+id.replaceAll('-',''),d.config.billsContract,s.near_account,s.token_contract,units.toString(),
    witness?.id??null,witness?.public_key_hex??null,s.witness_timeout_s*1000,o.quote_expires_at])).rows[0];
   for(const [seq,p] of plan!.entries())await db.query('INSERT INTO near_payouts(merchant_id,bill_id,seq,role,label,near_account,amount_units,recipient_id,invoice_id) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)',[merchant,id,seq,p.role,p.label,p.account,p.amount.toString(),p.recipientId,p.invoiceId]);
   return {k,o,payouts:await payoutsOf(db,merchant,id)};
@@ -223,6 +224,8 @@ export async function demoPay(token:string,wallet:string):Promise<BillView>{
  if(!d.config.demoWallets.includes(wallet)||!d.chain.hasKey(wallet))refuse(404,'RESOURCE_NOT_FOUND');
  const {o,k,payouts}=await liveBillFor(token,merchant);
  if(k.status!=='OPEN')return billView(k,o,payouts);
+ // Keep the demo wallet funded from the test token's own faucet account when the server holds that key (testnet only).
+ if(d.chain.hasKey(k.token_contract)&&await d.chain.ftBalance(k.token_contract,wallet).catch(()=>BigInt(k.amount_units))<BigInt(k.amount_units))await d.chain.faucet(k.token_contract,wallet,BigInt(k.amount_units)+100_000_000n).catch(()=>null);
  const signed=await d.chain.signDemoPayment(wallet,k.token_contract,BigInt(k.amount_units),payMessage(k.merchant_account,k.chain_bill_id));
  return relayPayment(token,signed);
 }
@@ -236,6 +239,8 @@ async function applyPayTx(merchant:string,billId:string,tx:TxView,d:NearDeps):Pr
   if(facts.kind==='PAID'&&k.status==='OPEN'&&!k.pay_tx)await db.query('UPDATE near_bills SET pay_tx=$3 WHERE merchant_id=$1 AND id=$2',[merchant,billId,tx.hash]);
  });
  const r=await advanceBill(merchant,billId,d);
+ // Still unpaid after a finalized attempt: tell the page why instead of showing an unchanged bill.
+ if(r.k.status==='OPEN'&&tx.final){const facts=payTxFacts(expectedOf(r.k,r.payouts),tx);refuse(409,facts.kind==='BOUNCED'?'NEAR_PAYMENT_BOUNCED':'NEAR_PAYMENT_NOT_CONFIRMED');}
  return billView(r.k,r.order,r.payouts);
 }
 

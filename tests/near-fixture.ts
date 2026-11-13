@@ -23,7 +23,7 @@ export function fakeNear(clock:{now:number}){
  const panic=(code:string):never=>{throw new Error('Contract panicked: '+code);};
  const settle=(bill:ChainBill)=>{if(fail.payout){fail.payout=false;bill.state='PayoutFailed';return ['payout_failed',{merchant:bill.merchant,bill_id:bill.bill_id}] as [string,Record<string,unknown>];}bill.state='Settled';bill.closed_at_ms=String(clock.now);return ['bill_settled',{merchant:bill.merchant,bill_id:bill.bill_id,total:bill.total}] as [string,Record<string,unknown>];};
  const chain:NearChain={
-  settings:config,hasKey:()=>true,
+  settings:config,hasKey:(account:string)=>account!==TOKEN,
   async getBill(m,b){calls.push('getBill');if(fail.getBill){fail.getBill=false;throw new Error('fetch failed');}const bill=bills.get(key(m,b));return bill?structuredClone(bill):null;},
   async openBill(m,input){calls.push('open');
    if(fail.open==='network'){fail.open=undefined;throw new Error('fetch failed');}

@@ -5,19 +5,23 @@
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import { KeyPair, actions, nearToYocto, teraToGas } from 'near-api-js';
-import { EXPLORER_TX, account, hasKey, loadPublicKey, provider, saveKey, view } from './lib.ts';
+import { EXPLORER_TX, account, ensureSubAccount, hasKey, loadPublicKey, provider, saveKey, view } from './lib.ts';
 
 const ROOT = process.env.NEAR_ROOT ?? 'bitpos-near.testnet';
 const BILLS = `bills.${ROOT}`, TUSD = `tusd.${ROOT}`, RELAYER = `relayer.${ROOT}`, SHOP = `orbit.${ROOT}`;
 const CIRCLE_USDC = '3e2210e1184b45b64c8a434c0a7e7b23cc04ea7eb7a6c3c32520d03d4afcb8af';
 const GLOBAL_FT = 'ft.globals.primitives.testnet';
 const RECIPIENTS = [BILLS, SHOP, `tax.${SHOP}`, `mai.${SHOP}`, `ton.${SHOP}`, `milkfarm.${ROOT}`, `alice.${ROOT}`, `bob.${ROOT}`, RELAYER];
-const WASM = 'contracts/near-bills/target/near/near_bills.wasm';
+// A fresh local build wins; otherwise the committed release build (same bytes as deployed, see wasm_sha256).
+const WASM = fs.existsSync('contracts/near-bills/target/near/near_bills.wasm') ? 'contracts/near-bills/target/near/near_bills.wasm' : 'contracts/near-bills/release/near_bills.wasm';
 const redeploy = process.argv.includes('--redeploy');
 const txs: Record<string, string> = {};
 const note = (label: string, result: { transaction: { hash: string } }) => { txs[label] = result.transaction.hash; console.log(label, EXPLORER_TX + result.transaction.hash); };
 const gas = teraToGas('100');
 
+// 0. sub-accounts (about 6.5 NEAR of the faucet's 10 in total; skipped when they exist)
+for (const [name, near] of [[BILLS, '3.5'], [TUSD, '0.3'], [RELAYER, '1.5'], [SHOP, '0.6'], [`milkfarm.${ROOT}`, '0.05'], [`alice.${ROOT}`, '0.1'], [`bob.${ROOT}`, '0.1'], [`tax.${SHOP}`, '0.05'], [`mai.${SHOP}`, '0.05'], [`ton.${SHOP}`, '0.05']] as const)
+  if (await ensureSubAccount(name, near)) console.log('created', name);
 const root = account(ROOT);
 const wasm = fs.readFileSync(WASM);
 

@@ -47,3 +47,11 @@ Transitive JavaScript packages added with these dependencies are MIT or Apache-2
 Original notices must remain intact. Project licensing excludes third-party materials covered by their own terms. BitPOS, Phantom, Solana, USDG and other names/logos do not imply endorsement; no trademark rights are granted. Do not add unlicensed music, GIFs or identifiable-person footage to the submission video. A photo license alone may not cover separate publicity, trademark or depicted-artwork rights.
 
 Separate presentation folders/ZIPs are not this repository's verified runtime evidence. Review their images, audio and permissions before submitting them.
+
+## NEAR edition (NEAR HACKATHON work, 2026-11-14)
+
+- **TweetNaCl** version 20140427 by Daniel J. Bernstein, Bernard van Gastel, Wesley Janssen, Tanja Lange, Peter Schwabe and Sjaak Smetsers — public domain (https://tweetnacl.cr.yp.to/). The Ed25519 signing/verification and SHA-512 code in `device/firmware/main/bitpos_near_ed25519.c` is derived from it (seed-derived key pair, detached signatures, fixed-width types). Checked against the RFC 8032 test vectors in `tools/firmware/near-host-test/`.
+- **near-sdk-rs** and **near-contract-standards** (MIT OR Apache-2.0), used by `contracts/near-bills/`.
+- **near-api-js** (MIT OR Apache-2.0), **borsh** (Apache-2.0), **@hot-labs/near-connect** (see its package licence), used by the API and the web pay page.
+- **NEAR global fungible-token contract** `ft.globals.primitives.testnet` (near-examples/FT), used as deployed on testnet for the tUSD demo token.
+

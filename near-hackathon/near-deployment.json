@@ -32,7 +32,7 @@
   "config": {
     "version": "bitpos-near-bills/0.1.0",
     "owner": "bitpos-near.testnet",
-    "bill_count": "0",
+    "bill_count": "6",
     "max_payouts": 10
   },
   "setup_transactions": {

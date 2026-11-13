@@ -3,7 +3,7 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { Account, FailoverRpcProvider, JsonRpcProvider, KeyPair } from 'near-api-js';
+import { Account, FailoverRpcProvider, JsonRpcProvider, KeyPair, nearToYocto } from 'near-api-js';
 
 export const NETWORK = 'testnet';
 export const RPC_URLS = (process.env.NEAR_RPC_URLS ?? 'https://test.rpc.fastnear.com,https://near-testnet.drpc.org').split(',');
@@ -47,3 +47,11 @@ export async function view<T>(contractId: string, method: string, args: Record<s
   return await plain.callFunction({ contractId, method, args }) as T;
 }
 export const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+/** Creates `name` under its parent account with `near` NEAR if it does not exist yet. The parent's key must be here. */
+export async function ensureSubAccount(name: string, near: string): Promise<boolean> {
+  if (await accountExists(name)) { if (!hasKey(name)) throw new Error(`${name} exists but its key is not in ${KEYS_DIR}`); return false; }
+  const keyPair = KeyPair.fromRandom('ed25519');
+  saveKey(name, keyPair);
+  await account(name.split('.').slice(1).join('.')).createAccount({ newAccountId: name, publicKey: keyPair.getPublicKey(), nearToTransfer: nearToYocto(near) });
+  return true;
+}

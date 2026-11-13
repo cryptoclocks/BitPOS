@@ -33,7 +33,7 @@ function fakeCloud(over:{tamperResponse?:boolean;wrongSigner?:boolean;choice?:un
  const http=(async(input:string|URL|Request,init?:RequestInit)=>{
   const url=String(input);const headers=Object.fromEntries(Object.entries((init?.headers??{}) as Record<string,string>).map(([k,v])=>[k.toLowerCase(),v]));
   seen.push({url,headers,body:init?.body?Buffer.from(init.body as Uint8Array).toString('utf8'):undefined});
-  const reply=(status:number,bytes:Buffer)=>new Response(bytes,{status,headers:{'content-type':'application/json'}});
+  const reply=(status:number,bytes:Buffer)=>new Response(new Uint8Array(bytes),{status,headers:{'content-type':'application/json'}});
   if(url.includes('/attestation/report')){const nonce=new URL(url).searchParams.get('nonce');
    return reply(200,Buffer.from(JSON.stringify({gateway_attestation:{signing_address:gateway,signing_algo:'ed25519',request_nonce:nonce},model_attestations:[{model_name:'z-ai/glm-5.3-flash',signing_address:'ab'.repeat(32),signing_algo:'ed25519',request_nonce:nonce}]})));}
   if(url.endsWith('/chat/completions')){requestBytes=Buffer.from(init!.body as Uint8Array);

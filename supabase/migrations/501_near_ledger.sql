@@ -146,9 +146,20 @@ CREATE TRIGGER near_block_solana_attempt BEFORE INSERT ON payment_attempts FOR E
 
 -- Pre-existing function (migration 055), extended: an order is not safe to close or expire while the contract holds
 -- its money (escrow, payout in flight or failed) or after an on-chain settlement that is not yet recorded here.
--- Body otherwise unchanged.
+-- The base body is unchanged. On a database that also carries the PayPal edition (its migration 401 extended the same
+-- function), the PayPal clauses are kept: the function is rebuilt from the base plus every edition present.
+DO $near_unpaid_order_safe$
+DECLARE v_extra text:='';
+BEGIN
+ IF to_regclass('bitpos.paypal_checkouts') IS NOT NULL AND to_regclass('bitpos.paypal_settlements') IS NOT NULL THEN
+  v_extra:=$clause$
+ AND NOT EXISTS(SELECT 1 FROM bitpos.paypal_checkouts c WHERE c.merchant_id=o.merchant_id AND c.order_id=o.id
+ AND c.status IN ('CAPTURING','PENDING','UNKNOWN','CAPTURED'))
+ AND NOT EXISTS(SELECT 1 FROM bitpos.paypal_settlements s WHERE s.merchant_id=o.merchant_id AND s.order_id=o.id)$clause$;
+ END IF;
+ EXECUTE $fn$
 CREATE OR REPLACE FUNCTION bitpos.unpaid_order_safe(p_merchant uuid,p_order uuid)
-RETURNS boolean LANGUAGE sql VOLATILE SECURITY INVOKER SET search_path=bitpos,pg_temp AS $$
+RETURNS boolean LANGUAGE sql VOLATILE SECURITY INVOKER SET search_path=bitpos,pg_temp AS $body$
  SELECT EXISTS(SELECT 1 FROM orders o WHERE o.merchant_id=p_merchant AND o.id=p_order
  AND (o.status IN ('AWAITING_WALLET','AWAITING_PAYMENT','EXPIRED')
  OR (o.status='CONFIRMING' AND bitpos.online_acceptance_ended(p_merchant,p_order)
@@ -156,10 +167,12 @@ RETURNS boolean LANGUAGE sql VOLATILE SECURITY INVOKER SET search_path=bitpos,pg
  AND NOT EXISTS(SELECT 1 FROM payment_attempts p WHERE p.merchant_id=o.merchant_id AND p.order_id=o.id
  AND NOT (p.status IN ('EXPIRED','FAILED','REJECTED') AND p.failure_reconciled_at IS NOT NULL)
  AND (p.signature IS NOT NULL OR p.signed_base64 IS NOT NULL OR p.status IN ('READY','SUBMITTING','SUBMITTED','CONFIRMED')
- OR (p.transaction_base64 IS NOT NULL AND p.status NOT IN ('EXPIRED','FAILED','REJECTED'))))
+ OR (p.transaction_base64 IS NOT NULL AND p.status NOT IN ('EXPIRED','FAILED','REJECTED'))))$fn$||v_extra||$fn$
  AND NOT EXISTS(SELECT 1 FROM bitpos.near_bills b WHERE b.merchant_id=o.merchant_id AND b.order_id=o.id
  AND b.status IN ('ESCROW','SETTLING','PAYOUT_FAILED','SETTLED'))
  AND NOT EXISTS(SELECT 1 FROM bitpos.near_settlements s WHERE s.merchant_id=o.merchant_id AND s.order_id=o.id));
-$$;
+$body$;
+$fn$;
+END $near_unpaid_order_safe$;
 REVOKE ALL ON FUNCTION bitpos.unpaid_order_safe(uuid,uuid) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION bitpos.unpaid_order_safe(uuid,uuid) TO bitpos_app;
