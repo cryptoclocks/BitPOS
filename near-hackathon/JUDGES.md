@@ -98,7 +98,7 @@ pnpm exec tsx tools/near/dev-api.ts &             # API on 127.0.0.1:3001 (+ NEA
 pnpm dev:web                                      # web on http://127.0.0.1:4321
 ```
 
-Then, in a browser (every step below was run this way on 14 Nov 2026 against NEAR testnet):
+Then, in a browser (steps 1–8 were run this way on 14 Nov 2026 against NEAR testnet, except that the Export CSV button and the cross-chain panel were checked through the API, not clicked; step 9 is covered by the integration tests, and in the browser only the Staff sign-in and the visible NEAR tab were checked):
 
 1. **Sign in.** Open `http://127.0.0.1:4321`, press **Owner** under Quick sign-in. See the sidebar entry
    **NEAR · Living Bill**; open it. *Overview* shows the shop's NEAR accounts and today's money by role.
