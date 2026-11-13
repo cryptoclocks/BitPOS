@@ -121,7 +121,7 @@ export const apiRoutes: [RegExp, readonly string[]][] = [
   [/^pay\/[A-Za-z0-9_-]+\/x402$/, ['POST']],
   // NEAR HACKATHON work: NEAR Living Bill checkout for a bill, and the witness screen protocol (see near-hackathon/PROVENANCE.md).
   [/^pay\/[A-Za-z0-9_-]+\/near(\/crosschain)?$/, ['GET']],
-  [/^pay\/[A-Za-z0-9_-]+\/near\/(bill|relay|submitted|demo-pay|reclaim|faucet)$/, ['POST']],
+  [/^pay\/[A-Za-z0-9_-]+\/near\/(bill|relay|submitted|demo-pay|reclaim|faucet|pass|pass-status|pass-pay|pass-close)$/, ['POST']],
   [/^near-device\/state$/, ['GET']],
   [/^near-device\/(register|ack)$/, ['POST']],
   [/^x402\/supported$/, ['GET']],
