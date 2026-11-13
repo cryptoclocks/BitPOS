@@ -1,0 +1,92 @@
+{
+ "network": "testnet",
+ "contract": "bills.bitpos-near.testnet",
+ "agent": "agent.bitpos-near.testnet",
+ "pass_owner": "bob.bitpos-near.testnet",
+ "pass_id": "pass-dd1d7c7a",
+ "ran_at": "2026-11-13T22:03:35.187Z",
+ "result": "all assertions passed",
+ "agent_key": "function-call key limited to pass_pay",
+ "steps": [
+  {
+   "step": "create pass (1 hour, cap 20, per bill 10, Orbit only)",
+   "tx": "https://testnet.nearblocks.io/txns/6fFD1BHdihT8mBDfiz3Buu74AVQuoQRuKsjRg2tU9JTJ",
+   "ok": true,
+   "events": [
+    "nep141:ft_transfer",
+    "bitpos-near:pass_created"
+   ]
+  },
+  {
+   "step": "open bill A",
+   "tx": "https://testnet.nearblocks.io/txns/Bz2d9gpEksZnCYV3YuNxGUtpQhHnKJK1Dx1LEmxLuEtQ",
+   "ok": true,
+   "events": [
+    "bitpos-near:bill_opened"
+   ]
+  },
+  {
+   "step": "agent pays bill A from the pass",
+   "tx": "https://testnet.nearblocks.io/txns/4Y6n14WrTz26MqfUmHgqMQoNNdfWkLmSrCoqY582xmaU",
+   "ok": true,
+   "events": [
+    "bitpos-near:bill_paid",
+    "nep141:ft_transfer",
+    "nep141:ft_transfer",
+    "nep141:ft_transfer",
+    "nep141:ft_transfer",
+    "bitpos-near:bill_settled"
+   ]
+  },
+  {
+   "step": "open witness bill B (30 s window)",
+   "tx": "https://testnet.nearblocks.io/txns/7kJNoTUX3XLs6hAfP4wRXzbdUkP2NubYYpich3Jjgb8b",
+   "ok": true,
+   "events": [
+    "bitpos-near:bill_opened"
+   ]
+  },
+  {
+   "step": "agent pays bill B from the pass",
+   "tx": "https://testnet.nearblocks.io/txns/3FGdHVQjhn3CSVqQN33XAV5UfnUTy27JvvSnShVEhakz",
+   "ok": true,
+   "events": [
+    "bitpos-near:bill_paid"
+   ]
+  },
+  {
+   "step": "not served in time: reclaim bill B",
+   "tx": "https://testnet.nearblocks.io/txns/CtKPPqAsg2zrtQcVxJFSRjxQFZwj4g7o8J4R7Y1B8cDW",
+   "ok": true,
+   "events": [
+    "nep141:ft_transfer",
+    "bitpos-near:bill_refunded"
+   ]
+  },
+  {
+   "step": "owner closes the pass",
+   "tx": "https://testnet.nearblocks.io/txns/7efKcZedJf8B3PKAVKrcFCfNtGB4k5muynz2UgRaSGNr",
+   "ok": true,
+   "events": [
+    "nep141:ft_transfer",
+    "bitpos-near:pass_closed"
+   ]
+  },
+  {
+   "step": "open bill C",
+   "tx": "https://testnet.nearblocks.io/txns/81TxaWaQ1v5kDeXbZgim7emsZozsFriaPyUUFqFxhgD3",
+   "ok": true,
+   "events": [
+    "bitpos-near:bill_opened"
+   ]
+  },
+  {
+   "step": "void bill C",
+   "tx": "https://testnet.nearblocks.io/txns/EFoZcRqaqbQQANhsp6mmUnXEtZSrhJ3oFyi41vs9z4Cu",
+   "ok": true,
+   "events": [
+    "bitpos-near:bill_voided"
+   ]
+  }
+ ]
+}

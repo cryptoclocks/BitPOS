@@ -24,19 +24,26 @@
     ],
     "supplier": "milkfarm.bitpos-near.testnet"
   },
+  "ai_agent": {
+    "account": "agent.bitpos-near.testnet",
+    "pass_key_public": "ed25519:6hQjq5UU9ppA7meD5GDj4TkdTs74rfn7reZonWNyrejG",
+    "methods": [
+      "pass_pay"
+    ]
+  },
   "demo_customers": [
     "alice.bitpos-near.testnet",
     "bob.bitpos-near.testnet"
   ],
-  "wasm_sha256": "d9d85824b82a5898fa49ceb7854ff77af2c56fbb7c9abfc0e6dfb8cf9a4d1a73",
+  "wasm_sha256": "4bf53f40ea0d998798e0ad36909d16095c0359c7c74196319a339fce099ce15c",
   "config": {
-    "version": "bitpos-near-bills/0.1.0",
+    "version": "bitpos-near-bills/0.2.0",
     "owner": "bitpos-near.testnet",
-    "bill_count": "6",
+    "bill_count": "9",
     "max_payouts": 10
   },
   "setup_transactions": {
-    "bills_deploy": "EZGVdKmx1HHZcj1inUBAivYNdcV6tT8J9w678AEDbQEZ",
+    "bills_deploy": "DiKQYCoS38ujivBU3VH2m2BxkZVZZeZ8h2ZYUDNcs3hw",
     "set_token_tusd.bit": "52816Fys5PS8hPQDKJbydj2uhfD8TUR5kb9P1QWQ5YNg",
     "set_token_3e2210e1": "GJLTH6Fh8mVD3xB8HU2GxJjaZv7pUSBLVaAYQKYyCLiq",
     "set_merchant": "GomEx3oogvkiMnwKy4VmSiTm6sPewN1dkfmwsoh7Z3p3",
@@ -52,6 +59,7 @@
     "storage_3e22_bills": "3pW7fm1jgNE3xURK1jZSKb1DD2nPSM7ac5WfGwg2avnB",
     "fund_alice": "CqFwzdB7TsosX8z5S4sT9jqsqzR6X6px6BiEjHDsJbpR",
     "fund_bob": "PyrTS6ov4LtQ9ehM5KV95Spte22zuhK1NNhS9Bk22m6",
-    "cashier_key": "7RmL7pPRbxEtGs1HyBvy3aQe2RVt9AMx7WFVw6HUAYfZ"
+    "cashier_key": "7RmL7pPRbxEtGs1HyBvy3aQe2RVt9AMx7WFVw6HUAYfZ",
+    "agent_pass_key": "BmVieaUihvS7jA5NRLkb5nDZvUimAnB8CsBmtkBWWr1P"
   }
 }

@@ -6,16 +6,17 @@ import pg from 'pg';
 import {randomBytes} from 'node:crypto';
 import {ed25519} from '@noble/curves/ed25519';
 import {tableFixture} from './backend-table-fixture';
-import {payMessage,witnessMessage,type ChainBill,type NearChain,type TxView} from '../apps/api/src/near/chain';
+import {payMessage,witnessMessage,type ChainBill,type ChainPass,type NearChain,type TxView} from '../apps/api/src/near/chain';
 import type {NearConfig} from '../apps/api/src/near/config';
 
 export const CONTRACT='bills.fake.testnet',TOKEN='tusd.fake.testnet',SHOP_ACCOUNT='orbit.fake.testnet',ALICE='alice.fake.testnet';
-export const config:NearConfig={network:'testnet',rpcUrls:['https://rpc.invalid'],billsContract:CONTRACT,relayerAccount:'relayer.fake.testnet',privateDir:'/nonexistent',explorerTx:'https://testnet.nearblocks.io/txns/',demoWallets:[ALICE]};
+export const config:NearConfig={network:'testnet',rpcUrls:['https://rpc.invalid'],billsContract:CONTRACT,relayerAccount:'relayer.fake.testnet',privateDir:'/nonexistent',explorerTx:'https://testnet.nearblocks.io/txns/',demoWallets:[ALICE],agentAccount:'agent.fake.testnet'};
 const B58='123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
 const hash=()=>Array.from(randomBytes(44),b=>B58[b%58]).join('');
 
 /** In-memory bills contract. `fail` injects one failure into the next matching call. */
 export function fakeNear(clock:{now:number}){
+ const passes=new Map<string,ChainPass>();
  const bills=new Map<string,ChainBill>(),txs=new Map<string,TxView>(),calls:string[]=[];
  const fail:{open?:'lost'|'network';payout?:boolean;getBill?:boolean}={};
  const key=(m:string,b:string)=>`${m}:${b}`;
@@ -39,7 +40,11 @@ export function fakeNear(clock:{now:number}){
   async reclaim(m,b){calls.push('reclaim');const bill=bills.get(key(m,b))!;if(!['Escrow','PayoutFailed'].includes(bill.state))panic('BILL_NOT_HELD');if(clock.now<=Number(bill.paid_at_ms)+Number(bill.witness_timeout_ms))panic('WITNESS_WINDOW_OPEN');bill.state='Refunded';return tx(true,[['bill_refunded',{merchant:m,bill_id:b,reason:'timeout'}]]);},
   async retryPayout(m,b){calls.push('retry');const bill=bills.get(key(m,b))!;if(bill.state!=='PayoutFailed')panic('BILL_NOT_FAILED');return tx(true,[settle(bill)]);},
   inspectDelegate(base64){const d=JSON.parse(Buffer.from(base64,'base64').toString());return {sender:d.sender,receiver:d.token,calls:[{method:d.method??'ft_transfer_call',args:{receiver_id:d.receiver,amount:d.amount,msg:d.msg},gas:BigInt(d.gas??'250000000000000'),deposit:BigInt(d.deposit??'1')}],otherActions:d.other??0};},
-  async relay(base64){calls.push('relay');const d=JSON.parse(Buffer.from(base64,'base64').toString());let m='',b='';try{({m,b}=JSON.parse(d.msg));}catch{/* bounced below */}
+  async relay(base64){calls.push('relay');const d=JSON.parse(Buffer.from(base64,'base64').toString());
+   if(String(d.msg).includes('"pass"')){const p=JSON.parse(d.msg).pass;const k=key(d.sender,p.id);if(passes.has(k))return tx(true,[['payment_bounced',{reason:'PASS_EXISTS'}]]);
+    passes.set(k,{owner:d.sender,pass_id:p.id,agent:p.agent,token:d.token,cap:d.amount,balance:d.amount,max_bill:p.max_bill,merchant:p.merchant??null,created_at_ms:String(clock.now),expires_at_ms:String(clock.now+Number(p.ttl_ms)),bills_paid:0,closed:false});
+    return tx(true,[['pass_created',{owner:d.sender,pass_id:p.id}]]);}
+   let m='',b='';try{({m,b}=JSON.parse(d.msg));}catch{/* bounced below */}
    const bill=bills.get(key(m,b));const bounce=(reason:string)=>tx(true,[['payment_bounced',{token:d.token,payer:d.sender,amount:d.amount,reason}]]);
    if(!bill)return bounce('BILL_NOT_FOUND');if(bill.state!=='Open')return bounce('BILL_NOT_OPEN');if(bill.token!==d.token)return bounce('WRONG_TOKEN');
    if(clock.now>Number(bill.expires_at_ms))return bounce('BILL_EXPIRED');if(bill.total!==d.amount)return bounce('WRONG_AMOUNT');
@@ -49,7 +54,16 @@ export function fakeNear(clock:{now:number}){
   async tx(h){const t=txs.get(h);if(!t)throw new Error('UNKNOWN_TRANSACTION');return t;},
   async ftBalance(){return 0n;},async isRegistered(){return true;},async register(){calls.push('register');return tx(true);},async accountExists(id){return !id.startsWith('missing');},
   async signDemoPayment(customer,token,amount,msg){return Buffer.from(JSON.stringify({sender:customer,token,receiver:CONTRACT,amount:amount.toString(),msg})).toString('base64');},
-  async faucet(){return tx(true);}
+  async faucet(){return tx(true);},
+  async getPass(o,id){const p=passes.get(key(o,id));return p?structuredClone(p):null;},
+  async passPay(agent,o,id,m,b){calls.push('passPay');const p=passes.get(key(o,id));if(!p)panic('PASS_NOT_FOUND');if(agent!==p!.agent)panic('AGENT_ONLY');if(p!.closed)panic('PASS_CLOSED');if(clock.now>Number(p!.expires_at_ms))panic('PASS_EXPIRED');
+   if(p!.merchant&&p!.merchant!==m)panic('PASS_MERCHANT_MISMATCH');const bill=bills.get(key(m,b));if(!bill||bill.state!=='Open')panic('BILL_NOT_OPEN');
+   if(BigInt(bill!.total)>BigInt(p!.max_bill))panic('PASS_BILL_LIMIT');if(BigInt(bill!.total)>BigInt(p!.balance))panic('PASS_BALANCE_LOW');
+   p!.balance=(BigInt(p!.balance)-BigInt(bill!.total)).toString();p!.bills_paid++;bill!.payer=o;bill!.paid_at_ms=String(clock.now);
+   const paid:[string,Record<string,unknown>]=['bill_paid',{merchant:m,bill_id:b,token:bill!.token,payer:o,amount:bill!.total,escrow:bill!.witness_pk!==null,pass_id:id}];
+   if(bill!.witness_pk){bill!.state='Escrow';return tx(true,[paid]);}return tx(true,[paid,settle(bill!)]);},
+  async passClose(signer,o,id){calls.push('passClose');const p=passes.get(key(o,id));if(!p)panic('PASS_NOT_FOUND');if(p!.closed)panic('PASS_CLOSED');if(signer!==o&&clock.now<=Number(p!.expires_at_ms))panic('PASS_STILL_ACTIVE');
+   const refunded=p!.balance;p!.closed=true;p!.balance='0';return tx(true,[['pass_closed',{owner:o,pass_id:id,refunded}]]);}
  };
  /** A payment the customer's wallet would sign; `over` tampers with it. */
  const delegate=(bill:{token:string;amount:string;msg:string},over:Record<string,unknown>={})=>Buffer.from(JSON.stringify({sender:ALICE,token:bill.token,receiver:CONTRACT,amount:bill.amount,msg:bill.msg,...over})).toString('base64');

@@ -41,6 +41,15 @@ export interface DelegateSummary {
   calls: { method: string; args: unknown; gas: bigint; deposit: bigint }[];
   otherActions: number;
 }
+/** AI spending pass, as stored by the bills contract (amounts in token minor units, as strings). */
+export interface ChainPass {
+  owner: string; pass_id: string; agent: string; token: string; cap: string; balance: string; max_bill: string;
+  merchant: string | null; created_at_ms: string; expires_at_ms: string; bills_paid: number; closed: boolean;
+}
+export const PASS_TTLS_MS = { '30m': 1_800_000, '1h': 3_600_000, '1d': 86_400_000, '1w': 604_800_000, '1mo': 2_592_000_000 } as const;
+export type PassTtl = keyof typeof PASS_TTLS_MS;
+export const passMessage = (input: { passId: string; agent: string; ttlMs: number; maxBill: bigint; merchant: string | null }) =>
+  JSON.stringify({ pass: { id: input.passId, agent: input.agent, ttl_ms: String(input.ttlMs), max_bill: input.maxBill.toString(), ...(input.merchant ? { merchant: input.merchant } : {}) } });
 export interface NearChain {
   settings: NearSettings;
   getBill(merchant: string, billId: string): Promise<ChainBill | null>;
@@ -62,6 +71,11 @@ export interface NearChain {
   /** Demo wallets only: signs a gasless payment with a testnet key held by the server. */
   signDemoPayment(customer: string, token: string, amount: bigint, msg: string): Promise<string>;
   hasKey(accountId: string, label?: string): boolean;
+  getPass(owner: string, passId: string): Promise<ChainPass | null>;
+  /** Signed with the agent's function-call key: it can call `pass_pay` and nothing else. */
+  passPay(agent: string, owner: string, passId: string, merchant: string, billId: string): Promise<TxView>;
+  /** `signer` is the owner (any time) or the relayer (only after expiry: the contract decides). */
+  passClose(signer: string, owner: string, passId: string): Promise<TxView>;
   /** Testnet demo faucet: the test token's own account sends a small amount. Only for tokens whose key the server holds. */
   faucet(token: string, accountId: string, amount: bigint): Promise<TxView>;
 }
@@ -180,6 +194,9 @@ export function realChain(settings: NearSettings): NearChain {
       try { await rpc(provider => provider.viewAccount({ accountId })); return true; }
       catch (error) { if (/AccountDoesNotExist|UNKNOWN_ACCOUNT|does not exist/i.test(`${(error as Error)?.constructor?.name} ${(error as Error)?.message}`)) return false; throw error; }
     },
+    getPass: (owner, passId) => view<ChainPass | null>(bills, 'get_pass', { owner, pass_id: passId }),
+    passPay: (agent, owner, passId, merchant, billId) => call(agent, 'pass', bills, 'pass_pay', { owner, pass_id: passId, merchant, bill_id: billId }),
+    passClose: (signerId, owner, passId) => call(signerId, '', bills, 'pass_close', { owner, pass_id: passId }, 0n, teraToGas('60')),
     faucet: (token, accountId, amount) => call(token, '', token, 'ft_transfer', { receiver_id: accountId, amount: amount.toString(), memo: 'BitPOS demo faucet' }, 1n, teraToGas('30')),
     async signDemoPayment(customer, token, amount, msg) {
       const { signedDelegate } = await signer(customer).createSignedMetaTransaction({

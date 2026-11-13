@@ -9,6 +9,9 @@
 //   POST /api/pay/:token/near/reclaim     send an unwitnessed payment back to the payer after the window
 //   POST /api/pay/:token/near/faucet      {account} testnet demo tokens for a visitor's own wallet
 //   GET  /api/pay/:token/near/crosschain  mainnet PREVIEW (dry quotes): this bill paid from another chain's stablecoin
+//   POST /api/pay/:token/near/pass        {wallet,ttl,cap,maxBill} demo wallet funds an AI spending pass for this café
+//   POST /api/pay/:token/near/pass-status {owner,passId}   POST pass-pay {owner,passId} the AI agent pays this bill
+//   POST /api/pay/:token/near/pass-close  {owner,passId} end the pass; the unspent balance goes back to the owner
 //   GET  /near/device/state?d=&l=         POST /near/device/register?d=   POST /near/device/ack?d=
 //   (the same three also under /api/near-device/ so a browser screen can reach them through the web proxy)
 import type {IncomingMessage,ServerResponse} from 'node:http';
@@ -16,17 +19,20 @@ import {z} from 'zod';
 import {RequestError} from '../authority';
 import {isAccountId} from './chain';
 import {NearRouteError,createNearBill,demoPay,nearDeps,nearStatus,reclaimBill,relayPayment,submittedPayment} from './bills';
+import {closePass,createPass,passPay,passStatus} from './passes';
 import {deviceAck,deviceRegister,deviceState} from './device';
 import {intentsEnabled,intentsPreview} from './intents';
 import {pool,tenant} from '../db';
 import {settingsOf} from './bills';
 
-const PAY=/^\/api\/pay\/([A-Za-z0-9_-]{20,128})\/near(?:\/(bill|relay|submitted|demo-pay|reclaim|faucet|crosschain))?$/;
+const PAY=/^\/api\/pay\/([A-Za-z0-9_-]{20,128})\/near(?:\/(bill|relay|submitted|demo-pay|reclaim|faucet|crosschain|pass|pass-status|pass-pay|pass-close))?$/;
 const DEVICE=/^\/(?:near\/device|api\/near-device)\/(state|register|ack)$/;
 const account=z.string().refine(v=>isAccountId(v)&&v.endsWith('.testnet'));
 const relayBody=z.object({signedDelegate:z.string().regex(/^[A-Za-z0-9+/=]{100,6000}$/)}).strict();
 const submittedBody=z.object({txHash:z.string().regex(/^[1-9A-HJ-NP-Za-km-z]{32,64}$/),signerId:account}).strict();
 const demoBody=z.object({wallet:account}).strict();
+const passBody=z.object({wallet:account,ttl:z.enum(['30m','1h','1d','1w','1mo']),cap:z.string().max(12),maxBill:z.string().max(12)}).strict();
+const passRef=z.object({owner:account,passId:z.string().regex(/^[A-Za-z0-9_-]{1,64}$/)}).strict();
 const faucetBody=z.object({account}).strict();
 const registerBody=z.object({pk:z.string().regex(/^[0-9a-f]{64}$/)}).strict();
 const ackBody=z.object({bill:z.string().regex(/^b[0-9a-f]{32}$/),sig:z.string().regex(/^[0-9a-f]{128}$/),pk:z.string().regex(/^[0-9a-f]{64}$/)}).strict();
@@ -79,6 +85,10 @@ export async function serveNear(req:IncomingMessage,res:ServerResponse):Promise<
   if(action==='bill'){z.object({}).strict().parse(body);json(res,200,await createNearBill(token));}
   else if(action==='relay')json(res,200,await relayPayment(token,relayBody.parse(body).signedDelegate));
   else if(action==='submitted'){const b=submittedBody.parse(body);json(res,200,await submittedPayment(token,b.txHash,b.signerId));}
+  else if(action==='pass')json(res,200,await createPass(token,passBody.parse(body)));
+  else if(action==='pass-status'){const b=passRef.parse(body);json(res,200,await passStatus(token,b.owner,b.passId));}
+  else if(action==='pass-pay'){const b=passRef.parse(body);json(res,200,await passPay(token,b.owner,b.passId));}
+  else if(action==='pass-close'){const b=passRef.parse(body);json(res,200,await closePass(token,b.owner,b.passId));}
   else if(action==='demo-pay')json(res,200,await demoPay(token,demoBody.parse(body).wallet));
   else if(action==='reclaim'){z.object({}).strict().parse(body);json(res,200,await reclaimBill(token));}
   else json(res,200,await faucet(token,faucetBody.parse(body).account));

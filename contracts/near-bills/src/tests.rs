@@ -270,3 +270,133 @@ fn the_firmware_signature_vector_releases_a_bill() {
     );
     assert_eq!(contract.get_bill(merchant, "b_host_test_0001".into()).unwrap().state, BillState::Settling);
 }
+
+// ---- AI spending pass ----------------------------------------------------
+
+fn pass_msg(id: &str, ttl: u64, max_bill: Option<u128>, merchant: Option<&str>) -> String {
+    let mut p = serde_json::json!({"id": id, "agent": "agent.test", "ttl_ms": ttl.to_string()});
+    if let Some(m) = max_bill { p["max_bill"] = serde_json::json!(m.to_string()); }
+    if let Some(m) = merchant { p["merchant"] = serde_json::json!(m); }
+    serde_json::json!({"pass": p}).to_string()
+}
+fn make_pass(contract: &mut Contract, id: &str, cap: u128, ttl: u64, max_bill: Option<u128>, merchant: Option<&str>) -> U128 {
+    ctx("tusd.test", T0);
+    match contract.ft_on_transfer(acc("guest.test"), U128(cap), pass_msg(id, ttl, max_bill, merchant)) {
+        PromiseOrValue::Value(v) => v,
+        PromiseOrValue::Promise(_) => panic!("unexpected promise"),
+    }
+}
+
+#[test]
+fn pass_ttls_are_the_five_offered_lengths() {
+    let mut c = setup();
+    for ttl in PASS_TTLS_MS {
+        assert_eq!(make_pass(&mut c, &format!("p{ttl}"), 20_000_000, ttl, None, None), U128(0));
+    }
+    assert_eq!(make_pass(&mut c, "odd", 20_000_000, 7_200_000, None, None), U128(20_000_000), "2 hours is not offered: bounced");
+    assert_eq!(make_pass(&mut c, "p1800000", 1, 1_800_000, None, None), U128(1), "duplicate id bounced");
+    let pass = c.get_pass(acc("guest.test"), "p86400000".into()).unwrap();
+    assert_eq!(pass.expires_at_ms.0, T0 + 86_400_000);
+    assert_eq!(pass.balance, U128(20_000_000));
+}
+
+#[test]
+fn agent_pays_exact_bill_and_owner_is_the_payer() {
+    let mut c = setup();
+    make_pass(&mut c, "p1", 20_000_000, 3_600_000, Some(10_000_000), Some("orbit.test"));
+    open(&mut c, "b1", false);
+    ctx("agent.test", T0 + 1000);
+    let r = c.pass_pay(acc("guest.test"), "p1".into(), acc("orbit.test"), "b1".into());
+    assert!(matches!(r, PromiseOrValue::Promise(_)), "no-witness bill pays out at once");
+    let bill = c.get_bill(acc("orbit.test"), "b1".into()).unwrap();
+    assert_eq!(bill.state, BillState::Settling);
+    assert_eq!(bill.payer, Some(acc("guest.test")), "refunds would go to the owner, not the agent");
+    let pass = c.get_pass(acc("guest.test"), "p1".into()).unwrap();
+    assert_eq!(pass.balance, U128(15_000_000));
+    assert_eq!(pass.bills_paid, 1);
+}
+
+#[test]
+#[should_panic(expected = "AGENT_ONLY")]
+fn only_the_agent_can_spend() {
+    let mut c = setup();
+    make_pass(&mut c, "p1", 20_000_000, 3_600_000, None, None);
+    open(&mut c, "b1", false);
+    ctx("mallory.test", T0 + 1000);
+    c.pass_pay(acc("guest.test"), "p1".into(), acc("orbit.test"), "b1".into());
+}
+
+#[test]
+#[should_panic(expected = "PASS_EXPIRED")]
+fn expired_pass_cannot_spend() {
+    let mut c = setup();
+    make_pass(&mut c, "p1", 20_000_000, 1_800_000, None, None);
+    open(&mut c, "b1", false);
+    ctx("agent.test", T0 + 1_800_001);
+    c.pass_pay(acc("guest.test"), "p1".into(), acc("orbit.test"), "b1".into());
+}
+
+#[test]
+#[should_panic(expected = "PASS_BILL_LIMIT")]
+fn per_bill_limit_holds() {
+    let mut c = setup();
+    make_pass(&mut c, "p1", 20_000_000, 3_600_000, Some(4_000_000), None);
+    open(&mut c, "b1", false);
+    ctx("agent.test", T0 + 1000);
+    c.pass_pay(acc("guest.test"), "p1".into(), acc("orbit.test"), "b1".into());
+}
+
+#[test]
+#[should_panic(expected = "PASS_MERCHANT_MISMATCH")]
+fn merchant_lock_holds() {
+    let mut c = setup();
+    make_pass(&mut c, "p1", 20_000_000, 3_600_000, None, Some("other.test"));
+    open(&mut c, "b1", false);
+    ctx("agent.test", T0 + 1000);
+    c.pass_pay(acc("guest.test"), "p1".into(), acc("orbit.test"), "b1".into());
+}
+
+#[test]
+fn unserved_witness_bill_paid_by_pass_refunds_the_owner() {
+    let mut c = setup();
+    make_pass(&mut c, "p1", 20_000_000, 86_400_000, None, None);
+    open(&mut c, "b1", true);
+    ctx("agent.test", T0 + 1000);
+    assert!(matches!(c.pass_pay(acc("guest.test"), "p1".into(), acc("orbit.test"), "b1".into()), PromiseOrValue::Value(_)));
+    assert_eq!(c.get_bill(acc("orbit.test"), "b1".into()).unwrap().state, BillState::Escrow);
+    let timeout = c.get_bill(acc("orbit.test"), "b1".into()).unwrap().witness_timeout_ms.0;
+    ctx("anyone.test", T0 + 1000 + timeout + 1);
+    c.reclaim(acc("orbit.test"), "b1".into());
+    let bill = c.get_bill(acc("orbit.test"), "b1".into()).unwrap();
+    assert_eq!(bill.state, BillState::Refunding);
+    assert_eq!(bill.payer, Some(acc("guest.test")));
+}
+
+#[test]
+fn close_rules_owner_anytime_anyone_after_expiry() {
+    let mut c = setup();
+    make_pass(&mut c, "p1", 20_000_000, 1_800_000, None, None);
+    ctx("guest.test", T0 + 10);
+    assert!(matches!(c.pass_close(acc("guest.test"), "p1".into()), PromiseOrValue::Promise(_)));
+    let pass = c.get_pass(acc("guest.test"), "p1".into()).unwrap();
+    assert!(pass.closed);
+    assert_eq!(pass.balance, U128(0));
+    // a failed refund transfer puts the money back and ends the pass
+    ctx_callback(T0 + 20, false);
+    c.on_pass_close("guest.test:p1".into(), U128(20_000_000), "owner".into());
+    let pass = c.get_pass(acc("guest.test"), "p1".into()).unwrap();
+    assert!(!pass.closed);
+    assert_eq!(pass.balance, U128(20_000_000));
+    assert!(pass.expires_at_ms.0 < T0 + 20);
+    ctx("anyone.test", T0 + 30);
+    assert!(matches!(c.pass_close(acc("guest.test"), "p1".into()), PromiseOrValue::Promise(_)));
+}
+
+#[test]
+#[should_panic(expected = "PASS_STILL_ACTIVE")]
+fn stranger_cannot_close_an_active_pass() {
+    let mut c = setup();
+    make_pass(&mut c, "p1", 20_000_000, 3_600_000, None, None);
+    ctx("mallory.test", T0 + 10);
+    c.pass_close(acc("guest.test"), "p1".into());
+}

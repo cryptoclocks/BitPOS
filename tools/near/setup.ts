@@ -20,7 +20,7 @@ const note = (label: string, result: { transaction: { hash: string } }) => { txs
 const gas = teraToGas('100');
 
 // 0. sub-accounts (about 6.5 NEAR of the faucet's 10 in total; skipped when they exist)
-for (const [name, near] of [[BILLS, '3.5'], [TUSD, '0.3'], [RELAYER, '1.5'], [SHOP, '0.6'], [`milkfarm.${ROOT}`, '0.05'], [`alice.${ROOT}`, '0.1'], [`bob.${ROOT}`, '0.1'], [`tax.${SHOP}`, '0.05'], [`mai.${SHOP}`, '0.05'], [`ton.${SHOP}`, '0.05']] as const)
+for (const [name, near] of [[BILLS, '3.5'], [TUSD, '0.3'], [RELAYER, '1.5'], [SHOP, '0.6'], [`milkfarm.${ROOT}`, '0.05'], [`alice.${ROOT}`, '0.1'], [`bob.${ROOT}`, '0.1'], [`tax.${SHOP}`, '0.05'], [`mai.${SHOP}`, '0.05'], [`ton.${SHOP}`, '0.05'], [`agent.${ROOT}`, '0.3']] as const)
   if (await ensureSubAccount(name, near)) console.log('created', name);
 const root = account(ROOT);
 const wasm = fs.readFileSync(WASM);
@@ -55,9 +55,19 @@ if (!hasKey(SHOP, 'cashier')) {
   saveKey(SHOP, keyPair, 'cashier');
 }
 
+// 7. AI agent key for spending passes: it can call `pass_pay` on the bills contract and nothing else.
+// The agent never holds the guest's money; the pass does, inside the bills contract.
+const AGENT = `agent.${ROOT}`;
+if (!hasKey(AGENT, 'pass')) {
+  const keyPair = KeyPair.fromRandom('ed25519');
+  note('agent_pass_key', await account(AGENT).addFunctionCallAccessKey({ publicKey: keyPair.getPublicKey(), contractId: BILLS, methodNames: ['pass_pay'], allowance: nearToYocto('0.25') }));
+  saveKey(AGENT, keyPair, 'pass');
+}
+
 const out = {
   network: 'testnet', root: ROOT, bills_contract: BILLS, tokens: { tUSD: { contract: TUSD, decimals: 6 }, USDC: { contract: CIRCLE_USDC, decimals: 6, note: 'Circle testnet USDC; get it from faucet.circle.com' } },
   relayer: RELAYER, demo_shop: { account: SHOP, cashier_public_key: loadPublicKey(SHOP, 'cashier'), tax: `tax.${SHOP}`, staff: [`mai.${SHOP}`, `ton.${SHOP}`], supplier: `milkfarm.${ROOT}` },
+  ai_agent: { account: AGENT, pass_key_public: loadPublicKey(AGENT, 'pass'), methods: ['pass_pay'] },
   demo_customers: [`alice.${ROOT}`, `bob.${ROOT}`], wasm_sha256: crypto.createHash('sha256').update(wasm).digest('hex'),
   config: await view(BILLS, 'get_config'),
 };

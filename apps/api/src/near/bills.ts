@@ -230,7 +230,7 @@ export async function demoPay(token:string,wallet:string):Promise<BillView>{
  return relayPayment(token,signed);
 }
 
-async function applyPayTx(merchant:string,billId:string,tx:TxView,d:NearDeps):Promise<BillView>{
+export async function applyPayTx(merchant:string,billId:string,tx:TxView,d:NearDeps):Promise<BillView>{
  await tenant(merchant,async db=>{
   const k=await lockBill(db,merchant,billId);const facts=payTxFacts(expectedOf(k,await payoutsOf(db,merchant,billId)),tx);
   await record(db,merchant,billId,'PAYMENT_RELAYED',tx.hash||null,{final:tx.final,ok:tx.ok,result:facts.kind});
