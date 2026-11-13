@@ -1,0 +1,54 @@
+{
+  "network": "testnet",
+  "note": "Public account ids and public keys only. Private keys are outside the repository.",
+  "accounts": [
+    {
+      "account": "bitpos-near.testnet",
+      "public_key": "ed25519:9QDj6feoYWkN1MdrtQe1ZncfuahqyzBfsCkCJE9132jT"
+    },
+    {
+      "account": "alice.bitpos-near.testnet",
+      "public_key": "ed25519:B7bVGckEx1UVB9Zto15cV9rLNcXPRRmJZzD9FWCm9GDj"
+    },
+    {
+      "account": "bills.bitpos-near.testnet",
+      "public_key": "ed25519:E2xLfdrqVYPDEM5zeMAMYwusdhvfvY1F35vvwUqymKVW"
+    },
+    {
+      "account": "bob.bitpos-near.testnet",
+      "public_key": "ed25519:3fRTR9QENEygBYPUv42FLrwkkJg6JV9gdRHGq9uNyJjR"
+    },
+    {
+      "account": "milkfarm.bitpos-near.testnet",
+      "public_key": "ed25519:8V9jAN6deRUjMaQ5jvLkvUzdsuHTsebLXKy6RFh8YLwh"
+    },
+    {
+      "account": "orbit.bitpos-near.testnet",
+      "public_key": "ed25519:5ZUV8czvjvhE8wf3PABscMQxWGeSNkjW51hTTdk9f3oS"
+    },
+    {
+      "account": "relayer.bitpos-near.testnet",
+      "public_key": "ed25519:HeDufxUMRdtcrydqrEQTwqiveT7LPhtK78k4Z8EetKHT"
+    },
+    {
+      "account": "tusd.bitpos-near.testnet",
+      "public_key": "ed25519:Hm2yihRKRHkrjxvG3aSURjVMvpY1dADu2gquuFiU4LWw"
+    },
+    {
+      "account": "cfo.orbit.bitpos-near.testnet",
+      "public_key": "ed25519:AyxyY53eUmteZ1HudQgZLSkp7war2k2VzsGDyehK3PXh"
+    },
+    {
+      "account": "mai.orbit.bitpos-near.testnet",
+      "public_key": "ed25519:6FEqi9PVh12NJj6bRJdBZNAGYheW6znfwAM4Nh6GEfqS"
+    },
+    {
+      "account": "tax.orbit.bitpos-near.testnet",
+      "public_key": "ed25519:9UwKFa6z22cPrrJiugGH65crg7U3bWaLgvtgjgYp9ZHu"
+    },
+    {
+      "account": "ton.orbit.bitpos-near.testnet",
+      "public_key": "ed25519:EBgjU9oQkPiqJPqcphP5K5Pqe6m2tK8wnNXGMErPMPCq"
+    }
+  ]
+}

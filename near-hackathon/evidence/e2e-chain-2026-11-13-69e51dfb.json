@@ -1,0 +1,135 @@
+{
+  "network": "testnet",
+  "contract": "bills.bitpos-near.testnet",
+  "token": "tusd.bitpos-near.testnet",
+  "ran_at": "2026-11-13T20:14:42.693Z",
+  "result": "all assertions passed",
+  "steps": [
+    {
+      "case": "A",
+      "step": "open_bill",
+      "tx": "https://testnet.nearblocks.io/txns/7RPMHBT2hkZhFPY7Wy7oNj5Rv7pDH54NdUY8acLTH8Zg",
+      "ok": true,
+      "events": [
+        "bitpos-near:bill_opened"
+      ]
+    },
+    {
+      "case": "A",
+      "step": "pay (gasless, relayed)",
+      "tx": "https://testnet.nearblocks.io/txns/AZBjrRxtFupDW2Driq7w6ynEwiLE7EBuLDNkjBhwNHGG",
+      "ok": true,
+      "events": [
+        "nep141:ft_transfer",
+        "bitpos-near:bill_paid",
+        "nep141:ft_transfer",
+        "nep141:ft_transfer",
+        "nep141:ft_transfer",
+        "nep141:ft_transfer",
+        "bitpos-near:bill_settled"
+      ]
+    },
+    {
+      "case": "B",
+      "step": "open_bill",
+      "tx": "https://testnet.nearblocks.io/txns/C7fZgQwVTvU5iwGSNynt4VqnJfTuqVmDEpGc5V2g8M1u",
+      "ok": true,
+      "events": [
+        "bitpos-near:bill_opened"
+      ]
+    },
+    {
+      "case": "B",
+      "step": "pay 1 unit short",
+      "tx": "https://testnet.nearblocks.io/txns/ijqwH8aghLYGyQfSvenBGdSjHs7TW5H4qXj8zk3Yjn4",
+      "ok": true,
+      "events": [
+        "nep141:ft_transfer",
+        "bitpos-near:payment_bounced",
+        "nep141:ft_transfer"
+      ]
+    },
+    {
+      "case": "B",
+      "step": "void_bill",
+      "tx": "https://testnet.nearblocks.io/txns/4FfaRfBabaFp972RxN4tBGNscykXQ6WH1beDkFRrYwKW",
+      "ok": true,
+      "events": [
+        "bitpos-near:bill_voided"
+      ]
+    },
+    {
+      "case": "B",
+      "step": "pay a voided bill",
+      "tx": "https://testnet.nearblocks.io/txns/7Xr8fZL1dcDvjFwq96dLXCp3kpsb9XxrKnxGpKwJjSeF",
+      "ok": true,
+      "events": [
+        "nep141:ft_transfer",
+        "bitpos-near:payment_bounced",
+        "nep141:ft_transfer"
+      ]
+    },
+    {
+      "case": "C",
+      "step": "open_bill with witness",
+      "tx": "https://testnet.nearblocks.io/txns/Eq3mu6eg89PZnyiroXuRSr9dCQvC7EpxbiRDw46FNYdv",
+      "ok": true,
+      "events": [
+        "bitpos-near:bill_opened"
+      ]
+    },
+    {
+      "case": "C",
+      "step": "pay",
+      "tx": "https://testnet.nearblocks.io/txns/AjUpBfaxTaKZZeQSAStsnyAzZY3sb5uqrLagNuZ8AA5h",
+      "ok": true,
+      "events": [
+        "nep141:ft_transfer",
+        "bitpos-near:bill_paid"
+      ]
+    },
+    {
+      "case": "C",
+      "step": "device_ack",
+      "tx": "https://testnet.nearblocks.io/txns/DVJMGYTKwfJXc9o2TXJkksWXv8ZdUJySyabEGef6N81a",
+      "ok": true,
+      "events": [
+        "bitpos-near:device_ack",
+        "nep141:ft_transfer",
+        "nep141:ft_transfer",
+        "nep141:ft_transfer",
+        "nep141:ft_transfer",
+        "bitpos-near:bill_settled"
+      ]
+    },
+    {
+      "case": "D",
+      "step": "open_bill with witness (30 s)",
+      "tx": "https://testnet.nearblocks.io/txns/BeGZkizEe18t2kdDTSKZq9fqfvCHHoSkUmBYNBuMdZSx",
+      "ok": true,
+      "events": [
+        "bitpos-near:bill_opened"
+      ]
+    },
+    {
+      "case": "D",
+      "step": "pay",
+      "tx": "https://testnet.nearblocks.io/txns/7Fma5qJfDXGNsrqoPKUhVS9MUPytgAnPVs8U2EcBBU8p",
+      "ok": true,
+      "events": [
+        "nep141:ft_transfer",
+        "bitpos-near:bill_paid"
+      ]
+    },
+    {
+      "case": "D",
+      "step": "reclaim after timeout",
+      "tx": "https://testnet.nearblocks.io/txns/GU4iWXzn7KzNGEMbkzL8dNgLNr5WK6Smymf5CUrqsjjs",
+      "ok": true,
+      "events": [
+        "nep141:ft_transfer",
+        "bitpos-near:bill_refunded"
+      ]
+    }
+  ]
+}

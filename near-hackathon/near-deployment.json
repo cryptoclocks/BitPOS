@@ -1,0 +1,57 @@
+{
+  "network": "testnet",
+  "root": "bitpos-near.testnet",
+  "bills_contract": "bills.bitpos-near.testnet",
+  "tokens": {
+    "tUSD": {
+      "contract": "tusd.bitpos-near.testnet",
+      "decimals": 6
+    },
+    "USDC": {
+      "contract": "3e2210e1184b45b64c8a434c0a7e7b23cc04ea7eb7a6c3c32520d03d4afcb8af",
+      "decimals": 6,
+      "note": "Circle testnet USDC; get it from faucet.circle.com"
+    }
+  },
+  "relayer": "relayer.bitpos-near.testnet",
+  "demo_shop": {
+    "account": "orbit.bitpos-near.testnet",
+    "cashier_public_key": "ed25519:8DLuDzYJjNvBdhUdy4xfPsPitERotiuM5xmkYugTBn6h",
+    "tax": "tax.orbit.bitpos-near.testnet",
+    "staff": [
+      "mai.orbit.bitpos-near.testnet",
+      "ton.orbit.bitpos-near.testnet"
+    ],
+    "supplier": "milkfarm.bitpos-near.testnet"
+  },
+  "demo_customers": [
+    "alice.bitpos-near.testnet",
+    "bob.bitpos-near.testnet"
+  ],
+  "wasm_sha256": "d9d85824b82a5898fa49ceb7854ff77af2c56fbb7c9abfc0e6dfb8cf9a4d1a73",
+  "config": {
+    "version": "bitpos-near-bills/0.1.0",
+    "owner": "bitpos-near.testnet",
+    "bill_count": "0",
+    "max_payouts": 10
+  },
+  "setup_transactions": {
+    "bills_deploy": "EZGVdKmx1HHZcj1inUBAivYNdcV6tT8J9w678AEDbQEZ",
+    "set_token_tusd.bit": "52816Fys5PS8hPQDKJbydj2uhfD8TUR5kb9P1QWQ5YNg",
+    "set_token_3e2210e1": "GJLTH6Fh8mVD3xB8HU2GxJjaZv7pUSBLVaAYQKYyCLiq",
+    "set_merchant": "GomEx3oogvkiMnwKy4VmSiTm6sPewN1dkfmwsoh7Z3p3",
+    "storage_tusd_bills": "EJndzTgc44hAvLZURpVMxQKC2RwRra8TPvUTqRRQ4HYW",
+    "storage_tusd_orbit": "9s9dHWBdqfBug1UVnoCwnzPDzahzk29LfM8yxMzJPqrB",
+    "storage_tusd_tax": "C93R15DAadgaTfevV48ahsiz2vLfJq7pxZytCtR2rqeX",
+    "storage_tusd_mai": "zuPVoiqmjTkVSNJJS1QS56xY7r9BsFRmyuKwxydPV8P",
+    "storage_tusd_ton": "FXoBqrDnLiA8rzCTp3B61JwDD3nYV9uYmr6uwpb98G15",
+    "storage_tusd_milkfarm": "6esSkzr3Gtgk64J5BfsbyKh2pyKnEeheVYLUv9FKACW",
+    "storage_tusd_alice": "3HLmnhwJcueof8Anvpftdadfd1JXbevckynFq5KxjLYB",
+    "storage_tusd_bob": "BZaJEPfqVRBS86kZ8DourBnvrYX5K9bMBjdw151Ls6mj",
+    "storage_tusd_relayer": "Eqn6sv16nh579t67BfarfYbVL9nYmUY7mZkDVBh6f1oH",
+    "storage_3e22_bills": "3pW7fm1jgNE3xURK1jZSKb1DD2nPSM7ac5WfGwg2avnB",
+    "fund_alice": "CqFwzdB7TsosX8z5S4sT9jqsqzR6X6px6BiEjHDsJbpR",
+    "fund_bob": "PyrTS6ov4LtQ9ehM5KV95Spte22zuhK1NNhS9Bk22m6",
+    "cashier_key": "7RmL7pPRbxEtGs1HyBvy3aQe2RVt9AMx7WFVw6HUAYfZ"
+  }
+}
