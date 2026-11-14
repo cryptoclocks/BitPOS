@@ -25,26 +25,28 @@ https://x.com/theCryptoClock/status/2121392191759335814
 
 ---
 
-## Scene 1 · เปิดเรื่อง (0:00–0:08) — [กล้อง]
+## Scene 1 · เปิดเรื่อง (0:00–0:10) — [กล้อง]
 
-**ภาพ:** เครื่อง Mini บนโต๊ะร้านกาแฟ ข้างแก้วกาแฟ จอขึ้น *Orbit Café · Ready for the next order* ค่อยๆ ซูมเข้า
-
-**พูด:**
-> "This is a real BitPOS Mini on a café table, running our new NEAR firmware."
-
-## Scene 2 · ร้านออกบิล (0:08–0:20) — [จอร้าน]
-
-**ภาพ:** หน้าร้านกดเพิ่ม **Latte** → **View cart** → **Review order** → **Create order**
+**ภาพ:** เครื่อง Mini บนโต๊ะข้างแก้วกาแฟ จอหน้าแรก: **ซ้าย QR "Scan to order"** · **ขวาภาพ Iced Latte เคลื่อนไหว + "Iced Latte -10% · USD 4.05 instead of 4.50"** ค่อยๆ ซูมเข้า
 
 **พูด:**
-> "The café rings up a latte. The server prices the bill and writes it into a NEAR contract."
+> "This is a real BitPOS Mini on a café table, running our new NEAR firmware. Today's offer is live — and the price on the screen is the price you'll pay."
 
-## Scene 3 · เครื่องขึ้น QR (0:20–0:30) — [กล้อง]
+## Scene 2 · ลูกค้าสแกนสั่งเอง (0:10–0:28) — [กล้อง] + [จอมือถือ]
 
-**ภาพ:** จอ Mini เปลี่ยนเป็น **Scan to pay · 5.00 tUSD** พร้อม QR · มือถือเลื่อนเข้ามาสแกน
+**ภาพ:** มือถือสแกน QR ซ้ายของเครื่อง → (จอมือถือ) เมนูโต๊ะ 2 เปิดขึ้น → กดเพิ่ม **Iced Latte** (เห็นราคา 4.05) → สั่ง → ไปหน้าจ่ายเงิน
 
 **พูด:**
-> "The table screen shows the exact amount. The guest scans it with their own phone — no app, and no NEAR needed for gas."
+> "The guest scans the table and orders on their own phone — no app. The discounted price comes from the server, not the browser."
+
+> ถ้าอยากโชว์ฝั่งร้านออกบิลแทน: หน้าร้าน Menu → Counter → Iced Latte → Create order แล้วจอ Mini จะเปลี่ยนเป็น **Scan to pay** ให้สแกนจ่ายได้เลย
+
+## Scene 3 · บิลบน NEAR (0:28–0:35) — [จอมือถือ]
+
+**ภาพ:** กด **Open my bill on NEAR** → เห็น *Pay exactly 4.05 tUSD*
+
+**พูด:**
+> "The bill is written into a NEAR contract, with everyone it pays."
 
 ## Scene 4 · หน้าจ่ายเงินบนมือถือ (0:30–0:50) — [จอมือถือ]
 
