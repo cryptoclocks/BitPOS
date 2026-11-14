@@ -43,3 +43,7 @@ NEAR_SELFTEST rfc8032=ok device_key=ok ms=2151
     event `witness_pk = f787eca7e33691245f52e63217235b01ac972b84f90c40d3b19115a6ead4233e`, the key the device made on
     first boot (see the boot log above); the same transaction settled the four payouts. Status FINAL.
 - So the firmware's network path (WiFi, TLS to the server, chain check, flush-gated signature) has now run on hardware.
+- Second run after the "waiting order as QR" change: the Mini was told to show **Scan to pay** for a new counter order
+  before its bill existed on chain; the bill was then opened and paid from the customer page (demo wallet), and the
+  board signed again: witness [BP6vvj…9o7J](https://testnet.nearblocks.io/txns/BP6vvjv1FR3cX929ZRLM3u1ahUY7VxUuHXCbhE5p9o7J), payment J9k8pP…TJ1B. Witness mode was
+  switched off afterwards so the hosted demo does not wait for a device that may be unplugged.
