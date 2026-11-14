@@ -27,8 +27,9 @@ const deviceRow=async(db:import('pg').PoolClient,merchant:string,id:string)=>(aw
 
 /** Characters the BitPOS Mini NEAR font can draw: ASCII, Latin-1, Thai and a few punctuation marks
  *  (device/firmware/main/bitpos_near_font_20.c). Anything else is folded so the screen never shows an empty box. */
-/** Offer animations shipped with the site (apps/near-site/assets/anim/<slug>.gif), served at /near/anim/. */
-const ANIMATED=new Set(['iced-latte']);
+/** Offer animations shipped with the site (apps/near-site/assets/anim/<file>), served at /near/anim/. A new picture gets
+ *  a new file name, so caches never serve an old one. */
+const ANIMATED=new Map([['iced-latte','iced-latte-1.gif']]);
 const SCREEN_EXTRA=new Set([0x2013,0x2014,0x2018,0x2019,0x201c,0x201d,0x2022,0x2026,0x2190,0x2192,0x20ac]);
 const SCREEN_FOLD:Record<string,string>={'\u2713':'OK','\u2714':'OK','\u2715':'x','\u2717':'x','\u00a0':' ','\u2212':'-','\u2010':'-','\u2011':'-','\u0141':'L','\u0142':'l','\u0110':'D','\u0111':'d'};
 export function screenText(text:string):string{
@@ -83,7 +84,7 @@ export async function deviceState(deviceId:string,key:string,lang:Lang){
       WHERE o.enabled AND o.expires_at>clock_timestamp() ORDER BY o.expires_at LIMIT 1`,[merchant])).rows[0];
      const money=(minor:string,dec:number)=>{const n=BigInt(minor),u=10n**BigInt(dec);return `${n/u}.${(n%u).toString().padStart(dec,'0')}`;};
      const slug=offer?offer.name_en.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,''):'';
-     const anim=offer&&ANIMATED.has(slug)?`/near/anim/${slug}.gif`:'';
+     const anim=offer&&ANIMATED.has(slug)?`/near/anim/${ANIMATED.get(slug)}`:'';
      return {...base,table:entry.label,screen:'idle' as const,qr:`${customerOrigin}/table/${entry.entry_token}`,anim,poll_ms:3000,
       title:offer?(offer.percent?`${offer.name_en} -${offer.percent}%`:`${offer.name_en} offer`):L(lang,'สแกนเพื่อสั่ง','Scan to order'),
       line1:offer?`${offer.currency} ${money(offer.current_minor,offer.decimals)} ${L(lang,'จากปกติ','instead of')} ${money(offer.base_minor,offer.decimals)}`:L(lang,'สั่งจากมือถือของคุณ จ่ายบน NEAR','Order on your phone, pay on NEAR'),
