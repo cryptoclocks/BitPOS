@@ -33,7 +33,8 @@ const MENU=[
  ['4e454152-4e45-4152-8e45-000000000003','อเมริกาโน่','Americano','☕',350,60,'/images/menu/americano.jpg','Coffee','Espresso and hot water for a clean, bold coffee.'],
  ['4e454152-4e45-4152-8e45-000000000004','ชาเขียว','Matcha','🍵',550,60,'/images/menu/matcha.jpg','Tea & Chocolate','Smooth green tea with warm milk and a creamy finish.'],
  ['4e454152-4e45-4152-8e45-000000000005','มัฟฟินบลูเบอร์รี','Blueberry Muffin','🧁',400,40,'/images/menu/blueberry-muffin.jpg','Bakery','A soft muffin baked with juicy blueberries.'],
- ['4e454152-4e45-4152-8e45-000000000006','ลาเต้เย็น','Iced Latte','🧊',450,60,'/images/menu/iced-latte.jpg','Coffee','Espresso and chilled milk served over ice.']
+ ['4e454152-4e45-4152-8e45-000000000006','ลาเต้เย็น','Iced Latte','🧊',450,60,'/images/menu/iced-latte.jpg','Coffee','Espresso and chilled milk served over ice.'],
+ ['4e454152-4e45-4152-8e45-000000000007','ช็อกโกแลตร้อน','Hot Chocolate','🍫',400,60,'/images/menu/hot-chocolate.jpg','Tea & Chocolate','Rich cocoa with steamed milk.']
 ] as const;
 const reg=(path:string,method:string,input?:unknown)=>tenant(SHOP,d=>registry(d,SHOP,OWNER,'owner',path,method,input));
 
@@ -51,6 +52,14 @@ async function shop(){
  let register=await one("SELECT id FROM registers WHERE merchant_id=$1 AND label='Counter'",[SHOP]);
  if(!register){register=await reg('/api/registers','POST',{label:'Counter'});await reg('/api/registers/'+register!.id+'/pairing','PUT',{deviceId:counter.id,expectedPairingGeneration:'1'});}
  // The core schema needs an enabled payment asset as every quote's anchor; customers of this shop only see NEAR.
+ // A menu item added later (no price in the active version) publishes a new version with every item's price.
+ const missing=(await tenant(SHOP,d=>d.query("SELECT count(*)::int AS n FROM products p WHERE p.merchant_id=$1 AND NOT EXISTS(SELECT 1 FROM catalog_prices c JOIN merchant_pricing m ON m.merchant_id=c.merchant_id AND m.active_price_version_id=c.price_version_id WHERE c.merchant_id=p.merchant_id AND c.product_id=p.id)",[SHOP]))).rows[0].n as number;
+ if(missing>0&&await one('SELECT id FROM catalog_price_versions WHERE merchant_id=$1 LIMIT 1',[SHOP])){
+  const rev=(await tenant(SHOP,d=>d.query('SELECT revision::text FROM merchant_pricing WHERE merchant_id=$1',[SHOP]))).rows[0].revision as string;
+  await tenant(SHOP,d=>publishPrices(d,SHOP,OWNER,'owner',{expectedRevision:rev,catalogCurrency:'USD',provenance:{kind:'demo_configured',label:'Orbit Cafe sample menu (fixture)'},
+   prices:MENU.map(([id,,,,price])=>({productId:id,unitMinor:String(price)})),settlement:{asset:'USDG',network:'solana:devnet',mint:MINT,tokenProgram:TOKEN_PROGRAM,decimals:6,quotePolicy:'USD_CENTS_TO_USDG_1_TO_1'}}));
+  console.error('published a new price version for '+missing+' new menu item(s); re-enable live offers on it');
+ }
  if(!await one('SELECT id FROM catalog_price_versions WHERE merchant_id=$1 LIMIT 1',[SHOP]))
   await tenant(SHOP,d=>publishPrices(d,SHOP,OWNER,'owner',{expectedRevision:'0',catalogCurrency:'USD',provenance:{kind:'demo_configured',label:'Orbit Cafe sample menu (fixture)'},
    prices:MENU.map(([id,,,,price])=>({productId:id,unitMinor:String(price)})),settlement:{asset:'USDG',network:'solana:devnet',mint:MINT,tokenProgram:TOKEN_PROGRAM,decimals:6,quotePolicy:'USD_CENTS_TO_USDG_1_TO_1'}}));
