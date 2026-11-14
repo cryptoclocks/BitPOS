@@ -33,6 +33,7 @@ const submittedBody=z.object({txHash:z.string().regex(/^[1-9A-HJ-NP-Za-km-z]{32,
 const demoBody=z.object({wallet:account}).strict();
 const passBody=z.object({wallet:account,ttl:z.enum(['30m','1h','1d','1w','1mo']),cap:z.string().max(12),maxBill:z.string().max(12)}).strict();
 const passRef=z.object({owner:account,passId:z.string().regex(/^[A-Za-z0-9_-]{1,64}$/)}).strict();
+const passPayBody=passRef.extend({rule:z.string().max(200).optional()}).strict();
 const faucetBody=z.object({account}).strict();
 const registerBody=z.object({pk:z.string().regex(/^[0-9a-f]{64}$/)}).strict();
 const ackBody=z.object({bill:z.string().regex(/^b[0-9a-f]{32}$/),sig:z.string().regex(/^[0-9a-f]{128}$/),pk:z.string().regex(/^[0-9a-f]{64}$/)}).strict();
@@ -87,7 +88,7 @@ export async function serveNear(req:IncomingMessage,res:ServerResponse):Promise<
   else if(action==='submitted'){const b=submittedBody.parse(body);json(res,200,await submittedPayment(token,b.txHash,b.signerId));}
   else if(action==='pass')json(res,200,await createPass(token,passBody.parse(body)));
   else if(action==='pass-status'){const b=passRef.parse(body);json(res,200,await passStatus(token,b.owner,b.passId));}
-  else if(action==='pass-pay'){const b=passRef.parse(body);json(res,200,await passPay(token,b.owner,b.passId));}
+  else if(action==='pass-pay'){const b=passPayBody.parse(body);json(res,200,await passPay(token,b.owner,b.passId,b.rule));}
   else if(action==='pass-close'){const b=passRef.parse(body);json(res,200,await closePass(token,b.owner,b.passId));}
   else if(action==='demo-pay')json(res,200,await demoPay(token,demoBody.parse(body).wallet));
   else if(action==='reclaim'){z.object({}).strict().parse(body);json(res,200,await reclaimBill(token));}

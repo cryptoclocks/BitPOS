@@ -13,10 +13,11 @@ test('P-01: a 1-hour pass lets the AI agent pay an exact bill; the order is PAID
  const b=await bill(2);await bills.createNearBill(b.access_token);
  const pass=await passes.createPass(b.access_token,{wallet:ALICE,ttl:'1h',cap:'20',maxBill:'10'});
  assert.equal(pass.state,'ACTIVE');assert.equal(pass.balance,'20.00');assert.equal(pass.merchant,SHOP_ACCOUNT);assert.equal(pass.agent,'agent.fake.testnet');
- const paid=await passes.passPay(b.access_token,ALICE,pass.passId);
+ const paid=await passes.passPay(b.access_token,ALICE,pass.passId) as Awaited<ReturnType<typeof passes.passPay>>&{status:string;payer:string|null};
+ assert.equal(paid.agent.decision,'pay');assert.equal(paid.agent.proof.mode,'sample');
  assert.equal(paid.status,'paid');assert.equal(paid.payer,ALICE,'refunds would go to the customer, never to the agent');assert.equal(paid.pass.balance,'14.60');assert.equal(paid.pass.billsPaid,1);
  assert.equal((await state(b.id)).order,'PAID');assert.equal((await state(b.id)).settlements,1);
- assert.deepEqual(await events(b.id),['BILL_OPENED','PAYMENT_RELAYED','SETTLED']);
+ assert.deepEqual(await events(b.id),['BILL_OPENED','CHAIN_CHECK','PAYMENT_RELAYED','SETTLED'],'the agent decision is recorded before the payment');
  await assert.rejects(passes.passPay(b.access_token,ALICE,pass.passId),code('NEAR_BILL_NOT_OPEN',409),'a paid bill is never paid twice');
  // per-bill limit: a 4-item bill (10.80) is over the 10.00 limit
  await dismiss();const big=await bill(4);await bills.createNearBill(big.access_token);
@@ -28,7 +29,7 @@ test('P-02: refund rules — an unserved witness bill pays the customer back; cl
  const {near,clock,bill,state,bills,witness}=await setup();const passes=await import('../apps/api/src/near/passes');
  await witness();const b=await bill(1);await bills.createNearBill(b.access_token);
  const pass=await passes.createPass(b.access_token,{wallet:ALICE,ttl:'1d',cap:'20',maxBill:'10'});
- const held=await passes.passPay(b.access_token,ALICE,pass.passId);
+ const held=await passes.passPay(b.access_token,ALICE,pass.passId) as {status:string};
  assert.equal(held.status,'escrow');assert.equal((await state(b.id)).order,'AWAITING_WALLET');
  clock.now+=121_000;
  const back=await bills.reclaimBill(b.access_token);
@@ -50,4 +51,26 @@ test('P-03: lengths are only 30m/1h/1d/1w/1mo; an expired pass cannot spend and 
  await assert.rejects(passes.passPay(b.access_token,ALICE,pass.passId),code('NEAR_PASS_EXPIRED',409));
  const closed=await passes.closePass(b.access_token,ALICE,pass.passId);
  assert.equal(closed.state,'CLOSED');
+});
+
+test('P-04: the agent reads the bill and the guest rule first; a decline moves no money, and an unreadable model answer is a decline',integration,async()=>{
+ const {near,bill,state,bills}=await setup();const passes=await import('../apps/api/src/near/passes');const agent=await import('../apps/api/src/near/agent');
+ const b=await bill(2);await bills.createNearBill(b.access_token);
+ const pass=await passes.createPass(b.access_token,{wallet:ALICE,ttl:'1h',cap:'20',maxBill:'10'});
+ // deterministic: a stub model that declines
+ agent.setAgentModel({name:'stub',async decide(){return {decision:'decline',reason:'The guest asked for drinks only, so the agent will not pay it.',proof:{mode:'near_ai',model:'stub',signature_kind:'gateway',request_sha256:null,response_sha256:null,signer:null,signature_verified:true,signer_in_attestation_report:true,nonce_echoed:true,quote_verified:false,note:'stub'}};}});
+ const before=near.calls.filter(c=>c==='passPay').length;
+ const r=await passes.passPay(b.access_token,ALICE,pass.passId,'Drinks only') as {declined?:boolean;agent:{decision:string;reason:string}};
+ assert.equal(r.declined,true);assert.equal(r.agent.decision,'decline');assert.match(r.agent.reason,/drinks only/);
+ assert.equal(near.calls.filter(c=>c==='passPay').length,before,'no transaction after a decline');
+ assert.equal((await state(b.id)).order,'AWAITING_WALLET');
+ // a real-model adapter whose answer cannot be read must not pay
+ const fake=(async(url:string)=>new Response(url.includes('/chat/completions')?JSON.stringify({id:'x1',choices:[{message:{content:'not json'}}]}):'{}',{status:200})) as unknown as typeof fetch;
+ const unreadable=await agent.nearAiAgent('k'.repeat(30),'test-model',fake).decide({shop:'Orbit',total:'5.00',symbol:'tUSD',lines:[{name:'Latte',qty:1}]},{balance:'20.00',maxBill:'10.00',minutesLeft:50,billsPaid:0},'');
+ assert.equal(unreadable.decision,'decline');assert.equal(unreadable.proof.signature_verified,false);
+ // the sample rule (no key): "no croissant" blocks a croissant line
+ const sample=await agent.sampleAgent.decide({shop:'Orbit',total:'4.50',symbol:'tUSD',lines:[{name:'Croissant',qty:1}]},{balance:'20.00',maxBill:'10.00',minutesLeft:50,billsPaid:0},'Coffee is fine, no croissants');
+ assert.equal(sample.decision,'decline');assert.equal(sample.proof.mode,'sample');
+ assert.equal(agent.cleanAgentReason('Pay 5 dollars now','pay'),'This bill fits the pass rule and its limits, so the agent pays it.','numbers never reach the guest');
+ agent.setAgentModel(undefined);
 });

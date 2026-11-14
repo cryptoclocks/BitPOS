@@ -9,6 +9,7 @@ import {PASS_TTLS_MS,passMessage,type ChainPass,type PassTtl} from './chain';
 import {NearRouteError,applyPayTx,nearDeps,record,settingsOf,latestBill,type BillView} from './bills';
 import {pool,tenant} from '../db';
 import {displayToUnits,unitsToDisplay} from './money';
+import {agentModel,cleanRule,type AgentDecision} from './agent';
 
 const refuse=(status:number,code:string):never=>{throw new NearRouteError(status,code);};
 export const PASS_MAX_CAP_UNITS=50_000_000n; // 50 tUSD on testnet
@@ -49,8 +50,10 @@ export async function createPass(token:string,input:{wallet:string;ttl:PassTtl;c
  return passStatus(token,input.wallet,passId);
 }
 
-/** The AI agent pays this order's open bill from the pass. The contract enforces every limit; we check first to explain refusals. */
-export async function passPay(token:string,owner:string,passId:string):Promise<BillView&{pass:PassView}>{
+/** The AI agent decides on this order's open bill (its model reads the items and the guest's rule), then pays it from
+ *  the pass with its pass_pay-only key. The contract enforces every limit; we check first to explain refusals.
+ *  A "decline" returns the agent's reason and moves no money. */
+export async function passPay(token:string,owner:string,passId:string,ruleText?:unknown):Promise<(BillView&{pass:PassView;agent:AgentDecision})|{declined:true;pass:PassView;agent:AgentDecision}>{
  const {d,merchant,s,agent}=await context(token);
  const p=await d.chain.getPass(owner,passId);if(!p)return refuse(404,'NEAR_PASS_NOT_FOUND');
  const view=passView(p,(d.now?.()??Date.now()));
@@ -61,18 +64,27 @@ export async function passPay(token:string,owner:string,passId:string):Promise<B
   const o=(await db.query<{id:string}>('SELECT id FROM orders WHERE access_token=$1',[token])).rows[0];if(!o)refuse(404,'RESOURCE_NOT_FOUND');
   return latestBill(db,merchant,o!.id);
  });
+ const lines=await tenant(merchant,async db=>(await db.query<{name:string;qty:number}>('SELECT i.name_en AS name,i.qty FROM order_items i JOIN orders o ON o.id=i.order_id WHERE o.merchant_id=$1 AND o.access_token=$2 ORDER BY i.name_en',[merchant,token])).rows);
+ const shopName=await tenant(merchant,async db=>(await db.query<{name:string}>('SELECT name FROM merchants WHERE id=$1',[merchant])).rows[0]?.name??'');
  if(!k)return refuse(409,'NEAR_BILL_REQUIRED');
  if(k.status!=='OPEN')refuse(409,'NEAR_BILL_NOT_OPEN');
  if(k.token_contract!==p.token)refuse(409,'NEAR_PASS_WRONG_TOKEN');
  if(BigInt(k.amount_units)>BigInt(p.max_bill))refuse(409,'NEAR_PASS_BILL_LIMIT');
  if(BigInt(k.amount_units)>BigInt(p.balance))refuse(409,'NEAR_PASS_BALANCE_LOW');
+ // The agent decides before it spends. Only "pay" continues; a failed model call never counts as permission.
+ let verdict:AgentDecision;
+ try{verdict=await agentModel().decide({shop:shopName,total:unitsToDisplay(k.amount_units),symbol:s.token_symbol,lines:lines.map(l=>({name:l.name,qty:Number(l.qty)}))},
+  {balance:view.balance,maxBill:view.maxBill,minutesLeft:Math.max(0,Math.floor((view.expiresAtMs-(d.now?.()??Date.now()))/60000)),billsPaid:view.billsPaid},cleanRule(ruleText));}
+ catch{return refuse(503,'NEAR_AGENT_UNAVAILABLE');}
+ await tenant(merchant,db=>record(db,merchant,k.id,'CHAIN_CHECK',null,{agent_decision:verdict.decision,agent_mode:verdict.proof.mode,agent_model:verdict.proof.model,signature_verified:verdict.proof.signature_verified,pass_id:passId}));
+ if(verdict.decision!=='pay')return {declined:true,pass:view,agent:verdict};
  let tx;
  try{tx=await d.chain.passPay(agent,owner,passId,k.merchant_account,k.chain_bill_id);}
  catch(e){const reason=String((e as Error)?.message??e).match(/PASS_[A-Z_]+|BILL_[A-Z_]+|AGENT_ONLY|WRONG_TOKEN/)?.[0]??'PASS_PAY_FAILED';
   await tenant(merchant,db=>record(db,merchant,k.id,'PAYMENT_REFUSED',null,{reason,via:'ai_pass'}));return refuse(409,'NEAR_'+reason);}
  // The bill's own event trail records the payment (PAYMENT_RELAYED with this hash); the chain event names the pass.
  const bill=await applyPayTx(merchant,k.id,tx,d);
- return {...bill,pass:await passStatus(token,owner,passId)};
+ return {...bill,pass:await passStatus(token,owner,passId),agent:verdict};
 }
 
 /** The owner ends the pass early (demo wallets only: the server holds their testnet keys). After expiry the relayer may close it for anyone. */

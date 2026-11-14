@@ -8,6 +8,8 @@
 
 **Live demo (NEAR testnet, test money):** [near.cashlessthailand.com](https://near.cashlessthailand.com) (overview and video) · [near-pos.cashlessthailand.com](https://near-pos.cashlessthailand.com) (café POS: press **Owner** under Quick sign-in, then **NEAR · Living Bill**) · customer pages open on `near-pay.cashlessthailand.com` from a bill (POS → Menu → register *Counter* → add an item → *Create order* → *Open payment*).
 
+**Problem.** A small café pays tips, tax and suppliers by hand, days after the sale, out of one mixed balance.
+
 **What it does.** A café bill becomes an entry in a NEAR contract. The customer pays it once, without holding NEAR
 (the café's relayer pays the gas). In the same transaction the contract pays everyone: the owner, a tax reserve,
 the staff on shift and a supplier invoice that collects itself. Anything that is not exactly the bill — wrong
@@ -48,6 +50,8 @@ the agent; closing the pass, or its expiry, returns the rest.
 
 | Do | See |
 |---|---|
+| Open [near-pos.cashlessthailand.com](https://near-pos.cashlessthailand.com) → **Owner** → **Menu** → register *Counter* → add a Latte → **View cart** → **Review order** → **Create order** → **Open payment** | the customer page on `near-pay…` with *Pay exactly 5.00 tUSD* after **Open my bill on NEAR** |
+| On that page: **Demo wallet (testnet) · alice**, or **Let an AI agent pay** → pick a length → **Give the AI a pass** → **Let the AI agent pay this bill** | **Paid**, four ticked payouts (owner, tax, barista, supplier), a NEAR transaction link, and the agent's decision with its reason |
 | Open a real payment on testnet: [one payment, four recipients](https://testnet.nearblocks.io/txns/AZBjrRxtFupDW2Driq7w6ynEwiLE7EBuLDNkjBhwNHGG) | 5.00 tUSD in; 3.55 / 0.50 / 0.35 / 0.60 out to owner, staff, tax, supplier |
 | `python3 -I tools/near/fixture-db.py up`, create `.env` from `near-hackathon/local.env.example`, then `BITPOS_BACKEND_INTEGRATION=1 pnpm exec tsx --test --test-concurrency=1 tests/near-*.test.ts` | `pass 28`, `fail 0` |
 | `cd contracts/near-bills && cargo test` | 23 contract tests pass |
@@ -57,6 +61,12 @@ the agent; closing the pass, or its expiry, returns the rest.
 Full steps, the code map and the honest list of limits: **[near-hackathon/JUDGES.md](near-hackathon/JUDGES.md)**.
 Plan (Thai): [near-hackathon/PLAN_TH.md](near-hackathon/PLAN_TH.md). Contract: [contracts/near-bills](contracts/near-bills/src/lib.rs).
 Deployed: `bills.bitpos-near.testnet` (see [near-deployment.json](near-hackathon/near-deployment.json)).
+
+**Honest limits.** Testnet only, test money. The hosted demo's table and counter screens are simulated; the BitPOS Mini
+firmware boots on real hardware and passes its signature self-test, but its witness signature on testnet came from the
+browser's simulated screen. NEAR Intents is a dry-quote preview (nothing executed). The Café CFO and the pass agent use
+NEAR AI Cloud only when a key is configured; otherwise they say "Sample · no model called". Chain Signatures are not used.
+Full list: [JUDGES.md › Limits](near-hackathon/JUDGES.md#limits-honest-list).
 
 **NEAR features used:** Rust contract with NEP-141 `ft_transfer_call`, batched promise payouts, on-chain
 `ed25519_verify` for a hardware witness, NEP-366 meta transactions, function-call access keys (cashier key; AI agent key limited to `pass_pay`), named sub-accounts,

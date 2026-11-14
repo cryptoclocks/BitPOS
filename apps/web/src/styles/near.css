@@ -257,3 +257,7 @@ main.near-pay .near-aipass-ttls .near-button{width:auto;flex:1 1 30%;min-height:
 main.near-pay .near-field{display:grid;gap:4px;flex:1;font-size:.8rem;font-weight:700;color:var(--n-muted,#5E6B7A)}
 main.near-pay .near-field input,main.near-pay .near-field select{font:inherit;font-size:1rem;font-weight:700;color:inherit;padding:10px 12px;border:1px solid var(--n-line,#DDE3EA);border-radius:12px;background:#fff;min-height:44px}
 main.near-pay .near-aipass-rules{margin:0;padding-left:18px;font-size:.8rem;line-height:1.4;color:var(--n-muted,#5E6B7A)}
+main.near-pay .near-agent{display:grid;gap:4px;padding:12px 14px;border-radius:12px;font-size:.85rem;line-height:1.35}
+main.near-pay .near-agent small{color:var(--n-muted,#5E6B7A)}
+main.near-pay .near-agent-pay{background:#E8F8F1;border:1px solid #9FDFC4}
+main.near-pay .near-agent-decline{background:#FFF4E5;border:1px solid #F5C77E}
