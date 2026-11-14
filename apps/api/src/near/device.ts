@@ -75,7 +75,7 @@ export async function deviceState(deviceId:string,key:string,lang:Lang){
    if(isWitness){
     // Idle: a scan-to-order QR for the table's menu, and today's offer when the shop has one live. The discount text comes
     // from the live product offer the checkout also prices with; the animation only shows the product (no numbers).
-    const entry=(await db.query<{entry_token:string;label:string}>(`SELECT e.entry_token,t.label FROM table_entries e JOIN merchant_tables t ON t.merchant_id=e.merchant_id AND t.id=e.table_id
+    const entry=(await db.query<{entry_token:string;label:string}>(`SELECT e.entry_token,t.label FROM table_entries e JOIN merchant_tables t ON t.merchant_id=e.merchant_id AND t.id=e.table_id JOIN devices dv ON dv.merchant_id=e.merchant_id AND dv.id=e.device_id AND dv.revoked_at IS NULL
      WHERE e.merchant_id=$1 ORDER BY e.auth_generation DESC,e.assignment_generation DESC,e.created_at DESC LIMIT 1`,[merchant])).rows[0];
     if(entry){
      const offer=(await db.query<{name_en:string;percent:number|null;base_minor:string;current_minor:string;currency:string;decimals:number}>(`SELECT p.name_en,o.percent,o.base_minor::text,o.current_minor::text,v.currency,v.decimals FROM (
