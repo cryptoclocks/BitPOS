@@ -8,7 +8,7 @@ import {api} from '../../lib/api';
 import {formatMoney} from '../../lib/money';
 import {LIVE_STATUSES, ROLE_COLOR, nearCode, nearMessage, roleLabel, shareOf, shortAccount, shortHash, txUrl, type BillView, type CrossChainPreview, type Lang, type NearStatus} from '../../lib/near-shared';
 import NearCrossChain from './NearCrossChain';
-import NearAiPass from './NearAiPass';
+import NearAiPass, {type AgentVerdict} from './NearAiPass';
 import type {NearWalletSession} from '../../lib/near-wallet';
 import Payment from '../Payment';
 import '../../styles/near.css';
@@ -23,6 +23,7 @@ const clock = (ms: number) => { const s = Math.max(0, Math.ceil(ms / 1000)); ret
 export default function NearPayment({accessToken}: {accessToken: string}) {
   const [status, setStatus] = useState<NearStatus>(); const [order, setOrder] = useState<OrderView>();
   const [language, setLanguageState] = useState<Lang>('en'); const [error, setError] = useState(''); const [note, setNote] = useState('');
+  const [paidBy, setPaidBy] = useState<AgentVerdict | null>(null);
   const [stage, setStage] = useState<Stage>(''); const [wallet, setWallet] = useState<NearWalletSession | null>(null); const [now, setNow] = useState(() => Date.now());
   const base = `/pay/${encodeURIComponent(accessToken)}`; const busy = stage !== ''; const acting = useRef(false);
   const text = (th: string, en: string) => language === 'th' ? th : en;
@@ -137,7 +138,7 @@ export default function NearPayment({accessToken}: {accessToken: string}) {
         {status.demoWallets.map(account => <button key={account} type="button" className="near-button near-button-outline" disabled={busy} onClick={() => void demoPay(account)}>{text('กระเป๋าเดโม (testnet)', 'Demo wallet (testnet)')} · {account.split('.')[0]}</button>)}
         <p className="near-hint">{text('กุญแจของกระเป๋าเดโมอยู่ที่เซิร์ฟเวอร์ของร้านเพื่อการทดสอบเท่านั้น มันเซ็นคำสั่งจ่ายแบบเดียวกับกระเป๋าจริง และสัญญาเป็นผู้ตัดสินเหมือนกัน', 'The demo wallet\'s key is held by the café\'s server for testing only. It signs the same payment a real wallet would, and the contract decides in the same way.')}</p>
       </div>}
-      <NearAiPass base={base} demoWallets={status.demoWallets} language={language} symbol={symbol} canPay={!busy && !!request} now={now} onBill={view => setStatus(current => current ? {...current, bill: view} : current)} />
+      <NearAiPass base={base} demoWallets={status.demoWallets} language={language} symbol={symbol} canPay={!busy && !!request} now={now} onBill={(view, agent) => { if (agent) setPaidBy(agent); setStatus(current => current ? {...current, bill: view} : current); }} />
       {cross && <details className="near-cross-panel"><summary>{text('จ่ายจากเชนอื่น (ดูตัวอย่าง)', 'Pay from another chain (preview)')}</summary><NearCrossChain preview={cross} language={language} symbol={symbol} /><button type="button" className="near-link" onClick={() => void loadCross()}>{text('เช็กราคาอีกครั้ง', 'Check prices again')}</button></details>}
     </section>
   </>;
@@ -158,6 +159,8 @@ export default function NearPayment({accessToken}: {accessToken: string}) {
   else if (bill.status === 'paid') body = <>
     <div className="near-badge near-badge-mint" aria-hidden="true">✓</div><h1>{text('จ่ายแล้ว', 'Paid')}</h1>
     <p className="near-lead">{text(`${amount} ${symbol} แบ่งจ่ายครบทุกคนแล้ว`, `${amount} ${symbol} split to everyone on the bill.`)}</p>
+    {paidBy && <div className="near-agent near-agent-pay" role="status"><strong>{text('จ่ายโดย AI agent ด้วยสิทธิ์ของคุณ', 'Paid by the AI agent with your pass')}</strong><span>{paidBy.reason}</span>
+      <small>{paidBy.proof.mode === 'near_ai' ? `NEAR AI Cloud · ${paidBy.proof.model ?? ''} · ${paidBy.proof.signature_verified && paidBy.proof.signer_in_attestation_report ? text('ตรวจลายเซ็นคำตอบผ่าน', 'response signature verified') : text('ยังตรวจลายเซ็นไม่ได้', 'signature not verified')}` : text('ตัวอย่าง: กฎตายตัว ไม่ได้เรียกโมเดล', 'Sample: fixed rule, no model called')}</small></div>}
     {payouts}
     <section className="near-card near-proof"><h2>{text('หลักฐานบน NEAR', 'Proof on NEAR')}</h2>
       {link(bill.tx.pay, text('การจ่าย', 'Payment'))}{link(bill.tx.witness, text('พยานจากจอของร้าน', 'Witness from the café\'s screen'))}{link(bill.tx.open, text('การเปิดบิล', 'Bill opened'))}

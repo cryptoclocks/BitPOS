@@ -65,7 +65,7 @@ Deployed: `bills.bitpos-near.testnet` (see [near-deployment.json](near-hackathon
 **Honest limits.** Testnet only, test money. The hosted demo's table and counter screens are simulated; the BitPOS Mini
 firmware boots on real hardware and passes its signature self-test, but its witness signature on testnet came from the
 browser's simulated screen. NEAR Intents is a dry-quote preview (nothing executed). The Café CFO and the pass agent use
-NEAR AI Cloud only when a key is configured; otherwise they say "Sample · no model called". Chain Signatures are not used.
+NEAR AI Cloud (the hosted demo has a key: verified response signatures, see [evidence](near-hackathon/evidence/near-ai-2026-11-14.md)); without a key they say "Sample · no model called". Chain Signatures are not used.
 Full list: [JUDGES.md › Limits](near-hackathon/JUDGES.md#limits-honest-list).
 
 **NEAR features used:** Rust contract with NEP-141 `ft_transfer_call`, batched promise payouts, on-chain

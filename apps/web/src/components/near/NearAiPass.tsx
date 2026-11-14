@@ -12,7 +12,7 @@ const TTLS: {id: '30m' | '1h' | '1d' | '1w' | '1mo'; th: string; en: string}[] =
 const KEY = 'bitpos.near.aipass';
 const left = (ms: number, lang: Lang) => { if (ms <= 0) return lang === 'th' ? 'หมดเวลา' : 'ended'; const m = Math.floor(ms / 60000); const d = Math.floor(m / 1440), h = Math.floor(m % 1440 / 60), mm = m % 60; return d > 0 ? `${d}d ${h}h` : h > 0 ? `${h}h ${mm}m` : `${mm}m ${Math.floor(ms / 1000) % 60}s`; };
 
-export default function NearAiPass({base, demoWallets, language, symbol, canPay, now, onBill}: {base: string; demoWallets: string[]; language: Lang; symbol: string; canPay: boolean; now: number; onBill: (bill: BillView) => void}) {
+export default function NearAiPass({base, demoWallets, language, symbol, canPay, now, onBill}: {base: string; demoWallets: string[]; language: Lang; symbol: string; canPay: boolean; now: number; onBill: (bill: BillView, agent?: AgentVerdict) => void}) {
   const text = (th: string, en: string) => language === 'th' ? th : en;
   const [pass, setPass] = useState<PassView | null>(null); const [ttl, setTtl] = useState<typeof TTLS[number]['id']>('1h');
   const [cap, setCap] = useState('20'); const [maxBill, setMaxBill] = useState('10'); const [owner, setOwner] = useState(demoWallets[0] ?? '');
@@ -25,7 +25,7 @@ export default function NearAiPass({base, demoWallets, language, symbol, canPay,
   useEffect(() => { try { const saved = JSON.parse(localStorage.getItem(KEY) ?? 'null'); if (saved?.owner && saved?.passId) void reload(saved); } catch { /* none saved */ } }, [reload]);
   async function run(label: string, fn: () => Promise<void>) { if (busy) return; setBusy(label); setError(''); try { await fn(); } catch (e) { setError(nearCode(e) === 'UNKNOWN' && e instanceof Error && e.message ? e.message : nearMessage(e, language)); } finally { setBusy(''); } }
   const create = () => run('create', async () => remember(await api<PassView>(`${base}/near/pass`, {wallet: owner, ttl, cap, maxBill})));
-  const pay = () => pass && run('pay', async () => { setVerdict(null); const r = await api<(BillView & {pass: PassView; agent: AgentVerdict}) | {declined: true; pass: PassView; agent: AgentVerdict}>(`${base}/near/pass-pay`, {owner: pass.owner, passId: pass.passId, ...(rule.trim() ? {rule: rule.trim()} : {})}); setPass(r.pass); setVerdict(r.agent); if (!('declined' in r)) onBill(r); });
+  const pay = () => pass && run('pay', async () => { setVerdict(null); const r = await api<(BillView & {pass: PassView; agent: AgentVerdict}) | {declined: true; pass: PassView; agent: AgentVerdict}>(`${base}/near/pass-pay`, {owner: pass.owner, passId: pass.passId, ...(rule.trim() ? {rule: rule.trim()} : {})}); setPass(r.pass); setVerdict(r.agent); if (!('declined' in r)) onBill(r, r.agent); });
   const close = () => pass && run('close', async () => setPass(await api<PassView>(`${base}/near/pass-close`, {owner: pass.owner, passId: pass.passId})));
   const active = pass?.state === 'ACTIVE' && pass.expiresAtMs > now;
 
