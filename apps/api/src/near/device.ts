@@ -79,7 +79,7 @@ export async function deviceState(deviceId:string,key:string,lang:Lang){
      WHERE e.merchant_id=$1 ORDER BY e.auth_generation DESC,e.assignment_generation DESC,e.created_at DESC LIMIT 1`,[merchant])).rows[0];
     if(entry){
      const offer=(await db.query<{name_en:string;percent:number|null;base_minor:string;current_minor:string;currency:string;decimals:number}>(`SELECT p.name_en,o.percent,o.base_minor::text,o.current_minor::text,v.currency,v.decimals FROM (
-       SELECT DISTINCT ON(product_id) * FROM versioned_product_offers WHERE merchant_id=$1 AND price_version_id=(SELECT id FROM catalog_price_versions WHERE merchant_id=$1 ORDER BY configured_at DESC LIMIT 1) ORDER BY product_id,revision DESC) o
+       SELECT DISTINCT ON(product_id) * FROM versioned_product_offers WHERE merchant_id=$1 AND price_version_id=(SELECT active_price_version_id FROM merchant_pricing WHERE merchant_id=$1) ORDER BY product_id,revision DESC) o
       JOIN products p ON p.merchant_id=o.merchant_id AND p.id=o.product_id JOIN catalog_price_versions v ON v.merchant_id=o.merchant_id AND v.id=o.price_version_id
       WHERE o.enabled AND o.expires_at>clock_timestamp() ORDER BY o.expires_at LIMIT 1`,[merchant])).rows[0];
      const money=(minor:string,dec:number)=>{const n=BigInt(minor),u=10n**BigInt(dec);return `${n/u}.${(n%u).toString().padStart(dec,'0')}`;};
