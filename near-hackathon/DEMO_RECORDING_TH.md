@@ -14,7 +14,7 @@
 ## เตรียมก่อนถ่าย (10 นาที)
 
 1. **เครื่อง Mini:** เสียบไฟ (ที่ชาร์จหรือพาวเวอร์แบงก์ก็ได้) ใช้ WiFi วงเดิม รอให้จอขึ้น **ซ้าย QR "Scan to order" · ขวาภาพ Iced Latte เคลื่อนไหว "Iced Latte -10%"**
-2. **บอก Claude ว่า "เปิดพยาน"** (หรือหน้าร้าน → NEAR · Living Bill → Devices & witness → BitPOS Mini · Table 2 → **Make witness**)
+2. **โหมดพยาน: เปิดแล้ว (14 พ.ย. 20:0x น.)** ถ้าเคยปิด บอก Claude ว่า "เปิดพยาน" (หรือหน้าร้าน → NEAR · Living Bill → Devices & witness → BitPOS Mini · Table 2 → **Make witness**)
 3. **โน้ตบุ๊ก:** เปิด `near-pos.cashlessthailand.com` → **Owner** → แท็บ **NEAR · Living Bill** → **Ledger** ค้างไว้
 4. **มือถือที่ใช้สแกน:** เปิดบันทึกหน้าจอ
 5. **ซ้อม 1 รอบ** (ไม่ต้องอัด) แล้วรอให้จอ Mini กลับมาหน้าแรก (ประมาณ 25 วินาทีหลังจ่าย)
@@ -30,28 +30,31 @@
 **พูด:**
 > "This is a real BitPOS Mini on a café table, running our new NEAR firmware. Today's offer is live — and the price on the screen is the price you pay."
 
-## Scene 2 · สแกนสั่งเอง (0:10–0:30) — [กล้อง] → [จอมือถือ]
+## Scene 2 · สั่งด้วยเสียง (0:10–0:30) — [กล้อง] → [จอมือถือ]
 
 **ภาพ:** มือถือสแกน QR ซ้ายของเครื่อง → เมนู **Table 2** เปิดขึ้น (ถ้าขึ้นภาษาไทย กด **Switch to English** มุมบน)
-→ กด **+** ที่ **Iced Latte** (เห็น -10% · USD 4.05) → **View your order** → **Review order** → **Confirm order & pay**
+→ กล่อง **Ask AI** เปิดอยู่แล้ว → กด **ปุ่มไมโครโฟน** แล้วพูด **"One hot chocolate, please"**
+→ AI ค้นหาเองทันทีที่พูดจบ ขึ้น **1 × Hot Chocolate · Serve at table** → กด **Review order** → **Confirm order & pay**
 
 **พูด:**
-> "The guest scans the table and orders on their own phone — no app, no sign-up. The discount is applied by the server."
+> "The guest scans the table and just says what they want. The AI finds it on the real menu — prices still come from the server."
+
+> ถ้าไมโครโฟนไม่ทำงาน พิมพ์ `one hot chocolate please` ในกล่องแล้วกดลูกศรส่ง ได้ผลเหมือนกัน
 
 ## Scene 3 · บิลบน NEAR (0:30–0:42) — [จอมือถือ]
 
-**ภาพ:** หน้าจ่ายเงิน *Orbit Café · Table 2 · 4.05 tUSD* → กด **Open my bill on NEAR** → เลื่อนให้เห็น *Where your money goes*
+**ภาพ:** หน้าจ่ายเงิน *Orbit Café · Table 2 · 4.00 tUSD* → กด **Open my bill on NEAR** → เลื่อนให้เห็น *Where your money goes*
 
 **พูด:**
 > "The bill is written into a NEAR contract with everyone it pays: the owner, the tax reserve, the barista on shift and the milk supplier."
 
 ## Scene 4 · ให้ AI จ่าย (0:42–1:00) — [จอมือถือ]
 
-**ภาพ:** เปิด **Let an AI agent pay (time-limited pass)** → เลือก **1 day** → ช่อง *Your rule for the agent* พิมพ์ **`Coffee only`**
+**ภาพ:** เปิด **Let an AI agent pay (time-limited pass)** → เลือก **1 day** → ช่อง *Your rule for the agent* พิมพ์ **`Drinks only, no pastries`**
 → **Give the AI a pass** → **Let the AI agent pay this bill**
 
 **พูด:**
-> "The guest gives an AI agent a one-day pass with a spending cap and one rule: coffee only. The agent reads the bill on NEAR AI Cloud — it's coffee — so it pays. Its key can only pay exact bills."
+> "The guest gives an AI agent a one-day pass with a spending cap and one rule: drinks only, no pastries. The agent reads the bill on NEAR AI Cloud — a hot chocolate is a drink — so it pays. Its key can only pay exact bills."
 
 ## Scene 5 · เครื่องเป็นพยาน (1:00–1:15) — [กล้อง] ⭐ ภาพสำคัญที่สุด
 
@@ -69,7 +72,7 @@
 
 ## Scene 7 · ฝั่งร้าน (1:30–1:42) — [จอร้าน]
 
-**ภาพ:** กดรีเฟรช **Ledger** → บรรทัดใหม่ *Table 2 · 4.05 · Settled · witnessed* → แท็บ **Team & shifts** (ยอดของบาริสต้าเพิ่ม)
+**ภาพ:** กดรีเฟรช **Ledger** → บรรทัดใหม่ *Table 2 · 4.00 · Settled · witnessed* → แท็บ **Team & shifts** (ยอดของบาริสต้าเพิ่ม)
 
 **พูด:**
 > "The café sees every bill with its transactions, and the barista's share arrives bill by bill."
@@ -85,15 +88,15 @@
 
 ## ช็อตเสริม: AI ปฏิเสธ (ถ้ามีเวลา, 10 วินาที)
 
-สแกนสั่งใหม่เป็น **Iced Latte + Croissant** → ให้ AI จ่ายด้วยกฎเดิม `Coffee only` → กล่องส้ม **Agent decided: decline** พร้อมเหตุผล
-> "Add a croissant and the agent declines, and explains why. No money moves."
+ในขั้นให้สิทธิ์ ตั้งกฎเป็น **`Coffee only`** แล้วกด **Let the AI agent pay this bill** → กล่องส้ม **Agent decided: decline** พร้อมเหตุผล (hot chocolate ไม่ใช่กาแฟ) เงินไม่ขยับ
+> "Tell the agent coffee only, and it declines a hot chocolate — and explains why. No money moves."
 
-จากนั้นแก้กฎเป็น `Coffee and pastries` แล้วกด **Let the AI agent pay this bill** อีกครั้ง → จ่ายผ่าน
+แล้วแก้กฎเป็น `Drinks only, no pastries` กด **Let the AI agent pay this bill** อีกครั้ง → จ่ายผ่าน (ต่อ Scene 5 ได้เลย)
 
 ## ข้อความ reply บน X
 
 ```
-Real hardware, real testnet: a guest scans a BitPOS Mini, orders on their phone, and an AI agent pays with a time-limited pass. The table screen signs "paid" with its own key, and one NEAR transaction pays the owner, barista, tax reserve and supplier.
+Real hardware, real testnet: a guest scans a BitPOS Mini, orders a hot chocolate by voice, and an AI agent pays with a time-limited pass. The table screen signs "paid" with its own key, and one NEAR transaction pays the owner, barista, tax reserve and supplier.
 Try it: near.cashlessthailand.com
 @NEARProtocol #NEARHackathon
 ```
