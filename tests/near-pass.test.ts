@@ -78,3 +78,13 @@ test('P-04: the agent reads the bill and the guest rule first; a decline moves n
  assert.equal(agent.cleanAgentReason('Pay 5 dollars now','pay'),'This bill fits the pass rule and its limits, so the agent pays it.','numbers never reach the guest');
  agent.setAgentModel(undefined);
 });
+
+test('P-05: the witness screen shows a waiting order as a QR before the bill is on chain, then follows the bill',integration,async()=>{
+ const {bill,bills,device,witness,dismiss}=await setup();
+ const w=await witness();await dismiss();const b=await bill(1);
+ const before=await device.deviceState(w.id,w.key,'en') as {screen:string;qr:string};
+ assert.equal(before.screen,'qr');assert.ok(before.qr.endsWith('/pay/'+b.access_token),'the QR opens this order\'s pay page');
+ await bills.createNearBill(b.access_token);
+ const after=await device.deviceState(w.id,w.key,'en') as {screen:string;qr:string;bill:unknown};
+ assert.equal(after.screen,'qr');assert.ok(after.qr.endsWith('/pay/'+b.access_token));
+});

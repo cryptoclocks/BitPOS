@@ -38,7 +38,17 @@ export async function deviceState(deviceId:string,key:string,lang:Lang){
   const k=(await billsBy(db,`merchant_id=$1 AND (witness_device_id=$2 OR (witness_device_id IS NULL AND (SELECT count(*) FROM near_devices WHERE merchant_id=$1 AND active)=1))
    AND ((status='OPEN' AND expires_at>clock_timestamp()) OR status IN ('ESCROW','SETTLING','PAYOUT_FAILED') OR (status IN ('SETTLED','REFUNDED') AND updated_at>clock_timestamp()-interval '25 seconds'))
    ORDER BY (status IN ('ESCROW','SETTLING')) DESC,created_at DESC LIMIT 1`,[merchant,deviceId])).rows[0];
-  if(!k)return {...base,screen:'idle' as const,title:shop,line1:L(lang,'พร้อมรับออเดอร์','Ready for the next order'),line2:'NEAR testnet'};
+  if(!k){
+   // No bill on chain yet: the shop's witness screen (or its only screen) shows the newest order waiting for payment,
+   // so the guest can scan it at the table. The customer page then opens the bill on NEAR; nothing is signed here.
+   const waiting=(await db.query<{access_token:string;serving_label_snapshot:string|null}>(`SELECT o.access_token,a.serving_label_snapshot FROM orders o LEFT JOIN order_authority a ON a.merchant_id=o.merchant_id AND a.order_id=o.id
+    WHERE o.merchant_id=$1 AND o.status IN ('AWAITING_WALLET','AWAITING_PAYMENT') AND o.created_at>clock_timestamp()-interval '10 minutes'
+    AND ((SELECT witness_device_id FROM near_merchant_settings WHERE merchant_id=$1)=$2 OR (SELECT count(*) FROM near_devices WHERE merchant_id=$1 AND active)=1)
+    AND NOT EXISTS(SELECT 1 FROM near_bills b WHERE b.merchant_id=o.merchant_id AND b.order_id=o.id AND b.status NOT IN ('VOID','FAILED','REFUNDED'))
+    ORDER BY o.created_at DESC LIMIT 1`,[merchant,deviceId])).rows[0];
+   if(waiting)return {...base,table:waiting.serving_label_snapshot||device!.label,screen:'qr' as const,title:L(lang,'สแกนเพื่อจ่าย','Scan to pay'),line1:L(lang,'ไม่ต้องมี NEAR · ร้านออกค่าธรรมเนียมเครือข่าย','No NEAR needed · the café pays the network fee'),qr:`${customerOrigin}/pay/${waiting.access_token}`,poll_ms:1500};
+   return {...base,screen:'idle' as const,title:shop,line1:L(lang,'พร้อมรับออเดอร์','Ready for the next order'),line2:'NEAR testnet'};
+  }
   const order=(await db.query<OrderRow&{serving_label_snapshot:string|null}>('SELECT o.*,a.serving_label_snapshot FROM orders o LEFT JOIN order_authority a ON a.merchant_id=o.merchant_id AND a.order_id=o.id WHERE o.merchant_id=$1 AND o.id=$2',[merchant,k.order_id])).rows[0];
   const s=(await db.query<{token_symbol:string}>('SELECT token_symbol FROM near_merchant_settings WHERE merchant_id=$1',[merchant])).rows[0];
   const amount=`${unitsToDisplay(k.amount_units)} ${s?.token_symbol??''}`.trim();
