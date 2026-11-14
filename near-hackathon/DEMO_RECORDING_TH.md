@@ -1,102 +1,99 @@
 <!-- NEAR HACKATHON work (2026-11-14). See near-hackathon/PROVENANCE.md. -->
-# สตอรี่บอร์ดวิดีโอถ่ายจริง: ถือเครื่อง BitPOS Mini สั่งและจ่ายจริงบน NEAR testnet
+# สตอรี่บอร์ดวิดีโอถ่ายจริง (ฉบับล่าสุด): BitPOS Mini บนโต๊ะ ลูกค้าสแกนสั่งเอง AI จ่าย เครื่องเซ็นยืนยันบน NEAR
 
-ความยาวเป้าหมาย **ประมาณ 1:45–2:00 นาที** · โพสต์เป็น **reply ใต้โพสต์เดิม**
-https://x.com/theCryptoClock/status/2121392191759335814
+ยาวประมาณ **1:50 นาที** · โพสต์เป็น **reply ใต้โพสต์เดิม** https://x.com/theCryptoClock/status/2121392191759335814
+ทุกขั้นในบทนี้ทดสอบบนเว็บจริงแล้ว 14 พ.ย. 2026 ชื่อปุ่มตรงกับที่ขึ้นบนจอ
 
-**ภาพที่ใช้มี 3 แบบ**
-- **[กล้อง]** ถ่ายด้วยมือถืออีกเครื่อง เห็นเครื่อง Mini บนโต๊ะ มือ แก้วกาแฟ (แนวนอน 16:9)
-- **[จอมือถือ]** อัดหน้าจอมือถือที่ใช้สแกนจ่าย (iPhone: ศูนย์ควบคุม → บันทึกหน้าจอ) แล้วแทรกตอนตัดต่อ
-- **[จอร้าน]** อัดหน้าจอโน้ตบุ๊ก/แท็บเล็ตที่เปิดหน้าร้าน (Mac: `Cmd + Shift + 5`)
+**ภาพ 3 แบบ**
+- **[กล้อง]** มือถือเครื่องที่ 2 ถ่ายเครื่อง Mini บนโต๊ะ (แนวนอน 16:9)
+- **[จอมือถือ]** อัดหน้าจอมือถือที่ใช้สแกน (iPhone: ศูนย์ควบคุม → บันทึกหน้าจอ)
+- **[จอร้าน]** อัดหน้าจอโน้ตบุ๊กที่เปิดหน้าร้าน (Mac: `Cmd + Shift + 5`)
 
 ---
 
 ## เตรียมก่อนถ่าย (10 นาที)
 
-1. **เครื่อง Mini:** เสียบไฟ USB (ที่ชาร์จหรือพาวเวอร์แบงก์ก็ได้) ใช้ WiFi วงเดิมที่ตั้งไว้ รอจอขึ้นหน้า **Orbit Café · Ready for the next order**
-2. **เปิดโหมดพยาน:** ที่หน้าร้าน `near-pos.cashlessthailand.com` → **Owner** → แท็บ **NEAR · Living Bill** → **Devices & witness**
-   → แถว **BitPOS Mini · Table 2** → กด **Make witness**
-   (หรือพิมพ์บอก Claude ว่า "เปิดพยาน" แล้วผมเปิดให้)
-3. **หน้าร้าน:** เปิด **Menu** → register **Counter** ค้างไว้
-4. **มือถือที่ใช้จ่าย:** เปิดกล้องพร้อมสแกน QR และเปิดบันทึกหน้าจอ
-5. ซ้อม 1 บิลก่อนอัดจริง
+1. **เครื่อง Mini:** เสียบไฟ (ที่ชาร์จหรือพาวเวอร์แบงก์ก็ได้) ใช้ WiFi วงเดิม รอให้จอขึ้น **ซ้าย QR "Scan to order" · ขวาภาพ Iced Latte เคลื่อนไหว "Iced Latte -10%"**
+2. **บอก Claude ว่า "เปิดพยาน"** (หรือหน้าร้าน → NEAR · Living Bill → Devices & witness → BitPOS Mini · Table 2 → **Make witness**)
+3. **โน้ตบุ๊ก:** เปิด `near-pos.cashlessthailand.com` → **Owner** → แท็บ **NEAR · Living Bill** → **Ledger** ค้างไว้
+4. **มือถือที่ใช้สแกน:** เปิดบันทึกหน้าจอ
+5. **ซ้อม 1 รอบ** (ไม่ต้องอัด) แล้วรอให้จอ Mini กลับมาหน้าแรก (ประมาณ 25 วินาทีหลังจ่าย)
 
-> **หลังถ่ายเสร็จ:** บอก Claude ว่า "ปิดพยาน" ถ้าเปิดโหมดพยานค้างไว้ตอนถอดเครื่อง บิลของกรรมการจะรอเครื่องนาน 2 นาทีแล้วเงินเด้งกลับ
+> หลังถ่าย: บอก Claude ว่า **"ปิดพยาน"**
 
 ---
 
 ## Scene 1 · เปิดเรื่อง (0:00–0:10) — [กล้อง]
 
-**ภาพ:** เครื่อง Mini บนโต๊ะข้างแก้วกาแฟ จอหน้าแรก: **ซ้าย QR "Scan to order"** · **ขวาภาพ Iced Latte เคลื่อนไหว + "Iced Latte -10% · USD 4.05 instead of 4.50"** ค่อยๆ ซูมเข้า
+**ภาพ:** เครื่อง Mini ข้างแก้วกาแฟ ซูมเข้าช้าๆ ให้เห็น QR ซ้าย และภาพ Iced Latte เคลื่อนไหว **"Iced Latte -10% · USD 4.05 instead of 4.50"**
 
 **พูด:**
-> "This is a real BitPOS Mini on a café table, running our new NEAR firmware. Today's offer is live — and the price on the screen is the price you'll pay."
+> "This is a real BitPOS Mini on a café table, running our new NEAR firmware. Today's offer is live — and the price on the screen is the price you pay."
 
-## Scene 2 · ลูกค้าสแกนสั่งเอง (0:10–0:28) — [กล้อง] + [จอมือถือ]
+## Scene 2 · สแกนสั่งเอง (0:10–0:30) — [กล้อง] → [จอมือถือ]
 
-**ภาพ:** มือถือสแกน QR ซ้ายของเครื่อง → (จอมือถือ) เมนูโต๊ะ 2 เปิดขึ้น → กดเพิ่ม **Iced Latte** (เห็นราคา 4.05) → สั่ง → ไปหน้าจ่ายเงิน
-
-**พูด:**
-> "The guest scans the table and orders on their own phone — no app. The discounted price comes from the server, not the browser."
-
-> ถ้าอยากโชว์ฝั่งร้านออกบิลแทน: หน้าร้าน Menu → Counter → Iced Latte → Create order แล้วจอ Mini จะเปลี่ยนเป็น **Scan to pay** ให้สแกนจ่ายได้เลย
-
-## Scene 3 · บิลบน NEAR (0:28–0:35) — [จอมือถือ]
-
-**ภาพ:** กด **Open my bill on NEAR** → เห็น *Pay exactly 4.05 tUSD*
+**ภาพ:** มือถือสแกน QR ซ้ายของเครื่อง → เมนู **Table 2** เปิดขึ้น (ถ้าขึ้นภาษาไทย กด **Switch to English** มุมบน)
+→ กด **+** ที่ **Iced Latte** (เห็น -10% · USD 4.05) → **View your order** → **Review order** → **Confirm order & pay**
 
 **พูด:**
-> "The bill is written into a NEAR contract, with everyone it pays."
+> "The guest scans the table and orders on their own phone — no app, no sign-up. The discount is applied by the server."
 
-## Scene 4 · หน้าจ่ายเงินบนมือถือ (0:30–0:50) — [จอมือถือ]
+## Scene 3 · บิลบน NEAR (0:30–0:42) — [จอมือถือ]
 
-**ภาพ:** หน้า near-pay เปิดขึ้น → กด **Open my bill on NEAR** (ถ้ายังไม่เปิด) → เลื่อนให้เห็น *Where your money goes*
-→ เปิด **Let an AI agent pay** → เลือก **1 day** → ช่องกฎพิมพ์ **`Coffee only`** → **Give the AI a pass** → **Let the AI agent pay this bill**
-
-**พูด:**
-> "Here's where the money goes: the owner, the tax reserve, the barista on shift and the milk supplier.
-> The guest lets an AI agent pay, with a one-day pass, a cap, and one rule: coffee only. The agent checks the bill on NEAR AI Cloud, and pays."
-
-## Scene 5 · เครื่องเป็นพยาน (0:50–1:10) — [กล้อง] ภาพสำคัญที่สุด
-
-**ภาพ:** ถ่ายจอ Mini ใกล้ๆ: **Checking the chain** → **PAID** พร้อมแถบแบ่งเงิน Owner / Team / Tax / Milk
+**ภาพ:** หน้าจ่ายเงิน *Orbit Café · Table 2 · 4.05 tUSD* → กด **Open my bill on NEAR** → เลื่อนให้เห็น *Where your money goes*
 
 **พูด:**
-> "The money waits in the contract. The table screen asks NEAR itself, shows PAID, and signs with a key it made on the device.
-> The contract checks that signature — and pays everyone in the same transaction."
+> "The bill is written into a NEAR contract with everyone it pays: the owner, the tax reserve, the barista on shift and the milk supplier."
 
-## Scene 6 · หลักฐานบนมือถือ (1:10–1:25) — [จอมือถือ]
+## Scene 4 · ให้ AI จ่าย (0:42–1:00) — [จอมือถือ]
 
-**ภาพ:** หน้ามือถือขึ้น **Paid** · กล่องเขียว *Paid by the AI agent with your pass* · กดลิงก์ **Witness from the café's screen** → หน้า nearblocks
+**ภาพ:** เปิด **Let an AI agent pay (time-limited pass)** → เลือก **1 day** → ช่อง *Your rule for the agent* พิมพ์ **`Coffee only`**
+→ **Give the AI a pass** → **Let the AI agent pay this bill**
 
 **พูด:**
-> "On the explorer: the witness transaction from this exact device, and four payouts. If the screen never confirms, the money goes back to the guest — never to the agent."
+> "The guest gives an AI agent a one-day pass with a spending cap and one rule: coffee only. The agent reads the bill on NEAR AI Cloud — it's coffee — so it pays. Its key can only pay exact bills."
 
-## Scene 7 · ฝั่งร้าน (1:25–1:40) — [จอร้าน]
+## Scene 5 · เครื่องเป็นพยาน (1:00–1:15) — [กล้อง] ⭐ ภาพสำคัญที่สุด
 
-**ภาพ:** แท็บ **NEAR · Living Bill** → **Ledger** (บรรทัดใหม่ *witnessed*) → **Team & shifts** (ยอดบาริสต้าเพิ่ม)
+**ภาพ:** ถ่ายจอ Mini ใกล้ๆ: **Checking the chain** → **PAID** พร้อมแถบแบ่งเงิน (Owner / Team / Tax / Milk) ถือกล้องนิ่งๆ 3 วินาทีตอนขึ้น PAID
+
+**พูด:**
+> "The money waits in the contract. The table screen checks NEAR itself, shows PAID, and signs with a key it made on the device. The contract verifies that signature — and pays everyone in one transaction."
+
+## Scene 6 · หลักฐาน (1:15–1:30) — [จอมือถือ]
+
+**ภาพ:** มือถือขึ้น **Paid** · กล่องเขียว *Paid by the AI agent with your pass* · ในกล่อง *Proof on NEAR* กด **Witness from the café's screen** → หน้า nearblocks
+
+**พูด:**
+> "On the explorer: the witness transaction signed by this exact device, and four payouts. If the screen never confirms, the money goes back to the guest — never to the agent."
+
+## Scene 7 · ฝั่งร้าน (1:30–1:42) — [จอร้าน]
+
+**ภาพ:** กดรีเฟรช **Ledger** → บรรทัดใหม่ *Table 2 · 4.05 · Settled · witnessed* → แท็บ **Team & shifts** (ยอดของบาริสต้าเพิ่ม)
 
 **พูด:**
 > "The café sees every bill with its transactions, and the barista's share arrives bill by bill."
 
-## Scene 8 · ปิด (1:40–1:50) — [กล้อง]
+## Scene 8 · ปิด (1:42–1:52) — [กล้อง]
 
-**ภาพ:** ถอยกล้องให้เห็นโต๊ะ เครื่อง Mini ที่ขึ้น PAID และแก้วกาแฟ
+**ภาพ:** ถอยกล้องให้เห็นทั้งโต๊ะ จอ Mini กลับมาหน้าแรก (QR + ภาพกาแฟ)
 
 **พูด:**
-> "One payment. Everyone gets paid. BitPOS Living Bill, live on NEAR testnet — try it at near.cashlessthailand.com."
+> "One payment. Everyone gets paid. BitPOS Living Bill — live on NEAR testnet. Try it at near.cashlessthailand.com."
 
 ---
 
-## ช็อตเสริม (ถ้ามีเวลา) — AI ปฏิเสธ
+## ช็อตเสริม: AI ปฏิเสธ (ถ้ามีเวลา, 10 วินาที)
 
-สร้างบิลใหม่เป็น **Latte + Croissant** แล้วให้ AI จ่ายด้วยกฎเดิม **`Coffee only`** จะขึ้นกล่องส้ม **Agent decided: decline** พร้อมเหตุผล และเครื่อง Mini ยังแสดง QR อยู่เพราะไม่มีเงินเคลื่อน
-> "Break the rule — add a croissant — and the agent declines and explains why. No money moves."
+สแกนสั่งใหม่เป็น **Iced Latte + Croissant** → ให้ AI จ่ายด้วยกฎเดิม `Coffee only` → กล่องส้ม **Agent decided: decline** พร้อมเหตุผล
+> "Add a croissant and the agent declines, and explains why. No money moves."
 
-## ข้อความ reply บน X (พร้อมใช้)
+จากนั้นแก้กฎเป็น `Coffee and pastries` แล้วกด **Let the AI agent pay this bill** อีกครั้ง → จ่ายผ่าน
+
+## ข้อความ reply บน X
 
 ```
-Real hardware, real testnet: a BitPOS Mini on a café table witnesses the payment. An AI agent pays with a time-limited pass, the screen signs "paid" with its own key, and one NEAR transaction pays the owner, barista, tax reserve and supplier.
+Real hardware, real testnet: a guest scans a BitPOS Mini, orders on their phone, and an AI agent pays with a time-limited pass. The table screen signs "paid" with its own key, and one NEAR transaction pays the owner, barista, tax reserve and supplier.
 Try it: near.cashlessthailand.com
 @NEARProtocol #NEARHackathon
 ```
@@ -105,13 +102,13 @@ Try it: near.cashlessthailand.com
 
 | อาการ | ทำอย่างไร |
 |---|---|
-| จอ Mini ไม่ขึ้น QR | ตรวจว่าเปิดโหมดพยานแล้ว และเครื่องต่อ WiFi (จอขึ้น Ready for the next order) |
-| จอค้างที่ Checking นานเกิน 20 วินาที | รอได้ถึง 2 นาที ถ้าไม่ผ่าน เงินเด้งกลับเอง เริ่มบิลใหม่ได้ |
+| จอ Mini ไม่ขึ้น QR + ภาพกาแฟ | รอ 10 วินาทีหลังเสียบไฟ (ต้องต่อ WiFi) ถ้ายังไม่ขึ้น ถอดเสียบใหม่ |
+| จอ Mini ขึ้น "Scan to pay" ค้าง | มีออเดอร์รอจ่ายจากรอบซ้อม รอ 10 นาทีหรือจ่ายให้เสร็จ แล้วจะกลับหน้าแรก |
+| จอค้างที่ Checking นานเกิน 20 วินาที | ตรวจว่าเปิดพยานแล้ว รอได้ถึง 2 นาที ถ้าไม่ผ่านเงินเด้งกลับเอง เริ่มใหม่ได้ |
 | ปุ่มให้ AI จ่ายไม่ขึ้น | กด **Make a new pass** |
-| บิลหมดอายุ | สร้างบิลใหม่ที่หน้าร้าน |
-| AI ตัดสินไม่ตรงที่คาด | ถ่ายต่อได้: สัญญายังบังคับวงเงินเสมอ หรือเริ่มบิลใหม่ |
+| AI ตัดสินไม่ตรงที่คาด | ถ่ายต่อได้ สัญญายังบังคับวงเงินเสมอ หรือสั่งใหม่ |
 
-## ข้อเท็จจริงที่พูดได้ (และที่ห้ามพูด)
+## พูดได้ / ห้ามพูด
 
-- พูดได้: เครื่องจริงเซ็นยืนยันบน testnet แล้ว ([device_ack](https://testnet.nearblocks.io/txns/8ECTxuJAPfrkPiDb98qCqkQsxQrrNb5w9BGtV3WQPiD5)), AI ตัดสินบน NEAR AI Cloud พร้อมตรวจลายเซ็น, เงินทดสอบบน testnet
-- ห้ามพูด: เงินจริง, mainnet, ร้านจริงใช้งานแล้ว
+- **พูดได้:** เครื่องจริงเซ็นยืนยันบน testnet ([device_ack](https://testnet.nearblocks.io/txns/8ECTxuJAPfrkPiDb98qCqkQsxQrrNb5w9BGtV3WQPiD5)), AI ตัดสินบน NEAR AI Cloud และตรวจลายเซ็นคำตอบ, ส่วนลดคิดในบิลจริง, เงินทดสอบบน testnet
+- **ห้ามพูด:** เงินจริง, mainnet, ร้านจริงใช้งานแล้ว
