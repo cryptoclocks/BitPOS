@@ -25,14 +25,37 @@ async function authenticate(deviceId:string,key:string){
 }
 const deviceRow=async(db:import('pg').PoolClient,merchant:string,id:string)=>(await db.query<DeviceRow>('SELECT id,label,kind,public_key_hex FROM near_devices WHERE merchant_id=$1 AND id=$2 AND active',[merchant,id])).rows[0];
 
+/** Characters the BitPOS Mini NEAR font can draw: ASCII, Latin-1, Thai and a few punctuation marks
+ *  (device/firmware/main/bitpos_near_font_20.c). Anything else is folded so the screen never shows an empty box. */
+/** Offer animations shipped with the site (apps/near-site/assets/anim/<slug>.gif), served at /near/anim/. */
+const ANIMATED=new Set(['iced-latte']);
+const SCREEN_EXTRA=new Set([0x2013,0x2014,0x2018,0x2019,0x201c,0x201d,0x2022,0x2026,0x2190,0x2192,0x20ac]);
+const SCREEN_FOLD:Record<string,string>={'\u2713':'OK','\u2714':'OK','\u2715':'x','\u2717':'x','\u00a0':' ','\u2212':'-','\u2010':'-','\u2011':'-','\u0141':'L','\u0142':'l','\u0110':'D','\u0111':'d'};
+export function screenText(text:string):string{
+ let out='';
+ for(const ch of text){const c=ch.codePointAt(0)!;
+  if((c>=0x20&&c<=0x7e)||(c>=0xa1&&c<=0xff)||(c>=0x0e00&&c<=0x0e7f)||SCREEN_EXTRA.has(c)){out+=ch;continue;}
+  if(SCREEN_FOLD[ch]!==undefined){out+=SCREEN_FOLD[ch];continue;}
+  const base=ch.normalize('NFKD').replace(/[\u0300-\u036f]/g,'');
+  out+=[...base].every(b=>{const x=b.codePointAt(0)!;return x>=0x20&&x<=0x7e;})&&base?base:'';
+ }
+ return out;
+}
+function forScreen<T extends Record<string,unknown>>(view:T):T{
+ const v:Record<string,unknown>={...view};
+ for(const k of ['title','line1','line2','table','big'])if(typeof v[k]==='string')v[k]=screenText(v[k] as string);
+ if(Array.isArray(v.splits))v.splits=(v.splits as {label:string;amount:string}[]).map(x=>({...x,label:screenText(x.label)}));
+ return v as T;
+}
+
 /** GET state: what the screen shows now. The device still checks `checking`/`paid` against the chain itself. */
 export async function deviceState(deviceId:string,key:string,lang:Lang){
  const d=nearDeps()??refuse(503,'NEAR_UNAVAILABLE');const merchant=await authenticate(deviceId,key);
- return tenant(merchant,async db=>{
+ return forScreen(await tenant(merchant,async db=>{
   const device=await deviceRow(db,merchant,deviceId);if(!device)refuse(401,'DEVICE_AUTH_REQUIRED');
   await db.query('UPDATE near_devices SET last_seen_at=clock_timestamp() WHERE merchant_id=$1 AND id=$2',[merchant,deviceId]);
   const shop=(await db.query<{name:string}>('SELECT name FROM merchants WHERE id=$1',[merchant])).rows[0]?.name??'BitPOS';
-  const base={v:1 as const,table:device!.label,rpc:d.config.rpcUrls[0],poll_ms:2000,tone:'none',splits:[] as {label:string;amount:string}[],bill:null as null|{contract:string;merchant:string;id:string},qr:'',big:'',line2:''};
+  const base={v:1 as const,table:device!.label,rpc:d.config.rpcUrls[0],poll_ms:2000,tone:'none',splits:[] as {label:string;amount:string}[],bill:null as null|{contract:string;merchant:string;id:string},qr:'',big:'',line2:'',anim:''};
   if(!device!.public_key_hex)return {...base,screen:'setup' as const,register:true,title:shop,line1:L(lang,'รอลงทะเบียนกุญแจของเครื่อง','Waiting for this device to register its key')};
   // This device's bills: the ones it must witness, or every bill when it is the shop's only screen.
   const k=(await billsBy(db,`merchant_id=$1 AND (witness_device_id=$2 OR (witness_device_id IS NULL AND (SELECT count(*) FROM near_devices WHERE merchant_id=$1 AND active)=1))
@@ -47,6 +70,26 @@ export async function deviceState(deviceId:string,key:string,lang:Lang){
     AND NOT EXISTS(SELECT 1 FROM near_bills b WHERE b.merchant_id=o.merchant_id AND b.order_id=o.id AND b.status NOT IN ('VOID','FAILED','REFUNDED'))
     ORDER BY o.created_at DESC LIMIT 1`,[merchant,deviceId])).rows[0];
    if(waiting)return {...base,table:waiting.serving_label_snapshot||device!.label,screen:'qr' as const,title:L(lang,'สแกนเพื่อจ่าย','Scan to pay'),line1:L(lang,'ไม่ต้องมี NEAR · ร้านออกค่าธรรมเนียมเครือข่าย','No NEAR needed · the café pays the network fee'),qr:`${customerOrigin}/pay/${waiting.access_token}`,poll_ms:1500};
+   const isWitness=(await db.query<{w:boolean}>("SELECT (witness_device_id=$2 OR (SELECT count(*) FROM near_devices WHERE merchant_id=$1 AND active)=1) AS w FROM near_merchant_settings WHERE merchant_id=$1",[merchant,deviceId])).rows[0]?.w;
+   if(isWitness){
+    // Idle: a scan-to-order QR for the table's menu, and today's offer when the shop has one live. The discount text comes
+    // from the live product offer the checkout also prices with; the animation only shows the product (no numbers).
+    const entry=(await db.query<{entry_token:string;label:string}>(`SELECT e.entry_token,t.label FROM table_entries e JOIN merchant_tables t ON t.merchant_id=e.merchant_id AND t.id=e.table_id
+     WHERE e.merchant_id=$1 ORDER BY e.auth_generation DESC,e.assignment_generation DESC,e.created_at DESC LIMIT 1`,[merchant])).rows[0];
+    if(entry){
+     const offer=(await db.query<{name_en:string;percent:number|null;base_minor:string;current_minor:string;currency:string;decimals:number}>(`SELECT p.name_en,o.percent,o.base_minor::text,o.current_minor::text,v.currency,v.decimals FROM (
+       SELECT DISTINCT ON(product_id) * FROM versioned_product_offers WHERE merchant_id=$1 AND price_version_id=(SELECT id FROM catalog_price_versions WHERE merchant_id=$1 ORDER BY configured_at DESC LIMIT 1) ORDER BY product_id,revision DESC) o
+      JOIN products p ON p.merchant_id=o.merchant_id AND p.id=o.product_id JOIN catalog_price_versions v ON v.merchant_id=o.merchant_id AND v.id=o.price_version_id
+      WHERE o.enabled AND o.expires_at>clock_timestamp() ORDER BY o.expires_at LIMIT 1`,[merchant])).rows[0];
+     const money=(minor:string,dec:number)=>{const n=BigInt(minor),u=10n**BigInt(dec);return `${n/u}.${(n%u).toString().padStart(dec,'0')}`;};
+     const slug=offer?offer.name_en.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,''):'';
+     const anim=offer&&ANIMATED.has(slug)?`/near/anim/${slug}.gif`:'';
+     return {...base,table:entry.label,screen:'idle' as const,qr:`${customerOrigin}/table/${entry.entry_token}`,anim,poll_ms:3000,
+      title:offer?(offer.percent?`${offer.name_en} -${offer.percent}%`:`${offer.name_en} offer`):L(lang,'สแกนเพื่อสั่ง','Scan to order'),
+      line1:offer?`${offer.currency} ${money(offer.current_minor,offer.decimals)} ${L(lang,'จากปกติ','instead of')} ${money(offer.base_minor,offer.decimals)}`:L(lang,'สั่งจากมือถือของคุณ จ่ายบน NEAR','Order on your phone, pay on NEAR'),
+      line2:L(lang,`สแกนเพื่อสั่ง · ${entry.label}`,`Scan to order · ${entry.label}`)};
+    }
+   }
    return {...base,screen:'idle' as const,title:shop,line1:L(lang,'พร้อมรับออเดอร์','Ready for the next order'),line2:'NEAR testnet'};
   }
   const order=(await db.query<OrderRow&{serving_label_snapshot:string|null}>('SELECT o.*,a.serving_label_snapshot FROM orders o LEFT JOIN order_authority a ON a.merchant_id=o.merchant_id AND a.order_id=o.id WHERE o.merchant_id=$1 AND o.id=$2',[merchant,k.order_id])).rows[0];
@@ -59,7 +102,7 @@ export async function deviceState(deviceId:string,key:string,lang:Lang){
   if(k.status==='REFUNDED')return {...base,table,screen:'refunded' as const,title:L(lang,'คืนเงินแล้ว','Refunded'),line1:L(lang,'เงินกลับไปที่กระเป๋าผู้จ่าย','The money went back to the payer'),big:amount,bill,tone:'none'};
   if(k.status==='SETTLED')return {...base,table,screen:'paid' as const,title:L(lang,'จ่ายแล้ว','Paid'),line1:L(lang,'แบ่งจ่ายครบทุกคนแล้ว','Everyone has been paid'),big:amount,bill,splits,tone:'paid'};
   return {...base,table,screen:'checking' as const,title:L(lang,'กำลังตรวจบนเชน','Checking the chain'),line1:k.witness_pk?L(lang,'เครื่องนี้เป็นพยานของบิล','This screen is the bill\'s witness'):L(lang,'กำลังแบ่งจ่าย','Splitting the payment'),big:amount,bill,splits,poll_ms:1500};
- });
+ }));
 }
 
 /** POST register: the device announces the public half of the key it generated. First registration wins. */

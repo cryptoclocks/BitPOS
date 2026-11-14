@@ -88,3 +88,12 @@ test('P-05: the witness screen shows a waiting order as a QR before the bill is 
  const after=await device.deviceState(w.id,w.key,'en') as {screen:string;qr:string;bill:unknown};
  assert.equal(after.screen,'qr');assert.ok(after.qr.endsWith('/pay/'+b.access_token));
 });
+
+test('P-06: with nothing to pay, the witness screen shows a scan-to-order QR for the table menu',integration,async()=>{
+ const {device,witness}=await setup();
+ const w=await witness();
+ const idle=await device.deviceState(w.id,w.key,'en') as {screen:string;qr:string;title:string;anim:string};
+ assert.equal(idle.screen,'idle');
+ assert.match(idle.qr,/\/table\/[A-Za-z0-9_-]+$/,'the QR opens the table menu');
+ assert.equal(idle.anim,'','no live offer in the fixture, so no offer animation');
+});

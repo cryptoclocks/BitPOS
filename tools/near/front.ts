@@ -4,6 +4,7 @@
 //   Host near.<domain> (BITPOS_NEAR_SITE_HOST) → the static presentation site in apps/near-site (GET/HEAD only)
 //   /api/demo-session               → API   (quick sign-in checks the browser's Origin, which the web proxy drops)
 //   /near/device/*                  → API   (BitPOS Mini witness protocol: state, register, ack)
+//   /near/anim/<name>.gif           → the site's offer animations (BitPOS Mini idle screen)
 //   WebSocket upgrade /api/device   → API   (screens; Authorization header passed through)
 //   everything else                 → web   (pages; the web proxies its allow-listed /api routes to the API)
 // Bodies are streamed, never buffered or logged.
@@ -48,6 +49,8 @@ const pathOf=(url:string|undefined)=>{try{return new URL(url??'/','http://front'
 const server=http.createServer((req,res)=>{
  const path=pathOf(req.url);
  if((req.headers.host??'').toLowerCase().split(':')[0]===SITE_HOST){serveSite(req,path,res);return;}
+ // Offer animations for the BitPOS Mini idle screen (files in apps/near-site/assets/anim), on any of the three hosts.
+ const anim=path.match(/^\/near\/anim\/([a-z0-9-]{1,40}\.gif)$/);if(anim){serveSite(req,'/assets/anim/'+anim[1],res);return;}
  const port=path==='/api/demo-session'||path.startsWith('/near/device/')?API:WEB;
  const upstream=http.request({host:'127.0.0.1',port,method:req.method,path:req.url,headers:req.headers},r=>{res.writeHead(r.statusCode??502,r.headers);r.pipe(res);});
  upstream.on('error',()=>{if(!res.headersSent)res.writeHead(502,{'content-type':'application/json'});res.end('{"error":"UPSTREAM_UNAVAILABLE"}');});

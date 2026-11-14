@@ -64,8 +64,33 @@ typedef int bitpos_near_translation_unit_t; /* keeps the file non-empty for the 
 #include "bitpos_near_core.h"
 #include "bitpos_near_ed25519.h"
 
-LV_FONT_DECLARE(bitpos_font_20);
+/* The NEAR screens use their own build of the same Sarabun 20px font with Latin-1 and common punctuation added
+ * (é, ·, …, –, —, quotes, •, →), so shop names and labels from the server do not show empty boxes. */
+LV_FONT_DECLARE(bitpos_near_font_20);
+#define bitpos_font_20 bitpos_near_font_20
 LV_IMAGE_DECLARE(bitpos_logo);
+/* Offer animation on the idle screen (ported from the Meta product, bitpos_meta.c): the server may name a small looping
+ * GIF under /near/anim/. It is downloaded once into PSRAM (at most ANIM_MAX bytes, must start with GIF8) and played with
+ * lv_gif through a read-only in-memory lv_fs drive 'A:'. A failed download just leaves the plain screen. Prices and
+ * discounts are never in the picture: the text next to it comes from the server's live offer. */
+#define ANIM_MAX (600*1024)
+static uint8_t *anim_buf;static size_t anim_len;static char anim_loaded[96];
+static lv_fs_drv_t anim_fs;static uint32_t anim_cursor;static bool anim_open;
+static void *anim_fs_open(lv_fs_drv_t *d,const char *path,lv_fs_mode_t mode){(void)d;(void)path;if(mode!=LV_FS_MODE_RD||!anim_buf||anim_open)return NULL;anim_open=true;anim_cursor=0;return &anim_cursor;}
+static lv_fs_res_t anim_fs_close(lv_fs_drv_t *d,void *f){(void)d;if(f!=&anim_cursor)return LV_FS_RES_INV_PARAM;anim_open=false;return LV_FS_RES_OK;}
+static lv_fs_res_t anim_fs_read(lv_fs_drv_t *d,void *f,void *buf,uint32_t n,uint32_t *r){(void)d;*r=0;
+    if(f!=&anim_cursor||n>anim_len-anim_cursor){memset(buf,0,n);return LV_FS_RES_FS_ERR;}
+    memcpy(buf,anim_buf+anim_cursor,n);anim_cursor+=n;*r=n;return LV_FS_RES_OK;}
+static lv_fs_res_t anim_fs_seek(lv_fs_drv_t *d,void *f,uint32_t off,lv_fs_whence_t w){(void)d;if(f!=&anim_cursor)return LV_FS_RES_INV_PARAM;
+    int64_t pos=w==LV_FS_SEEK_SET?(int64_t)off:w==LV_FS_SEEK_CUR?(int64_t)anim_cursor+(int32_t)off:w==LV_FS_SEEK_END?(int64_t)anim_len+(int32_t)off:-1;
+    if(pos<0||pos>(int64_t)anim_len)return LV_FS_RES_INV_PARAM;
+    anim_cursor=(uint32_t)pos;return LV_FS_RES_OK;}
+static lv_fs_res_t anim_fs_tell(lv_fs_drv_t *d,void *f,uint32_t *pos){(void)d;if(f!=&anim_cursor)return LV_FS_RES_INV_PARAM;*pos=anim_cursor;return LV_FS_RES_OK;}
+static void anim_fs_register(void){
+    if(anim_fs.letter)return;
+    lv_fs_drv_init(&anim_fs);anim_fs.letter='A';anim_fs.cache_size=0;anim_fs.open_cb=anim_fs_open;anim_fs.close_cb=anim_fs_close;
+    anim_fs.read_cb=anim_fs_read;anim_fs.seek_cb=anim_fs_seek;anim_fs.tell_cb=anim_fs_tell;lv_fs_drv_register(&anim_fs);
+}
 static const char *TAG="BitPOS"; /* app_main silences every other log tag */
 #define URL_MAX 160
 #define ID_MAX 40
@@ -82,7 +107,7 @@ typedef enum {SC_SETUP,SC_IDLE,SC_QR,SC_CHECKING,SC_PAID,SC_REFUNDED,SC_OFFLINE}
 typedef struct {char label[40],amount[24];} split_t;
 /* What the server asked for (never trusted for "paid"). */
 static struct {
-    char screen[12],table[40],title[96],line1[128],line2[128],big[24],qr[200],rpc[RPC_MAX];
+    char screen[12],table[40],title[96],line1[128],line2[128],big[24],qr[200],rpc[RPC_MAX],anim[96];
     split_t splits[SPLITS_MAX];int split_count;
     bool has_bill;char contract[BN_ACCOUNT_MAX],merchant[BN_ACCOUNT_MAX],bill[BN_BILL_ID_MAX];
     int poll_ms;bool reg; /* the server has no public key for this device yet */
@@ -261,6 +286,22 @@ static void render(void){
             srv("refunded",view.line1,TR("The bill returned the payment by itself","บิลคืนเงินให้เองอัตโนมัติ")),srv("refunded",view.line2,""));
         break;
     default:
+        if(view.qr[0]){
+            /* Scan-to-order QR left; right card: today's offer (animation from the server, text from its live offer). */
+            qr_tile(view.qr);
+            lv_obj_t *card=box(scr,CARD_X,BODY_Y,CARD_W,BODY_H,PANEL,12);
+            int y=10;
+            if(anim_buf&&view.anim[0]&&!strcmp(view.anim,anim_loaded)){
+                anim_fs_register();
+                lv_obj_t *g=lv_gif_create(card);lv_gif_set_src(g,"A:/offer.gif");
+                if(lv_gif_is_loaded(g)){lv_obj_set_pos(g,(CARD_W-144)/2,8);y=158;}
+                else{ESP_LOGW(TAG,"NEAR_ANIM not playable bytes=%u",(unsigned)anim_len);lv_obj_delete(g);}
+            }
+            text(card,srv("idle",view.title,TR("Scan to order","สแกนเพื่อสั่ง")),14,y,CARD_W-28,&bitpos_font_20,GREEN,1);
+            text(card,srv("idle",view.line1,""),14,y+30,CARD_W-28,&bitpos_font_20,CREAM,y>100?1:3);
+            text(card,srv("idle",view.line2,""),14,BODY_H-34,CARD_W-28,&bitpos_font_20,MUTED,1);
+            break;
+        }
         status_scene(LV_SYMBOL_HOME,GREEN,srv("idle",view.title,"BitPOS x NEAR"),"",
             srv("idle",view.line1,TR("Scan the table QR to order","สแกน QR ที่โต๊ะเพื่อสั่ง")),
             srv("idle",view.line2,TR("One payment pays everyone","จ่ายครั้งเดียว ทุกคนได้เงิน")));
@@ -319,6 +360,24 @@ static int read_body(esp_http_client_handle_t c,char *buf,int cap){
     buf[n]=0;return n;
 }
 /* GET /near/device/state; true when a new, valid view was stored. The key goes only in the Authorization header. */
+/* Downloads view.anim into a new PSRAM buffer; true when it is a GIF that fits. Runs without the LVGL lock. */
+static bool fetch_anim(uint8_t **out,size_t *len){
+    char url[URL_MAX+96];snprintf(url,sizeof(url),"%s%s",near_url,view.anim);
+    esp_http_client_config_t cfg={.url=url,.crt_bundle_attach=esp_crt_bundle_attach,.timeout_ms=15000,.disable_auto_redirect=true,.buffer_size=4096};
+    esp_http_client_handle_t c=esp_http_client_init(&cfg);if(!c)return false;
+    bool ok=false;uint8_t *buf=NULL;
+    if(esp_http_client_open(c,0)==ESP_OK){
+        int64_t size=esp_http_client_fetch_headers(c);
+        if(esp_http_client_get_status_code(c)==200&&size>16&&size<=ANIM_MAX&&(buf=heap_caps_malloc((size_t)size,MALLOC_CAP_SPIRAM|MALLOC_CAP_8BIT))){
+            int n=0,r;while(n<size&&(r=esp_http_client_read(c,(char*)buf+n,(int)size-n))>0)n+=r;
+            ok=n==size&&!memcmp(buf,"GIF8",4);
+            if(ok){*out=buf;*len=(size_t)n;}else{heap_caps_free(buf);}
+        }
+    }
+    esp_http_client_close(c);esp_http_client_cleanup(c);
+    ESP_LOGI(TAG,"NEAR_ANIM %s bytes=%u",ok?"loaded":"not loaded",ok?(unsigned)*len:0u);
+    return ok;
+}
 static bool fetch_view(void){
     static char body[BODY_MAX];char url[URL_MAX+ID_MAX+48],auth[KEY_MAX+16];
     snprintf(url,sizeof(url),"%s/near/device/state?d=%s&l=%s",near_url,near_device,lang_th?"th":"en");snprintf(auth,sizeof(auth),"Bearer %s",near_key);
@@ -331,7 +390,9 @@ static bool fetch_view(void){
         if(j&&cJSON_IsNumber(cJSON_GetObjectItemCaseSensitive(j,"v"))){
             copy(j,"screen",view.screen,sizeof(view.screen));copy(j,"table",view.table,sizeof(view.table));
             copy(j,"title",view.title,sizeof(view.title));copy(j,"line1",view.line1,sizeof(view.line1));copy(j,"line2",view.line2,sizeof(view.line2));
-            copy(j,"big",view.big,sizeof(view.big));copy(j,"qr",view.qr,sizeof(view.qr));copy(j,"rpc",view.rpc,sizeof(view.rpc));
+            copy(j,"big",view.big,sizeof(view.big));copy(j,"qr",view.qr,sizeof(view.qr));copy(j,"rpc",view.rpc,sizeof(view.rpc));copy(j,"anim",view.anim,sizeof(view.anim));
+            /* Offer animation: only a same-origin /near/anim/<name>.gif path; anything else is ignored. */
+            if(strncmp(view.anim,"/near/anim/",11)||strspn(view.anim+11,"abcdefghijklmnopqrstuvwxyz0123456789-_.")!=strlen(view.anim+11)||strstr(view.anim,".."))view.anim[0]=0;
             if(strncmp(view.qr,"https://",8))view.qr[0]=0;
             view.split_count=0;cJSON *splits=cJSON_GetObjectItemCaseSensitive(j,"splits"),*row;
             if(cJSON_IsArray(splits))cJSON_ArrayForEach(row,splits){
@@ -482,6 +543,15 @@ static void poller(void *arg){
             ulTaskNotifyTake(pdTRUE,pdMS_TO_TICKS(1000));continue;
         }
         bool ok=wifi_up&&fetch_view();
+        if(ok&&view.anim[0]&&strcmp(view.anim,anim_loaded)){
+            uint8_t *nb=NULL;size_t nl=0;
+            if(fetch_anim(&nb,&nl)){
+                /* Swap under the LVGL lock: the old GIF object is deleted by the next render before its buffer is freed. */
+                if(display_engine_lock(2000)){lv_obj_clean(lv_screen_active());uint8_t *old=anim_buf;anim_buf=nb;anim_len=nl;
+                    snprintf(anim_loaded,sizeof(anim_loaded),"%s",view.anim);display_engine_unlock();if(old)heap_caps_free(old);}
+                else heap_caps_free(nb);
+            } else snprintf(anim_loaded,sizeof(anim_loaded),"%s",view.anim); /* do not retry every poll; a new name retries */
+        }
         failures=ok?0:failures+1;bool online=failures<3;
         if(ok&&view.reg){
             if(esp_timer_get_time()>=reg_retry_us){
@@ -492,7 +562,7 @@ static void poller(void *arg){
         scene_t scene=ok||!online?decide(online):real; /* one missed poll keeps the last decided scene */
         real=scene;
         /* Re-render only when what the screen shows changed (FNV-1a over the fields). */
-        uint32_t sig=2166136261u;const char *fields[]={view.screen,view.title,view.line1,view.line2,view.big,view.qr,view.table,view.bill,shown.note};
+        uint32_t sig=2166136261u;const char *fields[]={view.screen,view.title,view.line1,view.line2,view.big,view.qr,view.table,view.bill,shown.note,anim_loaded};
         for(size_t f=0;f<sizeof(fields)/sizeof(fields[0]);f++)for(const char *p=fields[f];;p++){sig=(sig^(uint8_t)*p)*16777619u;if(!*p)break;}
         for(int k=0;k<view.split_count;k++){for(const char *p=view.splits[k].label;*p;p++)sig=(sig^(uint8_t)*p)*16777619u;for(const char *p=view.splits[k].amount;*p;p++)sig=(sig^(uint8_t)*p)*16777619u;}
         sig=(sig^(uint32_t)scene^((uint32_t)view.reg<<3)^((uint32_t)online<<4)^((uint32_t)shown.witness<<5)^((uint32_t)lang_th<<6)^((uint32_t)have_key<<7))*16777619u;

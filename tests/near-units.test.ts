@@ -132,3 +132,10 @@ test('cross-chain preview: dry quotes only, no identity leaves the server, failu
   const home=await intentsPreview('send-home',12_500_000n);assert.equal(home.direction,'send-home');assert.ok(sent.slice(before).every(b=>b.swapType==='EXACT_INPUT'&&b.dry===true));
  }finally{setIntentsFetch(null);}
 });
+
+test('the Mini screen text keeps Thai, Latin-1 and listed punctuation, and folds the rest',async()=>{
+ const {screenText}=await import('../apps/api/src/near/device');
+ assert.equal(screenText('Orbit Café · Table 2 — paid…'),'Orbit Café · Table 2 — paid…');
+ assert.equal(screenText('จ่ายแล้ว ✓'),'จ่ายแล้ว OK');
+ assert.equal(screenText('Łódź ☕'),'Lódz ','Latin-1 letters stay, others lose their accent, emoji are dropped');
+});
