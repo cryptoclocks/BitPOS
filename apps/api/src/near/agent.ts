@@ -34,11 +34,13 @@ export const sampleAgent:AgentModel={name:null,async decide(bill,_pass,rule){
 
 export function nearAiAgent(apiKey:string,model:string,http?:typeof fetch):AgentModel{
  return {name:model,async decide(bill,pass,rule){
-  const r=await nearAiChoose({apiKey,model,http,name:'pass_decision',options:['pay','decline'],
-   system:'You are a careful payment agent. A guest gave you a time-limited pass to pay cafe bills for them. Decide whether to pay this one bill. Pay only if every item fits the guest rule; if the rule is empty, pay. The limits are already checked by a contract, so judge only the rule. Write one short plain sentence as the reason. Do not write any digits, money amounts or links. Answer as JSON with the keys option and reason.',
+  const r=await nearAiChoose({apiKey,model,http,name:'pass_decision',options:['decline','pay'],extra:{items_breaking_rule:{type:'array',items:{type:'string'}}},
+   system:'You are a careful payment agent. A guest gave you a time-limited pass to pay cafe bills for them. First list in items_breaking_rule every bill item the guest rule excludes (an empty list if none, or if the rule is empty). Then choose option: pay only when that list is empty, otherwise decline. The limits are already checked by a contract, so judge only the rule. Write one short plain sentence as the reason. Do not write any digits, money amounts or links. Answer as JSON with the keys items_breaking_rule, option and reason.',
    user:{guest_rule:rule||'(none: pay any exact bill within the limits)',bill:{shop:bill.shop,items:bill.lines.map(l=>({name:l.name,quantity:l.qty})),total:`${bill.total} ${bill.symbol}`},pass:{left:pass.balance,max_per_bill:pass.maxBill,minutes_left:pass.minutesLeft,bills_paid:pass.billsPaid}}});
-  // An unreadable answer is never treated as permission to pay.
-  const decision=r.option==='pay'?'pay':'decline';
+  // Pay only on a consistent answer: option "pay" AND no item listed as breaking the rule. Anything else,
+  // including an unreadable answer, is a decline.
+  const breaking=Array.isArray(r.extra.items_breaking_rule)?r.extra.items_breaking_rule.filter(x=>typeof x==='string'&&x.trim()):null;
+  const decision=r.option==='pay'&&breaking!==null&&breaking.length===0?'pay':'decline';
   return {decision,reason:cleanAgentReason(r.reason,decision),proof:r.proof};
  }};
 }

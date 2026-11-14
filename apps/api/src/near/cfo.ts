@@ -55,14 +55,14 @@ export function verifyResponseSignature(input:{signature:{text?:unknown;signatur
   try{valid=ed25519.verify(Buffer.from(s.signature,'hex'),Buffer.from(expected,'utf8'),Buffer.from(s.signing_address,'hex'));}catch{valid=false;}
  }
  const signer=hex32(s.signing_address)?s.signing_address.toLowerCase():null;
- const named=!!signer&&(kind==='provider_tee'?input.modelSigners.filter(m=>m===signer).length===1:kind==='gateway'?input.gatewaySigner===signer:false);
+ const named=!!signer&&(kind==='provider_tee'?input.modelSigners.includes(signer):kind==='gateway'?input.gatewaySigner===signer:false);
  return {kind,signer,signature_verified:valid,signer_in_attestation_report:valid&&named};
 }
 
 /** One NEAR AI Cloud call that must answer with one id from `options` plus a short reason, verified as documented:
  *  attestation report (own nonce) before the call, exact request/response bytes hashed, response signature checked
  *  against a signer named in that report. Shared by the Café CFO and the AI spending-pass agent. */
-export async function nearAiChoose(input:{apiKey:string;model:string;name:string;options:string[];system:string;user:unknown;http?:Fetch;base?:string}):Promise<{option:string|null;reason:unknown;proof:CfoProof}>{
+export async function nearAiChoose(input:{apiKey:string;model:string;name:string;options:string[];system:string;user:unknown;http?:Fetch;base?:string;extra?:Record<string,unknown>}):Promise<{option:string|null;reason:unknown;extra:Record<string,unknown>;proof:CfoProof}>{
  const {apiKey,model,options}=input;const http=input.http??fetch,base=input.base??NEAR_AI_BASE;
  const proof=noProof('near_ai','');proof.model=model;
  // 1. Before the call: who is allowed to sign answers (attestation report with our own nonce).
@@ -76,7 +76,7 @@ export async function nearAiChoose(input:{apiKey:string;model:string;name:string
  }catch{/* without a report the answer simply stays unverified */}
  // 2. The call: exact request bytes are kept; the model must answer with one of the option ids.
  const body=Buffer.from(JSON.stringify({model,temperature:0,max_tokens:200,stream:false,
-  response_format:{type:'json_schema',json_schema:{name:input.name,strict:true,schema:{type:'object',additionalProperties:false,required:['option','reason'],properties:{option:{type:'string',enum:options},reason:{type:'string'}}}}},
+  response_format:{type:'json_schema',json_schema:{name:input.name,strict:true,schema:{type:'object',additionalProperties:false,required:['option','reason',...Object.keys(input.extra??{})],properties:{option:{type:'string',enum:options},reason:{type:'string'},...(input.extra??{})}}}},
   messages:[{role:'system',content:input.system},{role:'user',content:JSON.stringify(input.user)}]}),'utf8');
  proof.request_sha256=sha(body);
  const response=await http(`${base}/chat/completions`,{method:'POST',headers:{authorization:`Bearer ${apiKey}`,'content-type':'application/json',accept:'application/json','accept-encoding':'identity','x-no-aliasing':'true'},body,signal:AbortSignal.timeout(45_000)});
@@ -84,7 +84,7 @@ export async function nearAiChoose(input:{apiKey:string;model:string;name:string
  if(!response.ok)throw new Error('NEAR_AI_HTTP_'+response.status);
  proof.response_sha256=sha(raw);
  const parsed=JSON.parse(raw.toString('utf8')) as {id?:unknown;choices?:{message?:{content?:unknown}}[]};
- let choice:{option?:unknown;reason?:unknown}={};try{choice=JSON.parse(String(parsed.choices?.[0]?.message?.content??''));}catch{/* handled below */}
+ let choice:Record<string,unknown>&{option?:unknown;reason?:unknown}={};try{choice=JSON.parse(String(parsed.choices?.[0]?.message?.content??''));}catch{/* handled below */}
  const option=options.includes(choice.option as string)?choice.option as string:null;
  // 3. After the call: the response signature over those exact bytes, from a signer named in step 1.
  if(typeof parsed.id==='string'&&/^[A-Za-z0-9_-]{1,120}$/.test(parsed.id)){
@@ -100,7 +100,7 @@ export async function nearAiChoose(input:{apiKey:string;model:string;name:string
  }
  proof.note=proof.signature_verified&&proof.signer_in_attestation_report?'Response signature verified over the exact request and response bytes; signer named in the attestation report fetched before the call. The TEE hardware quote in that report was not verified by BitPOS.'
   :'The answer could not be verified (no matching response signature). Treat it as an unverified suggestion.';
- return {option,reason:choice.reason,proof};
+ return {option,reason:choice.reason,extra:choice,proof};
 }
 
 export function nearAiModel(apiKey:string,model:string,http:Fetch=fetch,base=NEAR_AI_BASE):CfoModel{

@@ -74,7 +74,8 @@ test('signature check is strict about kind, text, algorithm and signer',()=>{
  const teeText=`m:${sha(req)}:${sha(res)}`;
  const base={requestBytes:req,responseBytes:res,model:'m',gatewaySigner:null,modelSigners:[pk]};
  assert.deepEqual(verifyResponseSignature({...base,signature:{text:teeText,signature:sign(teeText),signing_address:pk,signing_algo:'ed25519',signature_kind:'provider_tee'}}),{kind:'provider_tee',signer:pk,signature_verified:true,signer_in_attestation_report:true});
- assert.equal(verifyResponseSignature({...base,modelSigners:[pk,pk],signature:{text:teeText,signature:sign(teeText),signing_address:pk,signing_algo:'ed25519',signature_kind:'provider_tee'}}).signer_in_attestation_report,false,'an ambiguous match is not a match');
+ assert.equal(verifyResponseSignature({...base,modelSigners:[pk,pk],signature:{text:teeText,signature:sign(teeText),signing_address:pk,signing_algo:'ed25519',signature_kind:'provider_tee'}}).signer_in_attestation_report,true,'the same signer listed by several model attestations (as NEAR AI reports do) is still that signer');
+ assert.equal(verifyResponseSignature({...base,modelSigners:['ab'.repeat(32)],signature:{text:teeText,signature:sign(teeText),signing_address:pk,signing_algo:'ed25519',signature_kind:'provider_tee'}}).signer_in_attestation_report,false,'a signer the report does not name is not trusted');
  assert.equal(verifyResponseSignature({...base,signature:{text:teeText,signature:sign(teeText),signing_address:pk,signing_algo:'ed25519'}}).signature_verified,false,'no kind, no inference');
  assert.equal(verifyResponseSignature({...base,signature:{text:teeText,signature:sign(teeText),signing_address:pk,signing_algo:'ecdsa',signature_kind:'provider_tee'}}).signature_verified,false);
  assert.equal(verifyResponseSignature({...base,model:'other',signature:{text:teeText,signature:sign(teeText),signing_address:pk,signing_algo:'ed25519',signature_kind:'provider_tee'}}).signature_verified,false);

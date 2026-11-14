@@ -68,6 +68,10 @@ test('P-04: the agent reads the bill and the guest rule first; a decline moves n
  const fake=(async(url:string)=>new Response(url.includes('/chat/completions')?JSON.stringify({id:'x1',choices:[{message:{content:'not json'}}]}):'{}',{status:200})) as unknown as typeof fetch;
  const unreadable=await agent.nearAiAgent('k'.repeat(30),'test-model',fake).decide({shop:'Orbit',total:'5.00',symbol:'tUSD',lines:[{name:'Latte',qty:1}]},{balance:'20.00',maxBill:'10.00',minutesLeft:50,billsPaid:0},'');
  assert.equal(unreadable.decision,'decline');assert.equal(unreadable.proof.signature_verified,false);
+ // a model that says "pay" but lists an item breaking the rule is treated as a decline
+ const contradict=(async(url:string)=>new Response(url.includes('/chat/completions')?JSON.stringify({id:'x2',choices:[{message:{content:JSON.stringify({items_breaking_rule:['Croissant'],option:'pay',reason:'The croissant is excluded by the rule.'})}}]}):'{}',{status:200})) as unknown as typeof fetch;
+ const guarded=await agent.nearAiAgent('k'.repeat(30),'test-model',contradict).decide({shop:'Orbit',total:'9.50',symbol:'tUSD',lines:[{name:'Latte',qty:1},{name:'Croissant',qty:1}]},{balance:'20.00',maxBill:'10.00',minutesLeft:50,billsPaid:0},'Coffee only');
+ assert.equal(guarded.decision,'decline');
  // the sample rule (no key): "no croissant" blocks a croissant line
  const sample=await agent.sampleAgent.decide({shop:'Orbit',total:'4.50',symbol:'tUSD',lines:[{name:'Croissant',qty:1}]},{balance:'20.00',maxBill:'10.00',minutesLeft:50,billsPaid:0},'Coffee is fine, no croissants');
  assert.equal(sample.decision,'decline');assert.equal(sample.proof.mode,'sample');

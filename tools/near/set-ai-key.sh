@@ -8,7 +8,7 @@
 set -euo pipefail
 cd "$(git rev-parse --show-toplevel)"
 KEY=$(pbpaste | tr -d '[:space:]')
-[[ "$KEY" =~ ^[A-Za-z0-9._-]{20,300}$ ]] || { echo "The clipboard does not hold a NEAR AI key. Copy the key, then run this again." >&2; exit 1; }
+printf '%s' "$KEY" | LC_ALL=C grep -Eq '^[A-Za-z0-9._-]{20,200}$' || { echo "The clipboard does not hold a NEAR AI key. Copy the key, then run this again." >&2; exit 1; }
 MODEL=${NEAR_AI_MODEL:-z-ai/glm-5.3-flash}
 models=$(curl -s --max-time 20 -H "Authorization: Bearer $KEY" https://cloud-api.near.ai/v1/models | python3 -c 'import json,sys
 try:
