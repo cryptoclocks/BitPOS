@@ -31,3 +31,15 @@ NEAR_SELFTEST rfc8032=ok device_key=ok ms=2151
   and a device_ack on testnet. These need a public HTTPS origin (the hosted demo, not approved yet); the browser
   simulated screen runs the same protocol and was verified against testnet.
 - Roll back: select slot 0 again (`otatool.py switch_ota_partition --slot 0`) or restore the private full backup.
+
+## Update — the Mini witnessed a real payment on testnet (14 Nov 2026, 19:2x ICT)
+
+- Provisioned over USB to the hosted demo (`NEAR_PROVISION https://near-pos.cashlessthailand.com <device> <key>`; key
+  kept private). The board joined WiFi, registered its public key (`NEAR_REGISTER status=200`) and was made the demo
+  shop's witness (timeout 120 s).
+- Bill `b4001e9abb48f49d4b3c304be232b3e0e` (1 × Latte, 5.00 tUSD), paid with the demo wallet on near-pay:
+  - pay into escrow: [Fe6CWU…1FZN](https://testnet.nearblocks.io/txns/Fe6CWUHfRseVfSnKpqPtupAonmmQTVCoZrNUmBUg1FZN)
+  - **device_ack signed by the board**: [8ECTxu…PiD5](https://testnet.nearblocks.io/txns/8ECTxuJAPfrkPiDb98qCqkQsxQrrNb5w9BGtV3WQPiD5) —
+    event `witness_pk = f787eca7e33691245f52e63217235b01ac972b84f90c40d3b19115a6ead4233e`, the key the device made on
+    first boot (see the boot log above); the same transaction settled the four payouts. Status FINAL.
+- So the firmware's network path (WiFi, TLS to the server, chain check, flush-gated signature) has now run on hardware.

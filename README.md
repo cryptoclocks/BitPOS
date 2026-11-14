@@ -62,9 +62,8 @@ Full steps, the code map and the honest list of limits: **[near-hackathon/JUDGES
 Plan (Thai): [near-hackathon/PLAN_TH.md](near-hackathon/PLAN_TH.md). Contract: [contracts/near-bills](contracts/near-bills/src/lib.rs).
 Deployed: `bills.bitpos-near.testnet` (see [near-deployment.json](near-hackathon/near-deployment.json)).
 
-**Honest limits.** Testnet only, test money. The hosted demo's table and counter screens are simulated; the BitPOS Mini
-firmware boots on real hardware and passes its signature self-test, but its witness signature on testnet came from the
-browser's simulated screen. NEAR Intents is a dry-quote preview (nothing executed). The Café CFO and the pass agent use
+**Honest limits.** Testnet only, test money. The hosted demo's table and counter screens are simulated, except when the real BitPOS Mini is plugged in as the
+witness: on 14 Nov it signed a real testnet payment ([device_ack](https://testnet.nearblocks.io/txns/8ECTxuJAPfrkPiDb98qCqkQsxQrrNb5w9BGtV3WQPiD5), key made on the device). NEAR Intents is a dry-quote preview (nothing executed). The Café CFO and the pass agent use
 NEAR AI Cloud (the hosted demo has a key: verified response signatures, see [evidence](near-hackathon/evidence/near-ai-2026-11-14.md)); without a key they say "Sample · no model called". Chain Signatures are not used.
 Full list: [JUDGES.md › Limits](near-hackathon/JUDGES.md#limits-honest-list).
 
