@@ -19,7 +19,7 @@ const API=Number(process.env.BITPOS_NEAR_API_PORT??3106);
 const WEB=Number(process.env.BITPOS_NEAR_WEB_PORT??4381);
 const SITE_HOST=(process.env.BITPOS_NEAR_SITE_HOST??'near.cashlessthailand.com').toLowerCase();
 const SITE=fileURLToPath(new URL(process.env.BITPOS_NEAR_SITE_DIR?`file://${process.env.BITPOS_NEAR_SITE_DIR}/`:'../../apps/near-site/',import.meta.url));
-const TYPES:Record<string,string>={html:'text/html; charset=utf-8',css:'text/css; charset=utf-8',js:'text/javascript; charset=utf-8',json:'application/json',svg:'image/svg+xml',jpg:'image/jpeg',jpeg:'image/jpeg',png:'image/png',webp:'image/webp',ico:'image/x-icon',mp4:'video/mp4',woff2:'font/woff2',woff:'font/woff',ttf:'font/ttf',txt:'text/plain; charset=utf-8',xml:'application/xml'};
+const TYPES:Record<string,string>={html:'text/html; charset=utf-8',css:'text/css; charset=utf-8',js:'text/javascript; charset=utf-8',json:'application/json',svg:'image/svg+xml',jpg:'image/jpeg',jpeg:'image/jpeg',png:'image/png',gif:'image/gif',webp:'image/webp',ico:'image/x-icon',mp4:'video/mp4',woff2:'font/woff2',woff:'font/woff',ttf:'font/ttf',txt:'text/plain; charset=utf-8',xml:'application/xml'};
 const CSP="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; media-src 'self'; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'none'";
 /** Files under apps/near-site only (no listing, no traversal, no dotfiles); Range requests for video. */
 function serveSite(req:http.IncomingMessage,path:string,res:http.ServerResponse){
